@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Economic Research Platform</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="page-bg"></div>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Open Research Infrastructure</p>
+        <h1>Economic Research Platform</h1>
+        <p class="hero-copy">
+          面向经济研究的长期运维平台。支持多模型 API、OpenAlex 文献库、私有数据库、数据清洗、
+          OLS 分析，以及每日定时经济热点简报。
+        </p>
+      </div>
+      <div class="hero-meta">
+        <div class="meta-card">
+          <span>运行模式</span>
+          <strong id="health-status">检查中</strong>
+        </div>
+        <div class="meta-card">
+          <span>默认时区</span>
+          <strong>Asia/Shanghai</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="panel auth-panel">
+        <div>
+          <h2>账户</h2>
+          <p class="muted">每个用户拥有自己的工作区、私有文献库、私有数据资产和模型接入配置。</p>
+          <div class="status-row">
+            <span class="pill" id="session-indicator">未登录</span>
+            <span class="muted" id="user-summary">请先注册或登录</span>
+          </div>
+        </div>
+        <div class="auth-grid">
+          <form id="register-form" class="stack">
+            <h3>注册</h3>
+            <input name="full_name" type="text" placeholder="姓名" autocomplete="name" required />
+            <input name="email" type="email" placeholder="邮箱" autocomplete="email" required />
+            <input name="password" type="password" placeholder="密码（至少 8 位）" autocomplete="new-password" required />
+            <button type="submit">创建账户</button>
+          </form>
+          <form id="login-form" class="stack">
+            <h3>登录</h3>
+            <input name="email" type="email" placeholder="邮箱" autocomplete="username" required />
+            <input name="password" type="password" placeholder="密码" autocomplete="current-password" required />
+            <button type="submit">登录</button>
+          </form>
+          <div class="stack workspace-box">
+            <h3>工作区</h3>
+            <select id="workspace-select"></select>
+            <form id="workspace-form" class="stack compact">
+              <input name="name" type="text" placeholder="新工作区名称" required />
+              <input name="description" type="text" placeholder="描述（可选）" />
+              <button type="submit">新增工作区</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section class="dashboard-grid">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Provider Center</h2>
+            <span class="muted">OpenAI / Gemini / Anthropic / OpenAI-compatible / FRED</span>
+          </div>
+          <form id="integration-form" class="stack">
+            <input name="label" type="text" placeholder="连接名称" required />
+            <div class="split">
+              <select name="category">
+                <option value="llm">LLM</option>
+                <option value="data_source">Data Source</option>
+              </select>
+              <select name="kind">
+                <option value="openai">OpenAI</option>
+                <option value="openai_compatible">OpenAI Compatible</option>
+                <option value="gemini">Gemini</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="fred">FRED</option>
+              </select>
+            </div>
+            <input name="model" type="text" placeholder="默认模型（可选）" />
+            <input name="base_url" type="text" placeholder="Base URL（OpenAI-compatible 时可填）" />
+            <input name="api_key" type="password" placeholder="API Key" required />
+            <label class="checkbox"><input name="is_default" type="checkbox" /> 设为默认连接</label>
+            <button type="submit">保存连接</button>
+          </form>
+          <div id="integration-list" class="card-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Daily Briefing</h2>
+            <span class="muted">GDELT + FRED + 你的默认 LLM</span>
+          </div>
+          <form id="briefing-form" class="stack">
+            <input name="title" type="text" placeholder="简报标题（可选）" />
+            <textarea name="query_text" rows="4" placeholder="追踪主题，例如：全球通胀、主要央行动作、国际贸易与能源价格"></textarea>
+            <button type="submit">生成简报</button>
+          </form>
+          <div id="briefing-list" class="card-list tall"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Paper Library</h2>
+            <span class="muted">OpenAlex 检索与入库</span>
+          </div>
+          <form id="openalex-form" class="stack">
+            <input name="query" type="text" placeholder="搜索经济学文献，例如：monetary policy transmission" required />
+            <label class="checkbox"><input name="open_access_only" type="checkbox" /> 仅开放获取</label>
+            <button type="submit">搜索文献</button>
+          </form>
+          <div class="actions">
+            <button id="import-openalex" type="button" class="secondary">导入当前检索结果</button>
+          </div>
+          <div id="openalex-results" class="card-list"></div>
+          <div id="literature-list" class="card-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Data Lab</h2>
+            <span class="muted">私有数据上传、清洗、基础 OLS</span>
+          </div>
+          <form id="upload-form" class="stack">
+            <input name="file" type="file" required />
+            <input name="description" type="text" placeholder="数据说明（可选）" />
+            <button type="submit">上传数据或文档</button>
+          </form>
+          <form id="ols-form" class="stack compact">
+            <input name="asset_id" type="text" placeholder="数据集 Asset ID" required />
+            <input name="dependent" type="text" placeholder="因变量列名" required />
+            <input name="independents" type="text" placeholder="自变量列名，用逗号分隔" required />
+            <button type="submit">运行 OLS</button>
+          </form>
+          <pre id="analysis-output" class="console-box">等待分析结果</pre>
+          <div id="asset-list" class="card-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Private Knowledge Base</h2>
+            <span class="muted">研究笔记、方法总结、内部结论</span>
+          </div>
+          <form id="knowledge-form" class="stack">
+            <input name="title" type="text" placeholder="条目标题" required />
+            <input name="tags" type="text" placeholder="标签，用逗号分隔" />
+            <textarea name="content" rows="5" placeholder="写入你的研究笔记或内部摘要" required></textarea>
+            <button type="submit">写入私有知识库</button>
+          </form>
+          <div id="knowledge-list" class="card-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Schedules</h2>
+            <span class="muted">每日定时运行经济热点任务</span>
+          </div>
+          <form id="schedule-form" class="stack">
+            <input name="name" type="text" placeholder="任务名称" required />
+            <input name="local_time" type="time" value="08:00" required />
+            <input name="query_text" type="text" placeholder="定时追踪主题" />
+            <button type="submit">创建每日任务</button>
+          </form>
+          <div id="schedule-list" class="card-list"></div>
+        </section>
+      </section>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>

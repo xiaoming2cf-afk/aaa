@@ -1,0 +1,25 @@
+name: Run Due Jobs
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger scheduled jobs endpoint
+        env:
+          BASE_URL: ${{ secrets.RESEARCH_PLATFORM_BASE_URL }}
+          CRON_SECRET: ${{ secrets.RESEARCH_PLATFORM_CRON_SECRET }}
+        run: |
+          if [ -z "$BASE_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "Missing RESEARCH_PLATFORM_BASE_URL or RESEARCH_PLATFORM_CRON_SECRET secret."
+            exit 1
+          fi
+
+          curl --fail --show-error --silent \
+            -X POST \
+            -H "X-Cron-Secret: $CRON_SECRET" \
+            "$BASE_URL/api/internal/run-due-jobs"

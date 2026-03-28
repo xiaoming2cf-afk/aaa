@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: economic-research-web
+    runtime: python
+    plan: free
+    buildCommand: pip install -e .
+    startCommand: uvicorn research_agent.asgi:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.12
+      - key: APP_NAME
+        value: Economic Research Platform
+      - key: APP_ENV
+        value: production
+      - key: APP_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: CRON_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: ASSET_STORAGE_BACKEND
+        value: supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: research-assets
+      - key: STORAGE_DIR
+        value: /tmp/economic-research-storage
+      - key: RESEARCH_AGENT_REPORTS_DIR
+        value: /tmp/economic-research-storage/reports
+      - key: RESEARCH_AGENT_MODEL
+        value: gpt-5-mini
+      - key: RESEARCH_AGENT_REASONING_EFFORT
+        value: medium
+      - key: SESSION_TTL_HOURS
+        value: 720
+      - key: GDELT_MAX_RECORDS
+        value: 15
+      - key: DEFAULT_FRED_SERIES
+        value: FEDFUNDS,CPIAUCSL,UNRATE,DGS10
