@@ -22,6 +22,9 @@ const dom = {
   toast: document.getElementById("toast"),
   healthStatus: document.getElementById("health-status"),
   publicStatus: document.getElementById("public-status"),
+  publicCurrentTitle: document.getElementById("public-current-title"),
+  publicCurrentMeta: document.getElementById("public-current-meta"),
+  publicDateSwitcher: document.getElementById("public-date-switcher"),
   publicLatestMeta: document.getElementById("public-latest-meta"),
   publicLatestView: document.getElementById("public-latest-view"),
   publicThemeStrip: document.getElementById("public-theme-strip"),
@@ -141,6 +144,60 @@ function absolutePublicUrl(value) {
   }
 }
 
+function formatInlineMarkdown(text) {
+  const escaped = escapeHtml(text || "");
+  return escaped.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noreferrer">$1</a>');
+}
+
+function markdownToHtml(markdown) {
+  const lines = (markdown || "").split(/\r?\n/);
+  const html = [];
+  let inList = false;
+
+  const closeList = () => {
+    if (inList) {
+      html.push("</ul>");
+      inList = false;
+    }
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      closeList();
+      continue;
+    }
+    if (line.startsWith("# ")) {
+      closeList();
+      html.push(`<h2>${formatInlineMarkdown(line.slice(2))}</h2>`);
+      continue;
+    }
+    if (line.startsWith("## ")) {
+      closeList();
+      html.push(`<h3>${formatInlineMarkdown(line.slice(3))}</h3>`);
+      continue;
+    }
+    if (line.startsWith("### ")) {
+      closeList();
+      html.push(`<h4>${formatInlineMarkdown(line.slice(4))}</h4>`);
+      continue;
+    }
+    if (line.startsWith("- ")) {
+      if (!inList) {
+        html.push("<ul>");
+        inList = true;
+      }
+      html.push(`<li>${formatInlineMarkdown(line.slice(2))}</li>`);
+      continue;
+    }
+    closeList();
+    html.push(`<p>${formatInlineMarkdown(line)}</p>`);
+  }
+
+  closeList();
+  return html.join("") || `<p class="muted">No content yet.</p>`;
+}
+
 function defaultSummaryPages() {
   return [
     {
@@ -171,7 +228,7 @@ function hasPrivateWorkspaceUI() {
 }
 
 function hasPublicMonitorUI() {
-  return Boolean(dom.publicPanel && dom.publicLatestView);
+  return Boolean(dom.publicLatestView && dom.publicSummaryView && dom.publicBriefingList);
 }
 
 function clearPrivateLists() {
@@ -411,6 +468,32 @@ function renderPublicThemes(topThemes) {
     .join("");
 }
 
+function renderPublicDateSwitcher(items, selectedSlug) {
+  if (!dom.publicDateSwitcher) {
+    return;
+  }
+  if (!items || !items.length) {
+    dom.publicDateSwitcher.innerHTML = `<span class="muted">Recent editions will appear here.</span>`;
+    return;
+  }
+  dom.publicDateSwitcher.innerHTML = items
+    .slice(0, 10)
+    .map(
+      (item) => `
+        <button
+          type="button"
+          class="date-pill${item.slug === selectedSlug ? " is-active" : ""}"
+          data-public-slug="${item.slug}"
+          title="${escapeHtml(item.title)}"
+        >
+          <span>${escapeHtml(item.briefing_date)}</span>
+          <strong>${escapeHtml(item.headline_count)}</strong>
+        </button>
+      `,
+    )
+    .join("");
+}
+
 function renderPublicClusters(clusters) {
   if (!dom.publicClusterList) {
     return;
@@ -546,16 +629,30 @@ function renderPublicLatest(briefing) {
   }
   if (!briefing) {
     state.selectedPublicBriefing = null;
+    if (dom.publicCurrentTitle) {
+      dom.publicCurrentTitle.textContent = "No public edition yet";
+    }
+    if (dom.publicCurrentMeta) {
+      dom.publicCurrentMeta.textContent = "Waiting for the first scheduled public briefing.";
+    }
     dom.publicLatestMeta.textContent = "No public briefing has been published yet.";
-    dom.publicLatestView.textContent = "The public daily monitor will appear here after the first scheduled collection.";
+    dom.publicLatestView.innerHTML = `<p class="muted">The public daily monitor will appear here after the first scheduled collection.</p>`;
+    renderPublicDateSwitcher(state.publicBriefings || [], "");
     renderPublicThemes([]);
     renderPublicClusters([]);
     renderRecommendedReading(null);
     return;
   }
   state.selectedPublicBriefing = briefing;
+  if (dom.publicCurrentTitle) {
+    dom.publicCurrentTitle.textContent = briefing.title;
+  }
+  if (dom.publicCurrentMeta) {
+    dom.publicCurrentMeta.textContent = `${briefing.briefing_date} | ${briefing.headline_count} headlines | ${briefing.timezone_name}`;
+  }
   dom.publicLatestMeta.textContent = `${briefing.title} | ${briefing.briefing_date} | ${briefing.headline_count} headlines`;
-  dom.publicLatestView.textContent = briefing.summary_markdown;
+  dom.publicLatestView.innerHTML = markdownToHtml(briefing.summary_markdown);
+  renderPublicDateSwitcher(state.publicBriefings || [], briefing.slug);
   renderPublicThemes(briefing.top_themes || []);
   renderPublicClusters(briefing.news_clusters || []);
   renderRecommendedReading(briefing.recommended_reading || null);
@@ -568,14 +665,14 @@ function renderPublicSummary(summary) {
   if (!summary || !summary.report_count) {
     dom.publicSummaryTitle.textContent = "Rolling Summary";
     dom.publicSummaryMeta.textContent = "Recent multi-day view";
-    dom.publicSummaryView.textContent = "The rolling public summary will appear after public daily briefings accumulate.";
+    dom.publicSummaryView.innerHTML = `<p class="muted">The rolling public summary will appear after public daily briefings accumulate.</p>`;
     renderSummaryPages(summary?.available_pages || defaultSummaryPages());
     renderSummaryFeatured([]);
     return;
   }
   dom.publicSummaryTitle.textContent = summary.title || "Rolling Summary";
   dom.publicSummaryMeta.textContent = summary.subtitle || `${summary.days}-day public view`;
-  dom.publicSummaryView.textContent = summary.markdown;
+  dom.publicSummaryView.innerHTML = markdownToHtml(summary.markdown);
   renderSummaryPages(summary.available_pages || defaultSummaryPages());
   renderSummaryFeatured(summary.featured_briefings || []);
 }
@@ -702,6 +799,7 @@ async function loadPublicData() {
   ]);
   state.publicBriefings = listResponse.items || [];
   const latest = detailResponse.briefing || latestResponse.briefing || state.publicBriefings[0] || null;
+  renderPublicDateSwitcher(state.publicBriefings, latest?.slug || requestedSlug);
   renderPublicLatest(latest);
   if (requestedSlug && latest) {
     syncPublicUrl(latest);
@@ -1005,8 +1103,12 @@ async function handleAssetActions(event) {
 }
 
 async function handlePublicActions(event) {
-  const slug = event.target.getAttribute("data-public-slug");
-  const publicUrl = event.target.getAttribute("data-copy-public-url");
+  const target = event.target.closest("[data-public-slug], [data-copy-public-url]");
+  if (!target) {
+    return;
+  }
+  const slug = target.getAttribute("data-public-slug");
+  const publicUrl = target.getAttribute("data-copy-public-url");
   if (publicUrl) {
     await copyToClipboard(publicUrl);
     showToast("Public link copied.");
@@ -1096,6 +1198,7 @@ function bind() {
   );
   dom.integrationList?.addEventListener("click", wrap(handleIntegrationActions));
   dom.assetList?.addEventListener("click", wrap(handleAssetActions));
+  dom.publicDateSwitcher?.addEventListener("click", wrap(handlePublicActions));
   dom.publicBriefingList?.addEventListener("click", wrap(handlePublicActions));
   dom.publicSummaryFeatured?.addEventListener("click", wrap(handlePublicActions));
 }

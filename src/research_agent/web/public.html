@@ -30,71 +30,98 @@
       </div>
     </header>
 
-    <main class="shell">
-      <section class="panel public-panel" id="public-panel">
+    <main class="shell public-shell">
+      <section class="panel public-toolbar">
         <div class="panel-head panel-head-wrap">
           <div>
             <h2>Public Daily Monitor</h2>
             <p class="muted">
-              Open to all visitors. The public feed focuses on global macro and financial headlines, plus any
-              available FRED indicator snapshot.
+              Open to all visitors. Switch recent editions, move across weekly/monthly views, and read the current
+              public macro note in a cleaner product-style layout.
             </p>
           </div>
           <div class="actions">
             <a href="/" class="button-link secondary-link">Back to main platform</a>
+            <button id="copy-public-link" type="button" class="secondary">Copy share link</button>
             <button id="refresh-public" type="button" class="secondary">Refresh public feed</button>
           </div>
         </div>
 
-        <div class="public-grid">
-          <article class="stack">
+        <div class="public-toolbar-grid">
+          <div class="public-current-card">
+            <span class="eyebrow eyebrow-compact">Current View</span>
+            <h3 id="public-current-title">Loading current edition...</h3>
+            <p class="muted" id="public-current-meta">Waiting for the latest public briefing...</p>
+            <div id="public-theme-strip" class="chip-row"></div>
+          </div>
+          <div class="public-dates-card">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h3>Edition Switcher</h3>
+                <span class="muted">Jump by date without leaving the page</span>
+              </div>
+            </div>
+            <div id="public-date-switcher" class="date-switcher"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel public-summary-rail">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h3>Roundup Entry Bar</h3>
+            <span class="muted">Pinned links to the public weekly and monthly views</span>
+          </div>
+          <div class="chip-row chip-row-compact">
+            <button type="button" class="chip-button is-active" data-summary-days="7">7D</button>
+            <button type="button" class="chip-button" data-summary-days="14">14D</button>
+            <button type="button" class="chip-button" data-summary-days="30">30D</button>
+          </div>
+        </div>
+        <div id="public-summary-pages" class="summary-page-grid"></div>
+      </section>
+
+      <div class="public-layout">
+        <aside class="panel public-sidebar">
+          <div class="stack">
+            <div>
+              <p class="eyebrow eyebrow-compact">Navigate</p>
+              <h3>Public Sections</h3>
+            </div>
+            <nav class="public-section-nav">
+              <a href="#latest-edition">Latest Edition</a>
+              <a href="#summary-window">Rolling Summary</a>
+              <a href="#news-clusters">News Clusters</a>
+              <a href="#reading-list">Recommended Reading</a>
+              <a href="#recent-editions">Recent Editions</a>
+            </nav>
+            <div class="public-sidebar-note">
+              <p class="muted">
+                This standalone page is only for public monitoring content. Private research workflows stay on the main platform.
+              </p>
+            </div>
+          </div>
+        </aside>
+
+        <section class="public-main">
+          <article class="panel public-section" id="latest-edition">
             <div class="panel-head panel-head-wrap">
               <div>
                 <h3>Latest Edition</h3>
                 <span class="muted" id="public-latest-meta">Waiting for the latest public briefing...</span>
               </div>
-              <div class="actions">
-                <button id="copy-public-link" type="button" class="secondary">Copy share link</button>
-              </div>
             </div>
-            <div id="public-theme-strip" class="chip-row"></div>
-            <pre id="public-latest-view" class="report-view">Loading the latest public briefing...</pre>
-            <div class="stack">
-              <div class="panel-head">
-                <h3>Related News Clusters</h3>
-                <span class="muted">Grouped from the current public edition</span>
-              </div>
-              <div id="public-cluster-list" class="cluster-grid"></div>
-            </div>
-            <div class="stack">
-              <div class="panel-head">
-                <h3>Recommended Further Reading</h3>
-                <span class="muted">Related source articles, prior editions, and roundup pages</span>
-              </div>
-              <div id="public-reading-list" class="reading-grid"></div>
-            </div>
+            <div id="public-latest-view" class="report-view report-prose">Loading the latest public briefing...</div>
           </article>
 
-          <article class="stack">
+          <article class="panel public-section" id="summary-window">
             <div class="panel-head panel-head-wrap">
               <div>
                 <h3 id="public-summary-title">Rolling Summary</h3>
                 <span class="muted" id="public-summary-meta">Recent multi-day view</span>
               </div>
-              <div class="chip-row chip-row-compact">
-                <button type="button" class="chip-button is-active" data-summary-days="7">7D</button>
-                <button type="button" class="chip-button" data-summary-days="14">14D</button>
-                <button type="button" class="chip-button" data-summary-days="30">30D</button>
-              </div>
             </div>
-            <pre id="public-summary-view" class="report-view report-view-compact">Loading the recent summary...</pre>
-            <div class="stack">
-              <div class="panel-head">
-                <h3>Weekly And Monthly Pages</h3>
-                <span class="muted">Shareable roundup pages for visitors</span>
-              </div>
-              <div id="public-summary-pages" class="summary-page-grid"></div>
-            </div>
+            <div id="public-summary-view" class="report-view report-view-compact report-prose">Loading the recent summary...</div>
             <div class="stack">
               <div class="panel-head">
                 <h3>Featured Editions In Window</h3>
@@ -103,14 +130,32 @@
               <div id="public-summary-featured" class="card-list card-list-inline"></div>
             </div>
           </article>
-        </div>
 
-        <div class="panel-head">
-          <h3>Recent Public Editions</h3>
-          <span class="muted">Browse without logging in</span>
-        </div>
-        <div id="public-briefing-list" class="card-list"></div>
-      </section>
+          <article class="panel public-section" id="news-clusters">
+            <div class="panel-head">
+              <h3>Related News Clusters</h3>
+              <span class="muted">Grouped from the current public edition</span>
+            </div>
+            <div id="public-cluster-list" class="cluster-grid"></div>
+          </article>
+
+          <article class="panel public-section" id="reading-list">
+            <div class="panel-head">
+              <h3>Recommended Further Reading</h3>
+              <span class="muted">Related source articles, prior editions, and roundup pages</span>
+            </div>
+            <div id="public-reading-list" class="reading-grid"></div>
+          </article>
+
+          <article class="panel public-section" id="recent-editions">
+            <div class="panel-head">
+              <h3>Recent Public Editions</h3>
+              <span class="muted">Browse without logging in</span>
+            </div>
+            <div id="public-briefing-list" class="card-list"></div>
+          </article>
+        </section>
+      </div>
     </main>
 
     <div id="toast" class="toast hidden"></div>
