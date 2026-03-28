@@ -87,7 +87,45 @@ def _extract_markdown_excerpt(markdown_text: str) -> str:
     return truncate_text(markdown_text, 220)
 
 
-def serialize_public_briefing(briefing: PublicEconomicBriefing) -> dict[str, Any]:
+def _headline_theme_labels(item: dict[str, Any]) -> list[str]:
+    existing = [str(theme).strip() for theme in item.get("themes", []) if str(theme).strip()]
+    if existing:
+        return existing
+    title = str(item.get("title", "")).strip().lower()
+    labels: list[str] = []
+    for theme_name, keywords in MACRO_THEME_KEYWORDS.items():
+        if any(keyword in title for keyword in keywords):
+            labels.append(theme_name)
+    return labels
+
+
+def _annotate_headlines_with_themes(headlines: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    annotated: list[dict[str, Any]] = []
+    for item in headlines:
+        themes = _headline_theme_labels(item)
+        annotated.append(
+            {
+                **item,
+                "themes": themes,
+                "primary_theme": themes[0] if themes else "",
+            }
+        )
+    return annotated
+
+
+def _build_public_briefing_url(slug: str, public_base_url: str = "") -> str:
+    clean_base = public_base_url.strip().rstrip("/")
+    if clean_base:
+        return f"{clean_base}/briefings/{slug}"
+    return f"/briefings/{slug}"
+
+
+def serialize_public_briefing(
+    briefing: PublicEconomicBriefing,
+    *,
+    public_base_url: str = "",
+) -> dict[str, Any]:
+    theme_counts = _theme_counts(briefing.items_json)
     return {
         "id": briefing.id,
         "slug": briefing.slug,
@@ -100,6 +138,9 @@ def serialize_public_briefing(briefing: PublicEconomicBriefing) -> dict[str, Any
         "template_version": briefing.template_version,
         "headline_count": briefing.headline_count,
         "items": briefing.items_json,
+        "top_themes": [{"theme": theme, "count": count} for theme, count in theme_counts.most_common(5)],
+        "share_url": _build_public_briefing_url(briefing.slug, public_base_url),
+        "detail_path": f"/briefings/{briefing.slug}",
         "created_at": briefing.created_at.isoformat(),
         "updated_at": briefing.updated_at.isoformat(),
     }
@@ -323,22 +364,19 @@ def _title_texts(items: list[dict[str, Any]]) -> list[str]:
 
 
 def _theme_counts(headlines: list[dict[str, Any]]) -> Counter[str]:
-    titles = [title.lower() for title in _title_texts(headlines)]
     counts: Counter[str] = Counter()
-    for title in titles:
-        for theme, keywords in MACRO_THEME_KEYWORDS.items():
-            if any(keyword in title for keyword in keywords):
-                counts[theme] += 1
+    for item in headlines:
+        labels = _headline_theme_labels(item)
+        counts.update(labels)
     return counts
 
 
 def _theme_examples(headlines: list[dict[str, Any]], theme_name: str, *, limit: int = 2) -> list[str]:
-    keywords = MACRO_THEME_KEYWORDS.get(theme_name, [])
     examples: list[str] = []
     for item in headlines:
         title = str(item.get("title", "")).strip()
-        lowered = title.lower()
-        if title and any(keyword in lowered for keyword in keywords):
+        labels = _headline_theme_labels(item)
+        if title and theme_name in labels:
             examples.append(title)
         if len(examples) >= limit:
             break
@@ -692,6 +730,7 @@ def generate_public_daily_briefing(
 
     query_text = settings.public_digest_query or settings.gdelt_query
     headlines_payload = fetch_gdelt_hotspots(settings, query_text=query_text)
+    annotated_items = _annotate_headlines_with_themes(headlines_payload.get("items", []))
     fred_snapshots = fetch_fred_snapshots(
         settings.fred_api_key,
         series_ids=[item.strip() for item in settings.default_fred_series.split(",") if item.strip()],
@@ -701,7 +740,7 @@ def generate_public_daily_briefing(
         title=title,
         report_date=briefing_date,
         timezone_name=settings.public_digest_timezone,
-        headlines=headlines_payload.get("items", []),
+        headlines=annotated_items,
         fred_snapshots=fred_snapshots,
         query_text=query_text,
         template_version=PUBLIC_TEMPLATE_VERSION,
@@ -716,9 +755,12 @@ def generate_public_daily_briefing(
     briefing.summary_markdown = summary_markdown
     briefing.query_text = query_text
     briefing.template_version = PUBLIC_TEMPLATE_VERSION
-    briefing.headline_count = len(headlines_payload.get("items", []))
-    briefing.items_json = headlines_payload.get("items", [])
-    briefing.raw_json = {"gdelt": headlines_payload, "fred": fred_snapshots}
+    briefing.headline_count = len(annotated_items)
+    briefing.items_json = annotated_items
+    briefing.raw_json = {
+        "gdelt": {**headlines_payload, "items": annotated_items},
+        "fred": fred_snapshots,
+    }
     db.add(briefing)
     db.flush()
     return briefing
@@ -750,6 +792,7 @@ def build_public_briefing_summary(
     *,
     days: int = 7,
     now: datetime | None = None,
+    public_base_url: str = "",
 ) -> dict[str, Any]:
     window_days = max(2, min(days, 30))
     local_now = _current_local_time("UTC", now=now)
@@ -839,6 +882,8 @@ def build_public_briefing_summary(
     markdown_lines.extend([f"- {line}" for line in takeaway_lines or ["Wait for more public daily reports to accumulate before drawing a trend view."]])
 
     return {
+        "available_windows": [7, 14, 30],
+        "selected_days": window_days,
         "days": window_days,
         "report_count": len(briefings),
         "total_headlines": total_headlines,
@@ -846,7 +891,9 @@ def build_public_briefing_summary(
         "top_domains": top_domains,
         "latest_fred": latest_fred,
         "markdown": "\n".join(markdown_lines),
-        "latest_briefing": serialize_public_briefing(briefings[0]) if briefings else None,
+        "latest_briefing": serialize_public_briefing(briefings[0], public_base_url=public_base_url)
+        if briefings
+        else None,
     }
 
 

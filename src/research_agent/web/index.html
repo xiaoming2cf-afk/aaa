@@ -47,17 +47,30 @@
 
         <div class="public-grid">
           <article class="stack">
-            <div class="panel-head">
-              <h3>Latest Edition</h3>
-              <span class="muted" id="public-latest-meta">Waiting for the latest public briefing...</span>
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h3>Latest Edition</h3>
+                <span class="muted" id="public-latest-meta">Waiting for the latest public briefing...</span>
+              </div>
+              <div class="actions">
+                <button id="copy-public-link" type="button" class="secondary">Copy share link</button>
+              </div>
             </div>
+            <div id="public-theme-strip" class="chip-row"></div>
             <pre id="public-latest-view" class="report-view">Loading the latest public briefing...</pre>
           </article>
 
           <article class="stack">
-            <div class="panel-head">
-              <h3>Rolling Summary</h3>
-              <span class="muted">Recent multi-day view</span>
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h3>Rolling Summary</h3>
+                <span class="muted">Recent multi-day view</span>
+              </div>
+              <div class="chip-row chip-row-compact">
+                <button type="button" class="chip-button is-active" data-summary-days="7">7D</button>
+                <button type="button" class="chip-button" data-summary-days="14">14D</button>
+                <button type="button" class="chip-button" data-summary-days="30">30D</button>
+              </div>
             </div>
             <pre id="public-summary-view" class="report-view report-view-compact">Loading the recent summary...</pre>
           </article>

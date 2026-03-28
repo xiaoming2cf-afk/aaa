@@ -152,6 +152,10 @@ def create_app() -> FastAPI:
     def index() -> FileResponse:
         return FileResponse(WEB_DIR / "index.html")
 
+    @app.get("/briefings/{slug}")
+    def public_briefing_page(slug: str) -> FileResponse:
+        return FileResponse(WEB_DIR / "index.html")
+
     @app.get("/favicon.ico", include_in_schema=False)
     def favicon() -> FileResponse:
         return FileResponse(WEB_DIR / "favicon.svg", media_type="image/svg+xml")
@@ -197,7 +201,12 @@ def create_app() -> FastAPI:
         try:
             with session_scope() as db:
                 ensure_public_daily_briefing(db, settings)
-                return {"items": [serialize_public_briefing(item) for item in list_public_briefings(db, limit=limit)]}
+                return {
+                    "items": [
+                        serialize_public_briefing(item, public_base_url=settings.public_base_url)
+                        for item in list_public_briefings(db, limit=limit)
+                    ]
+                }
         except Exception as exc:
             _raise_http_error(exc)
 
@@ -206,7 +215,11 @@ def create_app() -> FastAPI:
         try:
             with session_scope() as db:
                 briefing = ensure_public_daily_briefing(db, settings) or get_latest_public_briefing(db)
-                return {"briefing": serialize_public_briefing(briefing) if briefing else None}
+                return {
+                    "briefing": serialize_public_briefing(briefing, public_base_url=settings.public_base_url)
+                    if briefing
+                    else None
+                }
         except Exception as exc:
             _raise_http_error(exc)
 
@@ -217,7 +230,7 @@ def create_app() -> FastAPI:
                 briefing = get_public_briefing_by_slug(db, slug=slug)
                 if not briefing:
                     raise FileNotFoundError("Public briefing not found.")
-                return {"briefing": serialize_public_briefing(briefing)}
+                return {"briefing": serialize_public_briefing(briefing, public_base_url=settings.public_base_url)}
         except Exception as exc:
             _raise_http_error(exc)
 
@@ -226,7 +239,7 @@ def create_app() -> FastAPI:
         try:
             with session_scope() as db:
                 ensure_public_daily_briefing(db, settings)
-                return build_public_briefing_summary(db, days=days)
+                return build_public_briefing_summary(db, days=days, public_base_url=settings.public_base_url)
         except Exception as exc:
             _raise_http_error(exc)
 
@@ -673,7 +686,11 @@ def create_app() -> FastAPI:
             with session_scope() as db:
                 public_briefing = ensure_public_daily_briefing(db, settings)
                 return {
-                    "public_briefing": serialize_public_briefing(public_briefing) if public_briefing else None,
+                    "public_briefing": serialize_public_briefing(
+                        public_briefing, public_base_url=settings.public_base_url
+                    )
+                    if public_briefing
+                    else None,
                     "items": run_due_schedule_jobs(db, settings),
                 }
         except Exception as exc:

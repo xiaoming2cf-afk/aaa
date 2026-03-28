@@ -173,6 +173,16 @@ h1 {
   flex-wrap: wrap;
 }
 
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.chip-row-compact {
+  gap: 0.45rem;
+}
+
 input,
 select,
 textarea,
@@ -212,6 +222,34 @@ button.secondary {
 .actions button,
 .card button {
   width: auto;
+}
+
+.chip-button,
+.topic-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(11, 95, 69, 0.16);
+  background: rgba(215, 239, 231, 0.75);
+  color: var(--accent);
+  padding: 0.42rem 0.7rem;
+  font-size: 0.84rem;
+  line-height: 1;
+}
+
+.chip-button {
+  cursor: pointer;
+}
+
+.chip-button.is-active {
+  background: var(--accent);
+  color: #f7f5f0;
+  border-color: var(--accent);
+}
+
+.topic-chip strong {
+  font-size: 0.78rem;
 }
 
 .checkbox {

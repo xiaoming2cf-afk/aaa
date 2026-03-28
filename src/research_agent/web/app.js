@@ -11,6 +11,8 @@ const state = {
   openAlexResults: [],
   publicBriefings: [],
   publicSummary: null,
+  selectedPublicBriefing: null,
+  selectedSummaryDays: 7,
   bootstrap: null,
 };
 
@@ -20,9 +22,11 @@ const dom = {
   publicStatus: document.getElementById("public-status"),
   publicLatestMeta: document.getElementById("public-latest-meta"),
   publicLatestView: document.getElementById("public-latest-view"),
+  publicThemeStrip: document.getElementById("public-theme-strip"),
   publicSummaryView: document.getElementById("public-summary-view"),
   publicBriefingList: document.getElementById("public-briefing-list"),
   refreshPublicButton: document.getElementById("refresh-public"),
+  copyPublicLinkButton: document.getElementById("copy-public-link"),
   sessionIndicator: document.getElementById("session-indicator"),
   userSummary: document.getElementById("user-summary"),
   workspaceSelect: document.getElementById("workspace-select"),
@@ -77,12 +81,32 @@ async function api(path, options = {}, auth = true) {
   return payload;
 }
 
+function extractBriefingSlugFromLocation() {
+  const match = window.location.pathname.match(/^\/briefings\/([^/]+)$/);
+  if (match) {
+    return decodeURIComponent(match[1]);
+  }
+  const search = new URLSearchParams(window.location.search);
+  return search.get("briefing") || "";
+}
+
 function prettyDate(value) {
   if (!value) {
     return "n/a";
   }
   try {
     return new Date(value).toLocaleString();
+  } catch {
+    return value;
+  }
+}
+
+function absolutePublicUrl(value) {
+  if (!value) {
+    return "";
+  }
+  try {
+    return new URL(value, window.location.origin).toString();
   } catch {
     return value;
   }
@@ -300,14 +324,31 @@ function renderSchedules(items) {
     .join("");
 }
 
-function renderPublicLatest(briefing) {
-  if (!briefing) {
-    dom.publicLatestMeta.textContent = "No public briefing has been published yet.";
-    dom.publicLatestView.textContent = "The public daily monitor will appear here after the first scheduled collection.";
+function renderPublicThemes(topThemes) {
+  if (!topThemes || !topThemes.length) {
+    dom.publicThemeStrip.innerHTML = `<span class="muted">No stable theme signal yet.</span>`;
     return;
   }
+  dom.publicThemeStrip.innerHTML = topThemes
+    .map(
+      (item) =>
+        `<span class="topic-chip">${escapeHtml(item.theme)} <strong>${escapeHtml(item.count)}</strong></span>`,
+    )
+    .join("");
+}
+
+function renderPublicLatest(briefing) {
+  if (!briefing) {
+    state.selectedPublicBriefing = null;
+    dom.publicLatestMeta.textContent = "No public briefing has been published yet.";
+    dom.publicLatestView.textContent = "The public daily monitor will appear here after the first scheduled collection.";
+    renderPublicThemes([]);
+    return;
+  }
+  state.selectedPublicBriefing = briefing;
   dom.publicLatestMeta.textContent = `${briefing.title} | ${briefing.briefing_date} | ${briefing.headline_count} headlines`;
   dom.publicLatestView.textContent = briefing.summary_markdown;
+  renderPublicThemes(briefing.top_themes || []);
 }
 
 function renderPublicSummary(summary) {
@@ -316,6 +357,12 @@ function renderPublicSummary(summary) {
     return;
   }
   dom.publicSummaryView.textContent = summary.markdown;
+}
+
+function updateSummaryButtons() {
+  document.querySelectorAll("[data-summary-days]").forEach((button) => {
+    button.classList.toggle("is-active", Number(button.getAttribute("data-summary-days")) === state.selectedSummaryDays);
+  });
 }
 
 function renderPublicBriefingList(items) {
@@ -330,8 +377,15 @@ function renderPublicBriefingList(items) {
           <h4>${escapeHtml(item.title)}</h4>
           <p>${escapeHtml(item.briefing_date)} | ${escapeHtml(item.headline_count)} headlines</p>
           <p>${escapeHtml(item.summary_excerpt)}</p>
+          <div class="chip-row chip-row-compact">
+            ${(item.top_themes || [])
+              .slice(0, 3)
+              .map((theme) => `<span class="topic-chip">${escapeHtml(theme.theme)}</span>`)
+              .join("")}
+          </div>
           <div class="actions">
             <button type="button" class="secondary" data-public-slug="${item.slug}">Open</button>
+            <button type="button" class="secondary" data-copy-public-url="${escapeHtml(item.share_url || item.detail_path || "")}">Copy link</button>
           </div>
         </div>
       `,
@@ -351,17 +405,38 @@ async function fetchHealth() {
     : "Disabled";
 }
 
+async function loadPublicSummary(days = state.selectedSummaryDays) {
+  state.selectedSummaryDays = Number(days) || 7;
+  const summaryResponse = await api(`/api/public/summary?days=${state.selectedSummaryDays}`, {}, false);
+  state.publicSummary = summaryResponse;
+  renderPublicSummary(summaryResponse);
+  updateSummaryButtons();
+}
+
+function syncPublicUrl(briefing) {
+  if (!briefing) {
+    return;
+  }
+  const nextPath = briefing.detail_path || `/briefings/${briefing.slug}`;
+  if (window.location.pathname !== nextPath) {
+    window.history.replaceState({}, "", nextPath);
+  }
+}
+
 async function loadPublicData() {
-  const [latestResponse, listResponse, summaryResponse] = await Promise.all([
+  const requestedSlug = extractBriefingSlugFromLocation();
+  const [latestResponse, listResponse, detailResponse] = await Promise.all([
     api("/api/public/briefings/latest", {}, false),
     api("/api/public/briefings?limit=12", {}, false),
-    api("/api/public/summary?days=7", {}, false),
+    requestedSlug ? api(`/api/public/briefings/${requestedSlug}`, {}, false) : Promise.resolve({ briefing: null }),
   ]);
   state.publicBriefings = listResponse.items || [];
-  state.publicSummary = summaryResponse;
-  const latest = latestResponse.briefing || state.publicBriefings[0] || null;
+  const latest = detailResponse.briefing || latestResponse.briefing || state.publicBriefings[0] || null;
   renderPublicLatest(latest);
-  renderPublicSummary(summaryResponse);
+  if (requestedSlug && latest) {
+    syncPublicUrl(latest);
+  }
+  await loadPublicSummary(state.selectedSummaryDays);
   renderPublicBriefingList(state.publicBriefings);
 }
 
@@ -628,6 +703,13 @@ async function downloadAsset(assetId) {
   URL.revokeObjectURL(url);
 }
 
+async function copyToClipboard(text) {
+  if (!text) {
+    throw new Error("Nothing to copy.");
+  }
+  await navigator.clipboard.writeText(absolutePublicUrl(text));
+}
+
 async function handleAssetActions(event) {
   const cleanId = event.target.getAttribute("data-clean-asset");
   const downloadId = event.target.getAttribute("data-download-asset");
@@ -645,17 +727,25 @@ async function handleAssetActions(event) {
 
 async function handlePublicActions(event) {
   const slug = event.target.getAttribute("data-public-slug");
+  const publicUrl = event.target.getAttribute("data-copy-public-url");
+  if (publicUrl) {
+    await copyToClipboard(publicUrl);
+    showToast("Public link copied.");
+    return;
+  }
   if (!slug) {
     return;
   }
   const cached = state.publicBriefings.find((item) => item.slug === slug);
   if (cached) {
     renderPublicLatest(cached);
+    syncPublicUrl(cached);
     return;
   }
   const response = await api(`/api/public/briefings/${slug}`, {}, false);
   if (response.briefing) {
     renderPublicLatest(response.briefing);
+    syncPublicUrl(response.briefing);
   }
 }
 
@@ -685,6 +775,23 @@ function bind() {
     await loadPublicData();
     showToast("Public feed refreshed.");
   }));
+  dom.copyPublicLinkButton.addEventListener("click", wrap(async () => {
+    const briefing = state.selectedPublicBriefing;
+    if (!briefing) {
+      throw new Error("No public briefing selected.");
+    }
+    await copyToClipboard(briefing.share_url || window.location.href);
+    showToast("Public link copied.");
+  }));
+  document.querySelectorAll("[data-summary-days]").forEach((button) => {
+    button.addEventListener(
+      "click",
+      wrap(async () => {
+        await loadPublicSummary(Number(button.getAttribute("data-summary-days")));
+        showToast(`Loaded ${button.getAttribute("data-summary-days")}-day summary.`);
+      }),
+    );
+  });
   dom.workspaceSelect.addEventListener(
     "change",
     wrap(async (event) => {
