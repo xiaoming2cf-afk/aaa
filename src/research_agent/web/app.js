@@ -13,6 +13,7 @@ const state = {
   publicSummary: null,
   selectedPublicBriefing: null,
   selectedSummaryDays: 7,
+  selectedSummaryWindow: "",
   bootstrap: null,
 };
 
@@ -23,7 +24,13 @@ const dom = {
   publicLatestMeta: document.getElementById("public-latest-meta"),
   publicLatestView: document.getElementById("public-latest-view"),
   publicThemeStrip: document.getElementById("public-theme-strip"),
+  publicClusterList: document.getElementById("public-cluster-list"),
+  publicReadingList: document.getElementById("public-reading-list"),
+  publicSummaryTitle: document.getElementById("public-summary-title"),
+  publicSummaryMeta: document.getElementById("public-summary-meta"),
   publicSummaryView: document.getElementById("public-summary-view"),
+  publicSummaryPages: document.getElementById("public-summary-pages"),
+  publicSummaryFeatured: document.getElementById("public-summary-featured"),
   publicBriefingList: document.getElementById("public-briefing-list"),
   refreshPublicButton: document.getElementById("refresh-public"),
   copyPublicLinkButton: document.getElementById("copy-public-link"),
@@ -90,6 +97,11 @@ function extractBriefingSlugFromLocation() {
   return search.get("briefing") || "";
 }
 
+function extractSummaryWindowFromLocation() {
+  const match = window.location.pathname.match(/^\/summaries\/(weekly|monthly)$/);
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
 function prettyDate(value) {
   if (!value) {
     return "n/a";
@@ -110,6 +122,27 @@ function absolutePublicUrl(value) {
   } catch {
     return value;
   }
+}
+
+function defaultSummaryPages() {
+  return [
+    {
+      window: "weekly",
+      days: 7,
+      title: "Weekly Macro Roundup",
+      subtitle: "Standalone 7-day page for the latest macro and market themes.",
+      detail_path: "/summaries/weekly",
+      share_url: "/summaries/weekly",
+    },
+    {
+      window: "monthly",
+      days: 30,
+      title: "Monthly Macro Review",
+      subtitle: "Standalone 30-day page for broader economic trend review.",
+      detail_path: "/summaries/monthly",
+      share_url: "/summaries/monthly",
+    },
+  ];
 }
 
 function emptyCard(message) {
@@ -337,26 +370,155 @@ function renderPublicThemes(topThemes) {
     .join("");
 }
 
+function renderPublicClusters(clusters) {
+  if (!clusters || !clusters.length) {
+    dom.publicClusterList.innerHTML = emptyCard("No stable clustering signal is available for this public edition yet.");
+    return;
+  }
+  dom.publicClusterList.innerHTML = clusters
+    .map(
+      (cluster) => `
+        <article class="cluster-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h4>${escapeHtml(cluster.label)}</h4>
+              <span class="muted">${escapeHtml(cluster.headline_count)} clustered headline(s)</span>
+            </div>
+          </div>
+          <p>${escapeHtml(cluster.summary)}</p>
+          <div class="chip-row chip-row-compact">
+            ${(cluster.domains || [])
+              .slice(0, 3)
+              .map((item) => `<span class="topic-chip">${escapeHtml(item.domain)} <strong>${escapeHtml(item.count)}</strong></span>`)
+              .join("")}
+          </div>
+          <div class="cluster-links">
+            ${(cluster.items || [])
+              .map((item) =>
+                item.url
+                  ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.title)}</a>`
+                  : `<span>${escapeHtml(item.title)}</span>`,
+              )
+              .join("")}
+          </div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function renderRecommendedReading(payload) {
+  const sections = [
+    {
+      label: "Source Articles",
+      items: payload?.source_articles || [],
+    },
+    {
+      label: "Related Daily Editions",
+      items: payload?.related_briefings || [],
+    },
+    {
+      label: "Summary Pages",
+      items: payload?.summary_pages || [],
+    },
+  ].filter((section) => section.items.length);
+
+  if (!sections.length) {
+    dom.publicReadingList.innerHTML = emptyCard("Recommended reading will appear once related sources and themes accumulate.");
+    return;
+  }
+
+  dom.publicReadingList.innerHTML = sections
+    .map(
+      (section) => `
+        <article class="reading-card">
+          <h4>${escapeHtml(section.label)}</h4>
+          <div class="reading-links">
+            ${section.items
+              .map(
+                (item) => `
+                  <a href="${escapeHtml(item.url)}" target="${item.kind === "article" ? "_blank" : "_self"}" rel="${item.kind === "article" ? "noreferrer" : ""}">
+                    <strong>${escapeHtml(item.title)}</strong>
+                    <span>${escapeHtml(item.subtitle || "")}</span>
+                  </a>
+                `,
+              )
+              .join("")}
+          </div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function renderSummaryPages(pages) {
+  const items = pages && pages.length ? pages : defaultSummaryPages();
+  const activeWindow = extractSummaryWindowFromLocation();
+  dom.publicSummaryPages.innerHTML = items
+    .map(
+      (item) => `
+        <a class="summary-page-card${activeWindow === item.window ? " is-active" : ""}" href="${escapeHtml(item.detail_path || item.share_url || "/")}">
+          <span class="pill">${escapeHtml(item.days)}D</span>
+          <h4>${escapeHtml(item.title)}</h4>
+          <p>${escapeHtml(item.subtitle)}</p>
+        </a>
+      `,
+    )
+    .join("");
+}
+
+function renderSummaryFeatured(items) {
+  if (!items || !items.length) {
+    dom.publicSummaryFeatured.innerHTML = emptyCard("No contributing editions are available for the current summary window yet.");
+    return;
+  }
+  dom.publicSummaryFeatured.innerHTML = items
+    .map(
+      (item) => `
+        <div class="card">
+          <h4>${escapeHtml(item.title)}</h4>
+          <p>${escapeHtml(item.briefing_date)} | ${escapeHtml(item.headline_count)} headlines</p>
+          <div class="actions">
+            <button type="button" class="secondary" data-public-slug="${item.slug}">Open</button>
+          </div>
+        </div>
+      `,
+    )
+    .join("");
+}
+
 function renderPublicLatest(briefing) {
   if (!briefing) {
     state.selectedPublicBriefing = null;
     dom.publicLatestMeta.textContent = "No public briefing has been published yet.";
     dom.publicLatestView.textContent = "The public daily monitor will appear here after the first scheduled collection.";
     renderPublicThemes([]);
+    renderPublicClusters([]);
+    renderRecommendedReading(null);
     return;
   }
   state.selectedPublicBriefing = briefing;
   dom.publicLatestMeta.textContent = `${briefing.title} | ${briefing.briefing_date} | ${briefing.headline_count} headlines`;
   dom.publicLatestView.textContent = briefing.summary_markdown;
   renderPublicThemes(briefing.top_themes || []);
+  renderPublicClusters(briefing.news_clusters || []);
+  renderRecommendedReading(briefing.recommended_reading || null);
 }
 
 function renderPublicSummary(summary) {
   if (!summary || !summary.report_count) {
+    dom.publicSummaryTitle.textContent = "Rolling Summary";
+    dom.publicSummaryMeta.textContent = "Recent multi-day view";
     dom.publicSummaryView.textContent = "The rolling public summary will appear after public daily briefings accumulate.";
+    renderSummaryPages(summary?.available_pages || defaultSummaryPages());
+    renderSummaryFeatured([]);
     return;
   }
+  dom.publicSummaryTitle.textContent = summary.title || "Rolling Summary";
+  dom.publicSummaryMeta.textContent = summary.subtitle || `${summary.days}-day public view`;
   dom.publicSummaryView.textContent = summary.markdown;
+  renderSummaryPages(summary.available_pages || defaultSummaryPages());
+  renderSummaryFeatured(summary.featured_briefings || []);
 }
 
 function updateSummaryButtons() {
@@ -405,12 +567,21 @@ async function fetchHealth() {
     : "Disabled";
 }
 
-async function loadPublicSummary(days = state.selectedSummaryDays) {
-  state.selectedSummaryDays = Number(days) || 7;
-  const summaryResponse = await api(`/api/public/summary?days=${state.selectedSummaryDays}`, {}, false);
+async function loadPublicSummary(days = state.selectedSummaryDays, windowName = state.selectedSummaryWindow) {
+  let summaryResponse;
+  if (windowName) {
+    state.selectedSummaryWindow = windowName;
+    summaryResponse = await api(`/api/public/summaries/${windowName}`, {}, false);
+    state.selectedSummaryDays = Number(summaryResponse.days) || Number(days) || 7;
+  } else {
+    state.selectedSummaryWindow = "";
+    state.selectedSummaryDays = Number(days) || 7;
+    summaryResponse = await api(`/api/public/summary?days=${state.selectedSummaryDays}`, {}, false);
+  }
   state.publicSummary = summaryResponse;
   renderPublicSummary(summaryResponse);
   updateSummaryButtons();
+  updateDocumentTitle();
 }
 
 function syncPublicUrl(briefing) {
@@ -423,8 +594,30 @@ function syncPublicUrl(briefing) {
   }
 }
 
+function syncSummaryUrl(windowName) {
+  const nextPath = windowName ? `/summaries/${windowName}` : "/";
+  if (window.location.pathname !== nextPath) {
+    window.history.replaceState({}, "", nextPath);
+  }
+}
+
+function updateDocumentTitle() {
+  const summaryWindow = extractSummaryWindowFromLocation();
+  const briefingSlug = extractBriefingSlugFromLocation();
+  if (briefingSlug && state.selectedPublicBriefing?.title) {
+    document.title = `${state.selectedPublicBriefing.title} | Economic Research Platform`;
+    return;
+  }
+  if (summaryWindow && state.publicSummary?.title) {
+    document.title = `${state.publicSummary.title} | Economic Research Platform`;
+    return;
+  }
+  document.title = "Economic Research Platform";
+}
+
 async function loadPublicData() {
   const requestedSlug = extractBriefingSlugFromLocation();
+  state.selectedSummaryWindow = extractSummaryWindowFromLocation();
   const [latestResponse, listResponse, detailResponse] = await Promise.all([
     api("/api/public/briefings/latest", {}, false),
     api("/api/public/briefings?limit=12", {}, false),
@@ -436,8 +629,9 @@ async function loadPublicData() {
   if (requestedSlug && latest) {
     syncPublicUrl(latest);
   }
-  await loadPublicSummary(state.selectedSummaryDays);
+  await loadPublicSummary(state.selectedSummaryDays, state.selectedSummaryWindow);
   renderPublicBriefingList(state.publicBriefings);
+  updateDocumentTitle();
 }
 
 async function loadSession() {
@@ -710,6 +904,14 @@ async function copyToClipboard(text) {
   await navigator.clipboard.writeText(absolutePublicUrl(text));
 }
 
+function currentPublicShareTarget() {
+  const summaryWindow = extractSummaryWindowFromLocation();
+  if (summaryWindow && state.publicSummary?.share_url) {
+    return state.publicSummary.share_url;
+  }
+  return state.selectedPublicBriefing?.share_url || window.location.href;
+}
+
 async function handleAssetActions(event) {
   const cleanId = event.target.getAttribute("data-clean-asset");
   const downloadId = event.target.getAttribute("data-download-asset");
@@ -736,16 +938,11 @@ async function handlePublicActions(event) {
   if (!slug) {
     return;
   }
-  const cached = state.publicBriefings.find((item) => item.slug === slug);
-  if (cached) {
-    renderPublicLatest(cached);
-    syncPublicUrl(cached);
-    return;
-  }
   const response = await api(`/api/public/briefings/${slug}`, {}, false);
   if (response.briefing) {
     renderPublicLatest(response.briefing);
     syncPublicUrl(response.briefing);
+    updateDocumentTitle();
   }
 }
 
@@ -776,18 +973,25 @@ function bind() {
     showToast("Public feed refreshed.");
   }));
   dom.copyPublicLinkButton.addEventListener("click", wrap(async () => {
-    const briefing = state.selectedPublicBriefing;
-    if (!briefing) {
+    const target = currentPublicShareTarget();
+    if (!target) {
       throw new Error("No public briefing selected.");
     }
-    await copyToClipboard(briefing.share_url || window.location.href);
+    await copyToClipboard(target);
     showToast("Public link copied.");
   }));
   document.querySelectorAll("[data-summary-days]").forEach((button) => {
     button.addEventListener(
       "click",
       wrap(async () => {
-        await loadPublicSummary(Number(button.getAttribute("data-summary-days")));
+        const days = Number(button.getAttribute("data-summary-days"));
+        const nextWindow = days === 7 ? "weekly" : days === 30 ? "monthly" : "";
+        if (nextWindow) {
+          syncSummaryUrl(nextWindow);
+        } else {
+          syncSummaryUrl("");
+        }
+        await loadPublicSummary(days, nextWindow);
         showToast(`Loaded ${button.getAttribute("data-summary-days")}-day summary.`);
       }),
     );
@@ -803,6 +1007,7 @@ function bind() {
   dom.integrationList.addEventListener("click", wrap(handleIntegrationActions));
   dom.assetList.addEventListener("click", wrap(handleAssetActions));
   dom.publicBriefingList.addEventListener("click", wrap(handlePublicActions));
+  dom.publicSummaryFeatured.addEventListener("click", wrap(handlePublicActions));
 }
 
 async function init() {

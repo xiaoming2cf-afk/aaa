@@ -58,13 +58,27 @@
             </div>
             <div id="public-theme-strip" class="chip-row"></div>
             <pre id="public-latest-view" class="report-view">Loading the latest public briefing...</pre>
+            <div class="stack">
+              <div class="panel-head">
+                <h3>Related News Clusters</h3>
+                <span class="muted">Grouped from the current public edition</span>
+              </div>
+              <div id="public-cluster-list" class="cluster-grid"></div>
+            </div>
+            <div class="stack">
+              <div class="panel-head">
+                <h3>Recommended Further Reading</h3>
+                <span class="muted">Related source articles, prior editions, and roundup pages</span>
+              </div>
+              <div id="public-reading-list" class="reading-grid"></div>
+            </div>
           </article>
 
           <article class="stack">
             <div class="panel-head panel-head-wrap">
               <div>
-                <h3>Rolling Summary</h3>
-                <span class="muted">Recent multi-day view</span>
+                <h3 id="public-summary-title">Rolling Summary</h3>
+                <span class="muted" id="public-summary-meta">Recent multi-day view</span>
               </div>
               <div class="chip-row chip-row-compact">
                 <button type="button" class="chip-button is-active" data-summary-days="7">7D</button>
@@ -73,6 +87,20 @@
               </div>
             </div>
             <pre id="public-summary-view" class="report-view report-view-compact">Loading the recent summary...</pre>
+            <div class="stack">
+              <div class="panel-head">
+                <h3>Weekly And Monthly Pages</h3>
+                <span class="muted">Shareable roundup pages for visitors</span>
+              </div>
+              <div id="public-summary-pages" class="summary-page-grid"></div>
+            </div>
+            <div class="stack">
+              <div class="panel-head">
+                <h3>Featured Editions In Window</h3>
+                <span class="muted">Daily editions contributing to the current summary</span>
+              </div>
+              <div id="public-summary-featured" class="card-list card-list-inline"></div>
+            </div>
           </article>
         </div>
 

@@ -281,11 +281,87 @@ button.secondary {
   max-height: 420px;
 }
 
+.card-list-inline {
+  max-height: none;
+  margin-top: 0;
+}
+
 .card {
   border: 1px solid var(--line);
   border-radius: 1rem;
   padding: 0.9rem;
   background: rgba(255, 255, 255, 0.5);
+}
+
+.summary-page-grid,
+.cluster-grid,
+.reading-grid {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.summary-page-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.summary-page-card,
+.cluster-card,
+.reading-card {
+  display: grid;
+  gap: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 0.95rem;
+  background: rgba(255, 255, 255, 0.5);
+  color: inherit;
+  text-decoration: none;
+}
+
+.summary-page-card.is-active {
+  border-color: rgba(11, 95, 69, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(11, 95, 69, 0.08);
+}
+
+.summary-page-card h4,
+.cluster-card h4,
+.reading-card h4 {
+  margin: 0;
+}
+
+.summary-page-card p,
+.cluster-card p,
+.reading-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.cluster-links,
+.reading-links {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.cluster-links a,
+.cluster-links span,
+.reading-links a {
+  display: block;
+  padding: 0.72rem 0.8rem;
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--ink);
+  text-decoration: none;
+  line-height: 1.5;
+}
+
+.reading-links a strong {
+  display: block;
+  margin-bottom: 0.18rem;
+}
+
+.reading-links a span {
+  color: var(--muted);
+  font-size: 0.92rem;
 }
 
 .card h4 {
@@ -378,5 +454,9 @@ button.secondary {
     padding-left: 0;
     border-top: 1px solid var(--line);
     padding-top: 1rem;
+  }
+
+  .summary-page-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -46,6 +46,18 @@ MACRO_THEME_KEYWORDS = {
     "energy": ["oil", "gas", "energy", "crude", "opec"],
     "markets": ["yield", "bond", "stocks", "equity", "currency", "dollar", "fx"],
 }
+PUBLIC_SUMMARY_WINDOWS = {
+    "weekly": {
+        "days": 7,
+        "title": "Weekly Macro Roundup",
+        "subtitle": "A standalone 7-day public page for the latest macro and market signal stack.",
+    },
+    "monthly": {
+        "days": 30,
+        "title": "Monthly Macro Review",
+        "subtitle": "A standalone 30-day public page for broader economic and financial trend review.",
+    },
+}
 
 
 def serialize_literature_entry(entry: LiteratureEntry) -> dict[str, Any]:
@@ -120,6 +132,29 @@ def _build_public_briefing_url(slug: str, public_base_url: str = "") -> str:
     return f"/briefings/{slug}"
 
 
+def _build_public_summary_url(window: str, public_base_url: str = "") -> str:
+    clean_base = public_base_url.strip().rstrip("/")
+    if clean_base:
+        return f"{clean_base}/summaries/{window}"
+    return f"/summaries/{window}"
+
+
+def _public_summary_pages(public_base_url: str = "") -> list[dict[str, Any]]:
+    pages: list[dict[str, Any]] = []
+    for window_name, config in PUBLIC_SUMMARY_WINDOWS.items():
+        pages.append(
+            {
+                "window": window_name,
+                "days": config["days"],
+                "title": config["title"],
+                "subtitle": config["subtitle"],
+                "detail_path": f"/summaries/{window_name}",
+                "share_url": _build_public_summary_url(window_name, public_base_url),
+            }
+        )
+    return pages
+
+
 def serialize_public_briefing(
     briefing: PublicEconomicBriefing,
     *,
@@ -144,6 +179,182 @@ def serialize_public_briefing(
         "created_at": briefing.created_at.isoformat(),
         "updated_at": briefing.updated_at.isoformat(),
     }
+
+
+def _cluster_headline_bucket(item: dict[str, Any]) -> str:
+    primary_theme = str(item.get("primary_theme", "")).strip()
+    if primary_theme:
+        return primary_theme
+    themes = _headline_theme_labels(item)
+    if themes:
+        return themes[0]
+    domain = str(item.get("domain", "")).strip().lower()
+    return domain or "cross-market"
+
+
+def _cluster_display_label(bucket_name: str) -> str:
+    if bucket_name == "cross-market":
+        return "Cross-Market"
+    return bucket_name.replace("-", " ").title()
+
+
+def _describe_news_cluster(
+    bucket_name: str,
+    items: list[dict[str, Any]],
+    domains: list[tuple[str, int]],
+    countries: list[tuple[str, int]],
+) -> str:
+    label = _cluster_display_label(bucket_name)
+    domain_text = ", ".join(domain for domain, _ in domains[:2]) or "mixed sources"
+    country_text = ", ".join(country for country, _ in countries[:2]) or "multiple geographies"
+    lead_title = str(items[0].get("title", "")).strip() if items else ""
+    if lead_title:
+        return (
+            f"{label} cluster with {len(items)} headline(s), led by '{lead_title}', "
+            f"spanning {domain_text} and {country_text}."
+        )
+    return f"{label} cluster with {len(items)} headline(s) across {domain_text} and {country_text}."
+
+
+def build_public_news_clusters(headlines: list[dict[str, Any]], *, limit: int = 4) -> list[dict[str, Any]]:
+    buckets: dict[str, list[dict[str, Any]]] = {}
+    for item in headlines:
+        buckets.setdefault(_cluster_headline_bucket(item), []).append(item)
+
+    ranked_buckets = sorted(
+        buckets.items(),
+        key=lambda entry: (len(entry[1]), _cluster_display_label(entry[0]).lower()),
+        reverse=True,
+    )
+    clusters: list[dict[str, Any]] = []
+    for bucket_name, items in ranked_buckets[:limit]:
+        domains = _top_domains(items, limit=3)
+        countries = _top_source_countries(items, limit=3)
+        clusters.append(
+            {
+                "cluster_id": slugify(bucket_name or "cluster", max_length=80),
+                "label": _cluster_display_label(bucket_name),
+                "headline_count": len(items),
+                "summary": _describe_news_cluster(bucket_name, items, domains, countries),
+                "domains": [{"domain": domain, "count": count} for domain, count in domains],
+                "source_countries": [{"country": country, "count": count} for country, count in countries],
+                "items": [
+                    {
+                        "title": str(item.get("title", "")).strip(),
+                        "url": str(item.get("url", "")).strip(),
+                        "domain": str(item.get("domain", "")).strip(),
+                        "source_country": str(item.get("source_country", "")).strip(),
+                        "themes": _headline_theme_labels(item),
+                    }
+                    for item in items[:4]
+                    if str(item.get("title", "")).strip()
+                ],
+            }
+        )
+    return clusters
+
+
+def _recommended_source_articles(headlines: list[dict[str, Any]], *, limit: int = 4) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
+    for item in headlines:
+        title = str(item.get("title", "")).strip()
+        url = str(item.get("url", "")).strip()
+        if not title or not url or url in seen_urls:
+            continue
+        themes = _headline_theme_labels(item)
+        domain = str(item.get("domain", "")).strip()
+        geography = str(item.get("source_country", "")).strip().upper()
+        subtitle_parts = [part for part in [domain, geography, ", ".join(themes[:2])] if part]
+        results.append(
+            {
+                "kind": "article",
+                "title": title,
+                "url": url,
+                "subtitle": " | ".join(subtitle_parts) or "Source article",
+            }
+        )
+        seen_urls.add(url)
+        if len(results) >= limit:
+            break
+    return results
+
+
+def _related_public_briefings(
+    db: Session,
+    briefing: PublicEconomicBriefing,
+    *,
+    limit: int = 3,
+) -> list[tuple[PublicEconomicBriefing, list[str]]]:
+    current_themes = set(_theme_counts(briefing.items_json).keys())
+    if not current_themes:
+        return []
+
+    candidates = list(
+        db.scalars(
+            select(PublicEconomicBriefing)
+            .where(PublicEconomicBriefing.briefing_date < briefing.briefing_date)
+            .order_by(PublicEconomicBriefing.briefing_date.desc(), PublicEconomicBriefing.created_at.desc())
+            .limit(28)
+        )
+    )
+    scored: list[tuple[int, str, PublicEconomicBriefing, list[str]]] = []
+    for candidate in candidates:
+        overlap = sorted(current_themes & set(_theme_counts(candidate.items_json).keys()))
+        if not overlap:
+            continue
+        score = (len(overlap) * 10) + min(candidate.headline_count, 8)
+        scored.append((score, candidate.briefing_date, candidate, overlap))
+    scored.sort(key=lambda item: (item[0], item[1]), reverse=True)
+    return [(candidate, overlap) for _, _, candidate, overlap in scored[:limit]]
+
+
+def build_public_recommended_reading(
+    db: Session,
+    briefing: PublicEconomicBriefing,
+    *,
+    public_base_url: str = "",
+) -> dict[str, Any]:
+    source_articles = _recommended_source_articles(briefing.items_json)
+    related_briefings = [
+        {
+            "kind": "briefing",
+            "title": candidate.title,
+            "url": _build_public_briefing_url(candidate.slug, public_base_url),
+            "subtitle": f"{candidate.briefing_date} | shared themes: {', '.join(overlap)}",
+        }
+        for candidate, overlap in _related_public_briefings(db, briefing)
+    ]
+    summary_pages = [
+        {
+            "kind": "summary",
+            "title": page["title"],
+            "url": page["share_url"],
+            "subtitle": page["subtitle"],
+        }
+        for page in _public_summary_pages(public_base_url)
+    ]
+    return {
+        "source_articles": source_articles,
+        "related_briefings": related_briefings,
+        "summary_pages": summary_pages,
+    }
+
+
+def serialize_public_briefing_detail(
+    db: Session,
+    briefing: PublicEconomicBriefing,
+    *,
+    public_base_url: str = "",
+) -> dict[str, Any]:
+    payload = serialize_public_briefing(briefing, public_base_url=public_base_url)
+    payload["news_clusters"] = build_public_news_clusters(briefing.items_json)
+    payload["recommended_reading"] = build_public_recommended_reading(
+        db,
+        briefing,
+        public_base_url=public_base_url,
+    )
+    return payload
 
 
 def serialize_schedule(job: ScheduleJob) -> dict[str, Any]:
@@ -883,18 +1094,55 @@ def build_public_briefing_summary(
 
     return {
         "available_windows": [7, 14, 30],
+        "available_pages": _public_summary_pages(public_base_url),
         "selected_days": window_days,
         "days": window_days,
+        "window": "rolling",
+        "title": f"Public Economic Summary ({window_days}-day window)",
+        "subtitle": "Rolling public multi-day view built from recent daily briefings.",
         "report_count": len(briefings),
         "total_headlines": total_headlines,
         "top_themes": top_themes,
         "top_domains": top_domains,
         "latest_fred": latest_fred,
         "markdown": "\n".join(markdown_lines),
+        "featured_briefings": [
+            serialize_public_briefing(item, public_base_url=public_base_url)
+            for item in briefings[:5]
+        ],
         "latest_briefing": serialize_public_briefing(briefings[0], public_base_url=public_base_url)
         if briefings
         else None,
     }
+
+
+def build_named_public_summary(
+    db: Session,
+    *,
+    window: str,
+    now: datetime | None = None,
+    public_base_url: str = "",
+) -> dict[str, Any]:
+    normalized_window = window.strip().lower()
+    config = PUBLIC_SUMMARY_WINDOWS.get(normalized_window)
+    if not config:
+        raise ValueError("Unknown public summary window.")
+    payload = build_public_briefing_summary(
+        db,
+        days=config["days"],
+        now=now,
+        public_base_url=public_base_url,
+    )
+    payload.update(
+        {
+            "window": normalized_window,
+            "title": config["title"],
+            "subtitle": config["subtitle"],
+            "detail_path": f"/summaries/{normalized_window}",
+            "share_url": _build_public_summary_url(normalized_window, public_base_url),
+        }
+    )
+    return payload
 
 
 def compute_next_run(local_time_value: str, timezone_name: str, *, now: datetime | None = None) -> datetime:
