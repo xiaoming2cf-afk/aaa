@@ -18,15 +18,10 @@ const state = {
 };
 
 const dom = {
-  publicPreviewPanel: document.getElementById("public-preview-panel"),
   publicPanel: document.getElementById("public-panel"),
   toast: document.getElementById("toast"),
   healthStatus: document.getElementById("health-status"),
   publicStatus: document.getElementById("public-status"),
-  homePublicMeta: document.getElementById("home-public-meta"),
-  homePublicThemes: document.getElementById("home-public-themes"),
-  homePublicPreview: document.getElementById("home-public-preview"),
-  homeSummaryLinks: document.getElementById("home-summary-links"),
   publicLatestMeta: document.getElementById("public-latest-meta"),
   publicLatestView: document.getElementById("public-latest-view"),
   publicThemeStrip: document.getElementById("public-theme-strip"),
@@ -112,8 +107,8 @@ function detectPageMode() {
   if (window.location.pathname === "/") {
     return "home";
   }
-  if (window.location.pathname === "/macro-desk") {
-    return "macro-desk";
+  if (window.location.pathname === "/public-monitor" || window.location.pathname === "/macro-desk") {
+    return "public-monitor";
   }
   if (extractBriefingSlugFromLocation()) {
     return "briefing";
@@ -171,7 +166,18 @@ function emptyCard(message) {
   return `<div class="card"><p>${escapeHtml(message)}</p></div>`;
 }
 
+function hasPrivateWorkspaceUI() {
+  return Boolean(dom.workspaceSelect && dom.integrationList);
+}
+
+function hasPublicMonitorUI() {
+  return Boolean(dom.publicPanel && dom.publicLatestView);
+}
+
 function clearPrivateLists() {
+  if (!hasPrivateWorkspaceUI()) {
+    return;
+  }
   dom.integrationList.innerHTML = emptyCard("Log in to view saved provider connections.");
   dom.briefingList.innerHTML = emptyCard("Log in to generate private briefings.");
   dom.openalexResults.innerHTML = emptyCard("Search results will appear here.");
@@ -202,9 +208,11 @@ function clearSession() {
   state.selectedWorkspaceId = "";
   localStorage.removeItem(storageKeys.token);
   localStorage.removeItem(storageKeys.workspaceId);
-  renderSession();
-  renderWorkspaceOptions();
-  clearPrivateLists();
+  if (hasPrivateWorkspaceUI()) {
+    renderSession();
+    renderWorkspaceOptions();
+    clearPrivateLists();
+  }
 }
 
 function setSession(payload) {
@@ -216,11 +224,16 @@ function setSession(payload) {
   if (state.selectedWorkspaceId) {
     localStorage.setItem(storageKeys.workspaceId, state.selectedWorkspaceId);
   }
-  renderSession();
-  renderWorkspaceOptions();
+  if (hasPrivateWorkspaceUI()) {
+    renderSession();
+    renderWorkspaceOptions();
+  }
 }
 
 function renderSession() {
+  if (!dom.sessionIndicator || !dom.userSummary) {
+    return;
+  }
   if (!state.user) {
     dom.sessionIndicator.textContent = "Signed out";
     dom.userSummary.textContent = "Register or log in to access your private workspace.";
@@ -231,6 +244,9 @@ function renderSession() {
 }
 
 function renderWorkspaceOptions() {
+  if (!dom.workspaceSelect) {
+    return;
+  }
   dom.workspaceSelect.innerHTML = "";
   if (!state.workspaces.length) {
     dom.workspaceSelect.innerHTML = `<option value="">No workspace yet</option>`;
@@ -380,6 +396,9 @@ function renderSchedules(items) {
 }
 
 function renderPublicThemes(topThemes) {
+  if (!dom.publicThemeStrip) {
+    return;
+  }
   if (!topThemes || !topThemes.length) {
     dom.publicThemeStrip.innerHTML = `<span class="muted">No stable theme signal yet.</span>`;
     return;
@@ -392,25 +411,10 @@ function renderPublicThemes(topThemes) {
     .join("");
 }
 
-function renderHomePublicPreview(briefing) {
-  if (!briefing) {
-    dom.homePublicMeta.textContent = "No public briefing has been published yet.";
-    dom.homePublicPreview.textContent = "The full public desk will populate here after the first scheduled collection.";
-    dom.homePublicThemes.innerHTML = `<span class="muted">No stable theme signal yet.</span>`;
+function renderPublicClusters(clusters) {
+  if (!dom.publicClusterList) {
     return;
   }
-  dom.homePublicMeta.textContent = `${briefing.briefing_date} | ${briefing.headline_count} headlines`;
-  dom.homePublicPreview.textContent = briefing.summary_excerpt || briefing.summary_markdown || "";
-  const topThemes = briefing.top_themes || [];
-  dom.homePublicThemes.innerHTML = topThemes.length
-    ? topThemes
-        .slice(0, 4)
-        .map((item) => `<span class="topic-chip">${escapeHtml(item.theme)} <strong>${escapeHtml(item.count)}</strong></span>`)
-        .join("")
-    : `<span class="muted">No stable theme signal yet.</span>`;
-}
-
-function renderPublicClusters(clusters) {
   if (!clusters || !clusters.length) {
     dom.publicClusterList.innerHTML = emptyCard("No stable clustering signal is available for this public edition yet.");
     return;
@@ -448,6 +452,9 @@ function renderPublicClusters(clusters) {
 }
 
 function renderRecommendedReading(payload) {
+  if (!dom.publicReadingList) {
+    return;
+  }
   const sections = [
     {
       label: "Source Articles",
@@ -492,21 +499,11 @@ function renderRecommendedReading(payload) {
 }
 
 function renderSummaryPages(pages) {
+  if (!dom.publicSummaryPages) {
+    return;
+  }
   const items = pages && pages.length ? pages : defaultSummaryPages();
   const activeWindow = extractSummaryWindowFromLocation();
-  if (dom.homeSummaryLinks) {
-    dom.homeSummaryLinks.innerHTML = items
-      .map(
-        (item) => `
-          <a class="summary-page-card" href="${escapeHtml(item.detail_path || item.share_url || "/")}">
-            <span class="pill">${escapeHtml(item.days)}D</span>
-            <h4>${escapeHtml(item.title)}</h4>
-            <p>${escapeHtml(item.subtitle)}</p>
-          </a>
-        `,
-      )
-      .join("");
-  }
   dom.publicSummaryPages.innerHTML = items
     .map(
       (item) => `
@@ -521,6 +518,9 @@ function renderSummaryPages(pages) {
 }
 
 function renderSummaryFeatured(items) {
+  if (!dom.publicSummaryFeatured) {
+    return;
+  }
   if (!items || !items.length) {
     dom.publicSummaryFeatured.innerHTML = emptyCard("No contributing editions are available for the current summary window yet.");
     return;
@@ -541,18 +541,19 @@ function renderSummaryFeatured(items) {
 }
 
 function renderPublicLatest(briefing) {
+  if (!hasPublicMonitorUI()) {
+    return;
+  }
   if (!briefing) {
     state.selectedPublicBriefing = null;
     dom.publicLatestMeta.textContent = "No public briefing has been published yet.";
     dom.publicLatestView.textContent = "The public daily monitor will appear here after the first scheduled collection.";
-    renderHomePublicPreview(null);
     renderPublicThemes([]);
     renderPublicClusters([]);
     renderRecommendedReading(null);
     return;
   }
   state.selectedPublicBriefing = briefing;
-  renderHomePublicPreview(briefing);
   dom.publicLatestMeta.textContent = `${briefing.title} | ${briefing.briefing_date} | ${briefing.headline_count} headlines`;
   dom.publicLatestView.textContent = briefing.summary_markdown;
   renderPublicThemes(briefing.top_themes || []);
@@ -561,6 +562,9 @@ function renderPublicLatest(briefing) {
 }
 
 function renderPublicSummary(summary) {
+  if (!dom.publicSummaryView || !dom.publicSummaryTitle || !dom.publicSummaryMeta) {
+    return;
+  }
   if (!summary || !summary.report_count) {
     dom.publicSummaryTitle.textContent = "Rolling Summary";
     dom.publicSummaryMeta.textContent = "Recent multi-day view";
@@ -583,6 +587,9 @@ function updateSummaryButtons() {
 }
 
 function renderPublicBriefingList(items) {
+  if (!dom.publicBriefingList) {
+    return;
+  }
   if (!items.length) {
     dom.publicBriefingList.innerHTML = emptyCard("No public briefings have been published yet.");
     return;
@@ -616,10 +623,14 @@ async function fetchHealth() {
     api("/api/bootstrap", {}, false),
   ]);
   state.bootstrap = bootstrap;
-  dom.healthStatus.textContent = `${health.status} | ${bootstrap.supported_llm_kinds.length} provider types`;
-  dom.publicStatus.textContent = bootstrap.public_digest_enabled
-    ? `Daily after ${bootstrap.public_digest_local_time} ${bootstrap.public_digest_timezone}`
-    : "Disabled";
+  if (dom.healthStatus) {
+    dom.healthStatus.textContent = `${health.status} | ${bootstrap.supported_llm_kinds.length} provider types`;
+  }
+  if (dom.publicStatus) {
+    dom.publicStatus.textContent = bootstrap.public_digest_enabled
+      ? `Daily after ${bootstrap.public_digest_local_time} ${bootstrap.public_digest_timezone}`
+      : "Disabled";
+  }
 }
 
 async function loadPublicSummary(days = state.selectedSummaryDays, windowName = state.selectedSummaryWindow) {
@@ -651,7 +662,7 @@ function syncPublicUrl(briefing) {
 
 function syncSummaryUrl(windowName) {
   const pageMode = detectPageMode();
-  let nextPath = "/macro-desk";
+  let nextPath = "/public-monitor";
   if (windowName) {
     nextPath = `/summaries/${windowName}`;
   } else if (pageMode === "home") {
@@ -660,13 +671,6 @@ function syncSummaryUrl(windowName) {
   if (window.location.pathname !== nextPath) {
     window.history.replaceState({}, "", nextPath);
   }
-}
-
-function syncPageVisibility() {
-  const pageMode = detectPageMode();
-  const showFullPublicPanel = pageMode !== "home";
-  dom.publicPreviewPanel.classList.toggle("hidden", showFullPublicPanel);
-  dom.publicPanel.classList.toggle("hidden", !showFullPublicPanel);
 }
 
 function updateDocumentTitle() {
@@ -681,8 +685,8 @@ function updateDocumentTitle() {
     document.title = `${state.publicSummary.title} | Economic Research Platform`;
     return;
   }
-  if (pageMode === "macro-desk") {
-    document.title = "Public Macro Desk | Economic Research Platform";
+  if (pageMode === "public-monitor") {
+    document.title = "Public Daily Monitor | Economic Research Platform";
     return;
   }
   document.title = "Economic Research Platform";
@@ -1030,22 +1034,35 @@ function wrap(handler) {
 }
 
 function bind() {
-  document.getElementById("register-form").addEventListener("submit", wrap(handleRegister));
-  document.getElementById("login-form").addEventListener("submit", wrap(handleLogin));
-  document.getElementById("workspace-form").addEventListener("submit", wrap(handleCreateWorkspace));
-  document.getElementById("integration-form").addEventListener("submit", wrap(handleIntegration));
-  document.getElementById("briefing-form").addEventListener("submit", wrap(handleBriefing));
-  document.getElementById("openalex-form").addEventListener("submit", wrap(handleOpenAlexSearch));
-  document.getElementById("import-openalex").addEventListener("click", wrap(handleOpenAlexImport));
-  document.getElementById("upload-form").addEventListener("submit", wrap(handleUpload));
-  document.getElementById("knowledge-form").addEventListener("submit", wrap(handleKnowledge));
-  document.getElementById("schedule-form").addEventListener("submit", wrap(handleSchedule));
-  document.getElementById("ols-form").addEventListener("submit", wrap(handleOls));
-  dom.refreshPublicButton.addEventListener("click", wrap(async () => {
+  const registerForm = document.getElementById("register-form");
+  const loginForm = document.getElementById("login-form");
+  const workspaceForm = document.getElementById("workspace-form");
+  const integrationForm = document.getElementById("integration-form");
+  const briefingForm = document.getElementById("briefing-form");
+  const openalexForm = document.getElementById("openalex-form");
+  const importOpenalexButton = document.getElementById("import-openalex");
+  const uploadForm = document.getElementById("upload-form");
+  const knowledgeForm = document.getElementById("knowledge-form");
+  const scheduleForm = document.getElementById("schedule-form");
+  const olsForm = document.getElementById("ols-form");
+
+  registerForm?.addEventListener("submit", wrap(handleRegister));
+  loginForm?.addEventListener("submit", wrap(handleLogin));
+  workspaceForm?.addEventListener("submit", wrap(handleCreateWorkspace));
+  integrationForm?.addEventListener("submit", wrap(handleIntegration));
+  briefingForm?.addEventListener("submit", wrap(handleBriefing));
+  openalexForm?.addEventListener("submit", wrap(handleOpenAlexSearch));
+  importOpenalexButton?.addEventListener("click", wrap(handleOpenAlexImport));
+  uploadForm?.addEventListener("submit", wrap(handleUpload));
+  knowledgeForm?.addEventListener("submit", wrap(handleKnowledge));
+  scheduleForm?.addEventListener("submit", wrap(handleSchedule));
+  olsForm?.addEventListener("submit", wrap(handleOls));
+
+  dom.refreshPublicButton?.addEventListener("click", wrap(async () => {
     await loadPublicData();
     showToast("Public feed refreshed.");
   }));
-  dom.copyPublicLinkButton.addEventListener("click", wrap(async () => {
+  dom.copyPublicLinkButton?.addEventListener("click", wrap(async () => {
     const target = currentPublicShareTarget();
     if (!target) {
       throw new Error("No public briefing selected.");
@@ -1069,7 +1086,7 @@ function bind() {
       }),
     );
   });
-  dom.workspaceSelect.addEventListener(
+  dom.workspaceSelect?.addEventListener(
     "change",
     wrap(async (event) => {
       state.selectedWorkspaceId = event.target.value;
@@ -1077,22 +1094,25 @@ function bind() {
       await refreshWorkspaceData();
     }),
   );
-  dom.integrationList.addEventListener("click", wrap(handleIntegrationActions));
-  dom.assetList.addEventListener("click", wrap(handleAssetActions));
-  dom.publicBriefingList.addEventListener("click", wrap(handlePublicActions));
-  dom.publicSummaryFeatured.addEventListener("click", wrap(handlePublicActions));
+  dom.integrationList?.addEventListener("click", wrap(handleIntegrationActions));
+  dom.assetList?.addEventListener("click", wrap(handleAssetActions));
+  dom.publicBriefingList?.addEventListener("click", wrap(handlePublicActions));
+  dom.publicSummaryFeatured?.addEventListener("click", wrap(handlePublicActions));
 }
 
 async function init() {
-  syncPageVisibility();
   bind();
-  clearPrivateLists();
-  renderSession();
-  renderWorkspaceOptions();
   try {
     await fetchHealth();
-    await loadPublicData();
-    await loadSession();
+    if (hasPublicMonitorUI()) {
+      await loadPublicData();
+    }
+    if (hasPrivateWorkspaceUI()) {
+      clearPrivateLists();
+      renderSession();
+      renderWorkspaceOptions();
+      await loadSession();
+    }
   } catch (error) {
     showToast(error.message || "Initialization failed.", true);
   }

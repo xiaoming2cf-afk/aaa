@@ -12,10 +12,10 @@
     <header class="hero">
       <div>
         <p class="eyebrow">Economic Research Platform</p>
-        <h1>Daily macro intelligence with a public front page.</h1>
+        <h1>Research workflows for macro, markets, and literature.</h1>
         <p class="hero-copy">
-          The platform now exposes a public daily economics monitor and rolling summary for all visitors,
-          while keeping private workspaces, literature libraries, data assets, and model integrations behind login.
+          Use the main platform for private workspaces, model providers, literature, data assets, and scheduled
+          research jobs. The public daily monitor now lives in its own standalone page.
         </p>
       </div>
       <div class="hero-meta">
@@ -31,126 +31,41 @@
     </header>
 
     <main class="shell">
-      <section class="panel public-preview-panel" id="public-preview-panel">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2>Public Macro Desk</h2>
-            <p class="muted">
-              A lighter homepage preview. Open the full public desk for daily briefings, theme clusters,
-              recommended reading, and roundup pages.
-            </p>
-          </div>
-          <div class="actions">
-            <a href="/macro-desk" class="button-link">Open full public desk</a>
-          </div>
-        </div>
-
-        <div class="public-preview-grid">
-          <article class="card card-preview">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <h3>Latest Public Edition</h3>
-                <span class="muted" id="home-public-meta">Waiting for the latest public briefing...</span>
-              </div>
-            </div>
-            <div id="home-public-themes" class="chip-row"></div>
-            <p id="home-public-preview" class="preview-copy">The homepage preview will appear here after loading.</p>
-            <div class="actions">
-              <a href="/macro-desk" class="button-link secondary-link">Open desk</a>
-            </div>
-          </article>
-
-          <article class="card card-preview">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <h3>Roundup Pages</h3>
-                <span class="muted">Go directly to the current public summary windows</span>
-              </div>
-            </div>
-            <div id="home-summary-links" class="summary-page-grid"></div>
-          </article>
-        </div>
-      </section>
-
-      <section class="panel public-panel" id="public-panel">
+      <section class="panel public-entry-panel">
         <div class="panel-head panel-head-wrap">
           <div>
             <h2>Public Daily Monitor</h2>
             <p class="muted">
-              Open to all visitors. The public feed focuses on global macro and financial headlines, plus any
-              available FRED indicator snapshot.
+              Open the standalone public page for the daily briefing, related-news clustering, recommended reading,
+              and weekly/monthly roundup views.
             </p>
           </div>
           <div class="actions">
-            <a href="/" class="button-link secondary-link">Back to homepage</a>
-            <button id="refresh-public" type="button" class="secondary">Refresh public feed</button>
+            <a href="/public-monitor" class="button-link">Open Public Daily Monitor</a>
           </div>
         </div>
 
-        <div class="public-grid">
-          <article class="stack">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <h3>Latest Edition</h3>
-                <span class="muted" id="public-latest-meta">Waiting for the latest public briefing...</span>
-              </div>
-              <div class="actions">
-                <button id="copy-public-link" type="button" class="secondary">Copy share link</button>
-              </div>
-            </div>
-            <div id="public-theme-strip" class="chip-row"></div>
-            <pre id="public-latest-view" class="report-view">Loading the latest public briefing...</pre>
-            <div class="stack">
-              <div class="panel-head">
-                <h3>Related News Clusters</h3>
-                <span class="muted">Grouped from the current public edition</span>
-              </div>
-              <div id="public-cluster-list" class="cluster-grid"></div>
-            </div>
-            <div class="stack">
-              <div class="panel-head">
-                <h3>Recommended Further Reading</h3>
-                <span class="muted">Related source articles, prior editions, and roundup pages</span>
-              </div>
-              <div id="public-reading-list" class="reading-grid"></div>
+        <div class="public-entry-grid">
+          <article class="card">
+            <h3>Standalone Public Page</h3>
+            <p>
+              A dedicated public interface for visitors who only need the open macro monitor, without the private
+              workspace UI.
+            </p>
+            <div class="actions">
+              <a href="/public-monitor" class="button-link secondary-link">Enter monitor</a>
             </div>
           </article>
 
-          <article class="stack">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <h3 id="public-summary-title">Rolling Summary</h3>
-                <span class="muted" id="public-summary-meta">Recent multi-day view</span>
-              </div>
-              <div class="chip-row chip-row-compact">
-                <button type="button" class="chip-button is-active" data-summary-days="7">7D</button>
-                <button type="button" class="chip-button" data-summary-days="14">14D</button>
-                <button type="button" class="chip-button" data-summary-days="30">30D</button>
-              </div>
-            </div>
-            <pre id="public-summary-view" class="report-view report-view-compact">Loading the recent summary...</pre>
-            <div class="stack">
-              <div class="panel-head">
-                <h3>Weekly And Monthly Pages</h3>
-                <span class="muted">Shareable roundup pages for visitors</span>
-              </div>
-              <div id="public-summary-pages" class="summary-page-grid"></div>
-            </div>
-            <div class="stack">
-              <div class="panel-head">
-                <h3>Featured Editions In Window</h3>
-                <span class="muted">Daily editions contributing to the current summary</span>
-              </div>
-              <div id="public-summary-featured" class="card-list card-list-inline"></div>
+          <article class="card">
+            <h3>Roundup Views</h3>
+            <p>Direct links to the public weekly and monthly summary pages.</p>
+            <div class="actions">
+              <a href="/summaries/weekly" class="button-link secondary-link">Weekly page</a>
+              <a href="/summaries/monthly" class="button-link secondary-link">Monthly page</a>
             </div>
           </article>
         </div>
-
-        <div class="panel-head">
-          <h3>Recent Public Editions</h3>
-          <span class="muted">Browse without logging in</span>
-        </div>
-        <div id="public-briefing-list" class="card-list"></div>
       </section>
 
       <section class="panel auth-panel">

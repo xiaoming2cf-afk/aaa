@@ -63,6 +63,7 @@ from .platform_research import (
 
 
 WEB_DIR = Path(__file__).with_name("web")
+PUBLIC_WEB_FILE = WEB_DIR / "public.html"
 
 
 class RegisterRequest(BaseModel):
@@ -154,19 +155,23 @@ def create_app() -> FastAPI:
     def index() -> FileResponse:
         return FileResponse(WEB_DIR / "index.html")
 
+    @app.get("/public-monitor")
+    def public_monitor_page() -> FileResponse:
+        return FileResponse(PUBLIC_WEB_FILE)
+
     @app.get("/macro-desk")
     def public_macro_desk_page() -> FileResponse:
-        return FileResponse(WEB_DIR / "index.html")
+        return FileResponse(PUBLIC_WEB_FILE)
 
     @app.get("/briefings/{slug}")
     def public_briefing_page(slug: str) -> FileResponse:
-        return FileResponse(WEB_DIR / "index.html")
+        return FileResponse(PUBLIC_WEB_FILE)
 
     @app.get("/summaries/{window}")
     def public_summary_page(window: str) -> FileResponse:
         if window not in {"weekly", "monthly"}:
             raise HTTPException(status_code=404, detail="Public summary page not found.")
-        return FileResponse(WEB_DIR / "index.html")
+        return FileResponse(PUBLIC_WEB_FILE)
 
     @app.get("/favicon.ico", include_in_schema=False)
     def favicon() -> FileResponse:
