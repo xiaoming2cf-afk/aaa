@@ -8,6 +8,10 @@ const state = {
   user: null,
   workspaces: [],
   selectedWorkspaceId: localStorage.getItem(storageKeys.workspaceId) || "",
+  assetProfiles: {},
+  selectedAnalysisAssetId: "",
+  currentPlotAssetId: "",
+  currentPlotUrl: "",
   openAlexResults: [],
   publicBriefings: [],
   publicSummary: null,
@@ -48,6 +52,43 @@ const dom = {
   assetList: document.getElementById("asset-list"),
   knowledgeList: document.getElementById("knowledge-list"),
   scheduleList: document.getElementById("schedule-list"),
+  analysisAssetSelect: document.getElementById("analysis-asset-select"),
+  refreshAssetProfileButton: document.getElementById("refresh-asset-profile"),
+  analysisAssetOverview: document.getElementById("analysis-asset-overview"),
+  analysisColumnGrid: document.getElementById("analysis-column-grid"),
+  analysisPreviewTable: document.getElementById("analysis-preview-table"),
+  prepareForm: document.getElementById("prepare-form"),
+  prepareKeepColumns: document.getElementById("prepare-keep-columns"),
+  prepareRequiredColumns: document.getElementById("prepare-required-columns"),
+  prepareNumericColumns: document.getElementById("prepare-numeric-columns"),
+  prepareBinaryColumns: document.getElementById("prepare-binary-columns"),
+  prepareDateColumns: document.getElementById("prepare-date-columns"),
+  prepareOutput: document.getElementById("prepare-output"),
+  modelForm: document.getElementById("model-form"),
+  modelType: document.getElementById("model-type"),
+  modelDependent: document.getElementById("model-dependent"),
+  modelIndependents: document.getElementById("model-independents"),
+  modelControls: document.getElementById("model-controls"),
+  modelRobustCovariance: document.getElementById("model-robust-covariance"),
+  didFields: document.getElementById("did-fields"),
+  didTreatmentColumn: document.getElementById("did-treatment-column"),
+  didPostColumn: document.getElementById("did-post-column"),
+  gravityFields: document.getElementById("gravity-fields"),
+  gravityDistanceWrap: document.getElementById("gravity-distance-wrap"),
+  gravityOriginMassColumn: document.getElementById("gravity-origin-mass-column"),
+  gravityDestinationMassColumn: document.getElementById("gravity-destination-mass-column"),
+  gravityDistanceColumn: document.getElementById("gravity-distance-column"),
+  olsFields: document.getElementById("ols-fields"),
+  plotForm: document.getElementById("plot-form"),
+  plotType: document.getElementById("plot-type"),
+  plotXColumn: document.getElementById("plot-x-column"),
+  plotYColumns: document.getElementById("plot-y-columns"),
+  plotGroupColumn: document.getElementById("plot-group-column"),
+  plotTitle: document.getElementById("plot-title"),
+  plotPreviewPanel: document.getElementById("plot-preview-panel"),
+  plotPreviewMeta: document.getElementById("plot-preview-meta"),
+  plotPreviewImage: document.getElementById("plot-preview-image"),
+  downloadPlotButton: document.getElementById("download-plot"),
   analysisOutput: document.getElementById("analysis-output"),
 };
 
@@ -223,6 +264,180 @@ function emptyCard(message) {
   return `<div class="card"><p>${escapeHtml(message)}</p></div>`;
 }
 
+function getSelectedValues(select) {
+  if (!select) {
+    return [];
+  }
+  return Array.from(select.selectedOptions || []).map((option) => option.value).filter(Boolean);
+}
+
+function setSelectOptions(select, items, { multiple = false, placeholder = "Select an option", selected = [] } = {}) {
+  if (!select) {
+    return;
+  }
+  const selectedSet = new Set(Array.isArray(selected) ? selected : [selected].filter(Boolean));
+  const includeBlank = !multiple;
+  select.innerHTML = includeBlank ? `<option value="">${escapeHtml(placeholder)}</option>` : "";
+  for (const item of items) {
+    const option = document.createElement("option");
+    option.value = item.value;
+    option.textContent = item.label;
+    option.selected = selectedSet.has(item.value);
+    select.appendChild(option);
+  }
+}
+
+function datasetAssets(items) {
+  return (items || []).filter((item) => (item.kind || "").startsWith("dataset"));
+}
+
+function currentAssetProfile() {
+  return state.assetProfiles[state.selectedAnalysisAssetId] || null;
+}
+
+function revokeCurrentPlotUrl() {
+  if (state.currentPlotUrl) {
+    URL.revokeObjectURL(state.currentPlotUrl);
+    state.currentPlotUrl = "";
+  }
+}
+
+function renderDataLabPlaceholders() {
+  dom.analysisAssetOverview && (dom.analysisAssetOverview.innerHTML = `<p>Select a dataset to inspect rows, missingness, variable roles, and preview records.</p>`);
+  dom.analysisColumnGrid && (dom.analysisColumnGrid.innerHTML = emptyCard("Column roles and missingness will appear here."));
+  dom.analysisPreviewTable && (dom.analysisPreviewTable.innerHTML = `<p class="muted">Dataset preview will appear here after you load a profile.</p>`);
+  dom.prepareOutput && (dom.prepareOutput.textContent = "Waiting for sample preparation.");
+  dom.analysisOutput && (dom.analysisOutput.textContent = "Waiting for model output.");
+  if (dom.plotPreviewPanel) {
+    dom.plotPreviewPanel.classList.add("hidden");
+  }
+  if (dom.plotPreviewMeta) {
+    dom.plotPreviewMeta.textContent = "No chart generated yet.";
+  }
+  if (dom.plotPreviewImage) {
+    dom.plotPreviewImage.removeAttribute("src");
+  }
+  state.currentPlotAssetId = "";
+  revokeCurrentPlotUrl();
+}
+
+function syncDataLabAssetOptions(items) {
+  const datasets = datasetAssets(items);
+  const options = datasets.map((item) => ({
+    value: item.id,
+    label: `${item.title} | ${item.kind}`,
+  }));
+  const stillExists = datasets.some((item) => item.id === state.selectedAnalysisAssetId);
+  if (!stillExists) {
+    state.selectedAnalysisAssetId = datasets[0]?.id || "";
+  }
+  setSelectOptions(dom.analysisAssetSelect, options, {
+    placeholder: "Select a dataset asset",
+    selected: state.selectedAnalysisAssetId,
+  });
+  if (!datasets.length) {
+    renderDataLabPlaceholders();
+  }
+}
+
+function renderPreviewTable(rows) {
+  if (!dom.analysisPreviewTable) {
+    return;
+  }
+  if (!rows || !rows.length) {
+    dom.analysisPreviewTable.innerHTML = `<p class="muted">No preview rows are available for this dataset.</p>`;
+    return;
+  }
+  const columns = Object.keys(rows[0] || {});
+  dom.analysisPreviewTable.innerHTML = `
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr>
+        </thead>
+        <tbody>
+          ${rows
+            .map(
+              (row) => `
+                <tr>
+                  ${columns.map((column) => `<td>${escapeHtml(row[column] ?? "")}</td>`).join("")}
+                </tr>
+              `,
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function populateDataLabSelectors(profile) {
+  const columns = (profile?.column_profiles || []).map((item) => ({
+    value: item.name,
+    label: `${item.name} | ${item.role}`,
+  }));
+  const numericColumns = (profile?.column_roles?.numeric || []).map((value) => ({ value, label: value }));
+  const binaryColumns = (profile?.column_roles?.binary || []).map((value) => ({ value, label: value }));
+  const allColumns = columns;
+
+  setSelectOptions(dom.prepareKeepColumns, allColumns, { multiple: true });
+  setSelectOptions(dom.prepareRequiredColumns, allColumns, { multiple: true });
+  setSelectOptions(dom.prepareNumericColumns, allColumns, { multiple: true });
+  setSelectOptions(dom.prepareBinaryColumns, binaryColumns, { multiple: true });
+  setSelectOptions(dom.prepareDateColumns, allColumns, { multiple: true });
+
+  setSelectOptions(dom.modelDependent, numericColumns, { placeholder: "Select an outcome variable" });
+  setSelectOptions(dom.modelIndependents, numericColumns, { multiple: true });
+  setSelectOptions(dom.modelControls, numericColumns, { multiple: true });
+  setSelectOptions(dom.didTreatmentColumn, binaryColumns, { placeholder: "Select treatment indicator" });
+  setSelectOptions(dom.didPostColumn, binaryColumns, { placeholder: "Select post indicator" });
+  setSelectOptions(dom.gravityOriginMassColumn, numericColumns, { placeholder: "Select origin mass" });
+  setSelectOptions(dom.gravityDestinationMassColumn, numericColumns, { placeholder: "Select destination mass" });
+  setSelectOptions(dom.gravityDistanceColumn, numericColumns, { placeholder: "Select distance variable" });
+
+  setSelectOptions(dom.plotXColumn, allColumns, { placeholder: "Select X variable" });
+  setSelectOptions(dom.plotYColumns, numericColumns, { multiple: true });
+  setSelectOptions(dom.plotGroupColumn, columns, { placeholder: "Optional group column" });
+  updateModelFieldVisibility();
+}
+
+function renderAssetProfile(profile) {
+  if (!profile) {
+    renderDataLabPlaceholders();
+    return;
+  }
+  if (dom.analysisAssetOverview) {
+    dom.analysisAssetOverview.innerHTML = `
+      <h4>${escapeHtml(profile.asset.title)}</h4>
+      <p>${escapeHtml(profile.rows)} rows | ${escapeHtml(profile.columns)} columns | duplicate rows detected: ${escapeHtml(profile.duplicate_rows_detected)}</p>
+      <p>${escapeHtml((profile.suggested_models || []).join(", ")) || "No suggested models yet."}</p>
+    `;
+  }
+  if (dom.analysisColumnGrid) {
+    dom.analysisColumnGrid.innerHTML = (profile.column_profiles || [])
+      .map(
+        (column) => `
+          <article class="column-card">
+            <h4>${escapeHtml(column.name)}</h4>
+            <p>${escapeHtml(column.role)} | missing ${escapeHtml(column.missing_count)} | unique ${escapeHtml(column.unique_count)}</p>
+            <p class="muted">Source: ${escapeHtml(column.source_name)}</p>
+          </article>
+        `,
+      )
+      .join("");
+  }
+  renderPreviewTable(profile.preview_rows || []);
+  populateDataLabSelectors(profile);
+}
+
+function updateModelFieldVisibility() {
+  const modelType = dom.modelType?.value || "ols";
+  dom.olsFields?.classList.toggle("hidden", modelType !== "ols");
+  dom.didFields?.classList.toggle("hidden", modelType !== "did");
+  dom.gravityFields?.classList.toggle("hidden", modelType !== "gravity");
+  dom.gravityDistanceWrap?.classList.toggle("hidden", modelType !== "gravity");
+}
+
 function hasPrivateWorkspaceUI() {
   return Boolean(dom.workspaceSelect && dom.integrationList);
 }
@@ -243,6 +458,10 @@ function clearPrivateLists() {
   dom.knowledgeList.innerHTML = emptyCard("Your private notes will appear here.");
   dom.scheduleList.innerHTML = emptyCard("Your scheduled jobs will appear here.");
   dom.analysisOutput.textContent = "Waiting for analysis output.";
+  if (dom.analysisAssetSelect) {
+    dom.analysisAssetSelect.innerHTML = `<option value="">Select a dataset asset</option>`;
+  }
+  renderDataLabPlaceholders();
 }
 
 function ensureSignedIn() {
@@ -395,6 +614,7 @@ function renderLiterature(items) {
 }
 
 function renderAssets(items) {
+  syncDataLabAssetOptions(items);
   if (!items.length) {
     dom.assetList.innerHTML = emptyCard("No uploaded assets yet.");
     return;
@@ -408,6 +628,7 @@ function renderAssets(items) {
           <p>${escapeHtml(item.kind)} | ${escapeHtml(item.content_type || "unknown content type")}</p>
           <div class="actions">
             <button type="button" class="secondary" data-download-asset="${item.id}">Download</button>
+            ${item.kind.startsWith("dataset") ? `<button type="button" class="secondary" data-select-asset="${item.id}">Use in lab</button>` : ""}
             ${item.kind.startsWith("dataset") ? `<button type="button" class="secondary" data-clean-asset="${item.id}">Clean</button>` : ""}
           </div>
         </div>
@@ -809,6 +1030,24 @@ async function loadPublicData() {
   updateDocumentTitle();
 }
 
+async function loadSelectedAssetProfile(force = false) {
+  ensureWorkspace();
+  const assetId = dom.analysisAssetSelect?.value || state.selectedAnalysisAssetId;
+  if (!assetId) {
+    renderDataLabPlaceholders();
+    return null;
+  }
+  state.selectedAnalysisAssetId = assetId;
+  if (!force && state.assetProfiles[assetId]) {
+    renderAssetProfile(state.assetProfiles[assetId]);
+    return state.assetProfiles[assetId];
+  }
+  const profile = await api(`/api/workspaces/${state.selectedWorkspaceId}/assets/${assetId}/profile`);
+  state.assetProfiles[assetId] = profile;
+  renderAssetProfile(profile);
+  return profile;
+}
+
 async function loadSession() {
   if (!state.token) {
     renderSession();
@@ -847,6 +1086,13 @@ async function refreshWorkspaceData() {
   renderAssets(assets.items || []);
   renderKnowledge(knowledge.items || []);
   renderSchedules(schedules.items || []);
+  if (state.selectedAnalysisAssetId) {
+    try {
+      await loadSelectedAssetProfile();
+    } catch (error) {
+      showToast(error.message || "Failed to load dataset profile.", true);
+    }
+  }
 }
 
 async function handleRegister(event) {
@@ -968,6 +1214,7 @@ async function handleUpload(event) {
     method: "POST",
     body: formData,
   });
+  state.assetProfiles = {};
   await refreshWorkspaceData();
   event.currentTarget.reset();
   showToast("File uploaded.");
@@ -1014,28 +1261,114 @@ async function handleSchedule(event) {
   showToast("Private daily job created.");
 }
 
-async function handleOls(event) {
+async function handlePrepareSample(event) {
   event.preventDefault();
   ensureWorkspace();
-  const formData = new FormData(event.currentTarget);
+  const assetId = dom.analysisAssetSelect?.value || state.selectedAnalysisAssetId;
+  if (!assetId) {
+    throw new Error("Select a dataset asset first.");
+  }
   const payload = {
-    asset_id: formData.get("asset_id"),
-    dependent: formData.get("dependent"),
-    independents: formData
-      .get("independents")
-      .toString()
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean),
+    asset_id: assetId,
+    include_columns: getSelectedValues(dom.prepareKeepColumns),
+    required_columns: getSelectedValues(dom.prepareRequiredColumns),
+    numeric_columns: getSelectedValues(dom.prepareNumericColumns),
+    binary_columns: getSelectedValues(dom.prepareBinaryColumns),
+    date_columns: getSelectedValues(dom.prepareDateColumns),
+    drop_duplicates: event.currentTarget.querySelector('[name=\"drop_duplicates\"]')?.checked ?? true,
+    drop_missing_required:
+      event.currentTarget.querySelector('[name=\"drop_missing_required\"]')?.checked ?? true,
   };
-  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/analysis/ols`, {
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/analysis/prepare`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  dom.prepareOutput.textContent = JSON.stringify(response, null, 2);
+  state.assetProfiles = {};
+  state.selectedAnalysisAssetId = response.asset.id;
+  await refreshWorkspaceData();
+  showToast("Prepared analysis sample created.");
+}
+
+async function handleModelRun(event) {
+  event.preventDefault();
+  ensureWorkspace();
+  const assetId = dom.analysisAssetSelect?.value || state.selectedAnalysisAssetId;
+  if (!assetId) {
+    throw new Error("Select a dataset asset first.");
+  }
+  const modelType = dom.modelType?.value || "ols";
+  const payload = {
+    asset_id: assetId,
+    model_type: modelType,
+    dependent: dom.modelDependent?.value || "",
+    independents: getSelectedValues(dom.modelIndependents),
+    controls: getSelectedValues(dom.modelControls),
+    treatment_column: dom.didTreatmentColumn?.value || "",
+    post_column: dom.didPostColumn?.value || "",
+    origin_mass_column: dom.gravityOriginMassColumn?.value || "",
+    destination_mass_column: dom.gravityDestinationMassColumn?.value || "",
+    distance_column: dom.gravityDistanceColumn?.value || "",
+    robust_covariance: dom.modelRobustCovariance?.checked ?? true,
+  };
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/analysis/models`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   dom.analysisOutput.textContent = JSON.stringify(response, null, 2);
   await refreshWorkspaceData();
-  showToast("OLS completed.");
+  showToast(`${response.model_label || "Model"} completed.`);
+}
+
+async function renderPlotPreview(result) {
+  if (!result?.asset?.id) {
+    return;
+  }
+  revokeCurrentPlotUrl();
+  const response = await fetch(`/api/assets/${result.asset.id}/download`, {
+    headers: { Authorization: `Bearer ${state.token}` },
+  });
+  if (!response.ok) {
+    throw new Error("Chart preview download failed.");
+  }
+  const blob = await response.blob();
+  state.currentPlotUrl = URL.createObjectURL(blob);
+  state.currentPlotAssetId = result.asset.id;
+  if (dom.plotPreviewImage) {
+    dom.plotPreviewImage.src = state.currentPlotUrl;
+  }
+  if (dom.plotPreviewMeta) {
+    dom.plotPreviewMeta.textContent = result.summary || result.title || "Chart generated.";
+  }
+  dom.plotPreviewPanel?.classList.remove("hidden");
+}
+
+async function handlePlot(event) {
+  event.preventDefault();
+  ensureWorkspace();
+  const assetId = dom.analysisAssetSelect?.value || state.selectedAnalysisAssetId;
+  if (!assetId) {
+    throw new Error("Select a dataset asset first.");
+  }
+  const formData = new FormData(event.currentTarget);
+  const payload = {
+    asset_id: assetId,
+    chart_type: formData.get("chart_type"),
+    x_column: formData.get("x_column"),
+    y_columns: getSelectedValues(dom.plotYColumns),
+    group_column: formData.get("group_column"),
+    title: formData.get("title"),
+  };
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/analysis/plot`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  await renderPlotPreview(response);
+  await refreshWorkspaceData();
+  showToast("Chart generated.");
 }
 
 async function handleIntegrationActions(event) {
@@ -1088,10 +1421,25 @@ function currentPublicShareTarget() {
 }
 
 async function handleAssetActions(event) {
-  const cleanId = event.target.getAttribute("data-clean-asset");
-  const downloadId = event.target.getAttribute("data-download-asset");
+  const target = event.target.closest("[data-clean-asset], [data-download-asset], [data-select-asset]");
+  if (!target) {
+    return;
+  }
+  const cleanId = target.getAttribute("data-clean-asset");
+  const downloadId = target.getAttribute("data-download-asset");
+  const selectId = target.getAttribute("data-select-asset");
+  if (selectId) {
+    state.selectedAnalysisAssetId = selectId;
+    if (dom.analysisAssetSelect) {
+      dom.analysisAssetSelect.value = selectId;
+    }
+    await loadSelectedAssetProfile();
+    showToast("Dataset loaded into Data Lab.");
+    return;
+  }
   if (cleanId) {
     await api(`/api/workspaces/${state.selectedWorkspaceId}/assets/${cleanId}/clean`, { method: "POST" });
+    state.assetProfiles = {};
     await refreshWorkspaceData();
     showToast("Cleaned dataset generated.");
     return;
@@ -1146,7 +1494,9 @@ function bind() {
   const uploadForm = document.getElementById("upload-form");
   const knowledgeForm = document.getElementById("knowledge-form");
   const scheduleForm = document.getElementById("schedule-form");
-  const olsForm = document.getElementById("ols-form");
+  const prepareForm = document.getElementById("prepare-form");
+  const modelForm = document.getElementById("model-form");
+  const plotForm = document.getElementById("plot-form");
 
   registerForm?.addEventListener("submit", wrap(handleRegister));
   loginForm?.addEventListener("submit", wrap(handleLogin));
@@ -1158,7 +1508,9 @@ function bind() {
   uploadForm?.addEventListener("submit", wrap(handleUpload));
   knowledgeForm?.addEventListener("submit", wrap(handleKnowledge));
   scheduleForm?.addEventListener("submit", wrap(handleSchedule));
-  olsForm?.addEventListener("submit", wrap(handleOls));
+  prepareForm?.addEventListener("submit", wrap(handlePrepareSample));
+  modelForm?.addEventListener("submit", wrap(handleModelRun));
+  plotForm?.addEventListener("submit", wrap(handlePlot));
 
   dom.refreshPublicButton?.addEventListener("click", wrap(async () => {
     await loadPublicData();
@@ -1193,14 +1545,33 @@ function bind() {
     wrap(async (event) => {
       state.selectedWorkspaceId = event.target.value;
       localStorage.setItem(storageKeys.workspaceId, state.selectedWorkspaceId);
+      state.assetProfiles = {};
+      state.selectedAnalysisAssetId = "";
       await refreshWorkspaceData();
     }),
   );
+  dom.analysisAssetSelect?.addEventListener("change", wrap(async (event) => {
+    state.selectedAnalysisAssetId = event.target.value;
+    await loadSelectedAssetProfile();
+  }));
+  dom.refreshAssetProfileButton?.addEventListener("click", wrap(async () => {
+    await loadSelectedAssetProfile(true);
+    showToast("Dataset profile refreshed.");
+  }));
+  dom.modelType?.addEventListener("change", () => updateModelFieldVisibility());
+  dom.downloadPlotButton?.addEventListener("click", wrap(async () => {
+    if (!state.currentPlotAssetId) {
+      throw new Error("Generate a chart first.");
+    }
+    await downloadAsset(state.currentPlotAssetId);
+    showToast("Chart download started.");
+  }));
   dom.integrationList?.addEventListener("click", wrap(handleIntegrationActions));
   dom.assetList?.addEventListener("click", wrap(handleAssetActions));
   dom.publicDateSwitcher?.addEventListener("click", wrap(handlePublicActions));
   dom.publicBriefingList?.addEventListener("click", wrap(handlePublicActions));
   dom.publicSummaryFeatured?.addEventListener("click", wrap(handlePublicActions));
+  updateModelFieldVisibility();
 }
 
 async function init() {

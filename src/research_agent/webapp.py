@@ -14,6 +14,7 @@ from .config import get_settings
 from .db import init_database, session_scope
 from .entities import DataAsset
 from .platform_core import (
+    create_plot_asset,
     clean_dataset_asset,
     create_integration,
     create_knowledge_record,
@@ -26,8 +27,11 @@ from .platform_core import (
     list_knowledge_records,
     list_workspaces,
     login_user,
+    prepare_dataset_asset,
+    profile_dataset_asset,
     register_user,
     resolve_integration,
+    run_model_analysis,
     run_ols_analysis,
     save_upload_asset,
     search_assets,
@@ -124,6 +128,42 @@ class OlsAnalysisRequest(BaseModel):
     asset_id: str
     dependent: str
     independents: list[str] = Field(default_factory=list)
+    robust_covariance: bool = True
+
+
+class DatasetPrepareRequest(BaseModel):
+    asset_id: str
+    include_columns: list[str] = Field(default_factory=list)
+    required_columns: list[str] = Field(default_factory=list)
+    numeric_columns: list[str] = Field(default_factory=list)
+    binary_columns: list[str] = Field(default_factory=list)
+    date_columns: list[str] = Field(default_factory=list)
+    drop_duplicates: bool = True
+    drop_missing_required: bool = True
+
+
+class ModelRunRequest(BaseModel):
+    asset_id: str
+    model_type: str = Field(default="ols")
+    dependent: str = ""
+    independents: list[str] = Field(default_factory=list)
+    controls: list[str] = Field(default_factory=list)
+    treatment_column: str = ""
+    post_column: str = ""
+    origin_mass_column: str = ""
+    destination_mass_column: str = ""
+    distance_column: str = ""
+    robust_covariance: bool = True
+
+
+class PlotCreateRequest(BaseModel):
+    asset_id: str
+    chart_type: str = Field(default="line")
+    x_column: str = ""
+    y_columns: list[str] = Field(default_factory=list)
+    group_column: str = ""
+    title: str = ""
+    max_points: int = 400
 
 
 def _token_from_headers(authorization: str | None, x_session_token: str | None) -> str:
@@ -545,6 +585,51 @@ def create_app() -> FastAPI:
         except Exception as exc:
             _raise_http_error(exc)
 
+    @app.get("/api/workspaces/{workspace_id}/assets/{asset_id}/profile")
+    def asset_profile(
+        workspace_id: str,
+        asset_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return profile_dataset_asset(settings, db, user=user, workspace=workspace, asset_id=asset_id)
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/analysis/prepare")
+    def prepare_analysis_sample(
+        workspace_id: str,
+        request: DatasetPrepareRequest,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return prepare_dataset_asset(
+                    settings,
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    asset_id=request.asset_id,
+                    include_columns=request.include_columns,
+                    required_columns=request.required_columns,
+                    numeric_columns=request.numeric_columns,
+                    binary_columns=request.binary_columns,
+                    date_columns=request.date_columns,
+                    drop_duplicates=request.drop_duplicates,
+                    drop_missing_required=request.drop_missing_required,
+                )
+        except Exception as exc:
+            _raise_http_error(exc)
+
     @app.post("/api/workspaces/{workspace_id}/analysis/ols")
     def ols_analysis(
         workspace_id: str,
@@ -565,6 +650,67 @@ def create_app() -> FastAPI:
                     asset_id=request.asset_id,
                     dependent=request.dependent,
                     independents=request.independents,
+                    robust_covariance=request.robust_covariance,
+                )
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/analysis/models")
+    def run_model(
+        workspace_id: str,
+        request: ModelRunRequest,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return run_model_analysis(
+                    settings,
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    model_type=request.model_type,
+                    asset_id=request.asset_id,
+                    dependent=request.dependent,
+                    independents=request.independents,
+                    controls=request.controls,
+                    treatment_column=request.treatment_column,
+                    post_column=request.post_column,
+                    origin_mass_column=request.origin_mass_column,
+                    destination_mass_column=request.destination_mass_column,
+                    distance_column=request.distance_column,
+                    robust_covariance=request.robust_covariance,
+                )
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/analysis/plot")
+    def create_plot(
+        workspace_id: str,
+        request: PlotCreateRequest,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return create_plot_asset(
+                    settings,
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    asset_id=request.asset_id,
+                    chart_type=request.chart_type,
+                    x_column=request.x_column,
+                    y_columns=request.y_columns,
+                    group_column=request.group_column,
+                    title=request.title,
+                    max_points=request.max_points,
                 )
         except Exception as exc:
             _raise_http_error(exc)

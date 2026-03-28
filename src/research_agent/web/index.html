@@ -170,21 +170,186 @@
         <section class="panel">
           <div class="panel-head">
             <h2>Data Lab</h2>
-            <span class="muted">Upload, clean, download, and run baseline OLS</span>
+            <span class="muted">Profile samples, select variables, run OLS / DID / gravity, and generate charts</span>
           </div>
-          <form id="upload-form" class="stack">
-            <input name="file" type="file" required />
-            <input name="description" type="text" placeholder="Asset description (optional)" />
-            <button type="submit">Upload file</button>
-          </form>
-          <form id="ols-form" class="stack compact">
-            <input name="asset_id" type="text" placeholder="Dataset asset ID" required />
-            <input name="dependent" type="text" placeholder="Dependent variable column" required />
-            <input name="independents" type="text" placeholder="Independent columns, comma separated" required />
-            <button type="submit">Run OLS</button>
-          </form>
-          <pre id="analysis-output" class="console-box">Waiting for analysis output.</pre>
-          <div id="asset-list" class="card-list"></div>
+          <div class="data-lab-grid">
+            <div class="stack">
+              <form id="upload-form" class="stack">
+                <input name="file" type="file" required />
+                <input name="description" type="text" placeholder="Asset description (optional)" />
+                <button type="submit">Upload file</button>
+              </form>
+
+              <div class="stack compact">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <h3>Dataset Profile</h3>
+                    <span class="muted">Choose a structured dataset to inspect variables and sample quality.</span>
+                  </div>
+                  <div class="actions">
+                    <button id="refresh-asset-profile" type="button" class="secondary">Load profile</button>
+                  </div>
+                </div>
+                <select id="analysis-asset-select">
+                  <option value="">Select a dataset asset</option>
+                </select>
+                <div id="analysis-asset-overview" class="card">
+                  <p>Select a dataset to inspect rows, missingness, variable roles, and preview records.</p>
+                </div>
+                <div id="analysis-column-grid" class="column-profile-grid"></div>
+                <div id="analysis-preview-table" class="table-wrap">
+                  <p class="muted">Dataset preview will appear here after you load a profile.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="stack">
+              <form id="prepare-form" class="stack">
+                <div class="panel-head">
+                  <h3>Sample Preparation</h3>
+                  <span class="muted">Build an analysis-ready derivative dataset.</span>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="prepare-keep-columns">Keep columns</label>
+                    <select id="prepare-keep-columns" multiple size="6"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="prepare-required-columns">Required columns</label>
+                    <select id="prepare-required-columns" multiple size="6"></select>
+                  </div>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="prepare-numeric-columns">Force numeric</label>
+                    <select id="prepare-numeric-columns" multiple size="6"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="prepare-binary-columns">Force binary</label>
+                    <select id="prepare-binary-columns" multiple size="6"></select>
+                  </div>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="prepare-date-columns">Parse as date</label>
+                    <select id="prepare-date-columns" multiple size="6"></select>
+                  </div>
+                  <div class="stack compact">
+                    <span class="muted">Binary variables are especially useful for DID treatment and post indicators.</span>
+                  </div>
+                </div>
+                <label class="checkbox"><input name="drop_duplicates" type="checkbox" checked /> Drop duplicate rows</label>
+                <label class="checkbox"><input name="drop_missing_required" type="checkbox" checked /> Drop rows missing required variables</label>
+                <button type="submit">Prepare analysis sample</button>
+              </form>
+
+              <form id="model-form" class="stack">
+                <div class="panel-head">
+                  <h3>Model Lab</h3>
+                  <span class="muted">Run baseline empirical models with variable selection instead of free text.</span>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="model-type">Model type</label>
+                    <select id="model-type" name="model_type">
+                      <option value="ols">OLS</option>
+                      <option value="did">Difference-in-Differences</option>
+                      <option value="gravity">Gravity Model</option>
+                    </select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="model-dependent">Outcome / flow variable</label>
+                    <select id="model-dependent" name="dependent"></select>
+                  </div>
+                </div>
+                <div id="ols-fields" class="stack compact">
+                  <label for="model-independents">Independent variables</label>
+                  <select id="model-independents" name="independents" multiple size="6"></select>
+                </div>
+                <div id="did-fields" class="split">
+                  <div class="stack compact">
+                    <label for="did-treatment-column">Treatment indicator</label>
+                    <select id="did-treatment-column" name="treatment_column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="did-post-column">Post indicator</label>
+                    <select id="did-post-column" name="post_column"></select>
+                  </div>
+                </div>
+                <div id="gravity-fields" class="split">
+                  <div class="stack compact">
+                    <label for="gravity-origin-mass-column">Origin mass</label>
+                    <select id="gravity-origin-mass-column" name="origin_mass_column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="gravity-destination-mass-column">Destination mass</label>
+                    <select id="gravity-destination-mass-column" name="destination_mass_column"></select>
+                  </div>
+                </div>
+                <div id="gravity-distance-wrap" class="stack compact">
+                  <label for="gravity-distance-column">Distance variable</label>
+                  <select id="gravity-distance-column" name="distance_column"></select>
+                </div>
+                <div class="stack compact">
+                  <label for="model-controls">Controls</label>
+                  <select id="model-controls" name="controls" multiple size="6"></select>
+                </div>
+                <label class="checkbox"><input id="model-robust-covariance" name="robust_covariance" type="checkbox" checked /> Use robust covariance (HC1)</label>
+                <button type="submit">Run selected model</button>
+              </form>
+
+              <form id="plot-form" class="stack">
+                <div class="panel-head">
+                  <h3>Chart Lab</h3>
+                  <span class="muted">Render charts from the selected dataset and download them as images.</span>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="plot-type">Chart type</label>
+                    <select id="plot-type" name="chart_type">
+                      <option value="line">Line</option>
+                      <option value="scatter">Scatter</option>
+                      <option value="bar">Bar</option>
+                      <option value="histogram">Histogram</option>
+                    </select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="plot-x-column">X variable</label>
+                    <select id="plot-x-column" name="x_column"></select>
+                  </div>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="plot-y-columns">Y variable(s)</label>
+                    <select id="plot-y-columns" name="y_columns" multiple size="5"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="plot-group-column">Group / color (optional)</label>
+                    <select id="plot-group-column" name="group_column"></select>
+                  </div>
+                </div>
+                <input id="plot-title" name="title" type="text" placeholder="Chart title (optional)" />
+                <button type="submit">Generate chart</button>
+              </form>
+
+              <div id="plot-preview-panel" class="plot-preview hidden">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <h3>Chart Preview</h3>
+                    <span class="muted" id="plot-preview-meta">No chart generated yet.</span>
+                  </div>
+                  <div class="actions">
+                    <button id="download-plot" type="button" class="secondary">Download chart</button>
+                  </div>
+                </div>
+                <img id="plot-preview-image" alt="Generated chart preview" />
+              </div>
+
+              <pre id="prepare-output" class="console-box">Waiting for sample preparation.</pre>
+              <pre id="analysis-output" class="console-box">Waiting for model output.</pre>
+              <div id="asset-list" class="card-list"></div>
+            </div>
+          </div>
         </section>
 
         <section class="panel">
