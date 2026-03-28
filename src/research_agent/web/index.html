@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -11,56 +11,140 @@
     <div class="page-bg"></div>
     <header class="hero">
       <div>
-        <p class="eyebrow">Open Research Infrastructure</p>
-        <h1>Economic Research Platform</h1>
+        <p class="eyebrow">Economic Research Platform</p>
+        <h1>Daily macro intelligence with a public front page.</h1>
         <p class="hero-copy">
-          面向经济研究的长期运维平台。支持多模型 API、OpenAlex 文献库、私有数据库、数据清洗、
-          OLS 分析，以及每日定时经济热点简报。
+          The platform now exposes a public daily economics monitor and rolling summary for all visitors,
+          while keeping private workspaces, literature libraries, data assets, and model integrations behind login.
         </p>
       </div>
       <div class="hero-meta">
         <div class="meta-card">
-          <span>运行模式</span>
-          <strong id="health-status">检查中</strong>
+          <span>Platform status</span>
+          <strong id="health-status">Checking...</strong>
         </div>
         <div class="meta-card">
-          <span>默认时区</span>
-          <strong>Asia/Shanghai</strong>
+          <span>Public daily digest</span>
+          <strong id="public-status">Loading...</strong>
         </div>
       </div>
     </header>
 
     <main class="shell">
+      <section class="panel public-panel">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h2>Public Daily Monitor</h2>
+            <p class="muted">
+              Open to all visitors. The public feed focuses on global macro and financial headlines, plus any
+              available FRED indicator snapshot.
+            </p>
+          </div>
+          <div class="actions">
+            <button id="refresh-public" type="button" class="secondary">Refresh public feed</button>
+          </div>
+        </div>
+
+        <div class="public-grid">
+          <article class="stack">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h3>Latest Edition</h3>
+                <span class="muted" id="public-latest-meta">Waiting for the latest public briefing...</span>
+              </div>
+              <div class="actions">
+                <button id="copy-public-link" type="button" class="secondary">Copy share link</button>
+              </div>
+            </div>
+            <div id="public-theme-strip" class="chip-row"></div>
+            <pre id="public-latest-view" class="report-view">Loading the latest public briefing...</pre>
+            <div class="stack">
+              <div class="panel-head">
+                <h3>Related News Clusters</h3>
+                <span class="muted">Grouped from the current public edition</span>
+              </div>
+              <div id="public-cluster-list" class="cluster-grid"></div>
+            </div>
+            <div class="stack">
+              <div class="panel-head">
+                <h3>Recommended Further Reading</h3>
+                <span class="muted">Related source articles, prior editions, and roundup pages</span>
+              </div>
+              <div id="public-reading-list" class="reading-grid"></div>
+            </div>
+          </article>
+
+          <article class="stack">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h3 id="public-summary-title">Rolling Summary</h3>
+                <span class="muted" id="public-summary-meta">Recent multi-day view</span>
+              </div>
+              <div class="chip-row chip-row-compact">
+                <button type="button" class="chip-button is-active" data-summary-days="7">7D</button>
+                <button type="button" class="chip-button" data-summary-days="14">14D</button>
+                <button type="button" class="chip-button" data-summary-days="30">30D</button>
+              </div>
+            </div>
+            <pre id="public-summary-view" class="report-view report-view-compact">Loading the recent summary...</pre>
+            <div class="stack">
+              <div class="panel-head">
+                <h3>Weekly And Monthly Pages</h3>
+                <span class="muted">Shareable roundup pages for visitors</span>
+              </div>
+              <div id="public-summary-pages" class="summary-page-grid"></div>
+            </div>
+            <div class="stack">
+              <div class="panel-head">
+                <h3>Featured Editions In Window</h3>
+                <span class="muted">Daily editions contributing to the current summary</span>
+              </div>
+              <div id="public-summary-featured" class="card-list card-list-inline"></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="panel-head">
+          <h3>Recent Public Editions</h3>
+          <span class="muted">Browse without logging in</span>
+        </div>
+        <div id="public-briefing-list" class="card-list"></div>
+      </section>
+
       <section class="panel auth-panel">
         <div>
-          <h2>账户</h2>
-          <p class="muted">每个用户拥有自己的工作区、私有文献库、私有数据资产和模型接入配置。</p>
+          <h2>Private Workspace Access</h2>
+          <p class="muted">
+            Sign in to manage your own workspaces, providers, literature, private data assets, and scheduled research jobs.
+          </p>
           <div class="status-row">
-            <span class="pill" id="session-indicator">未登录</span>
-            <span class="muted" id="user-summary">请先注册或登录</span>
+            <span class="pill" id="session-indicator">Signed out</span>
+            <span class="muted" id="user-summary">Register or log in to access your private workspace.</span>
           </div>
         </div>
         <div class="auth-grid">
           <form id="register-form" class="stack">
-            <h3>注册</h3>
-            <input name="full_name" type="text" placeholder="姓名" autocomplete="name" required />
-            <input name="email" type="email" placeholder="邮箱" autocomplete="email" required />
-            <input name="password" type="password" placeholder="密码（至少 8 位）" autocomplete="new-password" required />
-            <button type="submit">创建账户</button>
+            <h3>Create account</h3>
+            <input name="full_name" type="text" placeholder="Full name" autocomplete="name" required />
+            <input name="email" type="email" placeholder="Email" autocomplete="email" required />
+            <input name="password" type="password" placeholder="Password (8+ characters)" autocomplete="new-password" required />
+            <button type="submit">Register</button>
           </form>
+
           <form id="login-form" class="stack">
-            <h3>登录</h3>
-            <input name="email" type="email" placeholder="邮箱" autocomplete="username" required />
-            <input name="password" type="password" placeholder="密码" autocomplete="current-password" required />
-            <button type="submit">登录</button>
+            <h3>Sign in</h3>
+            <input name="email" type="email" placeholder="Email" autocomplete="username" required />
+            <input name="password" type="password" placeholder="Password" autocomplete="current-password" required />
+            <button type="submit">Log in</button>
           </form>
+
           <div class="stack workspace-box">
-            <h3>工作区</h3>
+            <h3>Workspace</h3>
             <select id="workspace-select"></select>
             <form id="workspace-form" class="stack compact">
-              <input name="name" type="text" placeholder="新工作区名称" required />
-              <input name="description" type="text" placeholder="描述（可选）" />
-              <button type="submit">新增工作区</button>
+              <input name="name" type="text" placeholder="New workspace name" required />
+              <input name="description" type="text" placeholder="Description (optional)" />
+              <button type="submit">Create workspace</button>
             </form>
           </div>
         </div>
@@ -70,10 +154,10 @@
         <section class="panel">
           <div class="panel-head">
             <h2>Provider Center</h2>
-            <span class="muted">OpenAI / Gemini / Anthropic / OpenAI-compatible / FRED</span>
+            <span class="muted">OpenAI, Gemini, Anthropic, OpenAI-compatible, and FRED</span>
           </div>
           <form id="integration-form" class="stack">
-            <input name="label" type="text" placeholder="连接名称" required />
+            <input name="label" type="text" placeholder="Connection label" required />
             <div class="split">
               <select name="category">
                 <option value="llm">LLM</option>
@@ -87,24 +171,24 @@
                 <option value="fred">FRED</option>
               </select>
             </div>
-            <input name="model" type="text" placeholder="默认模型（可选）" />
-            <input name="base_url" type="text" placeholder="Base URL（OpenAI-compatible 时可填）" />
-            <input name="api_key" type="password" placeholder="API Key" required />
-            <label class="checkbox"><input name="is_default" type="checkbox" /> 设为默认连接</label>
-            <button type="submit">保存连接</button>
+            <input name="model" type="text" placeholder="Default model (optional)" />
+            <input name="base_url" type="text" placeholder="Base URL for compatible providers" />
+            <input name="api_key" type="password" placeholder="API key" required />
+            <label class="checkbox"><input name="is_default" type="checkbox" /> Set as default connection</label>
+            <button type="submit">Save connection</button>
           </form>
           <div id="integration-list" class="card-list"></div>
         </section>
 
         <section class="panel">
           <div class="panel-head">
-            <h2>Daily Briefing</h2>
-            <span class="muted">GDELT + FRED + 你的默认 LLM</span>
+            <h2>Private Daily Briefing</h2>
+            <span class="muted">Generate private macro notes inside your workspace</span>
           </div>
           <form id="briefing-form" class="stack">
-            <input name="title" type="text" placeholder="简报标题（可选）" />
-            <textarea name="query_text" rows="4" placeholder="追踪主题，例如：全球通胀、主要央行动作、国际贸易与能源价格"></textarea>
-            <button type="submit">生成简报</button>
+            <input name="title" type="text" placeholder="Briefing title (optional)" />
+            <textarea name="query_text" rows="4" placeholder="Focus area, for example: global inflation, central banks, energy prices, trade risk"></textarea>
+            <button type="submit">Generate private briefing</button>
           </form>
           <div id="briefing-list" class="card-list tall"></div>
         </section>
@@ -112,15 +196,15 @@
         <section class="panel">
           <div class="panel-head">
             <h2>Paper Library</h2>
-            <span class="muted">OpenAlex 检索与入库</span>
+            <span class="muted">OpenAlex search and import</span>
           </div>
           <form id="openalex-form" class="stack">
-            <input name="query" type="text" placeholder="搜索经济学文献，例如：monetary policy transmission" required />
-            <label class="checkbox"><input name="open_access_only" type="checkbox" /> 仅开放获取</label>
-            <button type="submit">搜索文献</button>
+            <input name="query" type="text" placeholder="Search economics literature, for example: monetary policy transmission" required />
+            <label class="checkbox"><input name="open_access_only" type="checkbox" /> Open access only</label>
+            <button type="submit">Search literature</button>
           </form>
           <div class="actions">
-            <button id="import-openalex" type="button" class="secondary">导入当前检索结果</button>
+            <button id="import-openalex" type="button" class="secondary">Import current results</button>
           </div>
           <div id="openalex-results" class="card-list"></div>
           <div id="literature-list" class="card-list"></div>
@@ -129,33 +213,33 @@
         <section class="panel">
           <div class="panel-head">
             <h2>Data Lab</h2>
-            <span class="muted">私有数据上传、清洗、基础 OLS</span>
+            <span class="muted">Upload, clean, download, and run baseline OLS</span>
           </div>
           <form id="upload-form" class="stack">
             <input name="file" type="file" required />
-            <input name="description" type="text" placeholder="数据说明（可选）" />
-            <button type="submit">上传数据或文档</button>
+            <input name="description" type="text" placeholder="Asset description (optional)" />
+            <button type="submit">Upload file</button>
           </form>
           <form id="ols-form" class="stack compact">
-            <input name="asset_id" type="text" placeholder="数据集 Asset ID" required />
-            <input name="dependent" type="text" placeholder="因变量列名" required />
-            <input name="independents" type="text" placeholder="自变量列名，用逗号分隔" required />
-            <button type="submit">运行 OLS</button>
+            <input name="asset_id" type="text" placeholder="Dataset asset ID" required />
+            <input name="dependent" type="text" placeholder="Dependent variable column" required />
+            <input name="independents" type="text" placeholder="Independent columns, comma separated" required />
+            <button type="submit">Run OLS</button>
           </form>
-          <pre id="analysis-output" class="console-box">等待分析结果</pre>
+          <pre id="analysis-output" class="console-box">Waiting for analysis output.</pre>
           <div id="asset-list" class="card-list"></div>
         </section>
 
         <section class="panel">
           <div class="panel-head">
             <h2>Private Knowledge Base</h2>
-            <span class="muted">研究笔记、方法总结、内部结论</span>
+            <span class="muted">Store notes, takeaways, and internal summaries</span>
           </div>
           <form id="knowledge-form" class="stack">
-            <input name="title" type="text" placeholder="条目标题" required />
-            <input name="tags" type="text" placeholder="标签，用逗号分隔" />
-            <textarea name="content" rows="5" placeholder="写入你的研究笔记或内部摘要" required></textarea>
-            <button type="submit">写入私有知识库</button>
+            <input name="title" type="text" placeholder="Record title" required />
+            <input name="tags" type="text" placeholder="Tags, comma separated" />
+            <textarea name="content" rows="5" placeholder="Write your research note or internal summary" required></textarea>
+            <button type="submit">Save note</button>
           </form>
           <div id="knowledge-list" class="card-list"></div>
         </section>
@@ -163,13 +247,13 @@
         <section class="panel">
           <div class="panel-head">
             <h2>Schedules</h2>
-            <span class="muted">每日定时运行经济热点任务</span>
+            <span class="muted">Create private recurring briefing jobs in your workspace</span>
           </div>
           <form id="schedule-form" class="stack">
-            <input name="name" type="text" placeholder="任务名称" required />
+            <input name="name" type="text" placeholder="Job name" required />
             <input name="local_time" type="time" value="08:00" required />
-            <input name="query_text" type="text" placeholder="定时追踪主题" />
-            <button type="submit">创建每日任务</button>
+            <input name="query_text" type="text" placeholder="Daily focus topic" />
+            <button type="submit">Create daily job</button>
           </form>
           <div id="schedule-list" class="card-list"></div>
         </section>

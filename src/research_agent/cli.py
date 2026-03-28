@@ -9,7 +9,7 @@ from rich.panel import Panel
 from .config import get_settings
 from .db import init_database, session_scope
 from .platform_core import list_workspaces, register_user, serialize_workspace, serialize_user
-from .platform_research import run_due_schedule_jobs
+from .platform_research import ensure_public_daily_briefing, run_due_schedule_jobs, serialize_public_briefing
 
 
 app = typer.Typer(help="Economic research platform CLI.")
@@ -85,8 +85,19 @@ def run_jobs() -> None:
     settings = get_settings()
     init_database()
     with session_scope() as db:
+        public_briefing = ensure_public_daily_briefing(db, settings)
         results = run_due_schedule_jobs(db, settings)
-    console.print(Panel.fit(str(results), title="Scheduled Jobs"))
+    console.print(
+        Panel.fit(
+            str(
+                {
+                    "public_briefing": serialize_public_briefing(public_briefing) if public_briefing else None,
+                    "items": results,
+                }
+            ),
+            title="Scheduled Jobs",
+        )
+    )
 
 
 @app.command()
