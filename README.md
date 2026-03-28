@@ -86,6 +86,7 @@ DEFAULT_FRED_SERIES=FEDFUNDS,CPIAUCSL,UNRATE,DGS10
 - `OPENAI_API_KEY` 仅用于私有自托管时的默认值
 - 公开部署建议使用用户自己的 Provider Key
 - 当 `ASSET_STORAGE_BACKEND=supabase` 时，上传文件会落到 `Supabase Storage`
+- 生产环境里可以直接使用 Supabase 提供的 `postgresql://...` 连接串，应用会自动规范化到 `psycopg` 驱动
 
 ## CLI
 
