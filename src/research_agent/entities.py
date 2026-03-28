@@ -142,6 +142,25 @@ class EconomicBriefing(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
+class PublicEconomicBriefing(Base):
+    __tablename__ = "public_economic_briefings"
+    __table_args__ = (UniqueConstraint("briefing_date", name="uq_public_briefing_date"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    slug: Mapped[str] = mapped_column(String(280), unique=True, index=True)
+    title: Mapped[str] = mapped_column(String(240))
+    briefing_date: Mapped[str] = mapped_column(String(10), index=True)
+    timezone_name: Mapped[str] = mapped_column(String(80), default="Asia/Shanghai")
+    summary_markdown: Mapped[str] = mapped_column(Text)
+    query_text: Mapped[str] = mapped_column(Text, default="")
+    template_version: Mapped[str] = mapped_column(String(40), default="daily-macro-v1")
+    headline_count: Mapped[int] = mapped_column(Integer, default=0)
+    items_json: Mapped[list] = mapped_column(JSON, default=list)
+    raw_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
 class ScheduleJob(Base):
     __tablename__ = "schedule_jobs"
 

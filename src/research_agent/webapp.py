@@ -40,16 +40,22 @@ from .platform_core import (
     test_integration,
 )
 from .platform_research import (
+    build_public_briefing_summary,
     create_schedule_job,
+    ensure_public_daily_briefing,
     generate_economic_briefing,
+    get_latest_public_briefing,
+    get_public_briefing_by_slug,
     import_openalex_works,
     list_briefings,
     list_literature_entries,
+    list_public_briefings,
     list_schedule_jobs,
     run_due_schedule_jobs,
     search_openalex,
     serialize_briefing,
     serialize_literature_entry,
+    serialize_public_briefing,
     serialize_schedule,
 )
 
@@ -167,6 +173,8 @@ def create_app() -> FastAPI:
                 "openalex_library",
                 "economic_briefings",
                 "scheduled_jobs",
+                "public_daily_briefings",
+                "public_macro_summary",
             ],
         }
 
@@ -179,7 +187,48 @@ def create_app() -> FastAPI:
             "asset_storage_backend": settings.asset_storage_backend,
             "supported_llm_kinds": ["openai", "openai_compatible", "gemini", "anthropic"],
             "supported_data_kinds": ["fred"],
+            "public_digest_enabled": settings.public_digest_enabled,
+            "public_digest_timezone": settings.public_digest_timezone,
+            "public_digest_local_time": settings.public_digest_local_time,
         }
+
+    @app.get("/api/public/briefings")
+    def public_briefings(limit: int = 10) -> dict[str, Any]:
+        try:
+            with session_scope() as db:
+                ensure_public_daily_briefing(db, settings)
+                return {"items": [serialize_public_briefing(item) for item in list_public_briefings(db, limit=limit)]}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/public/briefings/latest")
+    def public_briefing_latest() -> dict[str, Any]:
+        try:
+            with session_scope() as db:
+                briefing = ensure_public_daily_briefing(db, settings) or get_latest_public_briefing(db)
+                return {"briefing": serialize_public_briefing(briefing) if briefing else None}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/public/briefings/{slug}")
+    def public_briefing_detail(slug: str) -> dict[str, Any]:
+        try:
+            with session_scope() as db:
+                briefing = get_public_briefing_by_slug(db, slug=slug)
+                if not briefing:
+                    raise FileNotFoundError("Public briefing not found.")
+                return {"briefing": serialize_public_briefing(briefing)}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/public/summary")
+    def public_summary(days: int = 7) -> dict[str, Any]:
+        try:
+            with session_scope() as db:
+                ensure_public_daily_briefing(db, settings)
+                return build_public_briefing_summary(db, days=days)
+        except Exception as exc:
+            _raise_http_error(exc)
 
     @app.post("/api/auth/register")
     def register(request: RegisterRequest) -> dict[str, Any]:
@@ -622,7 +671,11 @@ def create_app() -> FastAPI:
             if (x_cron_secret or "").strip() != settings.get_cron_secret():
                 raise PermissionError("Invalid cron secret.")
             with session_scope() as db:
-                return {"items": run_due_schedule_jobs(db, settings)}
+                public_briefing = ensure_public_daily_briefing(db, settings)
+                return {
+                    "public_briefing": serialize_public_briefing(public_briefing) if public_briefing else None,
+                    "items": run_due_schedule_jobs(db, settings),
+                }
         except Exception as exc:
             _raise_http_error(exc)
 

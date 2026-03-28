@@ -60,6 +60,20 @@ class Settings(BaseModel):
     default_fred_series: str = Field(
         default_factory=lambda: os.getenv("DEFAULT_FRED_SERIES", "FEDFUNDS,CPIAUCSL,UNRATE,DGS10")
     )
+    fred_api_key: str = Field(default_factory=lambda: os.getenv("FRED_API_KEY", ""))
+    public_digest_enabled: bool = Field(
+        default_factory=lambda: os.getenv("PUBLIC_DIGEST_ENABLED", "true").strip().lower() not in {"0", "false", "no"}
+    )
+    public_digest_timezone: str = Field(
+        default_factory=lambda: os.getenv("PUBLIC_DIGEST_TIMEZONE", "Asia/Shanghai")
+    )
+    public_digest_local_time: str = Field(
+        default_factory=lambda: os.getenv("PUBLIC_DIGEST_LOCAL_TIME", "08:30")
+    )
+    public_digest_title: str = Field(
+        default_factory=lambda: os.getenv("PUBLIC_DIGEST_TITLE", "Global Economic Daily")
+    )
+    public_digest_query: str = Field(default_factory=lambda: os.getenv("PUBLIC_DIGEST_QUERY", "").strip())
 
     def ensure_directories(self) -> None:
         self.storage_dir.mkdir(parents=True, exist_ok=True)
