@@ -18,9 +18,15 @@ const state = {
 };
 
 const dom = {
+  publicPreviewPanel: document.getElementById("public-preview-panel"),
+  publicPanel: document.getElementById("public-panel"),
   toast: document.getElementById("toast"),
   healthStatus: document.getElementById("health-status"),
   publicStatus: document.getElementById("public-status"),
+  homePublicMeta: document.getElementById("home-public-meta"),
+  homePublicThemes: document.getElementById("home-public-themes"),
+  homePublicPreview: document.getElementById("home-public-preview"),
+  homeSummaryLinks: document.getElementById("home-summary-links"),
   publicLatestMeta: document.getElementById("public-latest-meta"),
   publicLatestView: document.getElementById("public-latest-view"),
   publicThemeStrip: document.getElementById("public-theme-strip"),
@@ -100,6 +106,22 @@ function extractBriefingSlugFromLocation() {
 function extractSummaryWindowFromLocation() {
   const match = window.location.pathname.match(/^\/summaries\/(weekly|monthly)$/);
   return match ? decodeURIComponent(match[1]) : "";
+}
+
+function detectPageMode() {
+  if (window.location.pathname === "/") {
+    return "home";
+  }
+  if (window.location.pathname === "/macro-desk") {
+    return "macro-desk";
+  }
+  if (extractBriefingSlugFromLocation()) {
+    return "briefing";
+  }
+  if (extractSummaryWindowFromLocation()) {
+    return "summary";
+  }
+  return "home";
 }
 
 function prettyDate(value) {
@@ -370,6 +392,24 @@ function renderPublicThemes(topThemes) {
     .join("");
 }
 
+function renderHomePublicPreview(briefing) {
+  if (!briefing) {
+    dom.homePublicMeta.textContent = "No public briefing has been published yet.";
+    dom.homePublicPreview.textContent = "The full public desk will populate here after the first scheduled collection.";
+    dom.homePublicThemes.innerHTML = `<span class="muted">No stable theme signal yet.</span>`;
+    return;
+  }
+  dom.homePublicMeta.textContent = `${briefing.briefing_date} | ${briefing.headline_count} headlines`;
+  dom.homePublicPreview.textContent = briefing.summary_excerpt || briefing.summary_markdown || "";
+  const topThemes = briefing.top_themes || [];
+  dom.homePublicThemes.innerHTML = topThemes.length
+    ? topThemes
+        .slice(0, 4)
+        .map((item) => `<span class="topic-chip">${escapeHtml(item.theme)} <strong>${escapeHtml(item.count)}</strong></span>`)
+        .join("")
+    : `<span class="muted">No stable theme signal yet.</span>`;
+}
+
 function renderPublicClusters(clusters) {
   if (!clusters || !clusters.length) {
     dom.publicClusterList.innerHTML = emptyCard("No stable clustering signal is available for this public edition yet.");
@@ -454,6 +494,19 @@ function renderRecommendedReading(payload) {
 function renderSummaryPages(pages) {
   const items = pages && pages.length ? pages : defaultSummaryPages();
   const activeWindow = extractSummaryWindowFromLocation();
+  if (dom.homeSummaryLinks) {
+    dom.homeSummaryLinks.innerHTML = items
+      .map(
+        (item) => `
+          <a class="summary-page-card" href="${escapeHtml(item.detail_path || item.share_url || "/")}">
+            <span class="pill">${escapeHtml(item.days)}D</span>
+            <h4>${escapeHtml(item.title)}</h4>
+            <p>${escapeHtml(item.subtitle)}</p>
+          </a>
+        `,
+      )
+      .join("");
+  }
   dom.publicSummaryPages.innerHTML = items
     .map(
       (item) => `
@@ -492,12 +545,14 @@ function renderPublicLatest(briefing) {
     state.selectedPublicBriefing = null;
     dom.publicLatestMeta.textContent = "No public briefing has been published yet.";
     dom.publicLatestView.textContent = "The public daily monitor will appear here after the first scheduled collection.";
+    renderHomePublicPreview(null);
     renderPublicThemes([]);
     renderPublicClusters([]);
     renderRecommendedReading(null);
     return;
   }
   state.selectedPublicBriefing = briefing;
+  renderHomePublicPreview(briefing);
   dom.publicLatestMeta.textContent = `${briefing.title} | ${briefing.briefing_date} | ${briefing.headline_count} headlines`;
   dom.publicLatestView.textContent = briefing.summary_markdown;
   renderPublicThemes(briefing.top_themes || []);
@@ -595,13 +650,27 @@ function syncPublicUrl(briefing) {
 }
 
 function syncSummaryUrl(windowName) {
-  const nextPath = windowName ? `/summaries/${windowName}` : "/";
+  const pageMode = detectPageMode();
+  let nextPath = "/macro-desk";
+  if (windowName) {
+    nextPath = `/summaries/${windowName}`;
+  } else if (pageMode === "home") {
+    nextPath = "/";
+  }
   if (window.location.pathname !== nextPath) {
     window.history.replaceState({}, "", nextPath);
   }
 }
 
+function syncPageVisibility() {
+  const pageMode = detectPageMode();
+  const showFullPublicPanel = pageMode !== "home";
+  dom.publicPreviewPanel.classList.toggle("hidden", showFullPublicPanel);
+  dom.publicPanel.classList.toggle("hidden", !showFullPublicPanel);
+}
+
 function updateDocumentTitle() {
+  const pageMode = detectPageMode();
   const summaryWindow = extractSummaryWindowFromLocation();
   const briefingSlug = extractBriefingSlugFromLocation();
   if (briefingSlug && state.selectedPublicBriefing?.title) {
@@ -610,6 +679,10 @@ function updateDocumentTitle() {
   }
   if (summaryWindow && state.publicSummary?.title) {
     document.title = `${state.publicSummary.title} | Economic Research Platform`;
+    return;
+  }
+  if (pageMode === "macro-desk") {
+    document.title = "Public Macro Desk | Economic Research Platform";
     return;
   }
   document.title = "Economic Research Platform";
@@ -1011,6 +1084,7 @@ function bind() {
 }
 
 async function init() {
+  syncPageVisibility();
   bind();
   clearPrivateLists();
   renderSession();

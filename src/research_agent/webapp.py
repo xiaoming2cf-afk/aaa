@@ -154,6 +154,10 @@ def create_app() -> FastAPI:
     def index() -> FileResponse:
         return FileResponse(WEB_DIR / "index.html")
 
+    @app.get("/macro-desk")
+    def public_macro_desk_page() -> FileResponse:
+        return FileResponse(WEB_DIR / "index.html")
+
     @app.get("/briefings/{slug}")
     def public_briefing_page(slug: str) -> FileResponse:
         return FileResponse(WEB_DIR / "index.html")

@@ -31,7 +31,48 @@
     </header>
 
     <main class="shell">
-      <section class="panel public-panel">
+      <section class="panel public-preview-panel" id="public-preview-panel">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h2>Public Macro Desk</h2>
+            <p class="muted">
+              A lighter homepage preview. Open the full public desk for daily briefings, theme clusters,
+              recommended reading, and roundup pages.
+            </p>
+          </div>
+          <div class="actions">
+            <a href="/macro-desk" class="button-link">Open full public desk</a>
+          </div>
+        </div>
+
+        <div class="public-preview-grid">
+          <article class="card card-preview">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h3>Latest Public Edition</h3>
+                <span class="muted" id="home-public-meta">Waiting for the latest public briefing...</span>
+              </div>
+            </div>
+            <div id="home-public-themes" class="chip-row"></div>
+            <p id="home-public-preview" class="preview-copy">The homepage preview will appear here after loading.</p>
+            <div class="actions">
+              <a href="/macro-desk" class="button-link secondary-link">Open desk</a>
+            </div>
+          </article>
+
+          <article class="card card-preview">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h3>Roundup Pages</h3>
+                <span class="muted">Go directly to the current public summary windows</span>
+              </div>
+            </div>
+            <div id="home-summary-links" class="summary-page-grid"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel public-panel" id="public-panel">
         <div class="panel-head panel-head-wrap">
           <div>
             <h2>Public Daily Monitor</h2>
@@ -41,6 +82,7 @@
             </p>
           </div>
           <div class="actions">
+            <a href="/" class="button-link secondary-link">Back to homepage</a>
             <button id="refresh-public" type="button" class="secondary">Refresh public feed</button>
           </div>
         </div>

@@ -112,6 +112,7 @@ h1 {
   max-width: 1400px;
 }
 
+.public-preview-panel,
 .public-panel {
   max-width: 1400px;
   margin: 0 auto 1.4rem;
@@ -119,7 +120,8 @@ h1 {
 
 .auth-grid,
 .dashboard-grid,
-.public-grid {
+.public-grid,
+.public-preview-grid {
   display: grid;
   gap: 1rem;
 }
@@ -138,6 +140,11 @@ h1 {
 .public-grid {
   grid-template-columns: 1.3fr 0.9fr;
   margin: 1rem 0 1.2rem;
+}
+
+.public-preview-grid {
+  grid-template-columns: 1.2fr 0.8fr;
+  margin-top: 1rem;
 }
 
 .stack {
@@ -186,7 +193,8 @@ h1 {
 input,
 select,
 textarea,
-button {
+button,
+.button-link {
   width: 100%;
   border-radius: 0.95rem;
   border: 1px solid var(--line);
@@ -201,26 +209,35 @@ textarea {
   min-height: 6rem;
 }
 
-button {
+button,
+.button-link {
   background: var(--accent);
   color: #f7f5f0;
   font-weight: 600;
   cursor: pointer;
   transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-button:hover {
+button:hover,
+.button-link:hover {
   transform: translateY(-1px);
   box-shadow: 0 10px 24px rgba(11, 95, 69, 0.2);
 }
 
-button.secondary {
+button.secondary,
+.button-link.secondary-link {
   background: transparent;
   color: var(--accent);
 }
 
 .actions button,
-.card button {
+.card button,
+.actions .button-link,
+.card .button-link {
   width: auto;
 }
 
@@ -291,6 +308,16 @@ button.secondary {
   border-radius: 1rem;
   padding: 0.9rem;
   background: rgba(255, 255, 255, 0.5);
+}
+
+.card-preview {
+  min-height: 100%;
+}
+
+.preview-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
 }
 
 .summary-page-grid,
@@ -439,7 +466,8 @@ button.secondary {
   .hero,
   .auth-grid,
   .dashboard-grid,
-  .public-grid {
+  .public-grid,
+  .public-preview-grid {
     grid-template-columns: 1fr;
   }
 
