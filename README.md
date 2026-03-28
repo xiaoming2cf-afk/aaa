@@ -180,6 +180,7 @@ Render 使用当前仓库的 `render.yaml`，并补这些环境变量：
 - `PUBLIC_BASE_URL`
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `CRON_SECRET`
 
 当前蓝图默认：
 

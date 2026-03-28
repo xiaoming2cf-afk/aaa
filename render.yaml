@@ -17,7 +17,7 @@ services:
       - key: ENCRYPTION_KEY
         generateValue: true
       - key: CRON_SECRET
-        generateValue: true
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: PUBLIC_BASE_URL
