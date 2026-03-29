@@ -92,6 +92,75 @@
         </aside>
 
         <section class="public-main">
+      <article class="panel public-section" id="workflow-guide">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h3>Workflow Guide</h3>
+            <span class="muted">The page now separates method browsing, workspace state, active configuration, and reusable result history.</span>
+          </div>
+        </div>
+        <div class="workflow-guide-grid">
+          <article class="workflow-step-card" id="lab-step-access">
+            <span class="pill">Step 1</span>
+            <h4>Access workspace</h4>
+            <p class="muted" id="lab-step-access-text">Sign in and select a workspace to unlock private datasets, models, and downloads.</p>
+          </article>
+          <article class="workflow-step-card" id="lab-step-dataset">
+            <span class="pill">Step 2</span>
+            <h4>Inspect dataset</h4>
+            <p class="muted" id="lab-step-dataset-text">Upload or select a dataset, then load its profile before running anything.</p>
+          </article>
+          <article class="workflow-step-card" id="lab-step-workflow">
+            <span class="pill">Step 3</span>
+            <h4>Choose workflow</h4>
+            <p class="muted" id="lab-step-workflow-text">Pick Data Processing or Model, then choose the exact family and method.</p>
+          </article>
+          <article class="workflow-step-card" id="lab-step-output">
+            <span class="pill">Step 4</span>
+            <h4>Review output</h4>
+            <p class="muted" id="lab-step-output-text">Open the result detail page, inspect the audit trail, and download samples or charts.</p>
+          </article>
+        </div>
+        <div class="lab-status-grid">
+          <article class="card lab-status-card">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h4>Current Lab Context</h4>
+                <span class="muted">Live state for the standalone workbench.</span>
+              </div>
+            </div>
+            <div class="context-grid">
+              <p><strong>Access:</strong> <span id="lab-context-access">Signed out</span></p>
+              <p><strong>Workspace:</strong> <span id="lab-context-workspace">No workspace selected</span></p>
+              <p><strong>Dataset:</strong> <span id="lab-context-dataset">No dataset selected</span></p>
+              <p><strong>Workflow:</strong> <span id="lab-context-workflow">Data Processing</span></p>
+              <p><strong>Family:</strong> <span id="lab-context-family">Sample Preparation</span></p>
+              <p><strong>Model:</strong> <span id="lab-context-model">No model selected</span></p>
+            </div>
+            <div class="actions">
+              <span class="muted" id="lab-context-next-action">Next action: sign in or create a workspace.</span>
+              <a id="lab-context-detail-link" href="/data-lab/processing/sample_preparation" class="button-link secondary-link">Open family detail</a>
+            </div>
+          </article>
+          <article class="card lab-status-card">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h4>Active Method Summary</h4>
+                <span class="muted">The currently selected processing or model family, with manual check focus.</span>
+              </div>
+            </div>
+            <p class="eyebrow eyebrow-compact" id="lab-active-family-eyebrow">Data Processing Family</p>
+            <h4 id="lab-active-family-title">Sample Preparation</h4>
+            <p class="muted" id="lab-active-family-summary">Choose a method family to see its scope, key inputs, and audit checklist here.</p>
+            <div class="chip-row chip-row-compact" id="lab-active-family-methods"></div>
+            <div class="card-list card-list-inline" id="lab-active-family-checks"></div>
+            <div class="actions">
+              <a id="lab-active-family-link" href="/data-lab/processing/sample_preparation" class="button-link secondary-link">Open method detail page</a>
+            </div>
+          </article>
+        </div>
+      </article>
+
       <article class="panel public-section" id="processing-methods">
         <div class="panel-head panel-head-wrap">
           <div>
@@ -952,8 +1021,49 @@
                   <pre id="analysis-output" class="console-box">Waiting for model output.</pre>
                 </details>
               </section>
-              <div id="asset-list" class="card-list"></div>
+              <section class="result-output-card">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <h3>Workspace Data Assets</h3>
+                    <span class="muted">Reuse uploaded datasets, prepared samples, and chart outputs from one place.</span>
+                  </div>
+                </div>
+                <div id="asset-list" class="card-list"></div>
+              </section>
             </div>
+          </div>
+        </article>
+
+        <article class="panel public-section" id="data-lab-history">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Recent Lab History</h3>
+              <span class="muted">Previous processing runs and model outputs stay visible so the workflow remains reusable and auditable.</span>
+            </div>
+          </div>
+          <div class="summary-page-grid">
+            <section class="result-output-card">
+              <div class="panel-head panel-head-wrap">
+                <div>
+                  <h4>Recent Processing Results</h4>
+                  <span class="muted">Prepared samples and chart outputs generated inside this workspace.</span>
+                </div>
+              </div>
+              <div id="lab-recent-processing-list" class="card-list card-list-inline">
+                <div class="card"><p>No processing history yet.</p></div>
+              </div>
+            </section>
+            <section class="result-output-card">
+              <div class="panel-head panel-head-wrap">
+                <div>
+                  <h4>Recent Model Results</h4>
+                  <span class="muted">Model runs with detail pages, specifications, and manual checks.</span>
+                </div>
+              </div>
+              <div id="lab-recent-model-list" class="card-list card-list-inline">
+                <div class="card"><p>No model history yet.</p></div>
+              </div>
+            </section>
           </div>
         </article>
         </section>

@@ -8,6 +8,8 @@ const state = {
   user: null,
   workspaces: [],
   selectedWorkspaceId: localStorage.getItem(storageKeys.workspaceId) || "",
+  workspaceAssets: [],
+  workspaceKnowledge: [],
   assetProfiles: {},
   selectedAnalysisAssetId: "",
   currentPlotAssetId: "",
@@ -139,6 +141,30 @@ const dom = {
   processingFamily: document.getElementById("processing-family"),
   modelFamilyWrap: document.getElementById("model-family-wrap"),
   modelFamily: document.getElementById("model-family"),
+  labStepAccess: document.getElementById("lab-step-access"),
+  labStepAccessText: document.getElementById("lab-step-access-text"),
+  labStepDataset: document.getElementById("lab-step-dataset"),
+  labStepDatasetText: document.getElementById("lab-step-dataset-text"),
+  labStepWorkflow: document.getElementById("lab-step-workflow"),
+  labStepWorkflowText: document.getElementById("lab-step-workflow-text"),
+  labStepOutput: document.getElementById("lab-step-output"),
+  labStepOutputText: document.getElementById("lab-step-output-text"),
+  labContextAccess: document.getElementById("lab-context-access"),
+  labContextWorkspace: document.getElementById("lab-context-workspace"),
+  labContextDataset: document.getElementById("lab-context-dataset"),
+  labContextWorkflow: document.getElementById("lab-context-workflow"),
+  labContextFamily: document.getElementById("lab-context-family"),
+  labContextModel: document.getElementById("lab-context-model"),
+  labContextNextAction: document.getElementById("lab-context-next-action"),
+  labContextDetailLink: document.getElementById("lab-context-detail-link"),
+  labActiveFamilyEyebrow: document.getElementById("lab-active-family-eyebrow"),
+  labActiveFamilyTitle: document.getElementById("lab-active-family-title"),
+  labActiveFamilySummary: document.getElementById("lab-active-family-summary"),
+  labActiveFamilyMethods: document.getElementById("lab-active-family-methods"),
+  labActiveFamilyChecks: document.getElementById("lab-active-family-checks"),
+  labActiveFamilyLink: document.getElementById("lab-active-family-link"),
+  labRecentProcessingList: document.getElementById("lab-recent-processing-list"),
+  labRecentModelList: document.getElementById("lab-recent-model-list"),
   prepareForm: document.getElementById("prepare-form"),
   prepareCoreFields: document.getElementById("prepare-core-fields"),
   prepareCleaningFields: document.getElementById("prepare-cleaning-fields"),
@@ -661,6 +687,254 @@ function currentModelFamily() {
   return dom.modelFamily?.value || "econometrics_baseline";
 }
 
+function currentWorkflowLabel() {
+  return currentWorkflowType() === "model" ? "Model" : "Data Processing";
+}
+
+function selectedDatasetAsset() {
+  const assetId = dom.analysisAssetSelect?.value || state.selectedAnalysisAssetId || "";
+  return (state.workspaceAssets || []).find((item) => item.id === assetId) || null;
+}
+
+function currentFamilyDetail() {
+  if (!state.dataLabCatalog) {
+    return null;
+  }
+  const collection = currentWorkflowType() === "model"
+    ? state.dataLabCatalog.model_families || []
+    : state.dataLabCatalog.processing_families || [];
+  const slug = currentWorkflowType() === "model" ? currentModelFamily() : currentProcessingFamily();
+  return collection.find((item) => item.slug === slug) || null;
+}
+
+function currentFamilyDetailPath() {
+  const detail = currentFamilyDetail();
+  if (detail?.slug) {
+    return detail.category === "model" ? `/data-lab/models/${detail.slug}` : `/data-lab/processing/${detail.slug}`;
+  }
+  return currentWorkflowType() === "model" ? `/data-lab/models/${currentModelFamily()}` : `/data-lab/processing/${currentProcessingFamily()}`;
+}
+
+function currentModelLabel() {
+  const modelType = dom.modelType?.value || "";
+  const options = MODEL_FAMILY_OPTIONS[currentModelFamily()] || [];
+  return options.find((item) => item.value === modelType)?.label || (modelType ? modelType.replaceAll("_", " ") : "Not applicable");
+}
+
+function processingHistoryItems() {
+  return [...(state.workspaceAssets || [])]
+    .filter((item) => item.metadata?.processing_result || item.metadata?.analysis_kind === "plot")
+    .sort((left, right) => new Date(right.updated_at || right.created_at || 0) - new Date(left.updated_at || left.created_at || 0));
+}
+
+function modelHistoryItems() {
+  return [...(state.workspaceKnowledge || [])]
+    .filter((item) => item.metadata?.model_type || item.metadata?.workflow_type === "model")
+    .sort((left, right) => new Date(right.updated_at || right.created_at || 0) - new Date(left.updated_at || left.created_at || 0));
+}
+
+function truncateText(value, maxLength = 160) {
+  const text = (value || "").toString().trim();
+  if (!text) {
+    return "";
+  }
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
+}
+
+function setWorkflowStep(card, textNode, stateName, copy) {
+  if (!card || !textNode) {
+    return;
+  }
+  card.classList.remove("is-complete", "is-active");
+  if (stateName === "complete") {
+    card.classList.add("is-complete");
+  }
+  if (stateName === "active") {
+    card.classList.add("is-active");
+  }
+  textNode.textContent = copy;
+}
+
+function renderWorkflowGuide() {
+  const hasAccess = Boolean(state.user && state.selectedWorkspaceId);
+  const hasDataset = Boolean(selectedDatasetAsset());
+  const hasProfile = Boolean(currentAssetProfile());
+  const workflowLabel = currentWorkflowLabel();
+  const processingRuns = processingHistoryItems();
+  const modelRuns = modelHistoryItems();
+  const hasOutput = currentWorkflowType() === "model" ? Boolean(modelRuns.length) : Boolean(processingRuns.length);
+
+  setWorkflowStep(
+    dom.labStepAccess,
+    dom.labStepAccessText,
+    hasAccess ? "complete" : "active",
+    hasAccess
+      ? `Workspace access is ready through ${state.workspaces.find((item) => item.id === state.selectedWorkspaceId)?.name || "the selected workspace"}.`
+      : "Sign in and select a workspace to unlock private datasets, models, and downloads.",
+  );
+  setWorkflowStep(
+    dom.labStepDataset,
+    dom.labStepDatasetText,
+    hasDataset && hasProfile ? "complete" : hasAccess ? "active" : "pending",
+    hasDataset && hasProfile
+      ? `Dataset profile loaded for ${selectedDatasetAsset()?.title || "the selected asset"}, including columns and preview rows.`
+      : hasDataset
+        ? "A dataset is selected; load its profile to populate variables and preview rows."
+        : "Upload or select a dataset, then load its profile before running anything.",
+  );
+  setWorkflowStep(
+    dom.labStepWorkflow,
+    dom.labStepWorkflowText,
+    hasDataset && hasProfile ? "active" : "pending",
+    `${workflowLabel} is selected with ${currentFamilyDetail()?.title || (currentWorkflowType() === "model" ? currentModelFamily() : currentProcessingFamily())}. Confirm the family and method before execution.`,
+  );
+  setWorkflowStep(
+    dom.labStepOutput,
+    dom.labStepOutputText,
+    hasOutput ? "complete" : hasDataset && hasProfile ? "active" : "pending",
+    hasOutput
+      ? `Recent ${currentWorkflowType() === "model" ? "model" : "processing"} outputs are available below for download and manual verification.`
+      : "Open the result detail page, inspect the audit trail, and download samples or charts after the run completes.",
+  );
+}
+
+function renderActiveFamilySummary() {
+  const detail = currentFamilyDetail();
+  if (!dom.labActiveFamilyTitle || !dom.labActiveFamilySummary) {
+    return;
+  }
+  if (!detail) {
+    dom.labActiveFamilyEyebrow && (dom.labActiveFamilyEyebrow.textContent = currentWorkflowType() === "model" ? "Model Family" : "Data Processing Family");
+    dom.labActiveFamilyTitle.textContent = currentWorkflowType() === "model" ? "Model family" : "Processing family";
+    dom.labActiveFamilySummary.textContent = "Catalog metadata will appear here after the family index finishes loading.";
+    dom.labActiveFamilyMethods && (dom.labActiveFamilyMethods.innerHTML = "");
+    dom.labActiveFamilyChecks && (dom.labActiveFamilyChecks.innerHTML = emptyCard("No audit checklist available yet."));
+    if (dom.labActiveFamilyLink) {
+      dom.labActiveFamilyLink.href = currentFamilyDetailPath();
+    }
+    return;
+  }
+  dom.labActiveFamilyEyebrow && (dom.labActiveFamilyEyebrow.textContent = detail.category === "model" ? "Model Family" : "Data Processing Family");
+  dom.labActiveFamilyTitle.textContent = detail.title || "Family";
+  dom.labActiveFamilySummary.textContent = detail.summary || detail.description || "";
+  if (dom.labActiveFamilyMethods) {
+    dom.labActiveFamilyMethods.innerHTML = (detail.methods || [])
+      .slice(0, 5)
+      .map((item) => `<span class="topic-chip">${escapeHtml(item.name || item.slug || "Method")}</span>`)
+      .join("");
+  }
+  renderListCards(dom.labActiveFamilyChecks, (detail.manual_checks || []).slice(0, 3), (item) => `
+    <article class="card">
+      <p>${escapeHtml(item)}</p>
+    </article>
+  `);
+  if (dom.labActiveFamilyLink) {
+    dom.labActiveFamilyLink.href = currentFamilyDetailPath();
+  }
+}
+
+function nextLabAction() {
+  if (!state.user) {
+    return "Next action: sign in or create an account.";
+  }
+  if (!state.selectedWorkspaceId) {
+    return "Next action: create or select a workspace.";
+  }
+  if (!selectedDatasetAsset()) {
+    return "Next action: upload or select a dataset asset.";
+  }
+  if (!currentAssetProfile()) {
+    return "Next action: load the dataset profile to populate variables and preview rows.";
+  }
+  if (currentWorkflowType() === "data_processing") {
+    return currentProcessingFamily() === "visualization"
+      ? "Next action: configure the chart fields and generate a PNG preview."
+      : "Next action: configure the preparation fields and create an analysis-ready sample.";
+  }
+  return `Next action: confirm variables for ${currentModelLabel()} and run the model.`;
+}
+
+function renderLabContext() {
+  const workspace = state.workspaces.find((item) => item.id === state.selectedWorkspaceId) || null;
+  const dataset = selectedDatasetAsset();
+  const profile = currentAssetProfile();
+  const family = currentFamilyDetail();
+
+  dom.labContextAccess && (dom.labContextAccess.textContent = state.user ? "Signed in" : "Signed out");
+  dom.labContextWorkspace && (dom.labContextWorkspace.textContent = workspace?.name || "No workspace selected");
+  dom.labContextDataset &&
+    (dom.labContextDataset.textContent = dataset ? `${dataset.title} | ${dataset.kind}${profile ? ` | ${profile.rows} rows` : ""}` : "No dataset selected");
+  dom.labContextWorkflow && (dom.labContextWorkflow.textContent = currentWorkflowLabel());
+  dom.labContextFamily && (dom.labContextFamily.textContent = family?.title || (currentWorkflowType() === "model" ? currentModelFamily() : currentProcessingFamily()));
+  dom.labContextModel &&
+    (dom.labContextModel.textContent = currentWorkflowType() === "model" ? currentModelLabel() : "Not applicable for data processing");
+  dom.labContextNextAction && (dom.labContextNextAction.textContent = nextLabAction());
+  if (dom.labContextDetailLink) {
+    dom.labContextDetailLink.href = currentFamilyDetailPath();
+  }
+  renderWorkflowGuide();
+  renderActiveFamilySummary();
+}
+
+function renderProcessingHistory(items = processingHistoryItems()) {
+  if (!dom.labRecentProcessingList) {
+    return;
+  }
+  if (!items.length) {
+    dom.labRecentProcessingList.innerHTML = emptyCard("No processing history yet.");
+    return;
+  }
+  dom.labRecentProcessingList.innerHTML = items.slice(0, 6).map((item) => {
+    const processing = item.metadata?.processing_result || null;
+    const isPlot = item.metadata?.analysis_kind === "plot";
+    const family = processing?.processing_family || (isPlot ? "visualization" : "data_processing");
+    const summary = processing?.summary?.rows_after_prepare !== undefined
+      ? `Rows after prepare: ${processing.summary.rows_after_prepare}`
+      : item.metadata?.summary || item.description || "Processing output saved in workspace assets.";
+    const detailPath = processing?.result_detail_path || "";
+    const useButton = item.kind?.startsWith("dataset")
+      ? `<button type="button" class="secondary" data-select-asset="${escapeHtml(item.id)}">Use in lab</button>`
+      : "";
+    return `
+      <article class="card">
+        <h4>${escapeHtml(item.title)}</h4>
+        <p>${escapeHtml(family)} | ${escapeHtml(prettyDate(item.updated_at || item.created_at))}</p>
+        <p>${escapeHtml(truncateText(summary))}</p>
+        <div class="actions">
+          ${detailPath ? `<a href="${escapeHtml(detailPath)}" class="button-link secondary-link">Open detail</a>` : ""}
+          ${useButton}
+          <button type="button" class="secondary" data-download-asset="${escapeHtml(item.id)}">${isPlot ? "Download chart" : "Download asset"}</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+function renderModelHistory(items = modelHistoryItems()) {
+  if (!dom.labRecentModelList) {
+    return;
+  }
+  if (!items.length) {
+    dom.labRecentModelList.innerHTML = emptyCard("No model history yet.");
+    return;
+  }
+  dom.labRecentModelList.innerHTML = items.slice(0, 6).map((item) => {
+    const metadata = item.metadata || {};
+    const detailPath = metadata.result_detail_path || `/data-lab/results/models/${item.id}`;
+    const summary = metadata.equation || metadata.model_family || item.content || "Model output recorded in the private knowledge base.";
+    return `
+      <article class="card">
+        <h4>${escapeHtml(metadata.model_label || item.title)}</h4>
+        <p>${escapeHtml(metadata.model_type || "model")} | ${escapeHtml(prettyDate(item.updated_at || item.created_at))}</p>
+        <p>${escapeHtml(truncateText(summary))}</p>
+        <div class="actions">
+          <a href="${escapeHtml(detailPath)}" class="button-link secondary-link">Open detail</a>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
 function focusWorkbench() {
   document.getElementById("data-lab-workbench")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -772,6 +1046,7 @@ function renderDataLabPlaceholders() {
   }
   state.currentPlotAssetId = "";
   revokeCurrentPlotUrl();
+  renderLabContext();
 }
 
 function syncDataLabAssetOptions(items) {
@@ -791,6 +1066,7 @@ function syncDataLabAssetOptions(items) {
   if (!datasets.length) {
     renderDataLabPlaceholders();
   }
+  renderLabContext();
 }
 
 function renderPreviewTable(rows) {
@@ -925,6 +1201,7 @@ function renderAssetProfile(profile) {
   }
   renderPreviewTable(profile.preview_rows || []);
   populateDataLabSelectors(profile);
+  renderLabContext();
 }
 
 function refreshModelVariableOptions() {
@@ -1021,6 +1298,7 @@ function updateWorkflowVisibility() {
     syncModelTypeOptions();
     updateModelFieldVisibility();
   }
+  renderLabContext();
 }
 
 function hasPrivateWorkspaceUI() {
@@ -1044,6 +1322,8 @@ function clearPrivateLists() {
   if (!hasPrivateWorkspaceUI()) {
     return;
   }
+  state.workspaceAssets = [];
+  state.workspaceKnowledge = [];
   if (dom.integrationList) {
     dom.integrationList.innerHTML = emptyCard("Log in to view saved provider connections.");
   }
@@ -1072,6 +1352,8 @@ function clearPrivateLists() {
     dom.analysisAssetSelect.innerHTML = `<option value="">Select a dataset asset</option>`;
   }
   renderDataLabPlaceholders();
+  renderProcessingHistory([]);
+  renderModelHistory([]);
 }
 
 function ensureSignedIn() {
@@ -1092,6 +1374,8 @@ function clearSession() {
   state.user = null;
   state.workspaces = [];
   state.selectedWorkspaceId = "";
+  state.assetProfiles = {};
+  state.selectedAnalysisAssetId = "";
   localStorage.removeItem(storageKeys.token);
   localStorage.removeItem(storageKeys.workspaceId);
   if (hasPrivateWorkspaceUI()) {
@@ -1123,10 +1407,12 @@ function renderSession() {
   if (!state.user) {
     dom.sessionIndicator.textContent = "Signed out";
     dom.userSummary.textContent = "Register or log in to access your private workspace.";
+    renderLabContext();
     return;
   }
   dom.sessionIndicator.textContent = "Signed in";
   dom.userSummary.textContent = `${state.user.full_name} | ${state.user.email}`;
+  renderLabContext();
 }
 
 function renderWorkspaceOptions() {
@@ -1136,6 +1422,7 @@ function renderWorkspaceOptions() {
   dom.workspaceSelect.innerHTML = "";
   if (!state.workspaces.length) {
     dom.workspaceSelect.innerHTML = `<option value="">No workspace yet</option>`;
+    renderLabContext();
     return;
   }
   for (const workspace of state.workspaces) {
@@ -1145,6 +1432,7 @@ function renderWorkspaceOptions() {
     option.selected = workspace.id === state.selectedWorkspaceId;
     dom.workspaceSelect.appendChild(option);
   }
+  renderLabContext();
 }
 
 function renderIntegrations(items) {
@@ -1236,12 +1524,15 @@ function renderLiterature(items) {
 }
 
 function renderAssets(items) {
+  state.workspaceAssets = items || [];
   syncDataLabAssetOptions(items);
   if (!dom.assetList) {
+    renderProcessingHistory(processingHistoryItems());
     return;
   }
   if (!items.length) {
     dom.assetList.innerHTML = emptyCard("No uploaded assets yet.");
+    renderProcessingHistory([]);
     return;
   }
   dom.assetList.innerHTML = items
@@ -1260,14 +1551,18 @@ function renderAssets(items) {
       `,
     )
     .join("");
+  renderProcessingHistory(processingHistoryItems());
 }
 
 function renderKnowledge(items) {
+  state.workspaceKnowledge = items || [];
   if (!dom.knowledgeList) {
+    renderModelHistory(modelHistoryItems());
     return;
   }
   if (!items.length) {
     dom.knowledgeList.innerHTML = emptyCard("No private notes yet.");
+    renderModelHistory([]);
     return;
   }
   dom.knowledgeList.innerHTML = items
@@ -1281,6 +1576,7 @@ function renderKnowledge(items) {
       `,
     )
     .join("");
+  renderModelHistory(modelHistoryItems());
 }
 
 function renderSchedules(items) {
@@ -2553,8 +2849,15 @@ async function init() {
   try {
     await fetchHealth();
     const pageMode = detectPageMode();
-    if (pageMode === "data-lab-method-detail") {
+    if (pageMode === "data-lab" || pageMode === "data-lab-method-detail") {
       await loadDataLabCatalog();
+    }
+    if (pageMode === "data-lab") {
+      renderLabContext();
+      renderProcessingHistory([]);
+      renderModelHistory([]);
+    }
+    if (pageMode === "data-lab-method-detail") {
       await loadMethodDetailPage();
     }
     if (pageMode === "data-lab-result-detail") {
