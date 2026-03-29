@@ -2112,7 +2112,10 @@ def ensure_public_daily_briefing(
         )
     if existing and not force and existing.headline_count > 0 and not needs_schema_refresh:
         return existing
-    if not force and not _public_digest_is_due(settings, now=now):
+    # If the stored public briefing is on an older schema/template, rebuild it
+    # immediately so new source coverage and UI fields appear without waiting
+    # for the next scheduled digest window.
+    if not force and not needs_schema_refresh and not _public_digest_is_due(settings, now=now):
         return existing
     return generate_public_daily_briefing(db, settings, now=now, force=force)
 
