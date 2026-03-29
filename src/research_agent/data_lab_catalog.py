@@ -800,6 +800,168 @@ def _paper_results_template(method_slug: str, method_name: str, guide: dict[str,
     ]
 
 
+def _paper_table_preview(method_slug: str, method_name: str) -> list[dict[str, object]]:
+    regression_table = {
+        "title": "Main Regression Table Preview",
+        "caption": "Illustrative journal-style layout. Replace the placeholders with the actual workbench output.",
+        "columns": ["Term", "Coefficient", "Std. Error", "t / z", "p-value"],
+        "rows": [
+            ["Core regressor", "0.128**", "(0.051)", "2.51", "0.012"],
+            ["Control variable", "-0.044", "(0.037)", "-1.18", "0.238"],
+            ["Observations", "1,248", "", "", ""],
+            ["R-squared / Pseudo R-squared", "0.312", "", "", ""],
+        ],
+    }
+    dynamic_table = {
+        "title": "Dynamic Response Table Preview",
+        "caption": "Use a horizon-by-horizon table when the method produces forecasts, impulse responses, or volatility paths.",
+        "columns": ["Horizon", "Impulse / Variable", "Response", "Estimate", "Confidence Band"],
+        "rows": [
+            ["0", "Policy shock", "Output", "0.000", "[0.000, 0.000]"],
+            ["1", "Policy shock", "Output", "-0.182", "[-0.301, -0.063]"],
+            ["2", "Policy shock", "Output", "-0.137", "[-0.246, -0.028]"],
+        ],
+    }
+    metrics_table = {
+        "title": "Metrics Table Preview",
+        "caption": "Use a compact metric table when the method returns calibrated scores, risk metrics, or portfolio allocations.",
+        "columns": ["Metric", "Value", "Interpretation", "Sample / Horizon"],
+        "rows": [
+            ["Main metric", "0.482", "Economically meaningful estimate", "Full sample"],
+            ["Secondary metric", "0.119", "Diagnostic or supporting statistic", "Full sample"],
+            ["Observations / assets", "240", "Rows used in the run", "Input data"],
+        ],
+    }
+    preview_map: dict[str, list[dict[str, object]]] = {
+        "did": [
+            {
+                "title": "DID Main Table Preview",
+                "caption": "Highlight the treated × post interaction and keep treatment/post main effects visible.",
+                "columns": ["Term", "Coefficient", "Std. Error", "p-value", "Interpretation"],
+                "rows": [
+                    ["Treated × Post", "0.153***", "(0.041)", "0.001", "Average treatment effect"],
+                    ["Treated", "0.027", "(0.039)", "0.489", "Baseline treated-control gap"],
+                    ["Post", "-0.018", "(0.022)", "0.408", "Common post-period shift"],
+                ],
+            },
+            {
+                "title": "2x2 Cell-Means Preview",
+                "caption": "Include this compact table so a referee can visually verify the DID logic before looking at the regression output.",
+                "columns": ["Group", "Pre", "Post", "Change"],
+                "rows": [
+                    ["Control", "1.024", "1.011", "-0.013"],
+                    ["Treated", "1.030", "1.170", "0.140"],
+                ],
+            },
+        ],
+        "event_study": [
+            {
+                "title": "Lead-Lag Coefficient Preview",
+                "caption": "A paper table should align with the plotted event-study path and identify the omitted reference period.",
+                "columns": ["Event time", "Estimate", "Std. Error", "95% CI low", "95% CI high"],
+                "rows": [
+                    ["-2", "0.012", "(0.021)", "-0.029", "0.053"],
+                    ["0", "0.087**", "(0.035)", "0.018", "0.156"],
+                    ["+2", "0.103**", "(0.041)", "0.023", "0.183"],
+                ],
+            }
+        ],
+        "rdd": [
+            {
+                "title": "RDD Estimate Preview",
+                "caption": "Show the local bandwidth, polynomial order, and the discontinuity estimate in the same table block.",
+                "columns": ["Bandwidth", "Polynomial", "Estimate", "Std. Error", "p-value"],
+                "rows": [
+                    ["0.50", "1", "0.214**", "(0.094)", "0.024"],
+                    ["1.00", "2", "0.187*", "(0.101)", "0.067"],
+                ],
+            }
+        ],
+        "gravity": [
+            {
+                "title": "Gravity Regression Preview",
+                "caption": "Flow models are usually presented with log-mass and log-distance elasticities in one compact table.",
+                "columns": ["Term", "Coefficient", "Std. Error", "p-value", "Elasticity meaning"],
+                "rows": [
+                    ["log(origin mass)", "0.541***", "(0.083)", "0.000", "Origin-scale elasticity"],
+                    ["log(destination mass)", "0.463***", "(0.078)", "0.000", "Destination-scale elasticity"],
+                    ["log(distance)", "-0.712***", "(0.066)", "0.000", "Trade-friction elasticity"],
+                ],
+            }
+        ],
+        "iv_2sls": [
+            regression_table,
+            {
+                "title": "First-Stage Diagnostics Preview",
+                "caption": "A paper should usually surface instrument relevance rather than hiding it in the appendix.",
+                "columns": ["Statistic", "Value", "Threshold / Benchmark", "Comment"],
+                "rows": [
+                    ["First-stage F", "18.7", "> 10", "Instrument relevance looks acceptable"],
+                    ["Number of instruments", "1", "", "Exactly identified design"],
+                ],
+            },
+        ],
+        "panel_iv": [
+            regression_table,
+            {
+                "title": "Panel-IV Diagnostics Preview",
+                "caption": "Keep instrument strength and the panel structure visible in the same reporting bundle.",
+                "columns": ["Statistic", "Value", "Comment"],
+                "rows": [
+                    ["Entities", "42", "Panel cross-sectional units"],
+                    ["Time periods", "36", "Balanced monthly panel"],
+                    ["First-stage F", "14.2", "Instrument remains relevant with fixed effects"],
+                ],
+            },
+        ],
+        "arima": [dynamic_table],
+        "var": [dynamic_table],
+        "svar_irf": [dynamic_table],
+        "virf": [dynamic_table],
+        "arch": [dynamic_table],
+        "garch": [dynamic_table],
+        "dy_connectedness": [
+            {
+                "title": "Connectedness Matrix Preview",
+                "caption": "A paper table should show directional spillovers and the net position of each series.",
+                "columns": ["Series", "From others", "To others", "Net", "Own share"],
+                "rows": [
+                    ["Asset A", "34.2", "28.6", "-5.6", "65.8"],
+                    ["Asset B", "41.1", "44.7", "3.6", "58.9"],
+                    ["Asset C", "37.8", "39.8", "2.0", "62.2"],
+                ],
+            }
+        ],
+        "bk_connectedness": [
+            {
+                "title": "Frequency-Band Preview",
+                "caption": "Report short-, medium-, and long-horizon connectedness in a compact band table.",
+                "columns": ["Band", "Total connectedness", "Dominant sender", "Dominant receiver"],
+                "rows": [
+                    ["Short", "42.5", "Asset B", "Asset A"],
+                    ["Medium", "31.4", "Asset C", "Asset B"],
+                    ["Long", "18.9", "Asset A", "Asset C"],
+                ],
+            }
+        ],
+        "historical_var": [metrics_table],
+        "parametric_var": [metrics_table],
+        "ewma_volatility": [metrics_table],
+        "altman_z": [metrics_table],
+        "dupont": [metrics_table],
+        "black_scholes": [metrics_table],
+        "binomial_option": [metrics_table],
+        "taylor_rule": [regression_table],
+        "rbc_dsge": [metrics_table],
+        "mean_variance": [metrics_table],
+        "minimum_variance": [metrics_table],
+        "risk_parity": [metrics_table],
+        "capm": [regression_table],
+        "fama_french_3": [regression_table],
+    }
+    return deepcopy(preview_map.get(method_slug, [regression_table if "coefficient" in method_name.lower() else metrics_table]))
+
+
 def _teaching_sections(method_name: str, family: dict[str, object], guide: dict[str, object]) -> list[dict[str, object]]:
     return [
         {
@@ -854,6 +1016,7 @@ def get_model_method(family_slug: str, method_slug: str) -> dict[str, object] | 
         "manual_checks": list(guide.get("manual_checks") or family.get("manual_checks") or []),
         "normal_result": guide.get("normal_result") or "",
         "paper_template": _paper_results_template(method_slug, str(method.get("name") or method_slug), guide),
+        "paper_table_preview": _paper_table_preview(method_slug, str(method.get("name") or method_slug)),
     }
 
 
@@ -875,4 +1038,5 @@ def get_model_teaching_guide(family_slug: str, method_slug: str) -> dict[str, ob
         "workbench_path": method["workbench_path"],
         "sections": _teaching_sections(str(method["name"]), family or {}, guide),
         "paper_template": _paper_results_template(method_slug, str(method["name"]), guide),
+        "paper_table_preview": _paper_table_preview(method_slug, str(method["name"])),
     }

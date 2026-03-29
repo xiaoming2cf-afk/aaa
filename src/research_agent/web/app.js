@@ -371,6 +371,7 @@ const dom = {
   labModelMethodInputs: document.getElementById("lab-model-method-inputs"),
   labModelMethodOutputs: document.getElementById("lab-model-method-outputs"),
   labModelMethodPaper: document.getElementById("lab-model-method-paper"),
+  labModelMethodPreview: document.getElementById("lab-model-method-preview"),
   labModelMethodAudit: document.getElementById("lab-model-method-audit"),
   labTeachingEyebrow: document.getElementById("lab-teaching-eyebrow"),
   labTeachingTitle: document.getElementById("lab-teaching-title"),
@@ -382,6 +383,7 @@ const dom = {
   labTeachingWorkbenchLink: document.getElementById("lab-teaching-workbench-link"),
   labTeachingSections: document.getElementById("lab-teaching-sections"),
   labTeachingPaper: document.getElementById("lab-teaching-paper"),
+  labTeachingPreview: document.getElementById("lab-teaching-preview"),
   labResultEyebrow: document.getElementById("lab-result-eyebrow"),
   labResultTitle: document.getElementById("lab-result-title"),
   labResultSummary: document.getElementById("lab-result-summary"),
@@ -693,6 +695,45 @@ function renderPaperTemplateCards(target, sections) {
         </article>
       `,
     )
+    .join("");
+}
+
+function renderPaperTablePreviewCards(target, tables) {
+  if (!target) {
+    return;
+  }
+  if (!tables || !tables.length) {
+    target.innerHTML = emptyCard("No paper-style table preview is available for this method yet.");
+    return;
+  }
+  target.innerHTML = tables
+    .map((table) => {
+      const columns = Array.isArray(table.columns) ? table.columns : [];
+      const rows = Array.isArray(table.rows) ? table.rows : [];
+      const headers = columns.length
+        ? `<tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr>`
+        : "";
+      const body = rows.length
+        ? rows
+            .map(
+              (row) =>
+                `<tr>${(Array.isArray(row) ? row : []).map((cell) => `<td>${escapeHtml(cell ?? "")}</td>`).join("")}</tr>`,
+            )
+            .join("")
+        : `<tr><td>${escapeHtml("Preview rows are not available.")}</td></tr>`;
+      return `
+        <article class="card paper-template-card paper-table-preview-card">
+          <p class="eyebrow eyebrow-compact">${escapeHtml(table.title || "Paper Table Preview")}</p>
+          ${table.note ? `<p>${escapeHtml(table.note)}</p>` : ""}
+          <div class="table-shell">
+            <table class="data-table paper-preview-table">
+              <thead>${headers}</thead>
+              <tbody>${body}</tbody>
+            </table>
+          </div>
+        </article>
+      `;
+    })
     .join("");
 }
 
@@ -1876,6 +1917,9 @@ function renderPublicSourcePanel(panel) {
   const domains = Array.isArray(panel.domains) ? panel.domains : [];
   const countries = Array.isArray(panel.countries) ? panel.countries : [];
   const feeds = Array.isArray(panel.feeds) ? panel.feeds : [];
+  const typeBreakdown = Array.isArray(panel.type_breakdown) ? panel.type_breakdown : [];
+  const sourceDirectory = Array.isArray(panel.source_directory) ? panel.source_directory : [];
+  const notes = Array.isArray(panel.notes) ? panel.notes : [];
   dom.publicSourcePanel.innerHTML = `
     <article class="source-panel-card">
       <h4>Edition Overview</h4>
@@ -1885,6 +1929,30 @@ function renderPublicSourcePanel(panel) {
           .join("") || `<span class="muted">No overview metrics yet.</span>`}
       </div>
       <p class="muted">GDELT status: ${escapeHtml(panel.gdelt?.status || "unknown")} | Items scanned: ${escapeHtml(panel.gdelt?.item_count ?? 0)}</p>
+      ${
+        notes.length
+          ? `<div class="stack compact-stack">${notes.map((note) => `<p class="muted">${escapeHtml(note)}</p>`).join("")}</div>`
+          : ""
+      }
+    </article>
+    <article class="source-panel-card">
+      <h4>Source Types</h4>
+      <div class="source-list">
+        ${
+          typeBreakdown.length
+            ? typeBreakdown
+                .map(
+                  (item) => `
+                    <div class="source-list-row">
+                      <strong>${escapeHtml(item.type)}</strong>
+                      <span>Visible ${escapeHtml(item.active_count)} | Filtered ${escapeHtml(item.excluded_count)}</span>
+                    </div>
+                  `,
+                )
+                .join("")
+            : `<p class="muted">No source-type breakdown yet.</p>`
+        }
+      </div>
     </article>
     <article class="source-panel-card">
       <h4>Domain Mix</h4>
@@ -1925,6 +1993,31 @@ function renderPublicSourcePanel(panel) {
       </div>
     </article>
     <article class="source-panel-card">
+      <h4>Source Directory</h4>
+      <div class="source-list">
+        ${
+          sourceDirectory.length
+            ? sourceDirectory
+                .map(
+                  (row) => `
+                    <div class="source-directory-row">
+                      <div class="source-directory-head">
+                        <strong>${escapeHtml(row.name)}</strong>
+                        <span>${escapeHtml(row.source_type || "media")} | ${escapeHtml(row.source_country || "N/A")} | ${escapeHtml(row.kind || "rss")}</span>
+                      </div>
+                      <span class="muted">${escapeHtml(row.region_focus || "Global")} | ${escapeHtml(row.credibility || "source")}</span>
+                      <span class="muted">Status ${escapeHtml(row.status || "unknown")} | matched ${escapeHtml(row.matched_items ?? 0)} | visible ${escapeHtml(row.visible_count ?? 0)} | filtered ${escapeHtml(row.excluded_count ?? 0)}</span>
+                      ${row.note ? `<p>${escapeHtml(row.note)}</p>` : ""}
+                      ${row.message ? `<p class="muted source-error">${escapeHtml(row.message)}</p>` : ""}
+                    </div>
+                  `,
+                )
+                .join("")
+            : `<p class="muted">The configured source directory is not available for this edition.</p>`
+        }
+      </div>
+    </article>
+    <article class="source-panel-card">
       <h4>Feed Health</h4>
       <div class="source-list">
         ${
@@ -1934,8 +2027,9 @@ function renderPublicSourcePanel(panel) {
                   (feed) => `
                     <div class="source-list-row">
                       <strong>${escapeHtml(feed.name)}</strong>
-                      <span>${escapeHtml(feed.status)} | matched ${escapeHtml(feed.matched_items)}</span>
+                      <span>${escapeHtml(feed.status)} | ${escapeHtml(feed.source_type || "media")} | matched ${escapeHtml(feed.matched_items)}</span>
                     </div>
+                    <p class="muted">${escapeHtml(feed.region_focus || "Global")} | ${escapeHtml(feed.credibility || "source")}</p>
                     ${feed.message ? `<p class="muted source-error">${escapeHtml(feed.message)}</p>` : ""}
                   `,
                 )
@@ -1948,7 +2042,14 @@ function renderPublicSourcePanel(panel) {
 }
 
 function publicReviewCard(item, actionLabel, actionName, enabled) {
-  const metaParts = [item.source_name, item.domain, item.source_country, (item.themes || []).slice(0, 2).join(", ")]
+  const metaParts = [
+    item.source_name,
+    item.source_type,
+    item.domain,
+    item.source_country,
+    item.region_focus,
+    (item.themes || []).slice(0, 2).join(", "),
+  ]
     .filter(Boolean)
     .map((part) => escapeHtml(part));
   return `
@@ -1970,6 +2071,8 @@ function publicReviewCard(item, actionLabel, actionName, enabled) {
             : ""
         }
       </div>
+      ${item.credibility ? `<p><strong>Credibility:</strong> ${escapeHtml(item.credibility)}</p>` : ""}
+      ${item.source_note ? `<p>${escapeHtml(item.source_note)}</p>` : ""}
       ${item.excerpt ? `<p>${escapeHtml(item.excerpt)}</p>` : ""}
       <div class="actions actions-wrap compact-actions">
         ${item.url ? `<a class="button-link secondary-link" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">Open source article</a>` : ""}
@@ -2231,6 +2334,7 @@ function renderModelMethodPage(detail) {
     </article>
   `);
   renderPaperTemplateCards(dom.labModelMethodPaper, detail.paper_template || []);
+  renderPaperTablePreviewCards(dom.labModelMethodPreview, detail.paper_table_preview || []);
   renderListCards(dom.labModelMethodAudit, detail.manual_checks || [], (item) => `
     <article class="card">
       <p>${escapeHtml(item)}</p>
@@ -2262,6 +2366,7 @@ function renderModelTeachingPage(guide) {
     </article>
   `);
   renderPaperTemplateCards(dom.labTeachingPaper, guide.paper_template || []);
+  renderPaperTablePreviewCards(dom.labTeachingPreview, guide.paper_table_preview || []);
   updateDocumentTitle();
 }
 

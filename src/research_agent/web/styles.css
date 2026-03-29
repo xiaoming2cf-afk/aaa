@@ -784,6 +784,54 @@ button.secondary,
   gap: 0.8rem;
 }
 
+.paper-table-preview-card {
+  gap: 0.9rem;
+}
+
+.table-shell {
+  overflow-x: auto;
+  border: 1px solid rgba(12, 36, 28, 0.1);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.paper-preview-table {
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+.paper-preview-table th,
+.paper-preview-table td {
+  padding: 0.72rem 0.8rem;
+  border-bottom: 1px solid rgba(12, 36, 28, 0.08);
+  text-align: left;
+  font-size: 0.93rem;
+}
+
+.paper-preview-table th {
+  color: var(--ink);
+  background: rgba(226, 238, 233, 0.65);
+}
+
+.source-directory-row {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid rgba(12, 36, 28, 0.08);
+}
+
+.source-directory-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.source-directory-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
 .card h4 {
   margin: 0 0 0.4rem;
   font-size: 1rem;

@@ -43,6 +43,10 @@ def build_public_items() -> list[dict[str, object]]:
             "domain": "example.com",
             "source_country": "US",
             "source_name": "Example Macro Desk",
+            "source_type": "media",
+            "region_focus": "United States",
+            "credibility": "major financial media outlet",
+            "source_note": "Synthetic verification media source",
             "excerpt": "The Federal Reserve indicated a slower pace of easing amid sticky inflation.",
             "themes": ["monetary policy", "inflation"],
             "primary_theme": "monetary policy",
@@ -54,6 +58,10 @@ def build_public_items() -> list[dict[str, object]]:
             "domain": "energy.example.org",
             "source_country": "GB",
             "source_name": "Energy Example",
+            "source_type": "media",
+            "region_focus": "United Kingdom",
+            "credibility": "major energy-market media outlet",
+            "source_note": "Synthetic verification media source",
             "excerpt": "Crude prices moved higher after renewed concern around physical supply constraints.",
             "themes": ["energy", "markets"],
             "primary_theme": "energy",
@@ -65,6 +73,10 @@ def build_public_items() -> list[dict[str, object]]:
             "domain": "trade.example.net",
             "source_country": "SG",
             "source_name": "Trade Example",
+            "source_type": "official",
+            "region_focus": "China",
+            "credibility": "official government",
+            "source_note": "Synthetic verification official source",
             "excerpt": "Regional trade data showed a recovery in manufactured exports during March.",
             "themes": ["trade", "growth"],
             "primary_theme": "trade",
@@ -99,7 +111,22 @@ def insert_public_briefing() -> str:
                             "feeds": [
                                 {"name": "Example Macro Desk", "status": "ok", "matched_items": 1, "message": ""},
                                 {"name": "Energy Example", "status": "ok", "matched_items": 1, "message": ""},
-                                {"name": "Trade Example", "status": "ok", "matched_items": 1, "message": ""},
+                            ]
+                        },
+                        "official": {
+                            "feeds": [
+                                {
+                                    "name": "Trade Example",
+                                    "status": "ok",
+                                    "matched_items": 1,
+                                    "message": "",
+                                    "source_type": "official",
+                                    "source_country": "CN",
+                                    "region_focus": "China",
+                                    "credibility": "official government",
+                                    "note": "Synthetic verification official source",
+                                    "kind": "html",
+                                }
                             ]
                         },
                         "gdelt": {
@@ -152,6 +179,10 @@ def main() -> None:
             raise AssertionError("Initial excluded list should be empty")
         if len(latest_payload.get("source_panel", {}).get("feeds", [])) != 3:
             raise AssertionError("Source panel did not return the expected feed rows")
+        if not latest_payload.get("source_panel", {}).get("source_directory"):
+            raise AssertionError("Source panel did not expose the source directory")
+        if not latest_payload.get("source_panel", {}).get("type_breakdown"):
+            raise AssertionError("Source panel did not expose the source-type breakdown")
         assert_overview_value(latest_payload["source_panel"], "Visible headlines", "3")
         assert_overview_value(latest_payload["source_panel"], "Filtered headlines", "0")
 

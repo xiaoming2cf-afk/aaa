@@ -516,24 +516,32 @@ def main() -> None:
                     raise AssertionError(f"{family_slug}/{method_slug}: model detail route returned the wrong method payload")
                 if not method_detail.json()["method"].get("paper_template"):
                     raise AssertionError(f"{family_slug}/{method_slug}: model detail route returned no paper template")
+                if not method_detail.json()["method"].get("paper_table_preview"):
+                    raise AssertionError(f"{family_slug}/{method_slug}: model detail route returned no paper table preview")
                 teaching_detail = client.get(f"/api/data-lab/learn/models/{family_slug}/{method_slug}")
                 teaching_detail.raise_for_status()
                 if not teaching_detail.json()["guide"].get("sections"):
                     raise AssertionError(f"{family_slug}/{method_slug}: teaching route returned no teaching sections")
                 if not teaching_detail.json()["guide"].get("paper_template"):
                     raise AssertionError(f"{family_slug}/{method_slug}: teaching route returned no paper template")
+                if not teaching_detail.json()["guide"].get("paper_table_preview"):
+                    raise AssertionError(f"{family_slug}/{method_slug}: teaching route returned no paper table preview")
                 method_page = client.get(f"/data-lab/models/{family_slug}/{method_slug}")
                 method_page.raise_for_status()
                 if "lab-model-method-title" not in method_page.text:
                     raise AssertionError(f"{family_slug}/{method_slug}: method page template failed to load")
                 if "Paper Results Template" not in method_page.text:
                     raise AssertionError(f"{family_slug}/{method_slug}: method page is missing the paper template section")
+                if "Paper Table Preview" not in method_page.text:
+                    raise AssertionError(f"{family_slug}/{method_slug}: method page is missing the paper table preview section")
                 teaching_page = client.get(f"/data-lab/learn/models/{family_slug}/{method_slug}")
                 teaching_page.raise_for_status()
                 if "lab-teaching-sections" not in teaching_page.text:
                     raise AssertionError(f"{family_slug}/{method_slug}: teaching page template failed to load")
                 if "Paper Reporting Template" not in teaching_page.text:
                     raise AssertionError(f"{family_slug}/{method_slug}: teaching page is missing the paper template section")
+                if "Paper Table Preview" not in teaching_page.text:
+                    raise AssertionError(f"{family_slug}/{method_slug}: teaching page is missing the paper table preview section")
 
         result_page = client.get(f"/data-lab/results/models/{results['DID']['_record_id']}")
         result_page.raise_for_status()

@@ -6,7 +6,7 @@ from collections import Counter
 from datetime import datetime, time, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 from xml.etree import ElementTree
 from zoneinfo import ZoneInfo
 
@@ -34,14 +34,19 @@ from .utils import reconstruct_abstract, slugify, truncate_text
 
 GDELT_DOC_API = "https://api.gdeltproject.org/api/v2/doc/doc"
 FRED_OBSERVATIONS_API = "https://api.stlouisfed.org/fred/series/observations"
-PUBLIC_TEMPLATE_VERSION = "daily-macro-v1"
-PUBLIC_RSS_FEEDS = [
+PUBLIC_TEMPLATE_VERSION = "daily-macro-v2"
+PUBLIC_OFFICIAL_LOOKBACK_DAYS = 5
+PUBLIC_MEDIA_RSS_FEEDS = [
     {
         "name": "BBC Business",
         "url": "https://feeds.bbci.co.uk/news/business/rss.xml",
         "domain": "bbc.com",
         "source_country": "GB",
         "language": "English",
+        "source_type": "media",
+        "region_focus": "United Kingdom",
+        "credibility": "major public-service media",
+        "note": "BBC business feed",
     },
     {
         "name": "NYT Business",
@@ -49,6 +54,10 @@ PUBLIC_RSS_FEEDS = [
         "domain": "nytimes.com",
         "source_country": "US",
         "language": "English",
+        "source_type": "media",
+        "region_focus": "United States",
+        "credibility": "major national newspaper",
+        "note": "New York Times business feed",
     },
     {
         "name": "CNBC Top News",
@@ -56,6 +65,10 @@ PUBLIC_RSS_FEEDS = [
         "domain": "cnbc.com",
         "source_country": "US",
         "language": "English",
+        "source_type": "media",
+        "region_focus": "United States",
+        "credibility": "major financial media outlet",
+        "note": "CNBC top news feed",
     },
     {
         "name": "MarketWatch Top Stories",
@@ -63,6 +76,10 @@ PUBLIC_RSS_FEEDS = [
         "domain": "marketwatch.com",
         "source_country": "US",
         "language": "English",
+        "source_type": "media",
+        "region_focus": "United States",
+        "credibility": "major financial media outlet",
+        "note": "MarketWatch top-stories feed",
     },
     {
         "name": "Investing.com News",
@@ -70,8 +87,138 @@ PUBLIC_RSS_FEEDS = [
         "domain": "investing.com",
         "source_country": "US",
         "language": "English",
+        "source_type": "media",
+        "region_focus": "Global",
+        "credibility": "market-data media feed",
+        "note": "Investing.com market news feed",
+    },
+    {
+        "name": "SCMP China",
+        "url": "https://www.scmp.com/rss/4/feed",
+        "domain": "scmp.com",
+        "source_country": "CN",
+        "language": "English",
+        "source_type": "media",
+        "region_focus": "China",
+        "credibility": "major China-focused newspaper",
+        "note": "South China Morning Post China feed",
+    },
+    {
+        "name": "Nikkei Asia",
+        "url": "https://asia.nikkei.com/rss/feed/nar",
+        "domain": "asia.nikkei.com",
+        "source_country": "JP",
+        "language": "English",
+        "source_type": "media",
+        "region_focus": "Asia",
+        "credibility": "major Asia business newspaper",
+        "note": "Nikkei Asia feed",
     },
 ]
+PUBLIC_OFFICIAL_RSS_FEEDS = [
+    {
+        "name": "Federal Reserve Press Releases",
+        "url": "https://www.federalreserve.gov/feeds/press_all.xml",
+        "domain": "federalreserve.gov",
+        "source_country": "US",
+        "language": "English",
+        "source_type": "official",
+        "region_focus": "United States",
+        "credibility": "official central bank",
+        "note": "Federal Reserve Board press release feed",
+    },
+    {
+        "name": "European Central Bank Press",
+        "url": "https://www.ecb.europa.eu/rss/press.xml",
+        "domain": "ecb.europa.eu",
+        "source_country": "EA",
+        "language": "English",
+        "source_type": "official",
+        "region_focus": "Euro Area",
+        "credibility": "official central bank",
+        "note": "European Central Bank press feed",
+    },
+    {
+        "name": "Bank of England News",
+        "url": "https://www.bankofengland.co.uk/rss/news",
+        "domain": "bankofengland.co.uk",
+        "source_country": "GB",
+        "language": "English",
+        "source_type": "official",
+        "region_focus": "United Kingdom",
+        "credibility": "official central bank",
+        "note": "Bank of England news feed",
+    },
+]
+PUBLIC_OFFICIAL_PAGE_SOURCES = [
+    {
+        "name": "U.S. Treasury Press Releases",
+        "url": "https://home.treasury.gov/news/press-releases",
+        "domain": "home.treasury.gov",
+        "source_country": "US",
+        "language": "English",
+        "source_type": "official",
+        "region_focus": "United States",
+        "credibility": "official government",
+        "note": "U.S. Treasury press-release page",
+        "kind": "html",
+        "parser": "treasury_press",
+    },
+    {
+        "name": "State Council China News",
+        "url": "https://english.www.gov.cn/news/latestnews/index.htm",
+        "domain": "english.www.gov.cn",
+        "source_country": "CN",
+        "language": "English",
+        "source_type": "official",
+        "region_focus": "China",
+        "credibility": "official government",
+        "note": "State Council of China English news page",
+        "kind": "html",
+        "parser": "state_council",
+    },
+    {
+        "name": "SAFE China Updates",
+        "url": "http://www.safe.gov.cn/en/",
+        "domain": "safe.gov.cn",
+        "source_country": "CN",
+        "language": "English",
+        "source_type": "official",
+        "region_focus": "China",
+        "credibility": "official regulator",
+        "note": "State Administration of Foreign Exchange updates",
+        "kind": "html",
+        "parser": "safe_updates",
+    },
+    {
+        "name": "Bank of Canada Press Releases",
+        "url": "https://www.bankofcanada.ca/press/press-releases/",
+        "domain": "bankofcanada.ca",
+        "source_country": "CA",
+        "language": "English",
+        "source_type": "official",
+        "region_focus": "Canada",
+        "credibility": "official central bank",
+        "note": "Bank of Canada press-release page",
+        "kind": "html",
+        "parser": "bank_of_canada",
+    },
+    {
+        "name": "Japan Ministry of Finance Updates",
+        "url": "https://www.mof.go.jp/english/public_relations/whats_new/202603.html",
+        "domain": "mof.go.jp",
+        "source_country": "JP",
+        "language": "English",
+        "source_type": "official",
+        "region_focus": "Japan",
+        "credibility": "official government",
+        "note": "Japan Ministry of Finance monthly updates page",
+        "kind": "html",
+        "parser": "mof_japan",
+    },
+]
+PUBLIC_RSS_FEEDS = [*PUBLIC_MEDIA_RSS_FEEDS, *PUBLIC_OFFICIAL_RSS_FEEDS]
+PUBLIC_SOURCE_DIRECTORY = [*PUBLIC_MEDIA_RSS_FEEDS, *PUBLIC_OFFICIAL_RSS_FEEDS, *PUBLIC_OFFICIAL_PAGE_SOURCES]
 FRED_SERIES_LABELS = {
     "FEDFUNDS": "Fed policy rate",
     "CPIAUCSL": "US CPI index",
@@ -104,6 +251,19 @@ PUBLIC_NEWS_KEYWORDS = sorted(
         "employment",
         "fiscal",
         "markets",
+        "foreign exchange",
+        "balance of payments",
+        "external debt",
+        "financial stability",
+        "capital market",
+        "credit",
+        "liquidity",
+        "market operations",
+        "private sector",
+        "renminbi",
+        "yuan",
+        "consumption",
+        "trade in goods",
     }
 )
 PUBLIC_SUMMARY_WINDOWS = {
@@ -455,12 +615,61 @@ def _public_review_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "domain": str(item.get("domain", "")).strip(),
                 "source_country": str(item.get("source_country", "")).strip().upper(),
                 "source_name": str(item.get("source_name", "")).strip(),
+                "source_type": str(item.get("source_type", "")).strip() or "media",
+                "region_focus": str(item.get("region_focus", "")).strip(),
+                "credibility": str(item.get("credibility", "")).strip(),
+                "source_note": str(item.get("source_note", "")).strip(),
                 "excerpt": str(item.get("excerpt", "")).strip(),
                 "themes": _headline_theme_labels(item),
                 "seendate": str(item.get("seendate", "")).strip(),
             }
         )
     return review_items
+
+
+def _public_source_directory_rows(
+    briefing: PublicEconomicBriefing,
+    *,
+    active_items: list[dict[str, Any]],
+    excluded_items: list[dict[str, Any]],
+    feed_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    active_counts = Counter(str(item.get("source_name", "")).strip() for item in active_items if str(item.get("source_name", "")).strip())
+    excluded_counts = Counter(str(item.get("source_name", "")).strip() for item in excluded_items if str(item.get("source_name", "")).strip())
+    status_by_name = {
+        str(row.get("name", "")).strip(): row
+        for row in feed_rows
+        if isinstance(row, dict) and str(row.get("name", "")).strip()
+    }
+    configured_by_name = {
+        str(source.get("name", "")).strip(): source
+        for source in PUBLIC_SOURCE_DIRECTORY
+        if str(source.get("name", "")).strip()
+    }
+    ordered_names = list(dict.fromkeys([*configured_by_name.keys(), *status_by_name.keys(), *active_counts.keys(), *excluded_counts.keys()]))
+    rows: list[dict[str, Any]] = []
+    for name in ordered_names:
+        source = configured_by_name.get(name, {})
+        status = status_by_name.get(name, {})
+        rows.append(
+            {
+                "name": name,
+                "domain": str(status.get("domain") or source.get("domain") or "").strip().lower(),
+                "source_country": str(status.get("source_country") or source.get("source_country") or "").strip().upper(),
+                "source_type": str(status.get("source_type") or source.get("source_type") or "media").strip(),
+                "region_focus": str(status.get("region_focus") or source.get("region_focus") or "").strip(),
+                "credibility": str(status.get("credibility") or source.get("credibility") or "").strip(),
+                "note": str(status.get("note") or source.get("note") or "").strip(),
+                "kind": str(status.get("kind") or source.get("kind") or "rss").strip(),
+                "status": str(status.get("status") or ("configured" if source else "observed")).strip(),
+                "matched_items": int(status.get("matched_items", 0) or 0),
+                "visible_count": int(active_counts.get(name, 0)),
+                "excluded_count": int(excluded_counts.get(name, 0)),
+                "message": str(status.get("message", "")).strip(),
+            }
+        )
+    rows.sort(key=lambda row: (row["source_type"] != "official", -row["visible_count"], row["name"]))
+    return rows
 
 
 def build_public_source_panel(briefing: PublicEconomicBriefing) -> dict[str, Any]:
@@ -476,9 +685,13 @@ def build_public_source_panel(briefing: PublicEconomicBriefing) -> dict[str, Any
     public_news = briefing.raw_json.get("public_news", {}) if isinstance(briefing.raw_json, dict) else {}
     source_payload = public_news.get("sources", {}) if isinstance(public_news, dict) else {}
     rss_payload = source_payload.get("rss", {}) if isinstance(source_payload, dict) else {}
+    official_payload = source_payload.get("official", {}) if isinstance(source_payload, dict) else {}
     gdelt_payload = source_payload.get("gdelt", {}) if isinstance(source_payload, dict) else {}
     feed_rows = []
-    for feed in rss_payload.get("feeds", []) if isinstance(rss_payload, dict) else []:
+    for feed in [
+        *(rss_payload.get("feeds", []) if isinstance(rss_payload, dict) else []),
+        *(official_payload.get("feeds", []) if isinstance(official_payload, dict) else []),
+    ]:
         if not isinstance(feed, dict):
             continue
         feed_rows.append(
@@ -487,10 +700,26 @@ def build_public_source_panel(briefing: PublicEconomicBriefing) -> dict[str, Any
                 "status": str(feed.get("status", "")).strip() or "unknown",
                 "matched_items": int(feed.get("matched_items", 0) or 0),
                 "message": str(feed.get("message", "")).strip(),
+                "domain": str(feed.get("domain", "")).strip(),
+                "source_country": str(feed.get("source_country", "")).strip().upper(),
+                "source_type": str(feed.get("source_type", "")).strip() or "media",
+                "region_focus": str(feed.get("region_focus", "")).strip(),
+                "credibility": str(feed.get("credibility", "")).strip(),
+                "note": str(feed.get("note", "")).strip(),
+                "kind": str(feed.get("kind", "")).strip() or "rss",
             }
         )
     ok_feed_count = sum(1 for feed in feed_rows if feed.get("status") == "ok")
     gdelt_items = gdelt_payload.get("items", []) if isinstance(gdelt_payload, dict) else []
+    type_active_counts = Counter(str(item.get("source_type", "")).strip() or "media" for item in active_items)
+    type_excluded_counts = Counter(str(item.get("source_type", "")).strip() or "media" for item in excluded_items)
+    type_names = sorted(set(type_active_counts) | set(type_excluded_counts))
+    source_directory = _public_source_directory_rows(
+        briefing,
+        active_items=active_items,
+        excluded_items=excluded_items,
+        feed_rows=feed_rows,
+    )
     return {
         "overview": [
             {"label": "Visible headlines", "value": str(len(active_items))},
@@ -499,7 +728,7 @@ def build_public_source_panel(briefing: PublicEconomicBriefing) -> dict[str, Any
                 "label": "Unique domains",
                 "value": str(len({str(item.get("domain", "")).strip().lower() for item in all_items if str(item.get("domain", "")).strip()})),
             },
-            {"label": "Feed health", "value": f"{ok_feed_count}/{len(feed_rows) or len(PUBLIC_RSS_FEEDS)} ok"},
+            {"label": "Feed health", "value": f"{ok_feed_count}/{len(feed_rows) or len(PUBLIC_SOURCE_DIRECTORY)} ok"},
         ],
         "domains": [
             {
@@ -517,11 +746,24 @@ def build_public_source_panel(briefing: PublicEconomicBriefing) -> dict[str, Any
             }
             for country in all_countries[:8]
         ],
+        "type_breakdown": [
+            {
+                "type": type_name or "unknown",
+                "active_count": int(type_active_counts.get(type_name, 0)),
+                "excluded_count": int(type_excluded_counts.get(type_name, 0)),
+            }
+            for type_name in type_names
+        ],
         "feeds": feed_rows,
+        "source_directory": source_directory,
         "gdelt": {
             "status": str(gdelt_payload.get("status", "")).strip() or "unknown",
             "item_count": len(gdelt_items) if isinstance(gdelt_items, list) else 0,
         },
+        "notes": [
+            "Official source coverage includes government and central-bank releases alongside media headlines.",
+            f"Official-page parsers allow up to {PUBLIC_OFFICIAL_LOOKBACK_DAYS} day(s) of lookback when same-day official releases are sparse.",
+        ],
     }
 
 
@@ -826,6 +1068,11 @@ def fetch_gdelt_hotspots(
                 "domain": article.get("domain", ""),
                 "source_country": article.get("sourcecountry", ""),
                 "language": article.get("language", ""),
+                "source_type": "media",
+                "region_focus": "Global",
+                "credibility": "news aggregation",
+                "source_note": "GDELT article feed",
+                "source_name": article.get("domain", ""),
                 "url": article.get("url", ""),
                 "excerpt": truncate_text(article.get("socialimage", "") or article.get("title", ""), 160),
             }
@@ -842,6 +1089,61 @@ def _normalize_gdelt_query(query: str) -> str:
 
 def _strip_html(value: str) -> str:
     return re.sub(r"<[^>]+>", " ", value or "").replace("&nbsp;", " ").strip()
+
+
+def _decode_response_text(response: requests.Response) -> str:
+    response.encoding = response.encoding or response.apparent_encoding or "utf-8"
+    return response.text
+
+
+def _normalize_source_href(base_url: str, href: str) -> str:
+    raw_href = str(href or "").strip()
+    if not raw_href:
+        return ""
+    if raw_href.startswith("//"):
+        return f"https:{raw_href}"
+    return urljoin(base_url, raw_href)
+
+
+def _extract_date_from_url(href: str) -> str:
+    raw_href = str(href or "").strip()
+    match = re.search(r"/(\d{6})/(\d{2})/", raw_href)
+    if match:
+        year_month = match.group(1)
+        day = match.group(2)
+        return f"{year_month[:4]}-{year_month[4:6]}-{day}"
+    match = re.search(r"/(\d{4})/(\d{4})/", raw_href)
+    if match:
+        year = match.group(1)
+        month_day = match.group(2)
+        return f"{year}-{month_day[:2]}-{month_day[2:4]}"
+    return ""
+
+
+def _coerce_source_item(
+    source: dict[str, Any],
+    *,
+    title: str,
+    link: str,
+    pub_date: str,
+    excerpt: str = "",
+    lookback_days: int = 0,
+) -> dict[str, Any]:
+    return {
+        "title": title.strip(),
+        "seendate": pub_date.strip(),
+        "domain": (urlparse(link).netloc or str(source.get("domain", ""))).lower(),
+        "source_country": str(source.get("source_country", "")).strip().upper(),
+        "language": str(source.get("language", "")).strip(),
+        "source_name": str(source.get("name", "")).strip(),
+        "source_type": str(source.get("source_type", "")).strip() or "media",
+        "region_focus": str(source.get("region_focus", "")).strip(),
+        "credibility": str(source.get("credibility", "")).strip(),
+        "source_note": str(source.get("note", "")).strip(),
+        "url": link.strip(),
+        "excerpt": truncate_text(excerpt or title, 220),
+        "allowed_lookback_days": int(max(0, lookback_days)),
+    }
 
 
 def _query_terms(query_text: str) -> list[str]:
@@ -868,6 +1170,14 @@ def _parse_news_datetime(raw_value: str, *, timezone_name: str) -> datetime | No
     raw = str(raw_value or "").strip()
     if not raw:
         return None
+    if "T" in raw:
+        try:
+            parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            return parsed.astimezone(ZoneInfo(timezone_name))
+        except ValueError:
+            pass
     try:
         if raw.endswith("Z") and "T" in raw:
             parsed = datetime.strptime(raw, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
@@ -879,6 +1189,12 @@ def _parse_news_datetime(raw_value: str, *, timezone_name: str) -> datetime | No
         return parsed.astimezone(ZoneInfo(timezone_name))
     except ValueError:
         pass
+    for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%B %d, %Y", "%b %d, %Y", "%b. %d, %Y"):
+        try:
+            parsed = datetime.strptime(raw, fmt).replace(tzinfo=ZoneInfo(timezone_name))
+            return parsed.astimezone(ZoneInfo(timezone_name))
+        except ValueError:
+            continue
     try:
         parsed = parsedate_to_datetime(raw)
         if parsed.tzinfo is None:
@@ -886,6 +1202,20 @@ def _parse_news_datetime(raw_value: str, *, timezone_name: str) -> datetime | No
         return parsed.astimezone(ZoneInfo(timezone_name))
     except (TypeError, ValueError, OverflowError):
         return None
+
+
+def _is_local_day_within_window(
+    raw_value: str,
+    *,
+    timezone_name: str,
+    target_date: datetime.date,
+    lookback_days: int = 0,
+) -> bool:
+    parsed = _parse_news_datetime(raw_value, timezone_name=timezone_name)
+    if parsed is None:
+        return False
+    earliest = target_date - timedelta(days=max(0, lookback_days))
+    return earliest <= parsed.date() <= target_date
 
 
 def _is_same_local_day(raw_value: str, *, timezone_name: str, target_date: datetime.date) -> bool:
@@ -907,7 +1237,262 @@ def _is_relevant_public_news(item: dict[str, Any], *, query_text: str) -> bool:
     return any(_keyword_present(haystack, keyword) for keyword in keywords)
 
 
+def _iter_feed_entries(root: ElementTree.Element) -> list[dict[str, str]]:
+    entries: list[dict[str, str]] = []
+    for node in root.findall(".//item"):
+        entries.append(
+            {
+                "title": (node.findtext("title") or "").strip(),
+                "link": (node.findtext("link") or "").strip(),
+                "pub_date": (node.findtext("pubDate") or node.findtext("date") or "").strip(),
+                "description": _strip_html(node.findtext("description") or ""),
+            }
+        )
+    for node in root.findall(".//{*}entry"):
+        link_node = node.find("{*}link[@rel='alternate']") or node.find("{*}link")
+        entries.append(
+            {
+                "title": (node.findtext("{*}title") or "").strip(),
+                "link": (link_node.attrib.get("href", "") if link_node is not None else "").strip(),
+                "pub_date": (
+                    node.findtext("{*}updated")
+                    or node.findtext("{*}published")
+                    or node.findtext("{*}date")
+                    or ""
+                ).strip(),
+                "description": _strip_html(node.findtext("{*}summary") or node.findtext("{*}content") or ""),
+            }
+        )
+    return entries
+
+
 def fetch_rss_hotspots(
+    settings: Settings,
+    *,
+    query_text: str = "",
+    max_records: int | None = None,
+    now: datetime | None = None,
+    feeds: list[dict[str, Any]] | None = None,
+    lookback_days: int = 0,
+) -> dict[str, Any]:
+    local_now = _current_local_time(settings.public_digest_timezone, now=now)
+    target_date = local_now.date()
+    items: list[dict[str, Any]] = []
+    feed_status: list[dict[str, Any]] = []
+    limit = max(4, max_records or settings.gdelt_max_records)
+    for feed in feeds or PUBLIC_MEDIA_RSS_FEEDS:
+        try:
+            response = requests.get(feed["url"], headers=DEFAULT_HEADERS, timeout=20)
+            response.raise_for_status()
+            root = ElementTree.fromstring(response.content)
+        except (requests.RequestException, ElementTree.ParseError) as exc:
+            feed_status.append(
+                {
+                    "name": feed["name"],
+                    "status": "error",
+                    "message": str(exc),
+                    "matched_items": 0,
+                    "domain": feed.get("domain", ""),
+                    "source_country": feed.get("source_country", ""),
+                    "source_type": feed.get("source_type", "media"),
+                    "region_focus": feed.get("region_focus", ""),
+                    "credibility": feed.get("credibility", ""),
+                    "note": feed.get("note", ""),
+                    "kind": "rss",
+                }
+            )
+            continue
+        matched_count = 0
+        for entry in _iter_feed_entries(root):
+            title = entry["title"]
+            link = entry["link"]
+            pub_date = entry["pub_date"]
+            description = entry["description"]
+            if not title or not link:
+                continue
+            if not _is_local_day_within_window(
+                pub_date,
+                timezone_name=settings.public_digest_timezone,
+                target_date=target_date,
+                lookback_days=lookback_days,
+            ):
+                continue
+            item = _coerce_source_item(
+                feed,
+                title=title,
+                link=link,
+                pub_date=pub_date,
+                excerpt=description or title,
+                lookback_days=lookback_days,
+            )
+            if not _is_relevant_public_news(item, query_text=query_text):
+                continue
+            items.append(item)
+            matched_count += 1
+            if matched_count >= limit:
+                break
+        feed_status.append(
+            {
+                "name": feed["name"],
+                "status": "ok",
+                "matched_items": matched_count,
+                "message": "",
+                "domain": feed.get("domain", ""),
+                "source_country": feed.get("source_country", ""),
+                "source_type": feed.get("source_type", "media"),
+                "region_focus": feed.get("region_focus", ""),
+                "credibility": feed.get("credibility", ""),
+                "note": feed.get("note", ""),
+                "kind": "rss",
+            }
+        )
+    return {"status": "ok", "query": query_text.strip() or settings.gdelt_query, "items": items, "feeds": feed_status}
+
+
+def _parse_treasury_press_items(source: dict[str, Any], html: str) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    pattern = re.compile(
+        r'<time datetime="(?P<date>[^"]+)"[^>]*>.*?</time>\s*<div class="news-title"><a href="(?P<href>[^"]+)"[^>]*>(?P<title>.*?)</a>',
+        flags=re.S,
+    )
+    for match in pattern.finditer(html):
+        title = _strip_html(match.group("title"))
+        link = _normalize_source_href(source["url"], match.group("href"))
+        items.append(
+            _coerce_source_item(
+                source,
+                title=title,
+                link=link,
+                pub_date=match.group("date"),
+                excerpt=title,
+                lookback_days=PUBLIC_OFFICIAL_LOOKBACK_DAYS,
+            )
+        )
+    return items
+
+
+def _parse_state_council_items(source: dict[str, Any], html: str) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    pattern = re.compile(
+        r'href="(?P<href>//english\.www\.gov\.cn/news/\d{6}/\d{2}/content_[^"]+\.html)"[^>]*>(?P<title>[^<]+)</a>',
+        flags=re.S,
+    )
+    seen: set[str] = set()
+    for match in pattern.finditer(html):
+        link = _normalize_source_href(source["url"], match.group("href"))
+        if link in seen:
+            continue
+        seen.add(link)
+        title = _strip_html(match.group("title"))
+        pub_date = _extract_date_from_url(link)
+        items.append(
+            _coerce_source_item(
+                source,
+                title=title,
+                link=link,
+                pub_date=pub_date,
+                excerpt=title,
+                lookback_days=PUBLIC_OFFICIAL_LOOKBACK_DAYS,
+            )
+        )
+    return items
+
+
+def _parse_safe_items(source: dict[str, Any], html: str) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    pattern = re.compile(
+        r'<a href="(?P<href>/en/\d{4}/\d{4}/\d+\.html)"[^>]*title="(?P<title>[^"]+)"[^>]*>.*?</a>\s*</dt>\s*<dd>(?P<date>\d{4}-\d{2}-\d{2})</dd>',
+        flags=re.S,
+    )
+    for match in pattern.finditer(html):
+        items.append(
+            _coerce_source_item(
+                source,
+                title=_strip_html(match.group("title")),
+                link=_normalize_source_href(source["url"], match.group("href")),
+                pub_date=match.group("date"),
+                excerpt=_strip_html(match.group("title")),
+                lookback_days=PUBLIC_OFFICIAL_LOOKBACK_DAYS,
+            )
+        )
+    return items
+
+
+def _parse_bank_of_canada_items(source: dict[str, Any], html: str) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    pattern = re.compile(
+        r'<span class="pressdate">(?P<date>[^<]+)</span>\s*(?:<h5[^>]*>)?\s*<a[^>]+href="(?P<href>https://www\.bankofcanada\.ca/\d{4}/\d{2}/[^"]+/?)"[^>]*>(?P<title>[^<]+)</a>',
+        flags=re.S,
+    )
+    seen: set[str] = set()
+    for match in pattern.finditer(html):
+        link = _normalize_source_href(source["url"], match.group("href"))
+        if link in seen:
+            continue
+        seen.add(link)
+        title = _strip_html(match.group("title"))
+        items.append(
+            _coerce_source_item(
+                source,
+                title=title,
+                link=link,
+                pub_date=match.group("date"),
+                excerpt=title,
+                lookback_days=PUBLIC_OFFICIAL_LOOKBACK_DAYS,
+            )
+        )
+    return items
+
+
+def _parse_mof_japan_items(source: dict[str, Any], html: str) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    section_pattern = re.compile(
+        r'<a name="a\d{8}"></a><h3 class="heading-lv3">(?P<date>[^<]+)</h3><div class="information-more-block">(?P<body>.*?)(?=<a name="a\d{8}"></a><h3 class="heading-lv3">|$)',
+        flags=re.S,
+    )
+    item_pattern = re.compile(
+        r'<li class="information-item"><a href="(?P<href>[^"]+)"[^>]*class="information-item-inner">.*?<p>(?P<title>.*?)</p>',
+        flags=re.S,
+    )
+    seen: set[str] = set()
+    for section in section_pattern.finditer(html):
+        pub_date = _strip_html(section.group("date"))
+        body = section.group("body")
+        for match in item_pattern.finditer(body):
+            link = _normalize_source_href(source["url"], match.group("href"))
+            if link in seen:
+                continue
+            seen.add(link)
+            title = _strip_html(match.group("title"))
+            items.append(
+                _coerce_source_item(
+                    source,
+                    title=title,
+                    link=link,
+                    pub_date=pub_date,
+                    excerpt=title,
+                    lookback_days=PUBLIC_OFFICIAL_LOOKBACK_DAYS,
+                )
+            )
+    return items
+
+
+def _parse_official_page_items(source: dict[str, Any], html: str) -> list[dict[str, Any]]:
+    parser_name = str(source.get("parser", "")).strip()
+    if parser_name == "treasury_press":
+        return _parse_treasury_press_items(source, html)
+    if parser_name == "state_council":
+        return _parse_state_council_items(source, html)
+    if parser_name == "safe_updates":
+        return _parse_safe_items(source, html)
+    if parser_name == "bank_of_canada":
+        return _parse_bank_of_canada_items(source, html)
+    if parser_name == "mof_japan":
+        return _parse_mof_japan_items(source, html)
+    return []
+
+
+def fetch_official_hotspots(
     settings: Settings,
     *,
     query_text: str = "",
@@ -916,45 +1501,78 @@ def fetch_rss_hotspots(
 ) -> dict[str, Any]:
     local_now = _current_local_time(settings.public_digest_timezone, now=now)
     target_date = local_now.date()
-    items: list[dict[str, Any]] = []
-    feed_status: list[dict[str, Any]] = []
     limit = max(4, max_records or settings.gdelt_max_records)
-    for feed in PUBLIC_RSS_FEEDS:
+    rss_payload = fetch_rss_hotspots(
+        settings,
+        query_text=query_text,
+        max_records=max_records,
+        now=now,
+        feeds=PUBLIC_OFFICIAL_RSS_FEEDS,
+        lookback_days=PUBLIC_OFFICIAL_LOOKBACK_DAYS,
+    )
+    items: list[dict[str, Any]] = list(rss_payload.get("items", []))
+    feed_status: list[dict[str, Any]] = list(rss_payload.get("feeds", []))
+    for source in PUBLIC_OFFICIAL_PAGE_SOURCES:
         try:
-            response = requests.get(feed["url"], headers=DEFAULT_HEADERS, timeout=20)
+            response = requests.get(source["url"], headers=DEFAULT_HEADERS, timeout=25)
             response.raise_for_status()
-            root = ElementTree.fromstring(response.content)
-        except (requests.RequestException, ElementTree.ParseError) as exc:
-            feed_status.append({"name": feed["name"], "status": "error", "message": str(exc)})
+            html = _decode_response_text(response)
+        except requests.RequestException as exc:
+            feed_status.append(
+                {
+                    "name": source["name"],
+                    "status": "error",
+                    "matched_items": 0,
+                    "message": str(exc),
+                    "domain": source.get("domain", ""),
+                    "source_country": source.get("source_country", ""),
+                    "source_type": source.get("source_type", "official"),
+                    "region_focus": source.get("region_focus", ""),
+                    "credibility": source.get("credibility", ""),
+                    "note": source.get("note", ""),
+                    "kind": source.get("kind", "html"),
+                }
+            )
             continue
         matched_count = 0
-        for node in root.findall(".//item"):
-            title = (node.findtext("title") or "").strip()
-            link = (node.findtext("link") or "").strip()
-            pub_date = (node.findtext("pubDate") or "").strip()
-            description = _strip_html(node.findtext("description") or "")
-            if not title or not link:
+        for item in _parse_official_page_items(source, html):
+            if not item.get("title") or not item.get("url"):
                 continue
-            if not _is_same_local_day(pub_date, timezone_name=settings.public_digest_timezone, target_date=target_date):
+            if not _is_local_day_within_window(
+                str(item.get("seendate", "")),
+                timezone_name=settings.public_digest_timezone,
+                target_date=target_date,
+                lookback_days=int(item.get("allowed_lookback_days", PUBLIC_OFFICIAL_LOOKBACK_DAYS) or 0),
+            ):
                 continue
-            item = {
-                "title": title,
-                "seendate": pub_date,
-                "domain": (urlparse(link).netloc or feed["domain"]).lower(),
-                "source_country": feed["source_country"],
-                "language": feed["language"],
-                "source_name": feed["name"],
-                "url": link,
-                "excerpt": truncate_text(description or title, 220),
-            }
             if not _is_relevant_public_news(item, query_text=query_text):
                 continue
             items.append(item)
             matched_count += 1
             if matched_count >= limit:
                 break
-        feed_status.append({"name": feed["name"], "status": "ok", "matched_items": matched_count})
-    return {"status": "ok", "query": query_text.strip() or settings.gdelt_query, "items": items, "feeds": feed_status}
+        feed_status.append(
+            {
+                "name": source["name"],
+                "status": "ok",
+                "matched_items": matched_count,
+                "message": "",
+                "domain": source.get("domain", ""),
+                "source_country": source.get("source_country", ""),
+                "source_type": source.get("source_type", "official"),
+                "region_focus": source.get("region_focus", ""),
+                "credibility": source.get("credibility", ""),
+                "note": source.get("note", ""),
+                "kind": source.get("kind", "html"),
+            }
+        )
+    return {
+        "status": "ok" if items else "empty",
+        "query": query_text.strip() or settings.gdelt_query,
+        "items": items,
+        "feeds": feed_status,
+        "lookback_days": PUBLIC_OFFICIAL_LOOKBACK_DAYS,
+    }
 
 
 def _public_item_sort_key(item: dict[str, Any], *, timezone_name: str) -> tuple[int, str]:
@@ -973,19 +1591,26 @@ def _merge_public_news_items(
 ) -> dict[str, Any]:
     gdelt_payload = fetch_gdelt_hotspots(settings, query_text=query_text, max_records=max_records)
     rss_payload = fetch_rss_hotspots(settings, query_text=query_text, max_records=max_records, now=now)
+    official_payload = fetch_official_hotspots(settings, query_text=query_text, max_records=max_records, now=now)
     local_now = _current_local_time(settings.public_digest_timezone, now=now)
     target_date = local_now.date()
     merged: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for candidate in [*(gdelt_payload.get("items") or []), *(rss_payload.get("items") or [])]:
+    for candidate in [
+        *(gdelt_payload.get("items") or []),
+        *(rss_payload.get("items") or []),
+        *(official_payload.get("items") or []),
+    ]:
         title = str(candidate.get("title", "")).strip()
         url = str(candidate.get("url", "")).strip()
         if not title or not url:
             continue
-        if candidate.get("seendate") and not _is_same_local_day(
+        lookback_days = int(candidate.get("allowed_lookback_days", 0) or 0)
+        if candidate.get("seendate") and not _is_local_day_within_window(
             str(candidate.get("seendate", "")),
             timezone_name=settings.public_digest_timezone,
             target_date=target_date,
+            lookback_days=lookback_days,
         ):
             continue
         if not _is_relevant_public_news(candidate, query_text=query_text):
@@ -1009,6 +1634,7 @@ def _merge_public_news_items(
         "sources": {
             "gdelt": gdelt_payload,
             "rss": rss_payload,
+            "official": official_payload,
         },
     }
 
@@ -1476,7 +2102,15 @@ def ensure_public_daily_briefing(
     existing = db.scalar(
         select(PublicEconomicBriefing).where(PublicEconomicBriefing.briefing_date == briefing_date)
     )
-    if existing and not force and existing.headline_count > 0:
+    needs_schema_refresh = False
+    if existing:
+        public_news = existing.raw_json.get("public_news", {}) if isinstance(existing.raw_json, dict) else {}
+        sources = public_news.get("sources", {}) if isinstance(public_news, dict) else {}
+        needs_schema_refresh = (
+            (existing.template_version or "") != PUBLIC_TEMPLATE_VERSION
+            or not isinstance(sources.get("official"), dict)
+        )
+    if existing and not force and existing.headline_count > 0 and not needs_schema_refresh:
         return existing
     if not force and not _public_digest_is_due(settings, now=now):
         return existing
