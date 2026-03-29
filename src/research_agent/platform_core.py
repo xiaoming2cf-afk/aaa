@@ -14,6 +14,8 @@ import numpy as np
 import pandas as pd
 import requests
 import statsmodels.api as sm
+from statsmodels.sandbox.regression.gmm import IV2SLS
+from statsmodels.tools.sm_exceptions import PerfectSeparationError
 from pandas.api.types import is_datetime64_any_dtype, is_numeric_dtype
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
@@ -128,7 +130,7 @@ def infer_column_role(series: pd.Series) -> str:
     if text_values.nunique() <= 2 or set(lowered.unique()).issubset(binary_tokens):
         return "binary"
 
-    date_candidate = pd.to_datetime(text_values, errors="coerce")
+    date_candidate = pd.to_datetime(text_values, errors="coerce", format="mixed")
     date_share = float(date_candidate.notna().mean()) if len(text_values) else 0.0
     if date_share >= 0.8:
         return "date"
@@ -695,6 +697,78 @@ def _coerce_date_series(series: pd.Series) -> pd.Series:
     return pd.to_datetime(series, errors="coerce")
 
 
+def _coerce_numeric_series(series: pd.Series) -> pd.Series:
+    return pd.to_numeric(series, errors="coerce")
+
+
+def _winsorize_series(series: pd.Series, lower_quantile: float, upper_quantile: float) -> pd.Series:
+    clean = series.dropna()
+    if clean.empty:
+        return series
+    lower = clean.quantile(lower_quantile)
+    upper = clean.quantile(upper_quantile)
+    return series.clip(lower=lower, upper=upper)
+
+
+def _impute_series(series: pd.Series, method: str) -> pd.Series:
+    normalized_method = (method or "none").strip().lower()
+    if normalized_method in {"", "none"}:
+        return series
+    if normalized_method == "mean":
+        return series.fillna(series.mean())
+    if normalized_method == "median":
+        return series.fillna(series.median())
+    if normalized_method == "zero":
+        return series.fillna(0)
+    if normalized_method == "ffill":
+        return series.ffill()
+    if normalized_method == "bfill":
+        return series.bfill()
+    raise ValueError(f"Unsupported imputation method: {method}")
+
+
+def _drop_outliers(
+    sample: pd.DataFrame,
+    columns: list[str],
+    *,
+    method: str,
+    threshold: float,
+) -> tuple[pd.DataFrame, int]:
+    normalized_method = (method or "none").strip().lower()
+    if normalized_method in {"", "none"} or not columns:
+        return sample, 0
+
+    mask = pd.Series(True, index=sample.index)
+    if normalized_method == "iqr":
+        for column in columns:
+            clean = sample[column].dropna()
+            if clean.empty:
+                continue
+            q1 = clean.quantile(0.25)
+            q3 = clean.quantile(0.75)
+            iqr = q3 - q1
+            if pd.isna(iqr) or iqr == 0:
+                continue
+            lower = q1 - threshold * iqr
+            upper = q3 + threshold * iqr
+            mask &= sample[column].isna() | sample[column].between(lower, upper)
+    elif normalized_method == "zscore":
+        for column in columns:
+            clean = sample[column].dropna()
+            if clean.empty:
+                continue
+            std = clean.std()
+            if pd.isna(std) or std == 0:
+                continue
+            z_score = (sample[column] - clean.mean()) / std
+            mask &= sample[column].isna() | (z_score.abs() <= threshold)
+    else:
+        raise ValueError(f"Unsupported outlier method: {method}")
+
+    removed = int((~mask).sum())
+    return sample.loc[mask].copy(), removed
+
+
 def _prepare_selected_sample(
     frame: pd.DataFrame,
     *,
@@ -703,6 +777,16 @@ def _prepare_selected_sample(
     numeric_columns: list[str] | None = None,
     binary_columns: list[str] | None = None,
     date_columns: list[str] | None = None,
+    impute_columns: list[str] | None = None,
+    impute_method: str = "none",
+    winsorize_columns: list[str] | None = None,
+    winsor_lower_quantile: float = 0.01,
+    winsor_upper_quantile: float = 0.99,
+    log_transform_columns: list[str] | None = None,
+    standardize_columns: list[str] | None = None,
+    outlier_columns: list[str] | None = None,
+    outlier_method: str = "none",
+    outlier_threshold: float = 1.5,
     drop_duplicates: bool = True,
     drop_missing_required: bool = True,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
@@ -716,8 +800,24 @@ def _prepare_selected_sample(
     numeric_columns = [column for column in (numeric_columns or []) if column]
     binary_columns = [column for column in (binary_columns or []) if column]
     date_columns = [column for column in (date_columns or []) if column]
+    impute_columns = [column for column in (impute_columns or []) if column]
+    winsorize_columns = [column for column in (winsorize_columns or []) if column]
+    log_transform_columns = [column for column in (log_transform_columns or []) if column]
+    standardize_columns = [column for column in (standardize_columns or []) if column]
+    outlier_columns = [column for column in (outlier_columns or []) if column]
 
-    requested_columns = {*(include_columns or []), *required_columns, *numeric_columns, *binary_columns, *date_columns}
+    requested_columns = {
+        *(include_columns or []),
+        *required_columns,
+        *numeric_columns,
+        *binary_columns,
+        *date_columns,
+        *impute_columns,
+        *winsorize_columns,
+        *log_transform_columns,
+        *standardize_columns,
+        *outlier_columns,
+    }
     missing_columns = [column for column in requested_columns if column not in sample.columns]
     if missing_columns:
         raise ValueError(f"Missing required columns: {', '.join(sorted(missing_columns))}")
@@ -725,15 +825,64 @@ def _prepare_selected_sample(
     if include_columns:
         sample = sample[include_columns].copy()
 
-    for column in numeric_columns:
+    numeric_pipeline_columns = {
+        *numeric_columns,
+        *winsorize_columns,
+        *log_transform_columns,
+        *standardize_columns,
+        *outlier_columns,
+    }
+    if impute_method.strip().lower() in {"mean", "median", "zero"}:
+        numeric_pipeline_columns.update(impute_columns)
+
+    for column in numeric_pipeline_columns:
         if column in sample.columns:
-            sample[column] = pd.to_numeric(sample[column], errors="coerce")
+            sample[column] = _coerce_numeric_series(sample[column])
     for column in binary_columns:
         if column in sample.columns:
             sample[column] = _coerce_binary_series(sample[column])
     for column in date_columns:
         if column in sample.columns:
             sample[column] = _coerce_date_series(sample[column])
+
+    imputation_log: dict[str, str] = {}
+    if impute_method.strip().lower() not in {"", "none"}:
+        for column in impute_columns:
+            if is_numeric_dtype(sample[column]) or impute_method.strip().lower() in {"ffill", "bfill"}:
+                sample[column] = _impute_series(sample[column], impute_method)
+                imputation_log[column] = impute_method.strip().lower()
+            else:
+                raise ValueError(f"Imputation method '{impute_method}' requires numeric columns for {column}.")
+
+    winsorization_log: dict[str, dict[str, float]] = {}
+    if winsorize_columns:
+        if not (0 <= winsor_lower_quantile < winsor_upper_quantile <= 1):
+            raise ValueError("Winsorization quantiles must satisfy 0 <= lower < upper <= 1.")
+        for column in winsorize_columns:
+            sample[column] = _winsorize_series(sample[column], winsor_lower_quantile, winsor_upper_quantile)
+            winsorization_log[column] = {"lower": winsor_lower_quantile, "upper": winsor_upper_quantile}
+
+    transformed_columns: dict[str, list[str]] = {"log": [], "zscore": []}
+    for column in log_transform_columns:
+        if (sample[column].dropna() <= 0).any():
+            raise ValueError(f"Log transform requires strictly positive values in column: {column}")
+        sample[column] = np.log(sample[column])
+        transformed_columns["log"].append(column)
+
+    for column in standardize_columns:
+        clean = sample[column].dropna()
+        std = clean.std()
+        if clean.empty or pd.isna(std) or std == 0:
+            continue
+        sample[column] = (sample[column] - clean.mean()) / std
+        transformed_columns["zscore"].append(column)
+
+    sample, outliers_removed = _drop_outliers(
+        sample,
+        outlier_columns,
+        method=outlier_method,
+        threshold=outlier_threshold,
+    )
 
     rows_before_missing_drop = int(len(sample))
     if drop_missing_required and required_columns:
@@ -755,6 +904,13 @@ def _prepare_selected_sample(
         "numeric_columns": numeric_columns,
         "binary_columns": binary_columns,
         "date_columns": date_columns,
+        "imputed_columns": imputation_log,
+        "winsorized_columns": winsorization_log,
+        "transformed_columns": transformed_columns,
+        "outlier_columns": outlier_columns,
+        "outlier_method": outlier_method,
+        "outlier_threshold": outlier_threshold,
+        "outliers_removed": outliers_removed,
         "missing_by_column": {column: int(value) for column, value in sample.isna().sum().to_dict().items()},
     }
     return csv_ready, summary
@@ -783,10 +939,15 @@ def profile_dataset_asset(
         role_map.setdefault(item["role"], []).append(item["name"])
 
     suggested_models = ["ols"]
+    if role_map["binary"] and role_map["numeric"]:
+        suggested_models.extend(["logit", "probit"])
     if role_map["numeric"] and len(role_map["binary"]) >= 2:
         suggested_models.append("did")
+    if len(role_map["numeric"]) >= 3 and (role_map["categorical"] or role_map["text"] or role_map["date"]):
+        suggested_models.append("fixed_effects")
     if len(role_map["numeric"]) >= 4:
-        suggested_models.append("gravity")
+        suggested_models.extend(["gravity", "iv_2sls"])
+    suggested_models = list(dict.fromkeys(suggested_models))
 
     return {
         "asset": serialize_asset(asset),
@@ -813,6 +974,16 @@ def prepare_dataset_asset(
     numeric_columns: list[str] | None = None,
     binary_columns: list[str] | None = None,
     date_columns: list[str] | None = None,
+    impute_columns: list[str] | None = None,
+    impute_method: str = "none",
+    winsorize_columns: list[str] | None = None,
+    winsor_lower_quantile: float = 0.01,
+    winsor_upper_quantile: float = 0.99,
+    log_transform_columns: list[str] | None = None,
+    standardize_columns: list[str] | None = None,
+    outlier_columns: list[str] | None = None,
+    outlier_method: str = "none",
+    outlier_threshold: float = 1.5,
     drop_duplicates: bool = True,
     drop_missing_required: bool = True,
 ) -> dict[str, Any]:
@@ -825,6 +996,16 @@ def prepare_dataset_asset(
         numeric_columns=numeric_columns,
         binary_columns=binary_columns,
         date_columns=date_columns,
+        impute_columns=impute_columns,
+        impute_method=impute_method,
+        winsorize_columns=winsorize_columns,
+        winsor_lower_quantile=winsor_lower_quantile,
+        winsor_upper_quantile=winsor_upper_quantile,
+        log_transform_columns=log_transform_columns,
+        standardize_columns=standardize_columns,
+        outlier_columns=outlier_columns,
+        outlier_method=outlier_method,
+        outlier_threshold=outlier_threshold,
         drop_duplicates=drop_duplicates,
         drop_missing_required=drop_missing_required,
     )
@@ -856,18 +1037,59 @@ def _serialize_model_frame(frame: pd.DataFrame, columns: list[str]) -> pd.DataFr
 
 
 def _serialize_coefficients(result: Any) -> list[dict[str, Any]]:
+    params = result.params
+    if hasattr(params, "index"):
+        term_names = list(params.index)
+        param_values = params
+    else:
+        term_names = list(getattr(result.model, "exog_names", []))
+        if not term_names:
+            term_names = [f"x{i}" for i in range(len(params))]
+        param_values = pd.Series(params, index=term_names)
+
+    bse = result.bse if hasattr(result, "bse") else None
+    if bse is None:
+        bse = pd.Series([None] * len(term_names), index=term_names)
+    elif not hasattr(bse, "index"):
+        bse = pd.Series(bse, index=term_names)
+
+    tvalues = getattr(result, "tvalues", None)
+    if tvalues is None:
+        tvalues = pd.Series([None] * len(term_names), index=term_names)
+    elif not hasattr(tvalues, "index"):
+        tvalues = pd.Series(tvalues, index=term_names)
+
+    pvalues = getattr(result, "pvalues", None)
+    if pvalues is None:
+        pvalues = pd.Series([None] * len(term_names), index=term_names)
+    elif not hasattr(pvalues, "index"):
+        pvalues = pd.Series(pvalues, index=term_names)
+
     rows: list[dict[str, Any]] = []
-    for name in result.params.index.tolist():
+    for name in term_names:
         rows.append(
             {
                 "term": name,
-                "coefficient": float(result.params[name]),
-                "std_error": float(result.bse[name]) if name in result.bse.index else None,
-                "t_stat": float(result.tvalues[name]) if name in result.tvalues.index else None,
-                "p_value": float(result.pvalues[name]) if name in result.pvalues.index else None,
+                "coefficient": float(param_values[name]),
+                "std_error": float(bse[name]) if name in bse.index and pd.notna(bse[name]) else None,
+                "t_stat": float(tvalues[name]) if name in tvalues.index and pd.notna(tvalues[name]) else None,
+                "p_value": float(pvalues[name]) if name in pvalues.index and pd.notna(pvalues[name]) else None,
             }
         )
     return rows
+
+
+def _safe_result_float_attr(result: Any, attribute: str) -> float | None:
+    try:
+        value = getattr(result, attribute, None)
+    except Exception:
+        return None
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _fit_ols(sample: pd.DataFrame, dependent: str, regressors: list[str], *, robust_covariance: bool = True) -> Any:
@@ -877,6 +1099,66 @@ def _fit_ols(sample: pd.DataFrame, dependent: str, regressors: list[str], *, rob
         raise ValueError("Not enough complete observations for the selected model.")
     design = sm.add_constant(sample[regressors], has_constant="add")
     return sm.OLS(sample[dependent], design).fit(cov_type="HC1" if robust_covariance else "nonrobust")
+
+
+def _fit_binary_response(
+    sample: pd.DataFrame,
+    dependent: str,
+    regressors: list[str],
+    *,
+    model_kind: str,
+    robust_covariance: bool = True,
+) -> Any:
+    if not regressors:
+        raise ValueError("At least one explanatory variable is required.")
+    if len(sample) < max(20, len(regressors) * 3):
+        raise ValueError("Not enough complete observations for the selected binary response model.")
+    if sample[dependent].nunique(dropna=True) < 2:
+        raise ValueError("Binary response models require both 0 and 1 outcomes.")
+    design = sm.add_constant(sample[regressors], has_constant="add")
+    model_class = sm.Logit if model_kind == "logit" else sm.Probit
+    try:
+        fitted = model_class(sample[dependent], design).fit(
+            disp=False,
+            cov_type="HC1" if robust_covariance else "nonrobust",
+        )
+    except PerfectSeparationError as exc:
+        raise ValueError("Perfect separation detected; try different regressors or a larger sample.") from exc
+    except Exception as exc:
+        raise ValueError(f"{model_kind.title()} estimation failed: {exc}") from exc
+    return fitted
+
+
+def _fit_iv_2sls(
+    sample: pd.DataFrame,
+    dependent: str,
+    exogenous: list[str],
+    endogenous: str,
+    instruments: list[str],
+    *,
+    robust_covariance: bool = True,
+) -> tuple[Any, str]:
+    if not instruments:
+        raise ValueError("IV-2SLS requires at least one instrument.")
+    regressor_count = len(exogenous) + 1
+    if len(sample) < max(12, regressor_count + len(instruments) + 4):
+        raise ValueError("Not enough complete observations for IV-2SLS.")
+    exog_design = pd.concat(
+        [sm.add_constant(sample[exogenous], has_constant="add"), sample[[endogenous]]],
+        axis=1,
+    )
+    instrument_design = pd.concat(
+        [sm.add_constant(sample[exogenous], has_constant="add"), sample[instruments]],
+        axis=1,
+    )
+    fitted = IV2SLS(sample[dependent], exog_design, instrument_design).fit()
+    if robust_covariance:
+        try:
+            fitted = fitted.get_robustcov_results(cov_type="HC1")
+            return fitted, "HC1"
+        except Exception:
+            return fitted, "nonrobust"
+    return fitted, "nonrobust"
 
 
 def _model_result_payload(
@@ -897,11 +1179,13 @@ def _model_result_payload(
         "asset": serialize_asset(asset),
         "dependent": dependent,
         "regressors": regressors,
-        "observations": int(result.nobs),
-        "r_squared": float(result.rsquared) if getattr(result, "rsquared", None) is not None else None,
-        "adj_r_squared": float(result.rsquared_adj) if getattr(result, "rsquared_adj", None) is not None else None,
-        "aic": float(result.aic) if getattr(result, "aic", None) is not None else None,
-        "bic": float(result.bic) if getattr(result, "bic", None) is not None else None,
+        "observations": int(getattr(result, "nobs", len(sample))),
+        "r_squared": _safe_result_float_attr(result, "rsquared"),
+        "adj_r_squared": _safe_result_float_attr(result, "rsquared_adj"),
+        "pseudo_r_squared": _safe_result_float_attr(result, "prsquared"),
+        "aic": _safe_result_float_attr(result, "aic"),
+        "bic": _safe_result_float_attr(result, "bic"),
+        "log_likelihood": _safe_result_float_attr(result, "llf"),
         "coefficients": _serialize_coefficients(result),
         "narrative": narrative_lines,
         "sample_columns": list(sample.columns),
@@ -1162,6 +1446,269 @@ def run_gravity_analysis(
     return payload
 
 
+def run_logit_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    dependent: str,
+    independents: list[str] | None = None,
+    controls: list[str] | None = None,
+    robust_covariance: bool = True,
+) -> dict[str, Any]:
+    regressors = [column for column in [*(independents or []), *(controls or [])] if column]
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    required_columns = [dependent, *regressors]
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+
+    sample = frame[required_columns].copy()
+    sample[dependent] = _coerce_binary_series(sample[dependent])
+    for column in regressors:
+        sample[column] = _coerce_numeric_series(sample[column])
+    sample = sample.dropna().copy()
+    fitted = _fit_binary_response(sample, dependent, regressors, model_kind="logit", robust_covariance=robust_covariance)
+    summary_lines = [
+        f"Logit run on {asset.title}.",
+        f"Binary outcome variable: {dependent}.",
+        f"Regressors: {', '.join(regressors)}.",
+        f"Observations used: {int(fitted.nobs)}.",
+    ]
+    payload = _model_result_payload(
+        model_type="logit",
+        model_label="Logit",
+        asset=asset,
+        dependent=dependent,
+        regressors=regressors,
+        sample=sample,
+        result=fitted,
+        narrative_lines=summary_lines,
+    )
+    create_knowledge_record(
+        db,
+        user=user,
+        workspace=workspace,
+        title=f"Logit summary for {asset.title}",
+        content="\n".join(summary_lines),
+        tags=["logit", "dataset", "econometrics"],
+        metadata=payload,
+    )
+    return payload
+
+
+def run_probit_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    dependent: str,
+    independents: list[str] | None = None,
+    controls: list[str] | None = None,
+    robust_covariance: bool = True,
+) -> dict[str, Any]:
+    regressors = [column for column in [*(independents or []), *(controls or [])] if column]
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    required_columns = [dependent, *regressors]
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+
+    sample = frame[required_columns].copy()
+    sample[dependent] = _coerce_binary_series(sample[dependent])
+    for column in regressors:
+        sample[column] = _coerce_numeric_series(sample[column])
+    sample = sample.dropna().copy()
+    fitted = _fit_binary_response(sample, dependent, regressors, model_kind="probit", robust_covariance=robust_covariance)
+    summary_lines = [
+        f"Probit run on {asset.title}.",
+        f"Binary outcome variable: {dependent}.",
+        f"Regressors: {', '.join(regressors)}.",
+        f"Observations used: {int(fitted.nobs)}.",
+    ]
+    payload = _model_result_payload(
+        model_type="probit",
+        model_label="Probit",
+        asset=asset,
+        dependent=dependent,
+        regressors=regressors,
+        sample=sample,
+        result=fitted,
+        narrative_lines=summary_lines,
+    )
+    create_knowledge_record(
+        db,
+        user=user,
+        workspace=workspace,
+        title=f"Probit summary for {asset.title}",
+        content="\n".join(summary_lines),
+        tags=["probit", "dataset", "econometrics"],
+        metadata=payload,
+    )
+    return payload
+
+
+def run_fixed_effects_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    dependent: str,
+    independents: list[str] | None = None,
+    controls: list[str] | None = None,
+    entity_column: str,
+    time_column: str = "",
+    include_time_effects: bool = False,
+    robust_covariance: bool = True,
+) -> dict[str, Any]:
+    regressors = [column for column in [*(independents or []), *(controls or [])] if column]
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    required_columns = [dependent, entity_column, *regressors]
+    if include_time_effects and time_column:
+        required_columns.append(time_column)
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+
+    sample = frame[required_columns].copy()
+    sample[dependent] = _coerce_numeric_series(sample[dependent])
+    for column in regressors:
+        sample[column] = _coerce_numeric_series(sample[column])
+    sample[entity_column] = sample[entity_column].astype(str).str.strip()
+    if include_time_effects and time_column:
+        sample[time_column] = sample[time_column].astype(str).str.strip()
+    sample = sample.dropna().copy()
+
+    if not regressors:
+        raise ValueError("Fixed effects models require at least one explanatory variable.")
+
+    entity_dummies = pd.get_dummies(sample[entity_column], prefix=f"fe_{entity_column}", drop_first=True, dtype=float)
+    design_parts = [sample[regressors].astype(float), entity_dummies]
+    fe_labels = [entity_column]
+    if include_time_effects and time_column:
+        time_dummies = pd.get_dummies(sample[time_column], prefix=f"fe_{time_column}", drop_first=True, dtype=float)
+        design_parts.append(time_dummies)
+        fe_labels.append(time_column)
+    design = pd.concat(design_parts, axis=1)
+    fitted = _fit_ols(pd.concat([sample[[dependent]], design], axis=1), dependent, list(design.columns), robust_covariance=robust_covariance)
+    summary_lines = [
+        f"Fixed effects model run on {asset.title}.",
+        f"Outcome variable: {dependent}.",
+        f"Slope regressors: {', '.join(regressors)}.",
+        f"Fixed effects: {', '.join(fe_labels)}.",
+        f"Observations used: {int(fitted.nobs)}.",
+    ]
+    payload = _model_result_payload(
+        model_type="fixed_effects",
+        model_label="Fixed Effects",
+        asset=asset,
+        dependent=dependent,
+        regressors=regressors,
+        sample=sample[[dependent, *regressors, entity_column] + ([time_column] if include_time_effects and time_column else [])].copy(),
+        result=fitted,
+        narrative_lines=summary_lines,
+        extra={
+            "entity_column": entity_column,
+            "time_column": time_column if include_time_effects else "",
+            "include_time_effects": include_time_effects,
+            "entity_count": int(sample[entity_column].nunique()),
+            "time_count": int(sample[time_column].nunique()) if include_time_effects and time_column else 0,
+        },
+    )
+    create_knowledge_record(
+        db,
+        user=user,
+        workspace=workspace,
+        title=f"Fixed effects summary for {asset.title}",
+        content="\n".join(summary_lines),
+        tags=["fixed_effects", "panel", "econometrics"],
+        metadata=payload,
+    )
+    return payload
+
+
+def run_iv_2sls_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    dependent: str,
+    independents: list[str] | None = None,
+    controls: list[str] | None = None,
+    endogenous_column: str,
+    instrument_columns: list[str] | None = None,
+    robust_covariance: bool = True,
+) -> dict[str, Any]:
+    exogenous = [column for column in [*(independents or []), *(controls or [])] if column]
+    instruments = [column for column in (instrument_columns or []) if column]
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    required_columns = [dependent, endogenous_column, *exogenous, *instruments]
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+
+    sample = frame[required_columns].copy()
+    for column in required_columns:
+        sample[column] = _coerce_numeric_series(sample[column])
+    sample = sample.dropna().copy()
+    fitted, covariance_type = _fit_iv_2sls(
+        sample,
+        dependent,
+        exogenous=exogenous,
+        endogenous=endogenous_column,
+        instruments=instruments,
+        robust_covariance=robust_covariance,
+    )
+    summary_lines = [
+        f"IV-2SLS run on {asset.title}.",
+        f"Outcome variable: {dependent}.",
+        f"Endogenous regressor: {endogenous_column}.",
+        f"Instruments: {', '.join(instruments)}.",
+        f"Observations used: {int(fitted.nobs)}.",
+    ]
+    payload = _model_result_payload(
+        model_type="iv_2sls",
+        model_label="IV-2SLS",
+        asset=asset,
+        dependent=dependent,
+        regressors=[*exogenous, endogenous_column],
+        sample=sample[[dependent, *exogenous, endogenous_column, *instruments]].copy(),
+        result=fitted,
+        narrative_lines=summary_lines,
+        extra={
+            "endogenous_column": endogenous_column,
+            "instrument_columns": instruments,
+            "exogenous_columns": exogenous,
+            "covariance_type": covariance_type,
+            "covariance_note": "IV-2SLS uses conventional covariance when robust covariance is unavailable in the current backend."
+            if robust_covariance and covariance_type != "HC1"
+            else "",
+        },
+    )
+    create_knowledge_record(
+        db,
+        user=user,
+        workspace=workspace,
+        title=f"IV-2SLS summary for {asset.title}",
+        content="\n".join(summary_lines),
+        tags=["iv_2sls", "instrumental_variables", "econometrics"],
+        metadata=payload,
+    )
+    return payload
+
+
 def run_model_analysis(
     settings: Settings,
     db: Session,
@@ -1178,6 +1725,11 @@ def run_model_analysis(
     origin_mass_column: str = "",
     destination_mass_column: str = "",
     distance_column: str = "",
+    entity_column: str = "",
+    time_column: str = "",
+    include_time_effects: bool = False,
+    endogenous_column: str = "",
+    instrument_columns: list[str] | None = None,
     robust_covariance: bool = True,
 ) -> dict[str, Any]:
     normalized_model = model_type.strip().lower()
@@ -1190,6 +1742,30 @@ def run_model_analysis(
             asset_id=asset_id,
             dependent=dependent,
             independents=independents or [],
+            robust_covariance=robust_covariance,
+        )
+    if normalized_model == "logit":
+        return run_logit_analysis(
+            settings,
+            db,
+            user=user,
+            workspace=workspace,
+            asset_id=asset_id,
+            dependent=dependent,
+            independents=independents or [],
+            controls=controls or [],
+            robust_covariance=robust_covariance,
+        )
+    if normalized_model == "probit":
+        return run_probit_analysis(
+            settings,
+            db,
+            user=user,
+            workspace=workspace,
+            asset_id=asset_id,
+            dependent=dependent,
+            independents=independents or [],
+            controls=controls or [],
             robust_covariance=robust_covariance,
         )
     if normalized_model == "did":
@@ -1205,6 +1781,21 @@ def run_model_analysis(
             controls=controls or [],
             robust_covariance=robust_covariance,
         )
+    if normalized_model == "fixed_effects":
+        return run_fixed_effects_analysis(
+            settings,
+            db,
+            user=user,
+            workspace=workspace,
+            asset_id=asset_id,
+            dependent=dependent,
+            independents=independents or [],
+            controls=controls or [],
+            entity_column=entity_column,
+            time_column=time_column,
+            include_time_effects=include_time_effects,
+            robust_covariance=robust_covariance,
+        )
     if normalized_model == "gravity":
         return run_gravity_analysis(
             settings,
@@ -1217,6 +1808,20 @@ def run_model_analysis(
             destination_mass_column=destination_mass_column,
             distance_column=distance_column,
             controls=controls or [],
+            robust_covariance=robust_covariance,
+        )
+    if normalized_model == "iv_2sls":
+        return run_iv_2sls_analysis(
+            settings,
+            db,
+            user=user,
+            workspace=workspace,
+            asset_id=asset_id,
+            dependent=dependent,
+            independents=independents or [],
+            controls=controls or [],
+            endogenous_column=endogenous_column,
+            instrument_columns=instrument_columns or [],
             robust_covariance=robust_covariance,
         )
     raise ValueError("Unsupported model type.")

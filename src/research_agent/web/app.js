@@ -63,6 +63,16 @@ const dom = {
   prepareNumericColumns: document.getElementById("prepare-numeric-columns"),
   prepareBinaryColumns: document.getElementById("prepare-binary-columns"),
   prepareDateColumns: document.getElementById("prepare-date-columns"),
+  prepareImputeMethod: document.getElementById("prepare-impute-method"),
+  prepareImputeColumns: document.getElementById("prepare-impute-columns"),
+  prepareWinsorizeColumns: document.getElementById("prepare-winsorize-columns"),
+  prepareWinsorLower: document.getElementById("prepare-winsor-lower"),
+  prepareWinsorUpper: document.getElementById("prepare-winsor-upper"),
+  prepareLogTransformColumns: document.getElementById("prepare-log-transform-columns"),
+  prepareStandardizeColumns: document.getElementById("prepare-standardize-columns"),
+  prepareOutlierColumns: document.getElementById("prepare-outlier-columns"),
+  prepareOutlierMethod: document.getElementById("prepare-outlier-method"),
+  prepareOutlierThreshold: document.getElementById("prepare-outlier-threshold"),
   prepareOutput: document.getElementById("prepare-output"),
   modelForm: document.getElementById("model-form"),
   modelType: document.getElementById("model-type"),
@@ -78,6 +88,14 @@ const dom = {
   gravityOriginMassColumn: document.getElementById("gravity-origin-mass-column"),
   gravityDestinationMassColumn: document.getElementById("gravity-destination-mass-column"),
   gravityDistanceColumn: document.getElementById("gravity-distance-column"),
+  feFields: document.getElementById("fe-fields"),
+  panelEntityColumn: document.getElementById("panel-entity-column"),
+  panelTimeColumn: document.getElementById("panel-time-column"),
+  includeTimeEffects: document.getElementById("include-time-effects"),
+  feTimeToggle: document.getElementById("fe-time-toggle"),
+  ivFields: document.getElementById("iv-fields"),
+  ivEndogenousColumn: document.getElementById("iv-endogenous-column"),
+  ivInstrumentColumns: document.getElementById("iv-instrument-columns"),
   olsFields: document.getElementById("ols-fields"),
   plotForm: document.getElementById("plot-form"),
   plotType: document.getElementById("plot-type"),
@@ -385,8 +403,12 @@ function populateDataLabSelectors(profile) {
   setSelectOptions(dom.prepareNumericColumns, allColumns, { multiple: true });
   setSelectOptions(dom.prepareBinaryColumns, binaryColumns, { multiple: true });
   setSelectOptions(dom.prepareDateColumns, allColumns, { multiple: true });
+  setSelectOptions(dom.prepareImputeColumns, allColumns, { multiple: true });
+  setSelectOptions(dom.prepareWinsorizeColumns, numericColumns, { multiple: true });
+  setSelectOptions(dom.prepareLogTransformColumns, numericColumns, { multiple: true });
+  setSelectOptions(dom.prepareStandardizeColumns, numericColumns, { multiple: true });
+  setSelectOptions(dom.prepareOutlierColumns, numericColumns, { multiple: true });
 
-  setSelectOptions(dom.modelDependent, numericColumns, { placeholder: "Select an outcome variable" });
   setSelectOptions(dom.modelIndependents, numericColumns, { multiple: true });
   setSelectOptions(dom.modelControls, numericColumns, { multiple: true });
   setSelectOptions(dom.didTreatmentColumn, binaryColumns, { placeholder: "Select treatment indicator" });
@@ -394,10 +416,15 @@ function populateDataLabSelectors(profile) {
   setSelectOptions(dom.gravityOriginMassColumn, numericColumns, { placeholder: "Select origin mass" });
   setSelectOptions(dom.gravityDestinationMassColumn, numericColumns, { placeholder: "Select destination mass" });
   setSelectOptions(dom.gravityDistanceColumn, numericColumns, { placeholder: "Select distance variable" });
+  setSelectOptions(dom.panelEntityColumn, allColumns, { placeholder: "Select entity column" });
+  setSelectOptions(dom.panelTimeColumn, allColumns, { placeholder: "Select time column" });
+  setSelectOptions(dom.ivEndogenousColumn, numericColumns, { placeholder: "Select endogenous regressor" });
+  setSelectOptions(dom.ivInstrumentColumns, numericColumns, { multiple: true });
 
   setSelectOptions(dom.plotXColumn, allColumns, { placeholder: "Select X variable" });
   setSelectOptions(dom.plotYColumns, numericColumns, { multiple: true });
   setSelectOptions(dom.plotGroupColumn, columns, { placeholder: "Optional group column" });
+  refreshModelVariableOptions();
   updateModelFieldVisibility();
 }
 
@@ -430,12 +457,33 @@ function renderAssetProfile(profile) {
   populateDataLabSelectors(profile);
 }
 
+function refreshModelVariableOptions() {
+  const profile = currentAssetProfile();
+  const numericColumns = (profile?.column_roles?.numeric || []).map((value) => ({ value, label: value }));
+  const binaryColumns = (profile?.column_roles?.binary || []).map((value) => ({ value, label: value }));
+  const modelType = dom.modelType?.value || "ols";
+  const currentDependent = dom.modelDependent?.value || "";
+  const placeholder =
+    modelType === "gravity"
+      ? "Select a flow variable"
+      : modelType === "logit" || modelType === "probit"
+        ? "Select a binary outcome"
+        : "Select an outcome variable";
+  const options = modelType === "logit" || modelType === "probit" ? binaryColumns : numericColumns;
+  setSelectOptions(dom.modelDependent, options, { placeholder, selected: currentDependent });
+}
+
 function updateModelFieldVisibility() {
   const modelType = dom.modelType?.value || "ols";
-  dom.olsFields?.classList.toggle("hidden", modelType !== "ols");
+  const usesCoreRegressionFields = ["ols", "logit", "probit", "fixed_effects", "iv_2sls"].includes(modelType);
+  dom.olsFields?.classList.toggle("hidden", !usesCoreRegressionFields);
   dom.didFields?.classList.toggle("hidden", modelType !== "did");
   dom.gravityFields?.classList.toggle("hidden", modelType !== "gravity");
   dom.gravityDistanceWrap?.classList.toggle("hidden", modelType !== "gravity");
+  dom.feFields?.classList.toggle("hidden", modelType !== "fixed_effects");
+  dom.feTimeToggle?.classList.toggle("hidden", modelType !== "fixed_effects");
+  dom.ivFields?.classList.toggle("hidden", modelType !== "iv_2sls");
+  refreshModelVariableOptions();
 }
 
 function hasPrivateWorkspaceUI() {
@@ -1275,6 +1323,16 @@ async function handlePrepareSample(event) {
     numeric_columns: getSelectedValues(dom.prepareNumericColumns),
     binary_columns: getSelectedValues(dom.prepareBinaryColumns),
     date_columns: getSelectedValues(dom.prepareDateColumns),
+    impute_columns: getSelectedValues(dom.prepareImputeColumns),
+    impute_method: dom.prepareImputeMethod?.value || "none",
+    winsorize_columns: getSelectedValues(dom.prepareWinsorizeColumns),
+    winsor_lower_quantile: Number(dom.prepareWinsorLower?.value || 0.01),
+    winsor_upper_quantile: Number(dom.prepareWinsorUpper?.value || 0.99),
+    log_transform_columns: getSelectedValues(dom.prepareLogTransformColumns),
+    standardize_columns: getSelectedValues(dom.prepareStandardizeColumns),
+    outlier_columns: getSelectedValues(dom.prepareOutlierColumns),
+    outlier_method: dom.prepareOutlierMethod?.value || "none",
+    outlier_threshold: Number(dom.prepareOutlierThreshold?.value || 1.5),
     drop_duplicates: event.currentTarget.querySelector('[name=\"drop_duplicates\"]')?.checked ?? true,
     drop_missing_required:
       event.currentTarget.querySelector('[name=\"drop_missing_required\"]')?.checked ?? true,
@@ -1310,6 +1368,11 @@ async function handleModelRun(event) {
     origin_mass_column: dom.gravityOriginMassColumn?.value || "",
     destination_mass_column: dom.gravityDestinationMassColumn?.value || "",
     distance_column: dom.gravityDistanceColumn?.value || "",
+    entity_column: dom.panelEntityColumn?.value || "",
+    time_column: dom.panelTimeColumn?.value || "",
+    include_time_effects: dom.includeTimeEffects?.checked ?? false,
+    endogenous_column: dom.ivEndogenousColumn?.value || "",
+    instrument_columns: getSelectedValues(dom.ivInstrumentColumns),
     robust_covariance: dom.modelRobustCovariance?.checked ?? true,
   };
   const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/analysis/models`, {

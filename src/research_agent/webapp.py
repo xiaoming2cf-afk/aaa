@@ -138,6 +138,16 @@ class DatasetPrepareRequest(BaseModel):
     numeric_columns: list[str] = Field(default_factory=list)
     binary_columns: list[str] = Field(default_factory=list)
     date_columns: list[str] = Field(default_factory=list)
+    impute_columns: list[str] = Field(default_factory=list)
+    impute_method: str = Field(default="none")
+    winsorize_columns: list[str] = Field(default_factory=list)
+    winsor_lower_quantile: float = 0.01
+    winsor_upper_quantile: float = 0.99
+    log_transform_columns: list[str] = Field(default_factory=list)
+    standardize_columns: list[str] = Field(default_factory=list)
+    outlier_columns: list[str] = Field(default_factory=list)
+    outlier_method: str = Field(default="none")
+    outlier_threshold: float = 1.5
     drop_duplicates: bool = True
     drop_missing_required: bool = True
 
@@ -153,6 +163,11 @@ class ModelRunRequest(BaseModel):
     origin_mass_column: str = ""
     destination_mass_column: str = ""
     distance_column: str = ""
+    entity_column: str = ""
+    time_column: str = ""
+    include_time_effects: bool = False
+    endogenous_column: str = ""
+    instrument_columns: list[str] = Field(default_factory=list)
     robust_covariance: bool = True
 
 
@@ -624,6 +639,16 @@ def create_app() -> FastAPI:
                     numeric_columns=request.numeric_columns,
                     binary_columns=request.binary_columns,
                     date_columns=request.date_columns,
+                    impute_columns=request.impute_columns,
+                    impute_method=request.impute_method,
+                    winsorize_columns=request.winsorize_columns,
+                    winsor_lower_quantile=request.winsor_lower_quantile,
+                    winsor_upper_quantile=request.winsor_upper_quantile,
+                    log_transform_columns=request.log_transform_columns,
+                    standardize_columns=request.standardize_columns,
+                    outlier_columns=request.outlier_columns,
+                    outlier_method=request.outlier_method,
+                    outlier_threshold=request.outlier_threshold,
                     drop_duplicates=request.drop_duplicates,
                     drop_missing_required=request.drop_missing_required,
                 )
@@ -682,6 +707,11 @@ def create_app() -> FastAPI:
                     origin_mass_column=request.origin_mass_column,
                     destination_mass_column=request.destination_mass_column,
                     distance_column=request.distance_column,
+                    entity_column=request.entity_column,
+                    time_column=request.time_column,
+                    include_time_effects=request.include_time_effects,
+                    endogenous_column=request.endogenous_column,
+                    instrument_columns=request.instrument_columns,
                     robust_covariance=request.robust_covariance,
                 )
         except Exception as exc:
