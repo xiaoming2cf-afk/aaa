@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Data Lab Result | Economic Research Platform</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="page-bg"></div>
+    <header class="hero">
+      <div>
+        <p class="eyebrow" id="lab-result-eyebrow">Data Lab Result</p>
+        <h1 id="lab-result-title">Loading result...</h1>
+        <p class="hero-copy" id="lab-result-summary">
+          This page exposes the result itself, the specification, the prepared sample reference, and the manual checklist.
+        </p>
+      </div>
+      <div class="hero-meta">
+        <div class="meta-card">
+          <span>Result type</span>
+          <strong id="lab-result-type">Loading...</strong>
+        </div>
+        <div class="meta-card">
+          <span>Transparency</span>
+          <strong>Raw JSON included</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell public-shell">
+      <section class="panel public-toolbar">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h2 id="lab-result-heading">Result Detail</h2>
+            <p class="muted" id="lab-result-description">
+              This page is private. Sign in with the same browser session used in Data Lab to inspect the result.
+            </p>
+          </div>
+          <div class="actions">
+            <a href="/data-lab" class="button-link secondary-link">Back to Data Lab</a>
+            <a href="/data-lab" id="lab-result-workbench-link" class="button-link">Open workbench</a>
+          </div>
+        </div>
+      </section>
+
+      <div class="public-layout">
+        <aside class="panel public-sidebar">
+          <div class="stack">
+            <div>
+              <p class="eyebrow eyebrow-compact">Navigate</p>
+              <h3>Result Detail</h3>
+            </div>
+            <nav class="public-section-nav">
+              <a href="#lab-result-metrics-card">Metrics</a>
+              <a href="#lab-result-specification-card">Specification</a>
+              <a href="#lab-result-audit-card">Audit trail</a>
+              <a href="#lab-result-raw-card">Raw JSON</a>
+            </nav>
+            <div class="public-sidebar-note">
+              <p class="muted">
+                If this page fails to load, sign in on the standalone Data Lab page first and open the result again.
+              </p>
+            </div>
+          </div>
+        </aside>
+
+        <section class="public-main">
+          <article class="panel public-section" id="lab-result-metrics-card">
+            <div class="panel-head">
+              <h3>Metrics & Narrative</h3>
+              <span class="muted">Headline interpretation and result summary.</span>
+            </div>
+            <div id="lab-result-metrics" class="card-list">
+              <div class="card"><p>Loading result metrics...</p></div>
+            </div>
+          </article>
+
+          <article class="panel public-section" id="lab-result-specification-card">
+            <div class="panel-head">
+              <h3>Specification</h3>
+              <span class="muted">The exact design you should reproduce manually.</span>
+            </div>
+            <div id="lab-result-specification" class="card-list">
+              <div class="card"><p>Loading specification...</p></div>
+            </div>
+            <div id="lab-result-tables" class="card-list"></div>
+          </article>
+
+          <article class="panel public-section" id="lab-result-audit-card">
+            <div class="panel-head">
+              <h3>Audit Trail & Downloads</h3>
+              <span class="muted">Prepared sample references, downloads, and manual checklists.</span>
+            </div>
+            <div id="lab-result-audit" class="card-list">
+              <div class="card"><p>Loading audit trail...</p></div>
+            </div>
+            <div id="lab-result-preview" class="card-list"></div>
+          </article>
+
+          <article class="panel public-section" id="lab-result-raw-card">
+            <div class="panel-head">
+              <h3>Raw Result JSON</h3>
+              <span class="muted">Nothing is hidden; the raw payload is included below.</span>
+            </div>
+            <pre id="lab-result-raw" class="console-box">Loading raw JSON...</pre>
+          </article>
+        </section>
+      </div>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+  </html>

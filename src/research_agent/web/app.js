@@ -19,6 +19,7 @@ const state = {
   selectedSummaryDays: 7,
   selectedSummaryWindow: "",
   bootstrap: null,
+  dataLabCatalog: null,
 };
 
 const MODEL_FAMILY_OPTIONS = {
@@ -277,7 +278,36 @@ const dom = {
   plotPreviewMeta: document.getElementById("plot-preview-meta"),
   plotPreviewImage: document.getElementById("plot-preview-image"),
   downloadPlotButton: document.getElementById("download-plot"),
+  prepareResultMeta: document.getElementById("prepare-result-meta"),
+  prepareResultSummary: document.getElementById("prepare-result-summary"),
+  prepareResultLink: document.getElementById("prepare-result-link"),
   analysisOutput: document.getElementById("analysis-output"),
+  analysisResultMeta: document.getElementById("analysis-result-meta"),
+  analysisResultSummary: document.getElementById("analysis-result-summary"),
+  analysisResultLink: document.getElementById("analysis-result-link"),
+  labDetailEyebrow: document.getElementById("lab-detail-eyebrow"),
+  labDetailTitle: document.getElementById("lab-detail-title"),
+  labDetailSummary: document.getElementById("lab-detail-summary"),
+  labDetailCategory: document.getElementById("lab-detail-category"),
+  labDetailHeading: document.getElementById("lab-detail-heading"),
+  labDetailDescription: document.getElementById("lab-detail-description"),
+  labDetailWorkbenchLink: document.getElementById("lab-detail-workbench-link"),
+  labDetailMethodList: document.getElementById("lab-detail-method-list"),
+  labDetailInputList: document.getElementById("lab-detail-input-list"),
+  labDetailAuditList: document.getElementById("lab-detail-audit-list"),
+  labResultEyebrow: document.getElementById("lab-result-eyebrow"),
+  labResultTitle: document.getElementById("lab-result-title"),
+  labResultSummary: document.getElementById("lab-result-summary"),
+  labResultType: document.getElementById("lab-result-type"),
+  labResultHeading: document.getElementById("lab-result-heading"),
+  labResultDescription: document.getElementById("lab-result-description"),
+  labResultWorkbenchLink: document.getElementById("lab-result-workbench-link"),
+  labResultMetrics: document.getElementById("lab-result-metrics"),
+  labResultSpecification: document.getElementById("lab-result-specification"),
+  labResultTables: document.getElementById("lab-result-tables"),
+  labResultAudit: document.getElementById("lab-result-audit"),
+  labResultPreview: document.getElementById("lab-result-preview"),
+  labResultRaw: document.getElementById("lab-result-raw"),
 };
 
 function escapeHtml(value) {
@@ -335,12 +365,40 @@ function extractSummaryWindowFromLocation() {
   return match ? decodeURIComponent(match[1]) : "";
 }
 
+function extractDataLabMethodRoute() {
+  const match = window.location.pathname.match(/^\/data-lab\/(processing|models)\/([^/]+)$/);
+  if (!match) {
+    return null;
+  }
+  return {
+    category: decodeURIComponent(match[1]),
+    family: decodeURIComponent(match[2]),
+  };
+}
+
+function extractDataLabResultRoute() {
+  const match = window.location.pathname.match(/^\/data-lab\/results\/(processing|models)\/([^/]+)$/);
+  if (!match) {
+    return null;
+  }
+  return {
+    category: decodeURIComponent(match[1]),
+    id: decodeURIComponent(match[2]),
+  };
+}
+
 function detectPageMode() {
   if (window.location.pathname === "/") {
     return "home";
   }
   if (window.location.pathname === "/data-lab") {
     return "data-lab";
+  }
+  if (extractDataLabMethodRoute()) {
+    return "data-lab-method-detail";
+  }
+  if (extractDataLabResultRoute()) {
+    return "data-lab-result-detail";
   }
   if (window.location.pathname === "/public-monitor" || window.location.pathname === "/macro-desk") {
     return "public-monitor";
@@ -374,6 +432,43 @@ function absolutePublicUrl(value) {
   } catch {
     return value;
   }
+}
+
+function detailPathToAbsolute(path) {
+  if (!path) {
+    return "";
+  }
+  try {
+    return new URL(path, window.location.origin).pathname + new URL(path, window.location.origin).search + new URL(path, window.location.origin).hash;
+  } catch {
+    return path;
+  }
+}
+
+function dataLabQueryValue(key) {
+  return new URLSearchParams(window.location.search).get(key) || "";
+}
+
+async function loadDataLabCatalog() {
+  if (state.dataLabCatalog) {
+    return state.dataLabCatalog;
+  }
+  const payload = await api("/api/data-lab/catalog", {}, false);
+  state.dataLabCatalog = payload;
+  return payload;
+}
+
+async function ensureAuthenticatedUser() {
+  if (!state.token) {
+    throw new Error("Sign in on the standalone Data Lab page before opening private result details.");
+  }
+  if (state.user) {
+    return state.user;
+  }
+  const payload = await api("/api/auth/me");
+  state.user = payload.user;
+  state.workspaces = payload.workspaces || [];
+  return state.user;
 }
 
 function formatInlineMarkdown(text) {
@@ -428,6 +523,94 @@ function markdownToHtml(markdown) {
 
   closeList();
   return html.join("") || `<p class="muted">No content yet.</p>`;
+}
+
+function renderListCards(target, items, formatter) {
+  if (!target) {
+    return;
+  }
+  if (!items || !items.length) {
+    target.innerHTML = emptyCard("No items available.");
+    return;
+  }
+  target.innerHTML = items.map(formatter).join("");
+}
+
+function resultMetricCards(result) {
+  const metrics = [];
+  if (result.model_label) {
+    metrics.push({ label: "Model", value: result.model_label });
+  }
+  if (result.processing_family) {
+    metrics.push({ label: "Processing family", value: result.processing_family });
+  }
+  if (result.observations !== undefined && result.observations !== null) {
+    metrics.push({ label: "Observations", value: String(result.observations) });
+  }
+  if (result.r_squared !== undefined && result.r_squared !== null) {
+    metrics.push({ label: "R-squared", value: Number(result.r_squared).toFixed(4) });
+  }
+  if (result.pseudo_r_squared !== undefined && result.pseudo_r_squared !== null) {
+    metrics.push({ label: "Pseudo R-squared", value: Number(result.pseudo_r_squared).toFixed(4) });
+  }
+  if (result.aic !== undefined && result.aic !== null) {
+    metrics.push({ label: "AIC", value: Number(result.aic).toFixed(4) });
+  }
+  if (result.bic !== undefined && result.bic !== null) {
+    metrics.push({ label: "BIC", value: Number(result.bic).toFixed(4) });
+  }
+  Object.entries(result.metrics || {}).forEach(([key, value]) => {
+    if (value === null || value === undefined || typeof value === "object") {
+      return;
+    }
+    metrics.push({ label: key, value: String(value) });
+  });
+  return metrics;
+}
+
+function renderResultSummaryCard(target, payload, { type }) {
+  if (!target) {
+    return;
+  }
+  const metrics = resultMetricCards(payload);
+  const detailPath = payload.result_detail_path || "";
+  const narrative = (payload.narrative || []).slice(0, 4);
+  target.innerHTML = `
+    <article class="card">
+      <h4>${escapeHtml(payload.model_label || payload.processing_family || (type === "model" ? "Model result" : "Processing result"))}</h4>
+      <div class="chip-row chip-row-compact">
+        ${metrics.map((item) => `<span class="topic-chip">${escapeHtml(item.label)} <strong>${escapeHtml(item.value)}</strong></span>`).join("")}
+      </div>
+      <div>${narrative.length ? narrative.map((line) => `<p>${escapeHtml(line)}</p>`).join("") : `<p>${escapeHtml(payload.summary?.rows_after_prepare ? `Rows after prepare: ${payload.summary.rows_after_prepare}` : "Result is ready.")}</p>`}</div>
+      <div class="actions">
+        ${detailPath ? `<a href="${escapeHtml(detailPath)}" class="button-link secondary-link">Open detail page</a>` : ""}
+      </div>
+    </article>
+  `;
+}
+
+function renderProcessingResultSummary(payload) {
+  if (dom.prepareResultMeta) {
+    dom.prepareResultMeta.textContent = `${payload.processing_family || "data_processing"} | asset ${payload.asset?.title || "prepared sample"}`;
+  }
+  renderResultSummaryCard(dom.prepareResultSummary, payload, { type: "processing" });
+  if (dom.prepareResultLink) {
+    const href = payload.result_detail_path || "";
+    dom.prepareResultLink.href = href || "#";
+    dom.prepareResultLink.classList.toggle("hidden", !href);
+  }
+}
+
+function renderModelResultSummary(payload) {
+  if (dom.analysisResultMeta) {
+    dom.analysisResultMeta.textContent = `${payload.model_label || payload.model_type || "model"} | ${payload.asset?.title || "dataset"}`;
+  }
+  renderResultSummaryCard(dom.analysisResultSummary, payload, { type: "model" });
+  if (dom.analysisResultLink) {
+    const href = payload.result_detail_path || "";
+    dom.analysisResultLink.href = href || "#";
+    dom.analysisResultLink.classList.toggle("hidden", !href);
+  }
 }
 
 function defaultSummaryPages() {
@@ -506,6 +689,28 @@ function activateModelFamily(family, modelType = "") {
   focusWorkbench();
 }
 
+function initializeDataLabFromLocation() {
+  if (detectPageMode() !== "data-lab") {
+    return;
+  }
+  const workflow = dataLabQueryValue("workflow");
+  const processingFamily = dataLabQueryValue("processing_family");
+  const modelFamily = dataLabQueryValue("model_family");
+  const modelType = dataLabQueryValue("model_type");
+  if (workflow === "data_processing" && processingFamily) {
+    dom.labWorkflowType && (dom.labWorkflowType.value = "data_processing");
+    dom.processingFamily && (dom.processingFamily.value = processingFamily);
+  }
+  if (workflow === "model" && modelFamily) {
+    dom.labWorkflowType && (dom.labWorkflowType.value = "model");
+    dom.modelFamily && (dom.modelFamily.value = modelFamily);
+    syncModelTypeOptions();
+    if (modelType && dom.modelType) {
+      dom.modelType.value = modelType;
+    }
+  }
+}
+
 function getSelectedValues(select) {
   if (!select) {
     return [];
@@ -550,6 +755,12 @@ function renderDataLabPlaceholders() {
   dom.analysisPreviewTable && (dom.analysisPreviewTable.innerHTML = `<p class="muted">Dataset preview will appear here after you load a profile.</p>`);
   dom.prepareOutput && (dom.prepareOutput.textContent = "Waiting for sample preparation.");
   dom.analysisOutput && (dom.analysisOutput.textContent = "Waiting for model output.");
+  dom.prepareResultMeta && (dom.prepareResultMeta.textContent = "Waiting for sample preparation.");
+  dom.analysisResultMeta && (dom.analysisResultMeta.textContent = "Waiting for model output.");
+  dom.prepareResultSummary && (dom.prepareResultSummary.innerHTML = emptyCard("No prepared sample has been created in this session yet."));
+  dom.analysisResultSummary && (dom.analysisResultSummary.innerHTML = emptyCard("No model has been run in this session yet."));
+  dom.prepareResultLink?.classList.add("hidden");
+  dom.analysisResultLink?.classList.add("hidden");
   if (dom.plotPreviewPanel) {
     dom.plotPreviewPanel.classList.add("hidden");
   }
@@ -1318,6 +1529,237 @@ function renderPublicSummary(summary) {
   renderSummaryFeatured(summary.featured_briefings || []);
 }
 
+function renderDataLabMethodDetail(detail) {
+  if (!detail) {
+    throw new Error("Method detail not found.");
+  }
+  if (dom.labDetailEyebrow) {
+    dom.labDetailEyebrow.textContent = detail.category === "model" ? "Model Family" : "Data Processing Family";
+  }
+  dom.labDetailTitle && (dom.labDetailTitle.textContent = detail.title || "Method Detail");
+  dom.labDetailSummary && (dom.labDetailSummary.textContent = detail.summary || "");
+  dom.labDetailCategory && (dom.labDetailCategory.textContent = detail.category_label || detail.category || "Data Lab");
+  dom.labDetailHeading && (dom.labDetailHeading.textContent = detail.title || "Method Detail");
+  dom.labDetailDescription && (dom.labDetailDescription.textContent = detail.description || "");
+  if (dom.labDetailWorkbenchLink) {
+    dom.labDetailWorkbenchLink.href = detail.workbench_path || "/data-lab";
+  }
+  renderListCards(dom.labDetailMethodList, detail.methods || [], (item) => `
+    <article class="method-card">
+      <p class="eyebrow eyebrow-compact">${escapeHtml(detail.category_label || detail.category || "Method")}</p>
+      <h4>${escapeHtml(item.name || item.slug || "Method")}</h4>
+      <p>${escapeHtml(item.description || "")}</p>
+    </article>
+  `);
+  renderListCards(dom.labDetailInputList, detail.key_inputs || [], (item) => `
+    <article class="card">
+      <p>${escapeHtml(item)}</p>
+    </article>
+  `);
+  renderListCards(dom.labDetailAuditList, detail.manual_checks || [], (item) => `
+    <article class="card">
+      <p>${escapeHtml(item)}</p>
+    </article>
+  `);
+  updateDocumentTitle();
+}
+
+function renderResultMetrics(target, result) {
+  if (!target) {
+    return;
+  }
+  const narrativeHtml = (result.narrative || []).map((line) => `<p>${escapeHtml(line)}</p>`).join("");
+  const metrics = resultMetricCards(result);
+  const metricHtml = metrics.length
+    ? `<div class="chip-row chip-row-compact">${metrics.map((item) => `<span class="topic-chip">${escapeHtml(item.label)} <strong>${escapeHtml(item.value)}</strong></span>`).join("")}</div>`
+    : "";
+  target.innerHTML = `
+    <article class="card">
+      <h4>${escapeHtml(result.model_label || result.processing_family || "Result")}</h4>
+      ${metricHtml}
+      <div>${narrativeHtml || `<p>${escapeHtml(result.summary?.rows_after_prepare ? `Rows after prepare: ${result.summary.rows_after_prepare}` : "No narrative available.")}</p>`}</div>
+    </article>
+  `;
+}
+
+function renderResultSpecification(target, result) {
+  if (!target) {
+    return;
+  }
+  const specification = result.specification || {};
+  const summary = result.summary || {};
+  const rows = Object.entries(specification).concat(
+    result.workflow_type === "data_processing" ? Object.entries(summary).filter(([key]) => ["rows_before_prepare", "rows_after_prepare", "columns", "derived_columns"].includes(key)) : [],
+  );
+  if (!rows.length) {
+    target.innerHTML = emptyCard("No specification metadata available.");
+    return;
+  }
+  target.innerHTML = `
+    <article class="card">
+      ${rows
+        .map(([key, value]) => `<p><strong>${escapeHtml(key)}:</strong> ${escapeHtml(Array.isArray(value) ? value.join(", ") : typeof value === "object" ? JSON.stringify(value) : String(value ?? ""))}</p>`)
+        .join("")}
+    </article>
+  `;
+}
+
+function renderResultTables(target, result) {
+  if (!target) {
+    return;
+  }
+  const coefficients = result.coefficients || [];
+  const tables = result.tables || {};
+  const blocks = [];
+  if (coefficients.length) {
+    blocks.push(`
+      <article class="card">
+        <h4>Coefficient Table</h4>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr><th>Term</th><th>Coef.</th><th>Std. Err.</th><th>t/z</th><th>p-value</th></tr>
+            </thead>
+            <tbody>
+              ${coefficients
+                .map(
+                  (row) => `
+                    <tr>
+                      <td>${escapeHtml(row.term)}</td>
+                      <td>${escapeHtml(row.coefficient ?? "")}</td>
+                      <td>${escapeHtml(row.std_error ?? "")}</td>
+                      <td>${escapeHtml(row.t_stat ?? "")}</td>
+                      <td>${escapeHtml(row.p_value ?? "")}</td>
+                    </tr>
+                  `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    `);
+  }
+  Object.entries(tables).forEach(([name, table]) => {
+    blocks.push(`
+      <article class="card">
+        <h4>${escapeHtml(name)}</h4>
+        <pre class="console-box">${escapeHtml(JSON.stringify(table, null, 2))}</pre>
+      </article>
+    `);
+  });
+  target.innerHTML = blocks.join("") || "";
+}
+
+function renderResultAudit(target, result) {
+  if (!target) {
+    return;
+  }
+  const audit = result.audit_trail || {};
+  const checklist = audit.manual_checklist || [];
+  const downloads = [
+    audit.prepared_asset_id ? `<button type="button" class="secondary" data-download-asset="${escapeHtml(audit.prepared_asset_id)}">Download prepared sample</button>` : "",
+    audit.sample_asset_id ? `<button type="button" class="secondary" data-download-asset="${escapeHtml(audit.sample_asset_id)}">Download sample used</button>` : "",
+  ].filter(Boolean);
+  target.innerHTML = `
+    <article class="card">
+      ${Object.entries(audit)
+        .filter(([key]) => !["manual_checklist", "operations"].includes(key))
+        .map(([key, value]) => `<p><strong>${escapeHtml(key)}:</strong> ${escapeHtml(typeof value === "object" ? JSON.stringify(value) : String(value ?? ""))}</p>`)
+        .join("")}
+      ${downloads.length ? `<div class="actions">${downloads.join("")}</div>` : ""}
+    </article>
+    <article class="card">
+      <h4>Manual Checklist</h4>
+      ${checklist.length ? checklist.map((item) => `<p>${escapeHtml(item)}</p>`).join("") : `<p>No checklist available.</p>`}
+    </article>
+    ${
+      audit.operations
+        ? `<article class="card"><h4>Operations</h4><pre class="console-box">${escapeHtml(JSON.stringify(audit.operations, null, 2))}</pre></article>`
+        : ""
+    }
+  `;
+}
+
+function renderResultPreview(target, result) {
+  if (!target) {
+    return;
+  }
+  const previewRows = result.preview_rows || result.sample_preview || result.profile?.preview_rows || [];
+  if (!previewRows.length) {
+    target.innerHTML = emptyCard("No preview rows are available for this result.");
+    return;
+  }
+  const columns = Array.from(new Set(previewRows.flatMap((row) => Object.keys(row || {}))));
+  target.innerHTML = `
+    <article class="card">
+      <h4>Sample Preview</h4>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr>
+          </thead>
+          <tbody>
+            ${previewRows
+              .map(
+                (row) => `
+                  <tr>${columns.map((column) => `<td>${escapeHtml(row?.[column] ?? "")}</td>`).join("")}</tr>
+                `,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  `;
+}
+
+async function loadMethodDetailPage() {
+  const route = extractDataLabMethodRoute();
+  if (!route) {
+    return;
+  }
+  const payload = await api(`/api/data-lab/${route.category}/${route.family}`, {}, false);
+  renderDataLabMethodDetail(payload.family);
+}
+
+async function loadResultDetailPage() {
+  const route = extractDataLabResultRoute();
+  if (!route) {
+    return;
+  }
+  await ensureAuthenticatedUser();
+  const payload = await api(`/api/data-lab/results/${route.category}/${route.id}`);
+  const result = payload.result || payload;
+  dom.labResultType && (dom.labResultType.textContent = result.model_label || result.processing_family || route.category);
+  dom.labResultEyebrow &&
+    (dom.labResultEyebrow.textContent = route.category === "models" ? "Model Result" : "Processing Result");
+  dom.labResultTitle &&
+    (dom.labResultTitle.textContent =
+      route.category === "models"
+        ? payload.record?.title || result.model_label || "Model Result"
+        : result.asset?.title || "Processing Result");
+  dom.labResultSummary &&
+    (dom.labResultSummary.textContent =
+      route.category === "models"
+        ? `${result.model_label || result.model_type || "Model"} on ${result.asset?.title || "dataset"}`
+        : `${result.processing_family || "data_processing"} result for ${result.asset?.title || "prepared sample"}`);
+  dom.labResultHeading &&
+    (dom.labResultHeading.textContent = route.category === "models" ? "Model Result Detail" : "Processing Result Detail");
+  if (dom.labResultWorkbenchLink) {
+    dom.labResultWorkbenchLink.href = route.category === "models" ? "/data-lab?workflow=model#data-lab-workbench" : "/data-lab?workflow=data_processing#data-lab-workbench";
+  }
+  renderResultMetrics(dom.labResultMetrics, result);
+  renderResultSpecification(dom.labResultSpecification, result);
+  renderResultTables(dom.labResultTables, result);
+  renderResultAudit(dom.labResultAudit, result);
+  renderResultPreview(dom.labResultPreview, result);
+  if (dom.labResultRaw) {
+    dom.labResultRaw.textContent = JSON.stringify(payload, null, 2);
+  }
+  updateDocumentTitle();
+}
+
 function updateSummaryButtons() {
   document.querySelectorAll("[data-summary-days]").forEach((button) => {
     button.classList.toggle("is-active", Number(button.getAttribute("data-summary-days")) === state.selectedSummaryDays);
@@ -1429,6 +1871,14 @@ function updateDocumentTitle() {
   }
   if (pageMode === "data-lab") {
     document.title = "Data Lab | Economic Research Platform";
+    return;
+  }
+  if (pageMode === "data-lab-method-detail" && dom.labDetailTitle?.textContent) {
+    document.title = `${dom.labDetailTitle.textContent} | Economic Research Platform`;
+    return;
+  }
+  if (pageMode === "data-lab-result-detail" && dom.labResultTitle?.textContent) {
+    document.title = `${dom.labResultTitle.textContent} | Economic Research Platform`;
     return;
   }
   document.title = "Economic Research Platform";
@@ -1733,6 +2183,7 @@ async function handlePrepareSample(event) {
     body: JSON.stringify(payload),
   });
   dom.prepareOutput.textContent = JSON.stringify(response, null, 2);
+  renderProcessingResultSummary(response);
   state.assetProfiles = {};
   state.selectedAnalysisAssetId = response.asset.id;
   await refreshWorkspaceData();
@@ -1825,6 +2276,7 @@ async function handleModelRun(event) {
     body: JSON.stringify(payload),
   });
   dom.analysisOutput.textContent = JSON.stringify(response, null, 2);
+  renderModelResultSummary(response);
   await refreshWorkspaceData();
   showToast(`${response.model_label || "Model"} completed.`);
 }
@@ -2088,10 +2540,11 @@ function bind() {
     showToast("Chart download started.");
   }));
   dom.integrationList?.addEventListener("click", wrap(handleIntegrationActions));
-  dom.assetList?.addEventListener("click", wrap(handleAssetActions));
+  document.body?.addEventListener("click", wrap(handleAssetActions));
   dom.publicDateSwitcher?.addEventListener("click", wrap(handlePublicActions));
   dom.publicBriefingList?.addEventListener("click", wrap(handlePublicActions));
   dom.publicSummaryFeatured?.addEventListener("click", wrap(handlePublicActions));
+  initializeDataLabFromLocation();
   updateWorkflowVisibility();
 }
 
@@ -2099,6 +2552,14 @@ async function init() {
   bind();
   try {
     await fetchHealth();
+    const pageMode = detectPageMode();
+    if (pageMode === "data-lab-method-detail") {
+      await loadDataLabCatalog();
+      await loadMethodDetailPage();
+    }
+    if (pageMode === "data-lab-result-detail") {
+      await loadResultDetailPage();
+    }
     if (hasPublicMonitorUI()) {
       await loadPublicData();
     }

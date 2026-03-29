@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Data Lab Method Detail | Economic Research Platform</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="page-bg"></div>
+    <header class="hero">
+      <div>
+        <p class="eyebrow" id="lab-detail-eyebrow">Data Lab Method</p>
+        <h1 id="lab-detail-title">Loading method detail...</h1>
+        <p class="hero-copy" id="lab-detail-summary">
+          This page exposes the full method family, its sub-methods, required inputs, and manual verification steps.
+        </p>
+      </div>
+      <div class="hero-meta">
+        <div class="meta-card">
+          <span>Category</span>
+          <strong id="lab-detail-category">Loading...</strong>
+        </div>
+        <div class="meta-card">
+          <span>Transparency</span>
+          <strong>Manual checks exposed</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell public-shell">
+      <section class="panel public-toolbar">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h2 id="lab-detail-heading">Method Family Detail</h2>
+            <p class="muted" id="lab-detail-description">
+              Review the family, then open the workbench with the correct family already selected.
+            </p>
+          </div>
+          <div class="actions">
+            <a href="/data-lab" class="button-link secondary-link">Back to Data Lab</a>
+            <a href="/data-lab" id="lab-detail-workbench-link" class="button-link">Open in workbench</a>
+          </div>
+        </div>
+      </section>
+
+      <div class="public-layout">
+        <aside class="panel public-sidebar">
+          <div class="stack">
+            <div>
+              <p class="eyebrow eyebrow-compact">Navigate</p>
+              <h3>Method Detail</h3>
+            </div>
+            <nav class="public-section-nav">
+              <a href="#lab-method-list">Sub-methods</a>
+              <a href="#lab-input-list">Inputs</a>
+              <a href="#lab-audit-list">Manual verification</a>
+            </nav>
+            <div class="public-sidebar-note">
+              <p class="muted">
+                This page is public and descriptive. Actual runs still happen in the private Data Lab workbench.
+              </p>
+            </div>
+          </div>
+        </aside>
+
+        <section class="public-main">
+          <article class="panel public-section" id="lab-method-list">
+            <div class="panel-head">
+              <h3>Sub-methods</h3>
+              <span class="muted">Every family is broken down into explicit methods.</span>
+            </div>
+            <div id="lab-detail-method-list" class="method-browser-grid">
+              <article class="method-card"><p>Loading methods...</p></article>
+            </div>
+          </article>
+
+          <article class="panel public-section" id="lab-input-list">
+            <div class="panel-head">
+              <h3>Required Inputs</h3>
+              <span class="muted">The workbench fields you should verify before running.</span>
+            </div>
+            <div id="lab-detail-input-list" class="card-list">
+              <div class="card"><p>Loading inputs...</p></div>
+            </div>
+          </article>
+
+          <article class="panel public-section" id="lab-audit-list">
+            <div class="panel-head">
+              <h3>Manual Verification Steps</h3>
+              <span class="muted">Use these checks to reproduce and challenge the output manually.</span>
+            </div>
+            <div id="lab-detail-audit-list" class="card-list">
+              <div class="card"><p>Loading audit checks...</p></div>
+            </div>
+          </article>
+        </section>
+      </div>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+  </html>

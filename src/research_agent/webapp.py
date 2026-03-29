@@ -11,9 +11,12 @@ from pydantic import BaseModel, Field
 
 from .asset_storage import is_remote_asset_reference, load_asset_bytes
 from .config import get_settings
+from .data_lab_catalog import get_data_lab_catalog, get_model_family, get_processing_family
 from .db import init_database, session_scope
 from .entities import DataAsset
 from .platform_core import (
+    build_model_result_detail,
+    build_processing_result_detail,
     create_plot_asset,
     clean_dataset_asset,
     create_integration,
@@ -69,6 +72,8 @@ from .platform_research import (
 WEB_DIR = Path(__file__).with_name("web")
 PUBLIC_WEB_FILE = WEB_DIR / "public.html"
 DATA_LAB_WEB_FILE = WEB_DIR / "data_lab.html"
+DATA_LAB_DETAIL_WEB_FILE = WEB_DIR / "data_lab_detail.html"
+DATA_LAB_RESULT_WEB_FILE = WEB_DIR / "data_lab_result.html"
 
 
 class RegisterRequest(BaseModel):
@@ -285,6 +290,26 @@ def create_app() -> FastAPI:
     def data_lab_page() -> FileResponse:
         return FileResponse(DATA_LAB_WEB_FILE)
 
+    @app.get("/data-lab/processing/{family}")
+    def data_lab_processing_family_page(family: str) -> FileResponse:
+        if not get_processing_family(family):
+            raise HTTPException(status_code=404, detail="Data processing family not found.")
+        return FileResponse(DATA_LAB_DETAIL_WEB_FILE)
+
+    @app.get("/data-lab/models/{family}")
+    def data_lab_model_family_page(family: str) -> FileResponse:
+        if not get_model_family(family):
+            raise HTTPException(status_code=404, detail="Model family not found.")
+        return FileResponse(DATA_LAB_DETAIL_WEB_FILE)
+
+    @app.get("/data-lab/results/processing/{asset_id}")
+    def data_lab_processing_result_page(asset_id: str) -> FileResponse:
+        return FileResponse(DATA_LAB_RESULT_WEB_FILE)
+
+    @app.get("/data-lab/results/models/{record_id}")
+    def data_lab_model_result_page(record_id: str) -> FileResponse:
+        return FileResponse(DATA_LAB_RESULT_WEB_FILE)
+
     @app.get("/macro-desk")
     def public_macro_desk_page() -> FileResponse:
         return FileResponse(PUBLIC_WEB_FILE)
@@ -338,6 +363,24 @@ def create_app() -> FastAPI:
             "public_digest_timezone": settings.public_digest_timezone,
             "public_digest_local_time": settings.public_digest_local_time,
         }
+
+    @app.get("/api/data-lab/catalog")
+    def data_lab_catalog() -> dict[str, Any]:
+        return get_data_lab_catalog()
+
+    @app.get("/api/data-lab/processing/{family}")
+    def data_lab_processing_family_detail(family: str) -> dict[str, Any]:
+        detail = get_processing_family(family)
+        if not detail:
+            raise HTTPException(status_code=404, detail="Data processing family not found.")
+        return {"family": detail}
+
+    @app.get("/api/data-lab/models/{family}")
+    def data_lab_model_family_detail(family: str) -> dict[str, Any]:
+        detail = get_model_family(family)
+        if not detail:
+            raise HTTPException(status_code=404, detail="Model family not found.")
+        return {"family": detail}
 
     @app.get("/api/public/briefings")
     def public_briefings(limit: int = 10) -> dict[str, Any]:
@@ -684,6 +727,34 @@ def create_app() -> FastAPI:
                 user = get_current_user(db, token)
                 workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
                 return profile_dataset_asset(settings, db, user=user, workspace=workspace, asset_id=asset_id)
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/data-lab/results/processing/{asset_id}")
+    def data_lab_processing_result(
+        asset_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                return {"result": build_processing_result_detail(settings, db, user=user, asset_id=asset_id)}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/data-lab/results/models/{record_id}")
+    def data_lab_model_result(
+        record_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                return build_model_result_detail(db, user=user, record_id=record_id)
         except Exception as exc:
             _raise_http_error(exc)
 

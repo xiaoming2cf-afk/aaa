@@ -110,6 +110,7 @@
               <span class="topic-chip">date parsing</span>
             </div>
             <div class="actions">
+              <a href="/data-lab/processing/sample_preparation" class="button-link secondary-link">View detail page</a>
               <button type="button" class="secondary" data-open-processing-family="sample_preparation">Open sample prep</button>
             </div>
           </article>
@@ -124,6 +125,7 @@
               <span class="topic-chip">outlier rules</span>
             </div>
             <div class="actions">
+              <a href="/data-lab/processing/cleaning_transforms" class="button-link secondary-link">View detail page</a>
               <button type="button" class="secondary" data-open-processing-family="cleaning_transforms">Open cleaning toolkit</button>
             </div>
           </article>
@@ -138,6 +140,7 @@
               <span class="topic-chip">rolling stats</span>
             </div>
             <div class="actions">
+              <a href="/data-lab/processing/time_series_features" class="button-link secondary-link">View detail page</a>
               <button type="button" class="secondary" data-open-processing-family="time_series_features">Open time-series features</button>
             </div>
           </article>
@@ -152,6 +155,7 @@
               <span class="topic-chip">PNG export</span>
             </div>
             <div class="actions">
+              <a href="/data-lab/processing/visualization" class="button-link secondary-link">View detail page</a>
               <button type="button" class="secondary" data-open-processing-family="visualization">Open chart lab</button>
             </div>
           </article>
@@ -171,6 +175,7 @@
             <h4>Econometrics Baseline</h4>
             <p>OLS, PPML, Logit, Probit, DID, Event Study, RDD, Fixed Effects, Gravity, IV-2SLS, and Panel IV.</p>
             <div class="actions">
+              <a href="/data-lab/models/econometrics_baseline" class="button-link secondary-link">View detail page</a>
               <button type="button" class="secondary" data-open-model-family="econometrics_baseline" data-open-model-type="ols">Open baseline models</button>
             </div>
           </article>
@@ -180,6 +185,7 @@
             <h4>Time Series &amp; Econometric Finance</h4>
             <p>ARIMA forecasting and VAR for dynamic macro-finance and multivariate system analysis.</p>
             <div class="actions">
+              <a href="/data-lab/models/time_series_finance" class="button-link secondary-link">View detail page</a>
               <button type="button" class="secondary" data-open-model-family="time_series_finance" data-open-model-type="arima">Open time-series models</button>
             </div>
           </article>
@@ -189,6 +195,7 @@
             <h4>Corporate Finance</h4>
             <p>Altman Z-Score and DuPont decomposition for financial health and profitability structure checks.</p>
             <div class="actions">
+              <a href="/data-lab/models/corporate_finance" class="button-link secondary-link">View detail page</a>
               <button type="button" class="secondary" data-open-model-family="corporate_finance" data-open-model-type="altman_z">Open corporate finance</button>
             </div>
           </article>
@@ -198,6 +205,7 @@
             <h4>Risk Management</h4>
             <p>Historical VaR/ES, parametric VaR/ES, and EWMA volatility for transparent loss and volatility diagnostics.</p>
             <div class="actions">
+              <a href="/data-lab/models/risk_management" class="button-link secondary-link">View detail page</a>
               <button type="button" class="secondary" data-open-model-family="risk_management" data-open-model-type="historical_var">Open risk models</button>
             </div>
           </article>
@@ -207,6 +215,7 @@
             <h4>Derivatives Pricing</h4>
             <p>Black-Scholes and binomial option pricing for vanilla call and put valuation workflows.</p>
             <div class="actions">
+              <a href="/data-lab/models/derivatives_pricing" class="button-link secondary-link">View detail page</a>
               <button type="button" class="secondary" data-open-model-family="derivatives_pricing" data-open-model-type="black_scholes">Open derivatives models</button>
             </div>
           </article>
@@ -216,6 +225,7 @@
             <h4>Macro Finance &amp; DSGE</h4>
             <p>Taylor rule estimation and a toy RBC/DSGE module for simple policy and dynamic general equilibrium diagnostics.</p>
             <div class="actions">
+              <a href="/data-lab/models/macro_finance_dsge" class="button-link secondary-link">View detail page</a>
               <button type="button" class="secondary" data-open-model-family="macro_finance_dsge" data-open-model-type="taylor_rule">Open macro finance</button>
             </div>
           </article>
@@ -225,6 +235,7 @@
             <h4>Portfolio Allocation</h4>
             <p>Mean-variance, minimum-variance, and risk-parity allocation models for comparative portfolio construction.</p>
             <div class="actions">
+              <a href="/data-lab/models/portfolio_allocation" class="button-link secondary-link">View detail page</a>
               <button type="button" class="secondary" data-open-model-family="portfolio_allocation" data-open-model-type="mean_variance">Open portfolio models</button>
             </div>
           </article>
@@ -234,6 +245,7 @@
             <h4>Asset Pricing</h4>
             <p>CAPM and Fama-French 3-factor estimation with factor-selection fields exposed for manual verification.</p>
             <div class="actions">
+              <a href="/data-lab/models/asset_pricing" class="button-link secondary-link">View detail page</a>
               <button type="button" class="secondary" data-open-model-family="asset_pricing" data-open-model-type="capm">Open asset pricing</button>
             </div>
           </article>
@@ -903,8 +915,43 @@
                 <img id="plot-preview-image" alt="Generated chart preview" />
               </div>
 
-              <pre id="prepare-output" class="console-box">Waiting for sample preparation.</pre>
-              <pre id="analysis-output" class="console-box">Waiting for model output.</pre>
+              <section class="result-output-card">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <h3>Latest Processing Result</h3>
+                    <span class="muted" id="prepare-result-meta">Waiting for sample preparation.</span>
+                  </div>
+                  <div class="actions">
+                    <a id="prepare-result-link" href="#" class="button-link secondary-link hidden">Open detail page</a>
+                  </div>
+                </div>
+                <div id="prepare-result-summary" class="card-list">
+                  <div class="card"><p>No prepared sample has been created in this session yet.</p></div>
+                </div>
+                <details class="result-json-toggle">
+                  <summary>Raw processing JSON</summary>
+                  <pre id="prepare-output" class="console-box">Waiting for sample preparation.</pre>
+                </details>
+              </section>
+
+              <section class="result-output-card">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <h3>Latest Model Result</h3>
+                    <span class="muted" id="analysis-result-meta">Waiting for model output.</span>
+                  </div>
+                  <div class="actions">
+                    <a id="analysis-result-link" href="#" class="button-link secondary-link hidden">Open detail page</a>
+                  </div>
+                </div>
+                <div id="analysis-result-summary" class="card-list">
+                  <div class="card"><p>No model has been run in this session yet.</p></div>
+                </div>
+                <details class="result-json-toggle">
+                  <summary>Raw model JSON</summary>
+                  <pre id="analysis-output" class="console-box">Waiting for model output.</pre>
+                </details>
+              </section>
               <div id="asset-list" class="card-list"></div>
             </div>
           </div>

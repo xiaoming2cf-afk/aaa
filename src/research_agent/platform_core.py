@@ -485,6 +485,12 @@ def create_knowledge_record(
     )
     db.add(record)
     db.flush()
+    if isinstance(metadata, dict) and (metadata.get("workflow_type") == "model" or metadata.get("model_type")):
+        metadata.setdefault("workflow_type", "model")
+        metadata.setdefault("result_record_id", record.id)
+        metadata.setdefault("result_detail_path", f"/data-lab/results/models/{record.id}")
+        record.metadata_json = metadata
+        db.flush()
     return record
 
 
@@ -501,6 +507,20 @@ def list_knowledge_records(db: Session, *, user: User, workspace: Workspace) -> 
             .order_by(KnowledgeRecord.updated_at.desc())
         )
     )
+
+
+def get_owned_knowledge_record(db: Session, *, user: User, record_id: str) -> KnowledgeRecord:
+    record = db.get(KnowledgeRecord, record_id)
+    if not record or record.owner_user_id != user.id:
+        raise FileNotFoundError("Knowledge record not found.")
+    return record
+
+
+def get_owned_asset(db: Session, *, user: User, asset_id: str) -> DataAsset:
+    asset = db.get(DataAsset, asset_id)
+    if not asset or asset.owner_user_id != user.id:
+        raise FileNotFoundError("Asset not found.")
+    return asset
 
 
 def search_knowledge_records(
@@ -527,6 +547,22 @@ def search_knowledge_records(
             .order_by(KnowledgeRecord.updated_at.desc())
         )
     )
+
+
+def build_model_result_detail(db: Session, *, user: User, record_id: str) -> dict[str, Any]:
+    record = get_owned_knowledge_record(db, user=user, record_id=record_id)
+    metadata = dict(record.metadata_json or {})
+    if not metadata.get("model_type"):
+        raise ValueError("This knowledge record is not a model result.")
+    metadata.setdefault("workflow_type", "model")
+    metadata.setdefault("model_family", _infer_model_family(str(metadata.get("model_type", ""))))
+    metadata.setdefault("result_record_id", record.id)
+    metadata.setdefault("result_detail_path", f"/data-lab/results/models/{record.id}")
+    return {
+        "record": serialize_knowledge_record(record),
+        "result": metadata,
+        "workspace_id": record.workspace_id,
+    }
 
 
 def classify_asset_kind(filename: str, content_type: str) -> str:
@@ -1110,6 +1146,56 @@ def profile_dataset_asset(
     }
 
 
+def build_processing_result_detail(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    asset_id: str,
+) -> dict[str, Any]:
+    asset = get_owned_asset(db, user=user, asset_id=asset_id)
+    if asset.kind not in DATASET_KINDS:
+        raise ValueError("This asset is not a structured dataset.")
+    workspace = db.get(Workspace, asset.workspace_id)
+    if not workspace or workspace.owner_user_id != user.id:
+        raise FileNotFoundError("Workspace not found.")
+    detail = (asset.metadata_json or {}).get("processing_result")
+    asset_payload = serialize_asset(asset)
+    if isinstance(asset_payload.get("metadata"), dict):
+        asset_payload["metadata"] = {key: value for key, value in asset_payload["metadata"].items() if key != "processing_result"}
+    if not isinstance(detail, dict):
+        summary = (asset.metadata_json or {}).get("preparation_summary") or {}
+        detail = {
+            "workflow_type": "data_processing",
+            "processing_family": summary.get("workflow_group") or "sample_preparation",
+            "asset": asset_payload,
+            "summary": summary,
+            "audit_trail": {
+                "source_asset_id": (asset.metadata_json or {}).get("source_asset_id"),
+                "prepared_asset_id": asset.id,
+                "prepared_download_url": f"/api/assets/{asset.id}/download",
+                "manual_checklist": [
+                    "Download the prepared sample and compare row counts, columns, and preview rows.",
+                    "Reapply every documented transformation in order using the raw source asset.",
+                    "Confirm derived columns and filters match the saved processing summary.",
+                ],
+                "operations": summary,
+            },
+            "result_detail_path": f"/data-lab/results/processing/{asset.id}",
+        }
+    profile = profile_dataset_asset(settings, db, user=user, workspace=workspace, asset_id=asset.id)
+    if isinstance(profile.get("asset", {}).get("metadata"), dict):
+        profile["asset"]["metadata"] = {
+            key: value for key, value in profile["asset"]["metadata"].items() if key != "processing_result"
+        }
+    detail["asset"] = asset_payload
+    detail["result_detail_path"] = detail.get("result_detail_path") or f"/data-lab/results/processing/{asset.id}"
+    detail["profile"] = profile
+    detail.setdefault("preview_rows", profile.get("preview_rows", []))
+    detail["workspace_id"] = workspace.id
+    return detail
+
+
 def prepare_dataset_asset(
     settings: Settings,
     db: Session,
@@ -1195,47 +1281,52 @@ def prepare_dataset_asset(
         content_type="text/csv",
         description=f"Prepared analysis sample derived from {asset.title}",
     )
-    prepared_asset.metadata_json = {
-        **prepared_asset.metadata_json,
-        "preparation_summary": summary,
+    preview_rows = _frame_preview_rows(prepared_frame)
+    audit_trail = {
         "source_asset_id": asset.id,
+        "source_asset_title": asset.title,
+        "prepared_asset_id": prepared_asset.id,
+        "prepared_download_url": f"/api/assets/{prepared_asset.id}/download",
+        "manual_checklist": [
+            "Download the prepared asset and compare row/column counts with rows_after_prepare and columns.",
+            "Reapply each cleaning step in order: imputation, winsorization, transforms, outlier filter, and missing-value filtering.",
+            "Verify the preview_rows against the downloaded prepared sample.",
+        ],
+        "operations": {
+            "required_columns": summary["required_columns"],
+            "numeric_columns": summary["numeric_columns"],
+            "binary_columns": summary["binary_columns"],
+            "date_columns": summary["date_columns"],
+            "imputed_columns": summary["imputed_columns"],
+            "winsorized_columns": summary["winsorized_columns"],
+            "transformed_columns": summary["transformed_columns"],
+            "time_series_features": summary["time_series_features"],
+            "derived_columns": summary["derived_columns"],
+            "outlier_columns": summary["outlier_columns"],
+            "outlier_method": summary["outlier_method"],
+            "outlier_threshold": summary["outlier_threshold"],
+            "drop_duplicates": drop_duplicates,
+            "drop_missing_required": drop_missing_required,
+            "workflow_group": workflow_group or "sample_preparation",
+        },
     }
-    db.flush()
-    return {
+    processing_result = {
         "workflow_type": "data_processing",
         "processing_family": workflow_group or "sample_preparation",
         "asset": serialize_asset(prepared_asset),
         "summary": summary,
-        "preview_rows": _frame_preview_rows(prepared_frame),
-        "audit_trail": {
-            "source_asset_id": asset.id,
-            "source_asset_title": asset.title,
-            "prepared_asset_id": prepared_asset.id,
-            "prepared_download_url": f"/api/assets/{prepared_asset.id}/download",
-            "manual_checklist": [
-                "Download the prepared asset and compare row/column counts with rows_after_prepare and columns.",
-                "Reapply each cleaning step in order: imputation, winsorization, transforms, outlier filter, and missing-value filtering.",
-                "Verify the preview_rows against the downloaded prepared sample.",
-            ],
-            "operations": {
-                "required_columns": summary["required_columns"],
-                "numeric_columns": summary["numeric_columns"],
-                "binary_columns": summary["binary_columns"],
-                "date_columns": summary["date_columns"],
-                "imputed_columns": summary["imputed_columns"],
-                "winsorized_columns": summary["winsorized_columns"],
-                "transformed_columns": summary["transformed_columns"],
-                "time_series_features": summary["time_series_features"],
-                "derived_columns": summary["derived_columns"],
-                "outlier_columns": summary["outlier_columns"],
-                "outlier_method": summary["outlier_method"],
-                "outlier_threshold": summary["outlier_threshold"],
-                "drop_duplicates": drop_duplicates,
-                "drop_missing_required": drop_missing_required,
-                "workflow_group": workflow_group or "sample_preparation",
-            },
-        },
+        "preview_rows": preview_rows,
+        "audit_trail": audit_trail,
+        "result_detail_path": f"/data-lab/results/processing/{prepared_asset.id}",
     }
+    prepared_asset.metadata_json = {
+        **prepared_asset.metadata_json,
+        "preparation_summary": summary,
+        "source_asset_id": asset.id,
+        "processing_result": processing_result,
+    }
+    db.flush()
+    return processing_result
 
 
 def _serialize_model_frame(frame: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
@@ -3358,6 +3449,19 @@ def run_model_analysis(
         specification = payload.get("specification")
         if isinstance(specification, dict):
             specification.setdefault("model_family", family)
+        if not payload.get("result_record_id"):
+            asset_title = ((payload.get("asset") or {}).get("title") or "dataset").strip()
+            record = create_knowledge_record(
+                db,
+                user=user,
+                workspace=workspace,
+                title=f"{payload.get('model_label', 'Model')} summary for {asset_title}",
+                content="\n".join(payload.get("narrative") or [f"{payload.get('model_label', 'Model')} completed."]),
+                tags=[normalized_model, family, "dataset"],
+                metadata=payload,
+            )
+            payload.setdefault("result_record_id", record.id)
+            payload.setdefault("result_detail_path", f"/data-lab/results/models/{record.id}")
         return payload
 
     if normalized_model == "ols":
