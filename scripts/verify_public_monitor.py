@@ -99,7 +99,7 @@ def insert_public_briefing() -> str:
             timezone_name="Asia/Shanghai",
             summary_markdown="# Global Economic Daily\n\n- Fed signals slower path for rate cuts\n- Oil rises as supply risks return to focus\n- Exports rebound as regional demand stabilizes",
             query_text="global macro headlines",
-            template_version="daily-macro-v1",
+            template_version="daily-macro-v2",
             headline_count=len(items),
             items_json=items,
             raw_json={

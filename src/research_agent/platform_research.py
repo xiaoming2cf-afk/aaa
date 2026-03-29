@@ -1675,6 +1675,16 @@ def _current_local_time(timezone_name: str, *, now: datetime | None = None) -> d
     return (now or datetime.now(timezone.utc)).astimezone(ZoneInfo(timezone_name))
 
 
+def _public_briefing_needs_schema_refresh(briefing: PublicEconomicBriefing | None) -> bool:
+    if not briefing:
+        return False
+    public_news = briefing.raw_json.get("public_news", {}) if isinstance(briefing.raw_json, dict) else {}
+    sources = public_news.get("sources", {}) if isinstance(public_news, dict) else {}
+    return (briefing.template_version or "") != PUBLIC_TEMPLATE_VERSION or not isinstance(
+        sources.get("official"), dict
+    )
+
+
 def _title_texts(items: list[dict[str, Any]]) -> list[str]:
     return [str(item.get("title", "")).strip() for item in items if str(item.get("title", "")).strip()]
 
@@ -2041,7 +2051,7 @@ def generate_public_daily_briefing(
     existing = db.scalar(
         select(PublicEconomicBriefing).where(PublicEconomicBriefing.briefing_date == briefing_date)
     )
-    if existing and not force and existing.headline_count > 0:
+    if existing and not force and existing.headline_count > 0 and not _public_briefing_needs_schema_refresh(existing):
         return existing
 
     query_text = settings.public_digest_query or settings.gdelt_query
@@ -2102,14 +2112,7 @@ def ensure_public_daily_briefing(
     existing = db.scalar(
         select(PublicEconomicBriefing).where(PublicEconomicBriefing.briefing_date == briefing_date)
     )
-    needs_schema_refresh = False
-    if existing:
-        public_news = existing.raw_json.get("public_news", {}) if isinstance(existing.raw_json, dict) else {}
-        sources = public_news.get("sources", {}) if isinstance(public_news, dict) else {}
-        needs_schema_refresh = (
-            (existing.template_version or "") != PUBLIC_TEMPLATE_VERSION
-            or not isinstance(sources.get("official"), dict)
-        )
+    needs_schema_refresh = _public_briefing_needs_schema_refresh(existing)
     if existing and not force and existing.headline_count > 0 and not needs_schema_refresh:
         return existing
     # If the stored public briefing is on an older schema/template, rebuild it
