@@ -252,7 +252,7 @@
           <article class="method-card">
             <p class="eyebrow eyebrow-compact">Model</p>
             <h4>Time Series &amp; Econometric Finance</h4>
-            <p>ARIMA forecasting and VAR for dynamic macro-finance and multivariate system analysis.</p>
+            <p>ARIMA, ARCH, GARCH, SVAR impulse responses, volatility IRF, and DY/BK connectedness for dynamic macro-finance systems.</p>
             <div class="actions">
               <a href="/data-lab/models/time_series_finance" class="button-link secondary-link">View detail page</a>
               <button type="button" class="secondary" data-open-model-family="time_series_finance" data-open-model-type="arima">Open time-series models</button>
@@ -396,6 +396,40 @@
                   <p class="muted">Dataset preview will appear here after you load a profile.</p>
                 </div>
               </div>
+
+              <section class="result-output-card">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <h3>Beginner Variable Guide</h3>
+                    <span class="muted">Describe your research question in plain language. The guide will suggest workflow, model, variables, and a manual checklist.</span>
+                  </div>
+                </div>
+                <form id="variable-guide-form" class="stack">
+                  <textarea id="variable-guide-prompt" name="prompt" placeholder="Example: I want to study whether a policy increased firm exports after 2020, controlling for firm size and leverage." required></textarea>
+                  <div class="actions">
+                    <button type="submit">Suggest variables and model</button>
+                    <button id="variable-guide-apply" type="button" class="secondary hidden">Apply to workbench</button>
+                  </div>
+                </form>
+                <div class="card">
+                  <p class="muted" id="variable-guide-meta">Load a dataset profile first, then describe the research question.</p>
+                </div>
+                <div id="variable-guide-summary" class="card-list card-list-inline">
+                  <div class="card"><p>No beginner guidance has been generated yet.</p></div>
+                </div>
+                <div class="summary-page-grid guide-output-grid">
+                  <div id="variable-guide-roles" class="card-list card-list-inline">
+                    <div class="card"><p>Suggested variable roles will appear here.</p></div>
+                  </div>
+                  <div id="variable-guide-checks" class="card-list card-list-inline">
+                    <div class="card"><p>Manual verification steps will appear here.</p></div>
+                  </div>
+                </div>
+                <details class="result-json-toggle">
+                  <summary>Raw guide JSON</summary>
+                  <pre id="variable-guide-raw" class="console-box">Waiting for a beginner workflow prompt.</pre>
+                </details>
+              </section>
             </div>
 
             <div class="stack">
@@ -737,6 +771,44 @@
                 <div id="var-fields" class="stack compact hidden">
                   <label for="var-lags">VAR lags</label>
                   <input id="var-lags" type="number" min="1" step="1" value="1" />
+                </div>
+                <div id="garch-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="garch-p">ARCH / GARCH p</label>
+                    <input id="garch-p" type="number" min="1" step="1" value="1" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="garch-q">GARCH q</label>
+                    <input id="garch-q" type="number" min="0" step="1" value="1" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="virf-shock-size">VIRF shock size (sigma)</label>
+                    <input id="virf-shock-size" type="number" min="0.05" step="0.05" value="1.0" />
+                  </div>
+                </div>
+                <div id="irf-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="irf-horizon">IRF / connectedness horizon</label>
+                    <input id="irf-horizon" type="number" min="1" step="1" value="12" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="impulse-column">Impulse variable</label>
+                    <select id="impulse-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="response-column">Response variable</label>
+                    <select id="response-column"></select>
+                  </div>
+                </div>
+                <div id="bk-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="bk-short-horizon">BK short horizon</label>
+                    <input id="bk-short-horizon" type="number" min="1" step="1" value="5" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="bk-medium-horizon">BK medium horizon</label>
+                    <input id="bk-medium-horizon" type="number" min="2" step="1" value="20" />
+                  </div>
                 </div>
                 <div class="stack compact">
                   <label for="model-controls">Controls</label>

@@ -44,6 +44,7 @@ from .platform_core import (
     serialize_knowledge_record,
     serialize_user,
     serialize_workspace,
+    suggest_beginner_variable_plan,
     test_integration,
 )
 from .platform_research import (
@@ -223,8 +224,16 @@ class ModelRunRequest(BaseModel):
     arima_p: int = 1
     arima_d: int = 0
     arima_q: int = 0
+    garch_p: int = 1
+    garch_q: int = 1
     forecast_steps: int = 5
     var_lags: int = 1
+    irf_horizon: int = 12
+    impulse_column: str = ""
+    response_column: str = ""
+    virf_shock_size: float = 1.0
+    bk_short_horizon: int = 5
+    bk_medium_horizon: int = 20
     confidence_level: float = 0.95
     holding_period_days: int = 1
     ewma_lambda: float = 0.94
@@ -251,6 +260,11 @@ class PlotCreateRequest(BaseModel):
     group_column: str = ""
     title: str = ""
     max_points: int = 400
+
+
+class VariableGuideRequest(BaseModel):
+    asset_id: str
+    prompt: str = Field(min_length=8, max_length=4000)
 
 
 def _token_from_headers(authorization: str | None, x_session_token: str | None) -> str:
@@ -836,6 +850,29 @@ def create_app() -> FastAPI:
         except Exception as exc:
             _raise_http_error(exc)
 
+    @app.post("/api/workspaces/{workspace_id}/analysis/variable-guide")
+    def variable_guide(
+        workspace_id: str,
+        request: VariableGuideRequest,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return suggest_beginner_variable_plan(
+                    settings,
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    asset_id=request.asset_id,
+                    prompt_text=request.prompt,
+                )
+        except Exception as exc:
+            _raise_http_error(exc)
+
     @app.post("/api/workspaces/{workspace_id}/analysis/models")
     def run_model(
         workspace_id: str,
@@ -902,8 +939,16 @@ def create_app() -> FastAPI:
                     arima_p=request.arima_p,
                     arima_d=request.arima_d,
                     arima_q=request.arima_q,
+                    garch_p=request.garch_p,
+                    garch_q=request.garch_q,
                     forecast_steps=request.forecast_steps,
                     var_lags=request.var_lags,
+                    irf_horizon=request.irf_horizon,
+                    impulse_column=request.impulse_column,
+                    response_column=request.response_column,
+                    virf_shock_size=request.virf_shock_size,
+                    bk_short_horizon=request.bk_short_horizon,
+                    bk_medium_horizon=request.bk_medium_horizon,
                     confidence_level=request.confidence_level,
                     holding_period_days=request.holding_period_days,
                     ewma_lambda=request.ewma_lambda,

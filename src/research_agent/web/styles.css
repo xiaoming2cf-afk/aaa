@@ -816,6 +816,42 @@ button.secondary,
   min-height: 320px;
 }
 
+.guide-output-grid,
+.result-figure-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.result-figure-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.compact-card {
+  padding: 0.95rem;
+}
+
+.compact-card h4 {
+  margin: 0 0 0.45rem;
+}
+
+.figure-preview-box {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(11, 95, 69, 0.12);
+  border-radius: 0.95rem;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 0.75rem;
+}
+
+.result-figure-frame {
+  width: 100%;
+  height: auto;
+  border-radius: 0.8rem;
+  box-shadow: 0 12px 24px rgba(31, 30, 26, 0.12);
+}
+
 .toast {
   position: fixed;
   right: 1.2rem;

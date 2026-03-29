@@ -9,6 +9,7 @@ description = "Academic research agent for literature discovery, synthesis, and 
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "arch>=8.0.0",
     "cryptography>=45.0.0",
     "fastapi>=0.115.0",
     "matplotlib>=3.9.0",

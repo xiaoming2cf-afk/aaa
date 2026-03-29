@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from statistics import NormalDist
 from datetime import datetime, timezone
 from io import BytesIO
@@ -16,6 +17,7 @@ import numpy as np
 import pandas as pd
 import requests
 import statsmodels.api as sm
+from arch import arch_model
 from statsmodels.tsa.api import VAR
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.sandbox.regression.gmm import IV2SLS
@@ -41,6 +43,274 @@ from .utils import slugify, truncate_text
 
 
 DATASET_KINDS = {"dataset_csv", "dataset_excel", "dataset_json"}
+
+BEGINNER_INTENT_RULES: list[dict[str, Any]] = [
+    {
+        "workflow_type": "data_processing",
+        "processing_family": "visualization",
+        "model_family": "",
+        "model_type": "",
+        "label": "Visualization",
+        "terms": ["plot", "chart", "visualize", "visualization", "trend", "distribution", "图", "绘图", "可视化", "走势", "分布"],
+        "reason": "The prompt focuses on inspection or plotting rather than estimation.",
+    },
+    {
+        "workflow_type": "data_processing",
+        "processing_family": "cleaning_transforms",
+        "model_family": "",
+        "model_type": "",
+        "label": "Cleaning & Transforms",
+        "terms": ["clean", "cleaning", "impute", "winsor", "outlier", "standardize", "normalize", "清洗", "插补", "缩尾", "异常值", "标准化", "归一化"],
+        "reason": "The prompt focuses on cleaning or transformation before modeling.",
+    },
+    {
+        "workflow_type": "data_processing",
+        "processing_family": "time_series_features",
+        "model_family": "",
+        "model_type": "",
+        "label": "Time-Series Features",
+        "terms": ["lag", "lead", "return", "rolling", "difference", "time series feature", "滞后", "超前", "收益率", "滚动", "差分"],
+        "reason": "The prompt explicitly mentions time-series feature construction.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "econometrics_baseline",
+        "model_type": "event_study",
+        "label": "Event Study",
+        "terms": ["event study", "dynamic treatment", "dynamic effect", "lead lag", "事件研究", "动态效应", "提前期", "滞后期"],
+        "reason": "The prompt asks for dynamic effects around an event or treatment window.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "econometrics_baseline",
+        "model_type": "did",
+        "label": "Difference-in-Differences",
+        "terms": ["difference in differences", "did", "policy", "reform", "treated", "control group", "before after", "双重差分", "政策", "改革", "处理组", "对照组", "前后"],
+        "reason": "The prompt suggests a policy or treatment comparison across groups and time.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "econometrics_baseline",
+        "model_type": "rdd",
+        "label": "Regression Discontinuity",
+        "terms": ["regression discontinuity", "rdd", "cutoff", "threshold", "score around", "断点回归", "阈值", "门槛", "分数附近"],
+        "reason": "The prompt describes a cutoff-based design.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "econometrics_baseline",
+        "model_type": "iv_2sls",
+        "label": "IV-2SLS",
+        "terms": ["instrument", "iv", "endogenous", "exogenous shock", "工具变量", "内生性", "外生冲击"],
+        "reason": "The prompt explicitly mentions endogeneity or instruments.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "econometrics_baseline",
+        "model_type": "gravity",
+        "label": "Gravity Model",
+        "terms": ["gravity", "trade", "export", "import", "bilateral", "distance", "贸易", "出口", "进口", "双边", "距离"],
+        "reason": "The prompt focuses on bilateral flow relationships or trade-distance structure.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "time_series_finance",
+        "model_type": "arima",
+        "label": "ARIMA Forecast",
+        "terms": ["forecast", "predict", "univariate", "time series", "预测", "时间序列", "单变量"],
+        "reason": "The prompt emphasizes forecasting one series over time.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "time_series_finance",
+        "model_type": "arch",
+        "label": "ARCH",
+        "terms": ["arch", "volatility clustering", "conditional volatility", "heteroskedasticity", "条件异方差", "波动聚集"],
+        "reason": "The prompt asks for conditional volatility clustering in a single return series.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "time_series_finance",
+        "model_type": "garch",
+        "label": "GARCH",
+        "terms": ["garch", "persistent volatility", "conditional variance", "volatility persistence", "广义自回归条件异方差", "波动持续性"],
+        "reason": "The prompt asks for persistent conditional variance dynamics.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "time_series_finance",
+        "model_type": "var",
+        "label": "Vector Autoregression",
+        "terms": ["var", "spillover", "interaction over time", "joint dynamics", "向量自回归", "溢出", "联动", "共同动态"],
+        "reason": "The prompt suggests multivariate time-series dynamics.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "time_series_finance",
+        "model_type": "svar_irf",
+        "label": "SVAR IRF",
+        "terms": ["svar", "irf", "impulse response", "shock response", "structural var", "脉冲响应", "结构向量自回归"],
+        "reason": "The prompt focuses on structural shocks and impulse-response analysis.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "time_series_finance",
+        "model_type": "virf",
+        "label": "VIRF",
+        "terms": ["virf", "volatility impulse response", "volatility shock", "garch irf", "波动脉冲响应"],
+        "reason": "The prompt asks how volatility reacts over time after a shock.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "time_series_finance",
+        "model_type": "dy_connectedness",
+        "label": "DY Connectedness",
+        "terms": ["diebold yilmaz", "dy connectedness", "spillover index", "connectedness", "spillover table", "溢出指数", "连通性"],
+        "reason": "The prompt focuses on generalized spillovers and connectedness indices.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "time_series_finance",
+        "model_type": "bk_connectedness",
+        "label": "BK Connectedness",
+        "terms": ["barunik krehlik", "bk connectedness", "frequency connectedness", "frequency spillover", "频域连通性", "频域溢出"],
+        "reason": "The prompt asks for frequency-domain connectedness across horizons.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "risk_management",
+        "model_type": "historical_var",
+        "label": "Historical VaR / ES",
+        "terms": ["value at risk", "expected shortfall", "tail risk", "var", "es", "风险价值", "预期损失", "尾部风险"],
+        "reason": "The prompt asks for risk or tail-loss diagnostics.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "derivatives_pricing",
+        "model_type": "black_scholes",
+        "label": "Black-Scholes",
+        "terms": ["option", "call", "put", "strike", "derivative", "期权", "看涨", "看跌", "执行价", "衍生品"],
+        "reason": "The prompt targets vanilla option pricing.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "portfolio_allocation",
+        "model_type": "mean_variance",
+        "label": "Mean-Variance Portfolio",
+        "terms": ["portfolio", "allocation", "weights", "optimize portfolio", "投资组合", "资产配置", "权重"],
+        "reason": "The prompt focuses on portfolio construction or allocation.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "asset_pricing",
+        "model_type": "fama_french_3",
+        "label": "Fama-French 3-Factor",
+        "terms": ["fama french", "three factor", "factor model", "smb", "hml", "三因子", "因子模型"],
+        "reason": "The prompt explicitly references multi-factor asset pricing.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "asset_pricing",
+        "model_type": "capm",
+        "label": "CAPM",
+        "terms": ["capm", "beta", "market premium", "资产定价", "贝塔", "市场风险溢价"],
+        "reason": "The prompt points to single-factor asset pricing or beta estimation.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "corporate_finance",
+        "model_type": "altman_z",
+        "label": "Altman Z-Score",
+        "terms": ["bankruptcy", "distress", "z score", "default risk", "破产", "财务困境", "z值", "违约风险"],
+        "reason": "The prompt focuses on corporate distress or default screening.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "macro_finance_dsge",
+        "model_type": "taylor_rule",
+        "label": "Taylor Rule",
+        "terms": ["interest rate rule", "policy rate", "inflation gap", "output gap", "泰勒规则", "政策利率", "通胀缺口", "产出缺口"],
+        "reason": "The prompt targets policy-rate response to macro gaps.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "econometrics_baseline",
+        "model_type": "fixed_effects",
+        "label": "Fixed Effects",
+        "terms": ["panel", "fixed effects", "firm year", "company year", "country year", "面板", "固定效应", "公司年度", "国家年度"],
+        "reason": "The prompt suggests a panel structure with unit and time dimensions.",
+    },
+    {
+        "workflow_type": "model",
+        "processing_family": "",
+        "model_family": "econometrics_baseline",
+        "model_type": "logit",
+        "label": "Logit",
+        "terms": ["probability", "binary outcome", "default probability", "likelihood", "概率", "二元结果", "违约概率", "可能性"],
+        "reason": "The prompt describes a binary outcome or probability question.",
+    },
+]
+
+ROLE_KEYWORDS: dict[str, set[str]] = {
+    "dependent": {"outcome", "dependent", "response", "target", "effect", "impact", "result", "因变量", "结果", "被解释", "影响", "收益", "回报", "利润", "销售", "收入", "价格", "增长", "风险", "波动", "通胀", "产出"},
+    "independent": {"independent", "explanatory", "driver", "exposure", "factor", "key variable", "解释变量", "自变量", "驱动", "暴露", "因素"},
+    "control": {"control", "covariate", "adjust", "baseline", "固定特征", "控制变量", "协变量", "调整"},
+    "treatment": {"treatment", "policy", "reform", "shock", "intervention", "treated", "处理", "政策", "改革", "冲击", "干预", "试点"},
+    "post": {"post", "after", "later", "post period", "事后", "政策后", "改革后", "之后"},
+    "entity": {"firm", "company", "bank", "country", "city", "province", "region", "stock", "asset", "household", "entity", "unit", "企业", "公司", "银行", "国家", "城市", "省份", "地区", "股票", "资产", "个体", "单位"},
+    "time": {"time", "date", "year", "quarter", "month", "week", "day", "period", "时间", "日期", "年份", "季度", "月份", "周", "天", "时期"},
+    "event_time": {"event time", "relative time", "lead lag", "relative period", "事件时间", "相对时间", "提前期", "滞后期"},
+    "running": {"running", "score", "cutoff", "threshold", "forcing", "门槛", "阈值", "分数", "运行变量"},
+    "instrument": {"instrument", "iv", "exogenous", "工具", "工具变量", "外生"},
+    "market": {"market", "benchmark", "mkt", "市场"},
+    "risk_free": {"risk free", "rf", "无风险"},
+    "smb": {"smb", "size factor", "规模因子"},
+    "hml": {"hml", "value factor", "价值因子"},
+    "distance": {"distance", "dist", "公里", "距离"},
+    "origin_mass": {"origin", "exporter", "origin gdp", "起点", "出口方", "始发地"},
+    "destination_mass": {"destination", "importer", "destination gdp", "终点", "进口方", "目的地"},
+    "series": {"return", "price", "yield", "series", "收益率", "价格", "收益", "序列", "利率"},
+    "impulse": {"impulse", "shock", "policy shock", "shock variable", "冲击", "脉冲"},
+    "response": {"response", "responding variable", "affected series", "响应", "反应变量"},
+    "spot": {"spot", "underlying", "现价", "标的"},
+    "strike": {"strike", "执行价"},
+    "maturity": {"maturity", "tenor", "expiry", "到期", "期限"},
+    "rate": {"rate", "interest", "利率"},
+    "volatility": {"volatility", "sigma", "波动率"},
+    "working_capital": {"working capital", "营运资本"},
+    "retained_earnings": {"retained earnings", "留存收益"},
+    "ebit": {"ebit"},
+    "market_equity": {"market equity", "market cap", "市值", "权益市值"},
+    "total_assets": {"total assets", "assets", "总资产", "资产总额"},
+    "total_liabilities": {"total liabilities", "liabilities", "总负债", "负债总额"},
+    "sales": {"sales", "revenue", "turnover", "销售", "营收", "收入"},
+    "net_income": {"net income", "profit", "净利润", "利润"},
+    "revenue": {"revenue", "sales", "营收", "收入"},
+    "equity": {"equity", "book equity", "净资产", "权益"},
+    "inflation_gap": {"inflation gap", "inflation", "通胀缺口", "通胀"},
+    "output_gap": {"output gap", "gdp gap", "产出缺口", "产出"},
+}
 
 
 def _safe_float(value: Any) -> float | None:
@@ -1146,6 +1416,512 @@ def profile_dataset_asset(
     }
 
 
+def _analysis_text_tokens(text: str) -> list[str]:
+    normalized = (text or "").replace("_", " ").replace("-", " ").lower()
+    return [token for token in re.findall(r"[\u4e00-\u9fff]+|[a-z0-9]+", normalized) if token]
+
+
+def _column_text_for_matching(column: dict[str, Any]) -> str:
+    return f"{column.get('name', '')} {column.get('source_name', '')}".strip().lower()
+
+
+def _column_token_set(column: dict[str, Any]) -> set[str]:
+    return set(_analysis_text_tokens(_column_text_for_matching(column)))
+
+
+def _column_exact_mention(prompt_lower: str, column: dict[str, Any]) -> bool:
+    names = {str(column.get("name", "")).strip().lower(), str(column.get("source_name", "")).strip().lower()}
+    return any(name and name in prompt_lower for name in names)
+
+
+def _rank_variable_candidates(
+    column_profiles: list[dict[str, Any]],
+    *,
+    prompt_text: str,
+    role_name: str,
+    expected_roles: set[str],
+    role_keywords: set[str],
+) -> list[dict[str, Any]]:
+    prompt_lower = prompt_text.lower()
+    prompt_tokens = set(_analysis_text_tokens(prompt_text))
+    prompt_keyword_tokens: set[str] = set()
+    for keyword in role_keywords:
+        if keyword in prompt_lower:
+            prompt_keyword_tokens.update(_analysis_text_tokens(keyword))
+
+    ranked: list[dict[str, Any]] = []
+    for column in column_profiles:
+        column_tokens = _column_token_set(column)
+        score = 0
+        reasons: list[str] = []
+
+        if expected_roles and column.get("role") in expected_roles:
+            score += 4
+            reasons.append(f"column role `{column.get('role')}` matches the expected {role_name} type")
+        if role_name == "entity" and column.get("role") in {"categorical", "text"}:
+            score += 2
+            reasons.append("entity variables are often categorical or text-like identifiers")
+        if role_name == "time" and column.get("role") == "date":
+            score += 3
+            reasons.append("time variables usually appear as parsed dates")
+        if role_name == "post" and column.get("role") == "binary":
+            score += 2
+            reasons.append("post indicators are usually binary")
+        if role_name == "treatment" and column.get("role") == "binary":
+            score += 2
+            reasons.append("treatment indicators are usually binary")
+
+        if _column_exact_mention(prompt_lower, column):
+            score += 8
+            reasons.append("the column name is explicitly mentioned in the prompt")
+
+        shared_prompt_tokens = sorted(prompt_tokens.intersection(column_tokens))
+        if shared_prompt_tokens:
+            score += min(3, len(shared_prompt_tokens)) * 2
+            reasons.append(f"shares prompt terms: {', '.join(shared_prompt_tokens[:3])}")
+
+        shared_role_tokens = sorted(prompt_keyword_tokens.intersection(column_tokens))
+        if shared_role_tokens:
+            score += min(3, len(shared_role_tokens)) * 3
+            reasons.append(f"matches {role_name} keywords: {', '.join(shared_role_tokens[:3])}")
+
+        if not score and expected_roles and column.get("role") in expected_roles:
+            score = 1
+            reasons.append("fallback candidate because the column role matches the expected type")
+
+        if score <= 0:
+            continue
+
+        ranked.append(
+            {
+                "column": column.get("name"),
+                "source_name": column.get("source_name"),
+                "role": column.get("role"),
+                "score": int(score),
+                "reasons": reasons,
+            }
+        )
+
+    ranked.sort(key=lambda item: (-int(item["score"]), str(item["column"])))
+    return ranked
+
+
+def _top_candidate(
+    rankings: dict[str, list[dict[str, Any]]],
+    role_name: str,
+    *,
+    exclude: set[str] | None = None,
+) -> str:
+    blocked = exclude or set()
+    for item in rankings.get(role_name, []):
+        value = str(item.get("column", ""))
+        if value and value not in blocked:
+            return value
+    return ""
+
+
+def _preferred_controls(
+    column_profiles: list[dict[str, Any]],
+    rankings: dict[str, list[dict[str, Any]]],
+    *,
+    exclude: set[str],
+    limit: int = 3,
+) -> list[str]:
+    chosen: list[str] = []
+    for item in rankings.get("control", []):
+        value = str(item.get("column", ""))
+        if value and value not in exclude and value not in chosen:
+            chosen.append(value)
+        if len(chosen) >= limit:
+            return chosen
+    for column in column_profiles:
+        if column.get("role") == "numeric":
+            value = str(column.get("name", ""))
+            if value and value not in exclude and value not in chosen:
+                chosen.append(value)
+            if len(chosen) >= limit:
+                break
+    return chosen
+
+
+def _choose_beginner_intent(prompt_text: str, profile: dict[str, Any]) -> tuple[dict[str, Any], list[str], list[str]]:
+    prompt_lower = prompt_text.lower()
+    available_models = set(profile.get("suggested_models", []))
+    best_rule: dict[str, Any] | None = None
+    best_score = -1
+    matched_terms: list[str] = []
+    for rule in BEGINNER_INTENT_RULES:
+        hits = [term for term in rule["terms"] if str(term) in prompt_lower]
+        if not hits:
+            continue
+        if rule["workflow_type"] == "model" and available_models and str(rule["model_type"]) not in available_models:
+            continue
+        score = len(hits)
+        if score > best_score:
+            best_rule = rule
+            best_score = score
+            matched_terms = hits
+
+    reasoning: list[str] = []
+    if best_rule is None:
+        has_time = bool(profile.get("column_roles", {}).get("date"))
+        has_binary = len(profile.get("column_roles", {}).get("binary", [])) >= 2
+        has_panel = has_time and bool(profile.get("column_roles", {}).get("categorical") or profile.get("column_roles", {}).get("text"))
+        if has_binary and any(term in prompt_lower for term in ["policy", "reform", "政策", "改革", "treated", "treatment"]):
+            best_rule = next(rule for rule in BEGINNER_INTENT_RULES if rule.get("model_type") == "did")
+            matched_terms = ["policy-style treatment language"]
+        elif has_time and any(term in prompt_lower for term in ["forecast", "predict", "预测"]):
+            best_rule = next(rule for rule in BEGINNER_INTENT_RULES if rule.get("model_type") == "arima")
+            matched_terms = ["forecast language"]
+        elif has_panel:
+            best_rule = next(rule for rule in BEGINNER_INTENT_RULES if rule.get("model_type") == "fixed_effects")
+            matched_terms = ["panel-like dataset structure"]
+        elif len(profile.get("column_roles", {}).get("binary", [])) >= 1 and any(term in prompt_lower for term in ["probability", "binary", "概率", "二元"]):
+            best_rule = next(rule for rule in BEGINNER_INTENT_RULES if rule.get("model_type") == "logit")
+            matched_terms = ["binary outcome language"]
+        else:
+            best_rule = {
+                "workflow_type": "model",
+                "processing_family": "",
+                "model_family": "econometrics_baseline",
+                "model_type": "ols",
+                "label": "OLS",
+                "reason": "No specific design dominates, so a baseline linear specification is the safest starting point.",
+            }
+            matched_terms = ["default baseline"]
+    reasoning.append(str(best_rule["reason"]))
+    if matched_terms:
+        reasoning.append(f"Matched prompt signals: {', '.join(matched_terms[:5])}.")
+    return best_rule, matched_terms, reasoning
+
+
+def suggest_beginner_variable_plan(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    prompt_text: str,
+) -> dict[str, Any]:
+    prompt = prompt_text.strip()
+    if len(prompt) < 8:
+        raise ValueError("Please describe the research question in more detail.")
+
+    profile = profile_dataset_asset(settings, db, user=user, workspace=workspace, asset_id=asset_id)
+    column_profiles = profile.get("column_profiles", [])
+    if not column_profiles:
+        raise ValueError("The selected dataset does not expose any usable columns.")
+
+    selected_intent, matched_terms, reasoning = _choose_beginner_intent(prompt, profile)
+    workflow_type = str(selected_intent["workflow_type"])
+    processing_family = str(selected_intent.get("processing_family") or "")
+    model_family = str(selected_intent.get("model_family") or "")
+    model_type = str(selected_intent.get("model_type") or "")
+
+    rankings: dict[str, list[dict[str, Any]]] = {}
+    ranking_specs = [
+        ("dependent", {"numeric"}, ROLE_KEYWORDS["dependent"]),
+        ("independent", {"numeric"}, ROLE_KEYWORDS["independent"]),
+        ("control", {"numeric"}, ROLE_KEYWORDS["control"]),
+        ("treatment", {"binary"}, ROLE_KEYWORDS["treatment"]),
+        ("post", {"binary"}, ROLE_KEYWORDS["post"]),
+        ("entity", {"categorical", "text"}, ROLE_KEYWORDS["entity"]),
+        ("time", {"date", "categorical", "text"}, ROLE_KEYWORDS["time"]),
+        ("event_time", {"numeric"}, ROLE_KEYWORDS["event_time"]),
+        ("running", {"numeric"}, ROLE_KEYWORDS["running"]),
+        ("instrument", {"numeric"}, ROLE_KEYWORDS["instrument"]),
+        ("market", {"numeric"}, ROLE_KEYWORDS["market"]),
+        ("risk_free", {"numeric"}, ROLE_KEYWORDS["risk_free"]),
+        ("smb", {"numeric"}, ROLE_KEYWORDS["smb"]),
+        ("hml", {"numeric"}, ROLE_KEYWORDS["hml"]),
+        ("distance", {"numeric"}, ROLE_KEYWORDS["distance"]),
+        ("origin_mass", {"numeric"}, ROLE_KEYWORDS["origin_mass"]),
+        ("destination_mass", {"numeric"}, ROLE_KEYWORDS["destination_mass"]),
+        ("series", {"numeric"}, ROLE_KEYWORDS["series"]),
+        ("impulse", {"numeric"}, ROLE_KEYWORDS["impulse"]),
+        ("response", {"numeric"}, ROLE_KEYWORDS["response"]),
+        ("spot", {"numeric"}, ROLE_KEYWORDS["spot"]),
+        ("strike", {"numeric"}, ROLE_KEYWORDS["strike"]),
+        ("maturity", {"numeric"}, ROLE_KEYWORDS["maturity"]),
+        ("rate", {"numeric"}, ROLE_KEYWORDS["rate"]),
+        ("volatility", {"numeric"}, ROLE_KEYWORDS["volatility"]),
+        ("working_capital", {"numeric"}, ROLE_KEYWORDS["working_capital"]),
+        ("retained_earnings", {"numeric"}, ROLE_KEYWORDS["retained_earnings"]),
+        ("ebit", {"numeric"}, ROLE_KEYWORDS["ebit"]),
+        ("market_equity", {"numeric"}, ROLE_KEYWORDS["market_equity"]),
+        ("total_assets", {"numeric"}, ROLE_KEYWORDS["total_assets"]),
+        ("total_liabilities", {"numeric"}, ROLE_KEYWORDS["total_liabilities"]),
+        ("sales", {"numeric"}, ROLE_KEYWORDS["sales"]),
+        ("net_income", {"numeric"}, ROLE_KEYWORDS["net_income"]),
+        ("revenue", {"numeric"}, ROLE_KEYWORDS["revenue"]),
+        ("equity", {"numeric"}, ROLE_KEYWORDS["equity"]),
+        ("inflation_gap", {"numeric"}, ROLE_KEYWORDS["inflation_gap"]),
+        ("output_gap", {"numeric"}, ROLE_KEYWORDS["output_gap"]),
+    ]
+    for role_name, expected_roles, keywords in ranking_specs:
+        rankings[role_name] = _rank_variable_candidates(
+            column_profiles,
+            prompt_text=prompt,
+            role_name=role_name,
+            expected_roles=expected_roles,
+            role_keywords=keywords,
+        )
+
+    recommended: dict[str, Any] = {
+        "workflow_type": workflow_type,
+        "processing_family": processing_family,
+        "model_family": model_family,
+        "model_type": model_type,
+    }
+    prefill: dict[str, Any] = {"workflow_type": workflow_type}
+    suggested_roles: list[dict[str, Any]] = []
+    chosen_columns: set[str] = set()
+
+    def add_role(role_key: str, label: str, value: str, role_type: str = "single") -> None:
+        if not value:
+            return
+        chosen_columns.add(value)
+        candidate = next((item for item in rankings.get(role_key, []) if item.get("column") == value), None)
+        suggested_roles.append(
+            {
+                "role": role_key,
+                "label": label,
+                "type": role_type,
+                "value": value,
+                "source_name": candidate.get("source_name") if candidate else value,
+                "reasoning": candidate.get("reasons", []) if candidate else [],
+            }
+        )
+
+    if workflow_type == "data_processing":
+        if processing_family == "visualization":
+            x_column = _top_candidate(rankings, "time") or _top_candidate(rankings, "entity") or _top_candidate(rankings, "independent")
+            y_column = _top_candidate(rankings, "dependent")
+            prefill.update({"processing_family": "visualization", "plot_x_column": x_column, "plot_y_columns": [y_column] if y_column else [], "plot_group_column": _top_candidate(rankings, "entity"), "required_columns": [value for value in [x_column, y_column] if value]})
+            add_role("time", "X variable", x_column)
+            add_role("dependent", "Y variable", y_column)
+            group_value = _top_candidate(rankings, "entity", exclude={x_column, y_column})
+            if group_value:
+                add_role("entity", "Group / color", group_value)
+        elif processing_family == "time_series_features":
+            sort_column = _top_candidate(rankings, "time")
+            series_values = [str(item.get("column")) for item in rankings.get("series", []) if item.get("column")][:3]
+            prefill.update({"processing_family": "time_series_features", "sort_column": sort_column, "time_group_column": _top_candidate(rankings, "entity"), "return_columns": series_values, "difference_columns": series_values[:2], "required_columns": [value for value in [sort_column, *series_values] if value]})
+            add_role("time", "Sort / time column", sort_column)
+            for value in series_values:
+                add_role("series", "Series column", value, role_type="multi")
+        else:
+            dependent = _top_candidate(rankings, "dependent")
+            independents = [str(item.get("column")) for item in rankings.get("independent", []) if item.get("column") and item.get("column") != dependent][:3]
+            required_columns = [value for value in [dependent, *independents] if value]
+            numeric_columns = [value for value in required_columns if value in set(profile.get("column_roles", {}).get("numeric", []))]
+            binary_columns = [value for value in required_columns if value in set(profile.get("column_roles", {}).get("binary", []))]
+            date_columns = [value for value in required_columns if value in set(profile.get("column_roles", {}).get("date", []))]
+            prefill.update({"processing_family": processing_family or "sample_preparation", "include_columns": required_columns, "required_columns": required_columns, "numeric_columns": numeric_columns, "binary_columns": binary_columns, "date_columns": date_columns})
+            add_role("dependent", "Priority variable", dependent)
+            for value in independents:
+                add_role("independent", "Supporting variable", value, role_type="multi")
+    else:
+        if model_type in {"logit", "probit"}:
+            rankings["dependent"] = _rank_variable_candidates(column_profiles, prompt_text=prompt, role_name="dependent", expected_roles={"binary"}, role_keywords=ROLE_KEYWORDS["dependent"])
+        dependent = _top_candidate(rankings, "dependent")
+        if model_type == "var":
+            series_columns = [str(item.get("column")) for item in rankings.get("series", []) if item.get("column")][:3]
+            prefill.update({"model_family": model_family, "model_type": model_type, "series_columns": series_columns, "time_column": _top_candidate(rankings, "time")})
+            for value in series_columns:
+                add_role("series", "Series variable", value, role_type="multi")
+        else:
+            independents = [str(item.get("column")) for item in rankings.get("independent", []) if item.get("column") and item.get("column") != dependent][:3]
+            controls = _preferred_controls(column_profiles, rankings, exclude={value for value in [dependent, *independents] if value})
+            prefill.update({"model_family": model_family, "model_type": model_type, "dependent": dependent, "independents": independents, "controls": controls})
+            add_role("dependent", "Recommended outcome variable", dependent)
+            for value in independents:
+                add_role("independent", "Recommended explanatory variable", value, role_type="multi")
+            for value in controls:
+                if value not in {role["value"] for role in suggested_roles}:
+                    suggested_roles.append({"role": "control", "label": "Suggested control", "type": "multi", "value": value, "source_name": value, "reasoning": []})
+        if model_type in {"did", "event_study"}:
+            treatment = _top_candidate(rankings, "treatment", exclude=chosen_columns)
+            prefill["treatment_column"] = treatment
+            add_role("treatment", "Treatment indicator", treatment)
+        if model_type == "did":
+            post = _top_candidate(rankings, "post", exclude=chosen_columns)
+            prefill["post_column"] = post
+            add_role("post", "Post indicator", post)
+        if model_type == "event_study":
+            event_time = _top_candidate(rankings, "event_time", exclude=chosen_columns) or _top_candidate(rankings, "time", exclude=chosen_columns)
+            prefill["event_time_column"] = event_time
+            add_role("event_time", "Relative event time", event_time)
+        if model_type in {"fixed_effects", "panel_iv", "event_study"}:
+            entity = _top_candidate(rankings, "entity", exclude=chosen_columns)
+            time_column = _top_candidate(rankings, "time", exclude=chosen_columns)
+            prefill["entity_column"] = entity
+            prefill["time_column"] = time_column
+            add_role("entity", "Entity / unit column", entity)
+            add_role("time", "Time column", time_column)
+        if model_type == "rdd":
+            running = _top_candidate(rankings, "running", exclude=chosen_columns)
+            prefill["running_column"] = running
+            add_role("running", "Running variable", running)
+        if model_type == "gravity":
+            origin_mass = _top_candidate(rankings, "origin_mass", exclude=chosen_columns) or _top_candidate(rankings, "independent", exclude=chosen_columns)
+            destination_mass = _top_candidate(rankings, "destination_mass", exclude=chosen_columns | {origin_mass}) or _top_candidate(rankings, "control", exclude=chosen_columns | {origin_mass})
+            distance = _top_candidate(rankings, "distance", exclude=chosen_columns | {origin_mass, destination_mass})
+            prefill["origin_mass_column"] = origin_mass
+            prefill["destination_mass_column"] = destination_mass
+            prefill["distance_column"] = distance
+            add_role("origin_mass", "Origin mass", origin_mass)
+            add_role("destination_mass", "Destination mass", destination_mass)
+            add_role("distance", "Distance variable", distance)
+        if model_type in {"iv_2sls", "panel_iv"}:
+            endogenous = prefill.get("independents", [None])[0] or _top_candidate(rankings, "independent", exclude=chosen_columns)
+            instruments = [str(item.get("column")) for item in rankings.get("instrument", []) if item.get("column") and item.get("column") not in chosen_columns and item.get("column") != endogenous][:2]
+            prefill["endogenous_column"] = str(endogenous or "")
+            prefill["instrument_columns"] = instruments
+            add_role("independent", "Endogenous regressor", str(endogenous or ""))
+            for value in instruments:
+                add_role("instrument", "Instrument variable", value, role_type="multi")
+        if model_type in {"arima", "arch", "garch", "virf", "historical_var", "parametric_var", "ewma_volatility"}:
+            time_column = _top_candidate(rankings, "time", exclude=chosen_columns)
+            prefill["time_column"] = time_column
+            add_role("time", "Time column", time_column)
+        if model_type in {"arch", "garch", "virf"}:
+            volatility_target = dependent or _top_candidate(rankings, "series", exclude=chosen_columns) or _top_candidate(rankings, "dependent", exclude=chosen_columns)
+            prefill["dependent"] = volatility_target
+            add_role("series", "Return series", volatility_target)
+        if model_type in {"svar_irf", "dy_connectedness", "bk_connectedness"}:
+            time_column = _top_candidate(rankings, "time", exclude=chosen_columns)
+            series_values = [str(item.get("column")) for item in rankings.get("series", []) if item.get("column")][:4]
+            prefill["time_column"] = time_column
+            prefill["series_columns"] = series_values
+            add_role("time", "Time column", time_column)
+            for value in series_values:
+                add_role("series", "System series", value, role_type="multi")
+        if model_type == "svar_irf":
+            impulse_value = _top_candidate(rankings, "impulse", exclude=chosen_columns) or (prefill.get("series_columns") or [None])[0]
+            response_value = _top_candidate(rankings, "response", exclude=chosen_columns | {str(impulse_value or "")}) or ((prefill.get("series_columns") or [None, None])[1] if len(prefill.get("series_columns") or []) > 1 else "")
+            prefill["impulse_column"] = impulse_value
+            prefill["response_column"] = response_value
+            add_role("impulse", "Impulse variable", str(impulse_value or ""))
+            add_role("response", "Response variable", str(response_value or ""))
+        if model_type in {"capm", "fama_french_3"}:
+            market_column = _top_candidate(rankings, "market", exclude=chosen_columns)
+            risk_free_column = _top_candidate(rankings, "risk_free", exclude=chosen_columns | {market_column})
+            prefill["market_column"] = market_column
+            prefill["risk_free_column"] = risk_free_column
+            add_role("market", "Market factor", market_column)
+            if risk_free_column:
+                add_role("risk_free", "Risk-free rate", risk_free_column)
+            if model_type == "fama_french_3":
+                smb_column = _top_candidate(rankings, "smb", exclude=chosen_columns | {market_column, risk_free_column})
+                hml_column = _top_candidate(rankings, "hml", exclude=chosen_columns | {market_column, risk_free_column, smb_column})
+                prefill["smb_column"] = smb_column
+                prefill["hml_column"] = hml_column
+                add_role("smb", "SMB factor", smb_column)
+                add_role("hml", "HML factor", hml_column)
+        if model_type in {"mean_variance", "minimum_variance", "risk_parity"}:
+            series_columns = [str(item.get("column")) for item in rankings.get("series", []) if item.get("column")][:4]
+            prefill["series_columns"] = series_columns
+            for value in series_columns:
+                add_role("series", "Return series", value, role_type="multi")
+        if model_type in {"black_scholes", "binomial_option"}:
+            for role_key, field_name, label in [
+                ("spot", "spot_column", "Spot price"),
+                ("strike", "strike_column", "Strike"),
+                ("maturity", "maturity_column", "Time to maturity"),
+                ("rate", "rate_column", "Risk-free rate"),
+                ("volatility", "volatility_column", "Volatility"),
+            ]:
+                value = _top_candidate(rankings, role_key, exclude=chosen_columns)
+                prefill[field_name] = value
+                add_role(role_key, label, value)
+        if model_type == "altman_z":
+            for role_key, field_name, label in [
+                ("working_capital", "working_capital_column", "Working capital"),
+                ("retained_earnings", "retained_earnings_column", "Retained earnings"),
+                ("ebit", "ebit_column", "EBIT"),
+                ("market_equity", "market_equity_column", "Market equity"),
+                ("sales", "sales_column", "Sales"),
+                ("total_assets", "total_assets_column", "Total assets"),
+                ("total_liabilities", "total_liabilities_column", "Total liabilities"),
+            ]:
+                value = _top_candidate(rankings, role_key, exclude=chosen_columns)
+                prefill[field_name] = value
+                add_role(role_key, label, value)
+        if model_type == "dupont":
+            for role_key, field_name, label in [
+                ("net_income", "net_income_column", "Net income"),
+                ("revenue", "revenue_column", "Revenue"),
+                ("total_assets", "total_assets_column", "Total assets"),
+                ("equity", "equity_column", "Equity"),
+            ]:
+                value = _top_candidate(rankings, role_key, exclude=chosen_columns)
+                prefill[field_name] = value
+                add_role(role_key, label, value)
+        if model_type == "taylor_rule":
+            inflation_gap = _top_candidate(rankings, "inflation_gap", exclude=chosen_columns)
+            output_gap = _top_candidate(rankings, "output_gap", exclude=chosen_columns | {inflation_gap})
+            prefill["inflation_gap_column"] = inflation_gap
+            prefill["output_gap_column"] = output_gap
+            add_role("inflation_gap", "Inflation gap", inflation_gap)
+            add_role("output_gap", "Output gap", output_gap)
+
+    recommended_title = str(selected_intent.get("label") or (model_type or processing_family or "Data Lab"))
+    manual_checklist = [
+        "Read the suggested role cards and confirm they match the actual research design, not just the column names.",
+        "Open the dataset profile and compare the selected columns against the preview rows before running the workbench.",
+        "If the recommended model is DID, Event Study, RDD, or IV, manually verify the identifying variables before trusting the estimate.",
+        "After applying the suggestions, open the detail page for the selected method family and check the manual checklist there as well.",
+    ]
+    if workflow_type == "model":
+        manual_checklist.append("Treat the suggested controls as a starting point, not a final causal specification.")
+
+    numeric_roles = set(profile.get("column_roles", {}).get("numeric", []))
+    binary_roles = set(profile.get("column_roles", {}).get("binary", []))
+    date_roles = set(profile.get("column_roles", {}).get("date", []))
+    preparation_hints = {
+        "required_columns": list(dict.fromkeys([role["value"] for role in suggested_roles if role["value"]])),
+        "numeric_columns": list(dict.fromkeys([role["value"] for role in suggested_roles if role["value"] in numeric_roles])),
+        "binary_columns": list(dict.fromkeys([role["value"] for role in suggested_roles if role["value"] in binary_roles])),
+        "date_columns": list(dict.fromkeys([role["value"] for role in suggested_roles if role["value"] in date_roles])),
+    }
+    prefill.setdefault("required_columns", preparation_hints["required_columns"])
+    prefill.setdefault("numeric_columns", preparation_hints["numeric_columns"])
+    prefill.setdefault("binary_columns", preparation_hints["binary_columns"])
+    prefill.setdefault("date_columns", preparation_hints["date_columns"])
+
+    return {
+        "prompt": prompt,
+        "summary": f"Recommended starting workflow: {recommended_title}. Use it as a first-pass specification, then verify the variable roles manually.",
+        "workflow_recommendation": {
+            "workflow_type": workflow_type,
+            "processing_family": processing_family,
+            "model_family": model_family,
+            "model_type": model_type,
+            "label": recommended_title,
+        },
+        "reasoning": reasoning,
+        "suggested_roles": suggested_roles,
+        "preparation_hints": preparation_hints,
+        "prefill": prefill,
+        "candidate_rankings": rankings,
+        "manual_checklist": manual_checklist,
+        "transparency": {
+            "prompt_tokens": _analysis_text_tokens(prompt),
+            "matched_intent_terms": matched_terms,
+            "dataset_signals": {
+                "numeric_columns": len(profile.get("column_roles", {}).get("numeric", [])),
+                "binary_columns": len(profile.get("column_roles", {}).get("binary", [])),
+                "date_columns": len(profile.get("column_roles", {}).get("date", [])),
+                "categorical_columns": len(profile.get("column_roles", {}).get("categorical", [])),
+                "text_columns": len(profile.get("column_roles", {}).get("text", [])),
+                "suggested_models": profile.get("suggested_models", []),
+            },
+        },
+    }
+
+
 def build_processing_result_detail(
     settings: Settings,
     db: Session,
@@ -1608,6 +2384,293 @@ def _sort_sample_by_time(sample: pd.DataFrame, time_column: str) -> pd.DataFrame
             prepared["__sort_time"] = prepared[time_column].astype(str)
     prepared = prepared.sort_values("__sort_time").drop(columns="__sort_time")
     return prepared
+
+
+def _frame_records(frame: pd.DataFrame, *, limit: int | None = None) -> list[dict[str, Any]]:
+    view = frame.head(limit) if limit is not None else frame
+    records: list[dict[str, Any]] = []
+    for row in view.to_dict(orient="records"):
+        records.append({str(key): _serialize_preview_value(value) for key, value in row.items()})
+    return records
+
+
+def _coerce_named_series(values: Any, names: list[str]) -> pd.Series:
+    if values is None:
+        return pd.Series([None] * len(names), index=names, dtype="object")
+    if hasattr(values, "index"):
+        series = pd.Series(values)
+        return series.reindex(names)
+    return pd.Series(list(values), index=names)
+
+
+def _parameter_table(
+    params: Any,
+    *,
+    std_errors: Any = None,
+    tvalues: Any = None,
+    pvalues: Any = None,
+) -> list[dict[str, Any]]:
+    if hasattr(params, "index"):
+        names = [str(item) for item in params.index]
+        param_series = pd.Series(params).reindex(names)
+    else:
+        values = list(params)
+        names = [f"param_{index + 1}" for index in range(len(values))]
+        param_series = pd.Series(values, index=names)
+    std_series = _coerce_named_series(std_errors, names)
+    t_series = _coerce_named_series(tvalues, names)
+    p_series = _coerce_named_series(pvalues, names)
+    rows: list[dict[str, Any]] = []
+    for name in names:
+        rows.append(
+            {
+                "term": name,
+                "coefficient": _safe_float(param_series.get(name)),
+                "std_error": _safe_float(std_series.get(name)),
+                "t_stat": _safe_float(t_series.get(name)),
+                "p_value": _safe_float(p_series.get(name)),
+            }
+        )
+    return rows
+
+
+def _save_model_figure_asset(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    source_asset: DataAsset,
+    figure: Any,
+    filename_slug: str,
+    title: str,
+    summary: str,
+) -> dict[str, Any]:
+    buffer = BytesIO()
+    figure.savefig(buffer, format="png", bbox_inches="tight")
+    plt.close(figure)
+    filename = f"{Path(source_asset.title).stem}-{filename_slug}.png"
+    chart_asset = save_upload_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        filename=filename,
+        content=buffer.getvalue(),
+        content_type="image/png",
+        description=summary,
+    )
+    chart_asset.metadata_json = {
+        **(chart_asset.metadata_json or {}),
+        "analysis_kind": "model_figure",
+        "source_model": title,
+        "source_asset_id": source_asset.id,
+        "summary": summary,
+    }
+    db.flush()
+    return {
+        "asset_id": chart_asset.id,
+        "title": title,
+        "summary": summary,
+        "download_url": f"/api/assets/{chart_asset.id}/download",
+        "asset": serialize_asset(chart_asset),
+    }
+
+
+def _prepare_time_series_sample(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    series_columns: list[str],
+    time_column: str = "",
+    min_rows: int = 24,
+) -> tuple[DataAsset, pd.DataFrame]:
+    series_columns = [column for column in series_columns if column]
+    if not series_columns:
+        raise ValueError("At least one series column is required.")
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    required_columns = [*series_columns, *([time_column] if time_column else [])]
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+    sample = frame[required_columns].copy()
+    for column in series_columns:
+        sample[column] = _coerce_numeric_series(sample[column])
+    sample = sample.dropna().copy()
+    if time_column:
+        sample = _sort_sample_by_time(sample, time_column)
+    if len(sample) < min_rows:
+        raise ValueError(f"At least {min_rows} complete observations are required for the selected time-series model.")
+    return asset, sample
+
+
+def _var_ma_matrices(coefs: np.ndarray, horizon: int) -> list[np.ndarray]:
+    order, dimension, _ = coefs.shape
+    matrices = [np.eye(dimension)]
+    for step in range(1, horizon):
+        current = np.zeros((dimension, dimension))
+        for lag in range(1, min(order, step) + 1):
+            current += coefs[lag - 1] @ matrices[step - lag]
+        matrices.append(current)
+    return matrices
+
+
+def _generalized_fevd(
+    coefs: np.ndarray,
+    sigma_u: np.ndarray,
+    *,
+    horizon: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    matrices = _var_ma_matrices(coefs, horizon)
+    count = sigma_u.shape[0]
+    raw = np.zeros((count, count), dtype=float)
+    for row_index in range(count):
+        denominator = 0.0
+        for matrix in matrices:
+            denominator += float((matrix @ sigma_u @ matrix.T)[row_index, row_index])
+        if denominator <= 0:
+            continue
+        for shock_index in range(count):
+            sigma_jj = float(sigma_u[shock_index, shock_index])
+            if sigma_jj <= 0:
+                continue
+            numerator = 0.0
+            for matrix in matrices:
+                impact = float((matrix @ sigma_u)[row_index, shock_index])
+                numerator += (impact**2) / sigma_jj
+            raw[row_index, shock_index] = numerator / denominator
+    row_sums = raw.sum(axis=1, keepdims=True)
+    normalized = np.divide(raw, row_sums, out=np.zeros_like(raw), where=row_sums > 0)
+    return raw, normalized
+
+
+def _connectedness_matrix_rows(matrix: np.ndarray, labels: list[str]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for row_index, label in enumerate(labels):
+        record = {"variable": label}
+        for column_index, column_label in enumerate(labels):
+            record[column_label] = float(matrix[row_index, column_index] * 100.0)
+        rows.append(record)
+    return rows
+
+
+def _directional_connectedness_rows(matrix: np.ndarray, labels: list[str]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for index, label in enumerate(labels):
+        from_others = float((matrix[index, :].sum() - matrix[index, index]) * 100.0)
+        to_others = float((matrix[:, index].sum() - matrix[index, index]) * 100.0)
+        rows.append(
+            {
+                "variable": label,
+                "from_others": from_others,
+                "to_others": to_others,
+                "net": to_others - from_others,
+                "own_share": float(matrix[index, index] * 100.0),
+            }
+        )
+    return rows
+
+
+def _connectedness_heatmap_figure(matrix: np.ndarray, labels: list[str], *, title: str) -> Any:
+    figure, axis = plt.subplots(figsize=(7.4, 5.8), dpi=160)
+    image = axis.imshow(matrix * 100.0, cmap="YlGnBu")
+    axis.set_xticks(range(len(labels)))
+    axis.set_xticklabels(labels, rotation=35, ha="right")
+    axis.set_yticks(range(len(labels)))
+    axis.set_yticklabels(labels)
+    axis.set_title(title)
+    for row_index in range(matrix.shape[0]):
+        for column_index in range(matrix.shape[1]):
+            axis.text(
+                column_index,
+                row_index,
+                f"{matrix[row_index, column_index] * 100.0:.1f}",
+                ha="center",
+                va="center",
+                color="#10231d",
+                fontsize=8,
+            )
+    figure.colorbar(image, ax=axis, fraction=0.046, pad=0.04, label="Percent of forecast error variance")
+    figure.tight_layout()
+    return figure
+
+
+def _band_frequency_masks(short_horizon: int, medium_horizon: int, frequencies: np.ndarray) -> list[tuple[str, np.ndarray]]:
+    short_h = max(2, int(short_horizon))
+    medium_h = max(short_h + 1, int(medium_horizon))
+    short_cut = min(np.pi, 2.0 * np.pi / short_h)
+    medium_cut = min(short_cut, 2.0 * np.pi / medium_h)
+    short_mask = frequencies >= short_cut
+    medium_mask = (frequencies >= medium_cut) & (frequencies < short_cut)
+    long_mask = frequencies < medium_cut
+    return [
+        (f"Short (<= {short_h})", short_mask),
+        (f"Medium ({short_h + 1}-{medium_h})", medium_mask),
+        (f"Long (> {medium_h})", long_mask),
+    ]
+
+
+def _bk_frequency_connectedness(
+    coefs: np.ndarray,
+    sigma_u: np.ndarray,
+    *,
+    short_horizon: int,
+    medium_horizon: int,
+    truncation_horizon: int,
+    grid_points: int = 256,
+) -> list[dict[str, Any]]:
+    matrices = _var_ma_matrices(coefs, max(int(truncation_horizon), int(medium_horizon) * 3, 80))
+    frequencies = np.linspace(1e-4, np.pi, int(grid_points))
+    count = sigma_u.shape[0]
+    sigma_diag = np.diag(sigma_u).astype(float)
+    total_power = np.zeros(count, dtype=float)
+    band_raw: list[tuple[str, np.ndarray]] = []
+    band_masks = _band_frequency_masks(short_horizon, medium_horizon, frequencies)
+    for band_name, _ in band_masks:
+        band_raw.append((band_name, np.zeros((count, count), dtype=float)))
+    for frequency_index, omega in enumerate(frequencies):
+        transfer = np.zeros((count, count), dtype=np.complex128)
+        for lag, matrix in enumerate(matrices):
+            transfer += matrix * np.exp(-1j * omega * lag)
+        spectral = transfer @ sigma_u @ transfer.conjugate().T
+        power = np.real(np.diag(spectral))
+        total_power += power
+        transformed = transfer @ sigma_u
+        contrib = np.zeros((count, count), dtype=float)
+        for row_index in range(count):
+            for shock_index in range(count):
+                if sigma_diag[shock_index] <= 0:
+                    continue
+                contrib[row_index, shock_index] = (abs(transformed[row_index, shock_index]) ** 2) / sigma_diag[shock_index]
+        for band_index, (_, mask) in enumerate(band_masks):
+            if mask[frequency_index]:
+                band_raw[band_index][1][:] = band_raw[band_index][1] + contrib
+    results: list[dict[str, Any]] = []
+    for band_name, raw_matrix in band_raw:
+        share_matrix = np.divide(raw_matrix, total_power[:, None], out=np.zeros_like(raw_matrix), where=total_power[:, None] > 0)
+        band_row_sums = share_matrix.sum(axis=1, keepdims=True)
+        normalized_matrix = np.divide(
+            share_matrix,
+            band_row_sums,
+            out=np.zeros_like(share_matrix),
+            where=band_row_sums > 0,
+        )
+        results.append(
+            {
+                "band": band_name,
+                "share_matrix": share_matrix,
+                "normalized_matrix": normalized_matrix,
+                "band_variance_share": float(np.nanmean(band_row_sums)) if np.isfinite(band_row_sums).any() else 0.0,
+                "total_connectedness_index": float(
+                    ((normalized_matrix.sum() - np.trace(normalized_matrix)) / max(normalized_matrix.shape[0], 1)) * 100.0
+                ),
+            }
+        )
+    return results
 
 
 def _normal_cdf(value: float) -> float:
@@ -2124,6 +3187,53 @@ def run_event_study_analysis(
         f"Relative event-time column: {event_time_column}.",
         f"Window: [{-int(lead_window)}, {int(lag_window)}], omitted period {int(omitted_period)}.",
     ]
+    dynamic_rows = [
+        {
+            "period": effect_map.get(item["term"]),
+            "term": item["term"],
+            "coefficient": item["coefficient"],
+            "std_error": item["std_error"],
+            "p_value": item["p_value"],
+        }
+        for item in _serialize_coefficients(fitted)
+        if item["term"] in effect_map
+    ]
+    dynamic_rows = sorted(dynamic_rows, key=lambda item: int(item["period"]))
+    if dynamic_rows:
+        periods_plot = np.array([int(item["period"]) for item in dynamic_rows], dtype=int)
+        coefficients_plot = np.array([float(item["coefficient"]) for item in dynamic_rows], dtype=float)
+        standard_errors = np.array([float(item["std_error"]) if item["std_error"] is not None else 0.0 for item in dynamic_rows], dtype=float)
+        figure, axis = plt.subplots(figsize=(9.4, 5.8), dpi=160)
+        axis.errorbar(
+            periods_plot,
+            coefficients_plot,
+            yerr=1.96 * standard_errors,
+            fmt="o-",
+            color="#0b5f45",
+            ecolor="#84a98c",
+            capsize=4,
+            linewidth=1.8,
+        )
+        axis.axhline(0.0, color="#7c4d1c", linewidth=1.0, linestyle="--")
+        axis.axvline(int(omitted_period), color="#c08c52", linewidth=1.0, linestyle=":")
+        axis.set_title("Event-study dynamic treatment effects")
+        axis.set_xlabel("Relative period")
+        axis.set_ylabel("Coefficient")
+        axis.grid(alpha=0.18, linestyle="--")
+        figure.tight_layout()
+        figure_asset = _save_model_figure_asset(
+            settings,
+            db,
+            user=user,
+            workspace=workspace,
+            source_asset=asset,
+            figure=figure,
+            filename_slug="event-study",
+            title="Event-study coefficient plot",
+            summary="Dynamic treatment-effect plot with 95% confidence bands from the event-study regression.",
+        )
+    else:
+        figure_asset = None
     payload = _model_result_payload(
         model_type="event_study",
         model_label="Event Study",
@@ -2140,17 +3250,8 @@ def run_event_study_analysis(
             "lead_window": int(lead_window),
             "lag_window": int(lag_window),
             "omitted_period": int(omitted_period),
-            "dynamic_effects": [
-                {
-                    "period": effect_map.get(item["term"]),
-                    "term": item["term"],
-                    "coefficient": item["coefficient"],
-                    "std_error": item["std_error"],
-                    "p_value": item["p_value"],
-                }
-                for item in _serialize_coefficients(fitted)
-                if item["term"] in effect_map
-            ],
+            "dynamic_effects": dynamic_rows,
+            "figures": [figure_asset] if figure_asset else [],
             "audit_trail": {
                 "derived_columns": derived_columns,
                 "filters": [
@@ -2239,6 +3340,64 @@ def run_rdd_analysis(
         f"Cutoff: {float(cutoff):.4f}.",
         f"Local treatment effect at cutoff: {local_effect:.4f}.",
     ]
+    grid = np.linspace(float(sample["running_centered"].min()), float(sample["running_centered"].max()), 120)
+    left_grid = grid[grid < 0]
+    right_grid = grid[grid >= 0]
+
+    def predict_side(grid_values: np.ndarray, treated_value: float) -> np.ndarray:
+        if grid_values.size == 0:
+            return np.array([], dtype=float)
+        design = pd.DataFrame({"const": np.ones(len(grid_values)), "rdd_treatment": treated_value}, index=np.arange(len(grid_values)))
+        for power in range(1, int(polynomial_order) + 1):
+            base_name = "running_centered" if power == 1 else f"running_centered_pow_{power}"
+            base_values = grid_values if power == 1 else grid_values**power
+            design[base_name] = base_values
+            design[f"rdd_treatment_x_{base_name}"] = treated_value * base_values
+        for column in controls:
+            design[column] = float(sample[column].mean())
+        design = design.reindex(columns=fitted.model.exog_names, fill_value=0.0)
+        return np.asarray(design.to_numpy() @ np.asarray(fitted.params), dtype=float)
+
+    figure, axis = plt.subplots(figsize=(9.4, 5.8), dpi=160)
+    scatter_frame = sample[[dependent, "running_centered", "rdd_treatment"]].copy()
+    axis.scatter(
+        scatter_frame.loc[scatter_frame["rdd_treatment"] == 0, "running_centered"],
+        scatter_frame.loc[scatter_frame["rdd_treatment"] == 0, dependent],
+        alpha=0.45,
+        s=18,
+        color="#0b5f45",
+        label="Below cutoff",
+    )
+    axis.scatter(
+        scatter_frame.loc[scatter_frame["rdd_treatment"] == 1, "running_centered"],
+        scatter_frame.loc[scatter_frame["rdd_treatment"] == 1, dependent],
+        alpha=0.45,
+        s=18,
+        color="#d97706",
+        label="Above cutoff",
+    )
+    if left_grid.size:
+        axis.plot(left_grid, predict_side(left_grid, 0.0), color="#14532d", linewidth=2.0)
+    if right_grid.size:
+        axis.plot(right_grid, predict_side(right_grid, 1.0), color="#b45309", linewidth=2.0)
+    axis.axvline(0.0, color="#7c4d1c", linewidth=1.0, linestyle="--")
+    axis.set_title("RDD fit around the cutoff")
+    axis.set_xlabel(f"{running_column} - cutoff")
+    axis.set_ylabel(dependent)
+    axis.legend(loc="best")
+    axis.grid(alpha=0.18, linestyle="--")
+    figure.tight_layout()
+    figure_asset = _save_model_figure_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        source_asset=asset,
+        figure=figure,
+        filename_slug="rdd-fit",
+        title="RDD scatter and fitted lines",
+        summary="RDD plot with separate fitted curves on each side of the cutoff.",
+    )
     payload = _model_result_payload(
         model_type="rdd",
         model_label="RDD",
@@ -2255,6 +3414,7 @@ def run_rdd_analysis(
             "polynomial_order": int(polynomial_order),
             "treat_above_cutoff": bool(treat_above_cutoff),
             "local_effect": local_effect,
+            "figures": [figure_asset],
             "audit_trail": {
                 "derived_columns": derived_columns,
                 "filters": [
@@ -2514,6 +3674,592 @@ def run_var_analysis(
         },
         tables={"coefficients": coefficients, "forecast": forecast_rows},
         metrics={"lag_order": lag_order, "aic": float(fitted.aic), "bic": float(fitted.bic)},
+    )
+
+
+def run_arch_garch_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    model_type: str,
+    dependent: str,
+    time_column: str = "",
+    p: int = 1,
+    q: int = 1,
+    forecast_steps: int = 5,
+) -> dict[str, Any]:
+    normalized_model = model_type.strip().lower()
+    if normalized_model not in {"arch", "garch"}:
+        raise ValueError("Unsupported conditional volatility model.")
+    asset, sample = _prepare_time_series_sample(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        asset_id=asset_id,
+        series_columns=[dependent],
+        time_column=time_column,
+        min_rows=max(60, 12 * (int(p) + int(q) + 1)),
+    )
+    series = sample[dependent].astype(float)
+    if float(series.std()) <= 0:
+        raise ValueError("Conditional volatility models require a series with non-zero variation.")
+    if normalized_model == "arch":
+        fitted = arch_model(series, mean="Constant", vol="ARCH", p=max(1, int(p)), dist="normal", rescale=False).fit(disp="off")
+        label = "ARCH"
+        q = 0
+    else:
+        fitted = arch_model(
+            series,
+            mean="Constant",
+            vol="GARCH",
+            p=max(1, int(p)),
+            q=max(1, int(q)),
+            dist="normal",
+            rescale=False,
+        ).fit(disp="off")
+        label = "GARCH"
+    conditional_vol = np.asarray(fitted.conditional_volatility, dtype=float)
+    sample = sample.copy()
+    sample["conditional_volatility"] = conditional_vol
+    forecast = fitted.forecast(horizon=max(1, int(forecast_steps)), reindex=False)
+    variance_path = np.asarray(forecast.variance.values[-1], dtype=float)
+    volatility_forecast = np.sqrt(np.maximum(variance_path, 0.0))
+    alpha_terms = [float(value) for key, value in fitted.params.items() if str(key).lower().startswith("alpha")]
+    beta_terms = [float(value) for key, value in fitted.params.items() if str(key).lower().startswith("beta")]
+    persistence = float(sum(alpha_terms) + sum(beta_terms))
+
+    x_values = sample[time_column] if time_column else np.arange(1, len(sample) + 1)
+    figure, axes = plt.subplots(2, 1, figsize=(10.5, 7.2), dpi=160, sharex=False)
+    axes[0].plot(x_values, sample[dependent], color="#0b5f45", linewidth=1.5)
+    axes[0].set_title(f"{label} input series")
+    axes[0].set_ylabel(dependent)
+    axes[0].grid(alpha=0.18, linestyle="--")
+    axes[1].plot(x_values, sample["conditional_volatility"], color="#d97706", linewidth=1.6)
+    axes[1].set_title("Estimated conditional volatility")
+    axes[1].set_ylabel("sigma_t")
+    axes[1].set_xlabel(time_column or "Observation")
+    axes[1].grid(alpha=0.18, linestyle="--")
+    figure.tight_layout()
+    figure_asset = _save_model_figure_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        source_asset=asset,
+        figure=figure,
+        filename_slug=f"{normalized_model}-volatility-path",
+        title=f"{label} volatility path",
+        summary=f"{label} conditional volatility path estimated from {dependent}.",
+    )
+    parameter_table = _parameter_table(
+        fitted.params,
+        std_errors=getattr(fitted, "std_err", None),
+        tvalues=getattr(fitted, "tvalues", None),
+        pvalues=getattr(fitted, "pvalues", None),
+    )
+    return _nonregression_result_payload(
+        model_type=normalized_model,
+        model_label=label,
+        asset=asset,
+        sample=sample[[*([time_column] if time_column else []), dependent, "conditional_volatility"]].copy(),
+        narrative_lines=[
+            f"{label} run on {asset.title}.",
+            f"Target series: {dependent}.",
+            f"Order: p={int(p)}, q={int(q)}.",
+            f"Estimated persistence: {persistence:.4f}.",
+        ],
+        specification={
+            "model_type": normalized_model,
+            "model_family": "time_series_finance",
+            "return_column": dependent,
+            "time_column": time_column,
+            "p": int(p),
+            "q": int(q),
+            "forecast_steps": int(forecast_steps),
+            "equation": "sigma_t^2 = omega + alpha(L) * eps_t^2 + beta(L) * sigma_{t-1}^2",
+        },
+        audit_trail={
+            "rows_used": int(len(sample)),
+            "sample_columns": [*([time_column] if time_column else []), dependent, "conditional_volatility"],
+            "manual_checklist": [
+                "Download the sample asset and verify the time ordering before re-estimation.",
+                "Re-estimate the same ARCH/GARCH order and compare the parameter table term by term.",
+                "Check the conditional-volatility figure against the downloaded volatility path.",
+            ],
+            "derived_columns": ["conditional_volatility"],
+            "filters": ["Rows with missing selected series values are dropped."],
+        },
+        metrics={
+            "log_likelihood": _safe_float(getattr(fitted, "loglikelihood", None)),
+            "aic": _safe_float(getattr(fitted, "aic", None)),
+            "bic": _safe_float(getattr(fitted, "bic", None)),
+            "persistence": persistence,
+            "latest_volatility": float(sample["conditional_volatility"].iloc[-1]),
+        },
+        tables={
+            "parameter_table": parameter_table,
+            "volatility_forecast": [
+                {"step": index + 1, "forecast_volatility": float(value)}
+                for index, value in enumerate(volatility_forecast.tolist())
+            ],
+            "volatility_preview": _frame_records(
+                sample[[*([time_column] if time_column else []), dependent, "conditional_volatility"]],
+                limit=12,
+            ),
+        },
+        extra={"figures": [figure_asset]},
+    )
+
+
+def run_svar_irf_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    series_columns: list[str],
+    time_column: str = "",
+    lags: int = 1,
+    horizon: int = 12,
+    impulse_column: str = "",
+    response_column: str = "",
+) -> dict[str, Any]:
+    asset, sample = _prepare_time_series_sample(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        asset_id=asset_id,
+        series_columns=series_columns,
+        time_column=time_column,
+        min_rows=max(48, len(series_columns) * (int(lags) + 6)),
+    )
+    fitted = VAR(sample[series_columns]).fit(maxlags=int(lags), trend="c")
+    lag_order = int(fitted.k_ar)
+    if lag_order < 1:
+        raise ValueError("SVAR IRF requires at least one estimated lag.")
+    impulse = impulse_column if impulse_column in series_columns else series_columns[0]
+    response_targets = [response_column] if response_column in series_columns else list(series_columns)
+    irf = fitted.irf(int(horizon))
+    orth_irfs = np.asarray(irf.orth_irfs, dtype=float)
+    cumulative_irfs = np.cumsum(orth_irfs, axis=0)
+    impulse_index = series_columns.index(impulse)
+    table_rows: list[dict[str, Any]] = []
+    for step in range(int(horizon) + 1):
+        for response_name in response_targets:
+            response_index = series_columns.index(response_name)
+            table_rows.append(
+                {
+                    "horizon": step,
+                    "impulse": impulse,
+                    "response": response_name,
+                    "irf": float(orth_irfs[step, response_index, impulse_index]),
+                    "cumulative_irf": float(cumulative_irfs[step, response_index, impulse_index]),
+                }
+            )
+    figure, axis = plt.subplots(figsize=(9.8, 6.2), dpi=160)
+    steps = np.arange(int(horizon) + 1)
+    for response_name in response_targets:
+        response_index = series_columns.index(response_name)
+        axis.plot(steps, orth_irfs[:, response_index, impulse_index], marker="o", linewidth=1.6, label=response_name)
+    axis.axhline(0.0, color="#7c4d1c", linewidth=1.0, linestyle="--")
+    axis.set_title(f"Recursive IRF: shock to {impulse}")
+    axis.set_xlabel("Horizon")
+    axis.set_ylabel("Response")
+    axis.legend(loc="best")
+    axis.grid(alpha=0.18, linestyle="--")
+    figure.tight_layout()
+    figure_asset = _save_model_figure_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        source_asset=asset,
+        figure=figure,
+        filename_slug="svar-irf",
+        title=f"SVAR IRF for {impulse}",
+        summary=f"Recursive structural impulse response chart for a shock to {impulse}.",
+    )
+    return _nonregression_result_payload(
+        model_type="svar_irf",
+        model_label="SVAR IRF",
+        asset=asset,
+        sample=sample[[*([time_column] if time_column else []), *series_columns]].copy(),
+        narrative_lines=[
+            f"Recursive SVAR IRF run on {asset.title}.",
+            f"Cholesky ordering: {', '.join(series_columns)}.",
+            f"Impulse variable: {impulse}.",
+            f"Responses shown: {', '.join(response_targets)}.",
+        ],
+        specification={
+            "model_type": "svar_irf",
+            "model_family": "time_series_finance",
+            "series_columns": series_columns,
+            "time_column": time_column,
+            "lags": lag_order,
+            "horizon": int(horizon),
+            "impulse_column": impulse,
+            "response_column": response_column or "all",
+            "identification": "Recursive (Cholesky) ordering",
+        },
+        audit_trail={
+            "rows_used": int(len(sample)),
+            "sample_columns": [*([time_column] if time_column else []), *series_columns],
+            "manual_checklist": [
+                "Verify the series ordering because recursive identification depends on it.",
+                "Re-estimate the VAR with the same lag order and reproduce the orthogonalized IRF externally.",
+                "Compare the impulse-response table and chart horizon by horizon.",
+            ],
+            "derived_columns": [],
+            "filters": ["Rows with missing selected series values are dropped."],
+        },
+        metrics={"lag_order": lag_order, "aic": float(fitted.aic), "bic": float(fitted.bic), "horizon": int(horizon)},
+        tables={"irf_table": table_rows},
+        extra={"figures": [figure_asset]},
+    )
+
+
+def run_virf_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    dependent: str,
+    time_column: str = "",
+    p: int = 1,
+    q: int = 1,
+    horizon: int = 12,
+    shock_size: float = 1.0,
+) -> dict[str, Any]:
+    if int(p) != 1 or int(q) != 1:
+        raise ValueError("VIRF currently supports a fitted GARCH(1,1) specification only.")
+    asset, sample = _prepare_time_series_sample(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        asset_id=asset_id,
+        series_columns=[dependent],
+        time_column=time_column,
+        min_rows=80,
+    )
+    series = sample[dependent].astype(float)
+    fitted = arch_model(series, mean="Constant", vol="GARCH", p=1, q=1, dist="normal", rescale=False).fit(disp="off")
+    params = fitted.params
+    omega = float(params.get("omega", np.var(series)))
+    alpha = float(next((value for key, value in params.items() if str(key).lower().startswith("alpha")), 0.0))
+    beta = float(next((value for key, value in params.items() if str(key).lower().startswith("beta")), 0.0))
+    persistence = alpha + beta
+    unconditional_variance = float(np.var(series))
+    if omega > 0 and persistence < 0.999:
+        unconditional_variance = max(omega / max(1.0 - persistence, 1e-6), 1e-10)
+    baseline_volatility = math.sqrt(unconditional_variance)
+    normalized_shock = max(float(shock_size), 0.05)
+    first_step_variance = omega + alpha * (normalized_shock**2) * unconditional_variance + beta * unconditional_variance
+    variance_path = [max(first_step_variance, 1e-12)]
+    for step in range(2, int(horizon) + 1):
+        variance_path.append(unconditional_variance + (persistence ** (step - 1)) * (first_step_variance - unconditional_variance))
+    response_rows = [
+        {
+            "horizon": step,
+            "variance": float(value),
+            "volatility": float(math.sqrt(max(value, 0.0))),
+            "volatility_response": float(math.sqrt(max(value, 0.0)) - baseline_volatility),
+        }
+        for step, value in enumerate(variance_path, start=1)
+    ]
+    figure, axis = plt.subplots(figsize=(9.4, 5.8), dpi=160)
+    horizons = [row["horizon"] for row in response_rows]
+    volatility_path = [row["volatility"] for row in response_rows]
+    axis.plot(horizons, volatility_path, marker="o", linewidth=1.8, label="Shock path")
+    axis.axhline(baseline_volatility, color="#0b5f45", linestyle="--", linewidth=1.3, label="Baseline volatility")
+    axis.set_title("Volatility impulse response")
+    axis.set_xlabel("Horizon")
+    axis.set_ylabel("Volatility")
+    axis.legend(loc="best")
+    axis.grid(alpha=0.18, linestyle="--")
+    figure.tight_layout()
+    figure_asset = _save_model_figure_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        source_asset=asset,
+        figure=figure,
+        filename_slug="virf",
+        title="Volatility impulse response",
+        summary=f"VIRF path from a {normalized_shock:.2f} sigma shock under a fitted GARCH(1,1) model.",
+    )
+    return _nonregression_result_payload(
+        model_type="virf",
+        model_label="VIRF",
+        asset=asset,
+        sample=sample[[*([time_column] if time_column else []), dependent]].copy(),
+        narrative_lines=[
+            f"VIRF run on {asset.title}.",
+            f"Series: {dependent}.",
+            f"Fitted GARCH(1,1) persistence: {persistence:.4f}.",
+            f"Shock size: {normalized_shock:.2f} sigma.",
+        ],
+        specification={
+            "model_type": "virf",
+            "model_family": "time_series_finance",
+            "return_column": dependent,
+            "time_column": time_column,
+            "p": 1,
+            "q": 1,
+            "horizon": int(horizon),
+            "shock_size": normalized_shock,
+            "equation": "E[h_{t+s}|shock] for a fitted GARCH(1,1) process",
+        },
+        audit_trail={
+            "rows_used": int(len(sample)),
+            "sample_columns": [*([time_column] if time_column else []), dependent],
+            "manual_checklist": [
+                "Re-estimate the same GARCH(1,1) model and record omega, alpha, and beta.",
+                "Rebuild the VIRF path from the documented shock_size and persistence formula.",
+                "Compare the volatility-response table and the chart horizon by horizon.",
+            ],
+            "derived_columns": [],
+            "filters": ["Rows with missing selected series values are dropped."],
+        },
+        metrics={
+            "omega": omega,
+            "alpha": alpha,
+            "beta": beta,
+            "persistence": persistence,
+            "baseline_volatility": baseline_volatility,
+            "shock_size": normalized_shock,
+        },
+        tables={"parameter_table": _parameter_table(params, std_errors=getattr(fitted, "std_err", None)), "virf_path": response_rows},
+        extra={"figures": [figure_asset]},
+    )
+
+
+def run_dy_connectedness_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    series_columns: list[str],
+    time_column: str = "",
+    lags: int = 1,
+    horizon: int = 10,
+) -> dict[str, Any]:
+    asset, sample = _prepare_time_series_sample(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        asset_id=asset_id,
+        series_columns=series_columns,
+        time_column=time_column,
+        min_rows=max(48, len(series_columns) * (int(lags) + 6)),
+    )
+    fitted = VAR(sample[series_columns]).fit(maxlags=int(lags), trend="c")
+    lag_order = int(fitted.k_ar)
+    if lag_order < 1:
+        raise ValueError("DY connectedness requires at least one estimated lag.")
+    _, normalized = _generalized_fevd(np.asarray(fitted.coefs), np.asarray(fitted.sigma_u), horizon=max(2, int(horizon)))
+    directional_rows = _directional_connectedness_rows(normalized, series_columns)
+    total_connectedness = float(((normalized.sum() - np.trace(normalized)) / max(len(series_columns), 1)) * 100.0)
+    figure = _connectedness_heatmap_figure(normalized, series_columns, title="Diebold-Yilmaz connectedness")
+    figure_asset = _save_model_figure_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        source_asset=asset,
+        figure=figure,
+        filename_slug="dy-connectedness",
+        title="DY connectedness heatmap",
+        summary="Diebold-Yilmaz spillover heatmap from generalized forecast-error variance decomposition.",
+    )
+    return _nonregression_result_payload(
+        model_type="dy_connectedness",
+        model_label="DY Connectedness",
+        asset=asset,
+        sample=sample[[*([time_column] if time_column else []), *series_columns]].copy(),
+        narrative_lines=[
+            f"DY connectedness run on {asset.title}.",
+            f"Series: {', '.join(series_columns)}.",
+            f"FEVD horizon: {int(horizon)}.",
+            f"Total connectedness index: {total_connectedness:.2f}.",
+        ],
+        specification={
+            "model_type": "dy_connectedness",
+            "model_family": "time_series_finance",
+            "series_columns": series_columns,
+            "time_column": time_column,
+            "lags": lag_order,
+            "horizon": int(horizon),
+            "identification": "Generalized FEVD",
+        },
+        audit_trail={
+            "rows_used": int(len(sample)),
+            "sample_columns": [*([time_column] if time_column else []), *series_columns],
+            "manual_checklist": [
+                "Re-estimate the VAR using the same lag order and sample.",
+                "Rebuild the generalized FEVD at the documented horizon.",
+                "Compare the connectedness matrix, directional spillovers, and heatmap cell by cell.",
+            ],
+            "derived_columns": [],
+            "filters": ["Rows with missing selected series values are dropped."],
+        },
+        metrics={"lag_order": lag_order, "horizon": int(horizon), "total_connectedness_index": total_connectedness},
+        tables={
+            "connectedness_matrix": _connectedness_matrix_rows(normalized, series_columns),
+            "directional_spillovers": directional_rows,
+        },
+        extra={"figures": [figure_asset]},
+    )
+
+
+def run_bk_connectedness_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    series_columns: list[str],
+    time_column: str = "",
+    lags: int = 1,
+    truncation_horizon: int = 80,
+    short_horizon: int = 5,
+    medium_horizon: int = 20,
+) -> dict[str, Any]:
+    asset, sample = _prepare_time_series_sample(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        asset_id=asset_id,
+        series_columns=series_columns,
+        time_column=time_column,
+        min_rows=max(60, len(series_columns) * (int(lags) + 8)),
+    )
+    fitted = VAR(sample[series_columns]).fit(maxlags=int(lags), trend="c")
+    lag_order = int(fitted.k_ar)
+    if lag_order < 1:
+        raise ValueError("BK connectedness requires at least one estimated lag.")
+    band_results = _bk_frequency_connectedness(
+        np.asarray(fitted.coefs),
+        np.asarray(fitted.sigma_u),
+        short_horizon=int(short_horizon),
+        medium_horizon=int(medium_horizon),
+        truncation_horizon=int(truncation_horizon),
+    )
+    figure, axes = plt.subplots(
+        1,
+        len(band_results),
+        figsize=(5.6 * len(band_results), 5.0),
+        dpi=160,
+        constrained_layout=True,
+    )
+    if len(band_results) == 1:
+        axes = [axes]
+    for axis, band_result in zip(axes, band_results):
+        matrix = band_result["normalized_matrix"]
+        image = axis.imshow(matrix * 100.0, cmap="YlOrBr")
+        axis.set_title(band_result["band"])
+        axis.set_xticks(range(len(series_columns)))
+        axis.set_xticklabels(series_columns, rotation=35, ha="right")
+        axis.set_yticks(range(len(series_columns)))
+        axis.set_yticklabels(series_columns)
+        for row_index in range(matrix.shape[0]):
+            for column_index in range(matrix.shape[1]):
+                axis.text(
+                    column_index,
+                    row_index,
+                    f"{matrix[row_index, column_index] * 100.0:.1f}",
+                    ha="center",
+                    va="center",
+                    color="#402107",
+                    fontsize=7,
+                )
+    figure.colorbar(image, ax=axes, fraction=0.035, pad=0.02, label="Within-band normalized percent")
+    figure_asset = _save_model_figure_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        source_asset=asset,
+        figure=figure,
+        filename_slug="bk-connectedness",
+        title="BK frequency connectedness",
+        summary="Frequency-domain connectedness heatmaps across short, medium, and long horizons.",
+    )
+    table_payload: dict[str, Any] = {
+        "band_total_connectedness": [
+            {
+                "band": band_result["band"],
+                "total_connectedness_index": float(band_result["total_connectedness_index"]),
+                "band_variance_share": float(band_result["band_variance_share"]),
+            }
+            for band_result in band_results
+        ]
+    }
+    for band_result in band_results:
+        band_slug = band_result["band"].split(" ")[0].lower()
+        table_payload[f"{band_slug}_connectedness_matrix"] = _connectedness_matrix_rows(
+            band_result["normalized_matrix"],
+            series_columns,
+        )
+        table_payload[f"{band_slug}_directional_spillovers"] = _directional_connectedness_rows(
+            band_result["normalized_matrix"],
+            series_columns,
+        )
+    return _nonregression_result_payload(
+        model_type="bk_connectedness",
+        model_label="BK Connectedness",
+        asset=asset,
+        sample=sample[[*([time_column] if time_column else []), *series_columns]].copy(),
+        narrative_lines=[
+            f"BK connectedness run on {asset.title}.",
+            f"Series: {', '.join(series_columns)}.",
+            f"Frequency bands use short horizon {int(short_horizon)} and medium horizon {int(medium_horizon)}.",
+            "Each heatmap is normalized within its band so spillover structure can be compared directly.",
+        ],
+        specification={
+            "model_type": "bk_connectedness",
+            "model_family": "time_series_finance",
+            "series_columns": series_columns,
+            "time_column": time_column,
+            "lags": lag_order,
+            "short_horizon": int(short_horizon),
+            "medium_horizon": int(medium_horizon),
+            "truncation_horizon": int(truncation_horizon),
+            "identification": "Barunik-Krehlik style frequency connectedness decomposition",
+        },
+        audit_trail={
+            "rows_used": int(len(sample)),
+            "sample_columns": [*([time_column] if time_column else []), *series_columns],
+            "manual_checklist": [
+                "Re-estimate the VAR with the same lag order and coefficient matrices.",
+                "Rebuild the frequency-band connectedness decomposition using the documented short and medium horizons.",
+                "Compare the band matrices, total connectedness values, and heatmap labels band by band.",
+            ],
+            "derived_columns": [],
+            "filters": ["Rows with missing selected series values are dropped."],
+        },
+        metrics={
+            "lag_order": lag_order,
+            "short_horizon": int(short_horizon),
+            "medium_horizon": int(medium_horizon),
+            "truncation_horizon": int(truncation_horizon),
+        },
+        tables=table_payload,
+        extra={"figures": [figure_asset]},
     )
 
 
@@ -3347,7 +5093,13 @@ def _infer_model_family(model_type: str) -> str:
         "iv_2sls": "econometrics_baseline",
         "panel_iv": "econometrics_baseline",
         "arima": "time_series_finance",
+        "arch": "time_series_finance",
+        "garch": "time_series_finance",
         "var": "time_series_finance",
+        "svar_irf": "time_series_finance",
+        "virf": "time_series_finance",
+        "dy_connectedness": "time_series_finance",
+        "bk_connectedness": "time_series_finance",
         "altman_z": "corporate_finance",
         "dupont": "corporate_finance",
         "historical_var": "risk_management",
@@ -3421,8 +5173,16 @@ def run_model_analysis(
     arima_p: int = 1,
     arima_d: int = 0,
     arima_q: int = 0,
+    garch_p: int = 1,
+    garch_q: int = 1,
     forecast_steps: int = 5,
     var_lags: int = 1,
+    irf_horizon: int = 12,
+    impulse_column: str = "",
+    response_column: str = "",
+    virf_shock_size: float = 1.0,
+    bk_short_horizon: int = 5,
+    bk_medium_horizon: int = 20,
     confidence_level: float = 0.95,
     holding_period_days: int = 1,
     ewma_lambda: float = 0.94,
@@ -3533,6 +5293,22 @@ def run_model_analysis(
                 forecast_steps=int(forecast_steps),
             )
         )
+    if normalized_model in {"arch", "garch"}:
+        return attach(
+            run_arch_garch_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                model_type=normalized_model,
+                dependent=dependent,
+                time_column=time_column,
+                p=int(garch_p),
+                q=int(garch_q),
+                forecast_steps=int(forecast_steps),
+            )
+        )
     if normalized_model == "var":
         return attach(
             run_var_analysis(
@@ -3545,6 +5321,67 @@ def run_model_analysis(
                 time_column=time_column,
                 lags=int(var_lags),
                 forecast_steps=int(forecast_steps),
+            )
+        )
+    if normalized_model == "svar_irf":
+        return attach(
+            run_svar_irf_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                series_columns=series_columns or [],
+                time_column=time_column,
+                lags=int(var_lags),
+                horizon=int(irf_horizon),
+                impulse_column=impulse_column,
+                response_column=response_column,
+            )
+        )
+    if normalized_model == "virf":
+        return attach(
+            run_virf_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                dependent=dependent,
+                time_column=time_column,
+                p=int(garch_p),
+                q=int(garch_q),
+                horizon=int(irf_horizon),
+                shock_size=float(virf_shock_size),
+            )
+        )
+    if normalized_model == "dy_connectedness":
+        return attach(
+            run_dy_connectedness_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                series_columns=series_columns or [],
+                time_column=time_column,
+                lags=int(var_lags),
+                horizon=int(irf_horizon),
+            )
+        )
+    if normalized_model == "bk_connectedness":
+        return attach(
+            run_bk_connectedness_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                series_columns=series_columns or [],
+                time_column=time_column,
+                lags=int(var_lags),
+                short_horizon=int(bk_short_horizon),
+                medium_horizon=int(bk_medium_horizon),
             )
         )
     if normalized_model == "did":

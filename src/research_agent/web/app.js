@@ -22,6 +22,8 @@ const state = {
   selectedSummaryWindow: "",
   bootstrap: null,
   dataLabCatalog: null,
+  variableGuideResult: null,
+  resultPreviewUrls: [],
 };
 
 const MODEL_FAMILY_OPTIONS = {
@@ -40,7 +42,13 @@ const MODEL_FAMILY_OPTIONS = {
   ],
   time_series_finance: [
     { value: "arima", label: "ARIMA Forecast" },
+    { value: "arch", label: "ARCH" },
+    { value: "garch", label: "GARCH" },
     { value: "var", label: "Vector Autoregression" },
+    { value: "svar_irf", label: "SVAR.IRF" },
+    { value: "virf", label: "VIRF" },
+    { value: "dy_connectedness", label: "DY Connectedness" },
+    { value: "bk_connectedness", label: "BK Connectedness" },
   ],
   corporate_finance: [
     { value: "altman_z", label: "Altman Z-Score" },
@@ -83,7 +91,13 @@ const MODEL_CONFIG = {
   iv_2sls: { dependentKind: "numeric", independents: true, controls: true, iv: true, robust: true },
   panel_iv: { dependentKind: "numeric", independents: true, controls: true, fe: true, iv: true, robust: true },
   arima: { dependentKind: "numeric", timeColumn: true, forecast: true, arima: true },
+  arch: { dependentKind: "numeric", timeColumn: true, forecast: true, garch: true },
+  garch: { dependentKind: "numeric", timeColumn: true, forecast: true, garch: true },
   var: { series: true, timeColumn: true, forecast: true, var: true },
+  svar_irf: { series: true, timeColumn: true, irf: true, var: true },
+  virf: { dependentKind: "numeric", timeColumn: true, garch: true, irf: true },
+  dy_connectedness: { series: true, timeColumn: true, var: true, irf: true },
+  bk_connectedness: { series: true, timeColumn: true, var: true, irf: true, bk: true },
   historical_var: { dependentKind: "numeric", timeColumn: true, risk: true },
   parametric_var: { dependentKind: "numeric", timeColumn: true, risk: true },
   ewma_volatility: { dependentKind: "numeric", timeColumn: true, risk: true },
@@ -165,6 +179,14 @@ const dom = {
   labActiveFamilyLink: document.getElementById("lab-active-family-link"),
   labRecentProcessingList: document.getElementById("lab-recent-processing-list"),
   labRecentModelList: document.getElementById("lab-recent-model-list"),
+  variableGuideForm: document.getElementById("variable-guide-form"),
+  variableGuidePrompt: document.getElementById("variable-guide-prompt"),
+  variableGuideMeta: document.getElementById("variable-guide-meta"),
+  variableGuideSummary: document.getElementById("variable-guide-summary"),
+  variableGuideRoles: document.getElementById("variable-guide-roles"),
+  variableGuideChecks: document.getElementById("variable-guide-checks"),
+  variableGuideApply: document.getElementById("variable-guide-apply"),
+  variableGuideRaw: document.getElementById("variable-guide-raw"),
   prepareForm: document.getElementById("prepare-form"),
   prepareCoreFields: document.getElementById("prepare-core-fields"),
   prepareCleaningFields: document.getElementById("prepare-cleaning-fields"),
@@ -215,6 +237,17 @@ const dom = {
   arimaQ: document.getElementById("arima-q"),
   varFields: document.getElementById("var-fields"),
   varLags: document.getElementById("var-lags"),
+  garchFields: document.getElementById("garch-fields"),
+  garchP: document.getElementById("garch-p"),
+  garchQ: document.getElementById("garch-q"),
+  virfShockSize: document.getElementById("virf-shock-size"),
+  irfFields: document.getElementById("irf-fields"),
+  irfHorizon: document.getElementById("irf-horizon"),
+  impulseColumn: document.getElementById("impulse-column"),
+  responseColumn: document.getElementById("response-column"),
+  bkFields: document.getElementById("bk-fields"),
+  bkShortHorizon: document.getElementById("bk-short-horizon"),
+  bkMediumHorizon: document.getElementById("bk-medium-horizon"),
   didFields: document.getElementById("did-fields"),
   didTreatmentColumn: document.getElementById("did-treatment-column"),
   didPostColumn: document.getElementById("did-post-column"),
@@ -1008,6 +1041,23 @@ function setSelectOptions(select, items, { multiple = false, placeholder = "Sele
   }
 }
 
+function setSelectValue(select, value = "") {
+  if (!select) {
+    return;
+  }
+  select.value = value || "";
+}
+
+function setMultiSelectValues(select, values = []) {
+  if (!select) {
+    return;
+  }
+  const selectedSet = new Set((values || []).filter(Boolean));
+  Array.from(select.options || []).forEach((option) => {
+    option.selected = selectedSet.has(option.value);
+  });
+}
+
 function datasetAssets(items) {
   return (items || []).filter((item) => (item.kind || "").startsWith("dataset"));
 }
@@ -1021,6 +1071,26 @@ function revokeCurrentPlotUrl() {
     URL.revokeObjectURL(state.currentPlotUrl);
     state.currentPlotUrl = "";
   }
+}
+
+function revokeResultPreviewUrls() {
+  for (const url of state.resultPreviewUrls || []) {
+    URL.revokeObjectURL(url);
+  }
+  state.resultPreviewUrls = [];
+}
+
+async function fetchPrivateAssetPreviewUrl(assetId) {
+  const response = await fetch(`/api/assets/${assetId}/download`, {
+    headers: { Authorization: `Bearer ${state.token}` },
+  });
+  if (!response.ok) {
+    throw new Error("Preview asset download failed.");
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  state.resultPreviewUrls.push(url);
+  return url;
 }
 
 function renderDataLabPlaceholders() {
@@ -1046,6 +1116,7 @@ function renderDataLabPlaceholders() {
   }
   state.currentPlotAssetId = "";
   revokeCurrentPlotUrl();
+  renderVariableGuide(null);
   renderLabContext();
 }
 
@@ -1143,6 +1214,8 @@ function populateDataLabSelectors(profile) {
   setSelectOptions(dom.panelTimeColumn, allColumns, { placeholder: "Select time column" });
   setSelectOptions(dom.modelSeriesColumns, numericColumns, { multiple: true });
   setSelectOptions(dom.modelTimeColumn, allColumns, { placeholder: "Select time column" });
+  setSelectOptions(dom.impulseColumn, numericColumns, { placeholder: "Select impulse variable" });
+  setSelectOptions(dom.responseColumn, numericColumns, { placeholder: "Optional response variable" });
   setSelectOptions(dom.ivEndogenousColumn, numericColumns, { placeholder: "Select endogenous regressor" });
   setSelectOptions(dom.ivInstrumentColumns, numericColumns, { multiple: true });
   setSelectOptions(dom.marketColumn, numericColumns, { placeholder: "Select market return / factor" });
@@ -1216,7 +1289,7 @@ function refreshModelVariableOptions() {
       ? "Select a flow variable"
       : modelType === "logit" || modelType === "probit"
         ? "Select a binary outcome"
-        : modelType.includes("var") || modelType === "capm" || modelType === "fama_french_3"
+        : modelType.includes("var") || modelType === "svar_irf" || modelType === "virf" || modelType === "capm" || modelType === "fama_french_3"
           ? "Select a return series"
           : "Select an outcome variable");
   const options = config.dependentKind === "binary" ? binaryColumns : numericColumns;
@@ -1256,6 +1329,9 @@ function updateModelFieldVisibility() {
   toggleHidden(closestWrap(dom.forecastSteps), !config.forecast);
   toggleHidden(dom.arimaFields, !config.arima);
   toggleHidden(dom.varFields, !config.var);
+  toggleHidden(dom.garchFields, !config.garch);
+  toggleHidden(dom.irfFields, !config.irf);
+  toggleHidden(dom.bkFields, !config.bk);
   toggleHidden(dom.feFields, !config.fe);
   toggleHidden(dom.feTimeToggle, !config.fe);
   toggleHidden(dom.ivFields, !config.iv);
@@ -1378,6 +1454,7 @@ function clearSession() {
   state.selectedAnalysisAssetId = "";
   localStorage.removeItem(storageKeys.token);
   localStorage.removeItem(storageKeys.workspaceId);
+  revokeResultPreviewUrls();
   if (hasPrivateWorkspaceUI()) {
     renderSession();
     renderWorkspaceOptions();
@@ -1907,6 +1984,39 @@ function renderResultTables(target, result) {
   const coefficients = result.coefficients || [];
   const tables = result.tables || {};
   const blocks = [];
+  const renderTabularCard = (title, rows) => {
+    const normalizedRows = Array.isArray(rows) ? rows.filter((item) => item && typeof item === "object" && !Array.isArray(item)) : [];
+    if (!normalizedRows.length) {
+      return `
+        <article class="card">
+          <h4>${escapeHtml(title)}</h4>
+          <pre class="console-box">${escapeHtml(JSON.stringify(rows, null, 2))}</pre>
+        </article>
+      `;
+    }
+    const columns = Array.from(new Set(normalizedRows.flatMap((row) => Object.keys(row))));
+    return `
+      <article class="card">
+        <h4>${escapeHtml(title)}</h4>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr>
+            </thead>
+            <tbody>
+              ${normalizedRows
+                .map(
+                  (row) => `
+                    <tr>${columns.map((column) => `<td>${escapeHtml(row?.[column] ?? "")}</td>`).join("")}</tr>
+                  `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    `;
+  };
   if (coefficients.length) {
     blocks.push(`
       <article class="card">
@@ -1937,12 +2047,7 @@ function renderResultTables(target, result) {
     `);
   }
   Object.entries(tables).forEach(([name, table]) => {
-    blocks.push(`
-      <article class="card">
-        <h4>${escapeHtml(name)}</h4>
-        <pre class="console-box">${escapeHtml(JSON.stringify(table, null, 2))}</pre>
-      </article>
-    `);
+    blocks.push(renderTabularCard(name, table));
   });
   target.innerHTML = blocks.join("") || "";
 }
@@ -1977,37 +2082,73 @@ function renderResultAudit(target, result) {
   `;
 }
 
-function renderResultPreview(target, result) {
+async function renderResultPreview(target, result) {
   if (!target) {
     return;
   }
+  revokeResultPreviewUrls();
   const previewRows = result.preview_rows || result.sample_preview || result.profile?.preview_rows || [];
-  if (!previewRows.length) {
-    target.innerHTML = emptyCard("No preview rows are available for this result.");
-    return;
+  const blocks = [];
+  if (previewRows.length) {
+    const columns = Array.from(new Set(previewRows.flatMap((row) => Object.keys(row || {}))));
+    blocks.push(`
+      <article class="card">
+        <h4>Sample Preview</h4>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr>
+            </thead>
+            <tbody>
+              ${previewRows
+                .map(
+                  (row) => `
+                    <tr>${columns.map((column) => `<td>${escapeHtml(row?.[column] ?? "")}</td>`).join("")}</tr>
+                  `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    `);
   }
-  const columns = Array.from(new Set(previewRows.flatMap((row) => Object.keys(row || {}))));
-  target.innerHTML = `
-    <article class="card">
-      <h4>Sample Preview</h4>
-      <div class="table-scroll">
-        <table class="data-table">
-          <thead>
-            <tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr>
-          </thead>
-          <tbody>
-            ${previewRows
-              .map(
-                (row) => `
-                  <tr>${columns.map((column) => `<td>${escapeHtml(row?.[column] ?? "")}</td>`).join("")}</tr>
-                `,
-              )
-              .join("")}
-          </tbody>
-        </table>
-      </div>
-    </article>
-  `;
+  const figures = Array.isArray(result.figures) ? result.figures : [];
+  if (figures.length) {
+    const figureCards = await Promise.all(
+      figures.map(async (figure, index) => {
+        let imageContent = `<p class="muted">Preview unavailable.</p>`;
+        try {
+          const previewUrl = await fetchPrivateAssetPreviewUrl(figure.asset_id);
+          imageContent = `<img class="result-figure-frame" src="${previewUrl}" alt="${escapeHtml(figure.title || `Result figure ${index + 1}`)}" />`;
+        } catch (error) {
+          imageContent = `<p class="muted">${escapeHtml(error.message || "Preview unavailable.")}</p>`;
+        }
+        return `
+          <article class="result-figure-card">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h4>${escapeHtml(figure.title || `Figure ${index + 1}`)}</h4>
+                <span class="muted">${escapeHtml(figure.filename || "")}</span>
+              </div>
+            </div>
+            <div class="figure-preview-box">${imageContent}</div>
+            <p class="muted">${escapeHtml(figure.summary || "")}</p>
+            <div class="actions">
+              <button type="button" class="secondary" data-download-asset="${escapeHtml(figure.asset_id)}">Download figure PNG</button>
+            </div>
+          </article>
+        `;
+      }),
+    );
+    blocks.push(`
+      <article class="card">
+        <h4>Figures</h4>
+        <div class="result-figure-grid">${figureCards.join("")}</div>
+      </article>
+    `);
+  }
+  target.innerHTML = blocks.join("") || emptyCard("No preview rows or figures are available for this result.");
 }
 
 async function loadMethodDetailPage() {
@@ -2049,7 +2190,7 @@ async function loadResultDetailPage() {
   renderResultSpecification(dom.labResultSpecification, result);
   renderResultTables(dom.labResultTables, result);
   renderResultAudit(dom.labResultAudit, result);
-  renderResultPreview(dom.labResultPreview, result);
+  await renderResultPreview(dom.labResultPreview, result);
   if (dom.labResultRaw) {
     dom.labResultRaw.textContent = JSON.stringify(payload, null, 2);
   }
@@ -2208,6 +2349,7 @@ async function loadSelectedAssetProfile(force = false) {
     return null;
   }
   state.selectedAnalysisAssetId = assetId;
+  renderVariableGuide(null);
   if (!force && state.assetProfiles[assetId]) {
     renderAssetProfile(state.assetProfiles[assetId]);
     return state.assetProfiles[assetId];
@@ -2431,6 +2573,160 @@ async function handleSchedule(event) {
   showToast("Private daily job created.");
 }
 
+function renderVariableGuide(result) {
+  state.variableGuideResult = result || null;
+  if (!result) {
+    if (dom.variableGuideMeta) dom.variableGuideMeta.textContent = "No variable guide output yet.";
+    if (dom.variableGuideSummary) dom.variableGuideSummary.innerHTML = `<p class="muted">Describe your question in plain language and run the guide.</p>`;
+    if (dom.variableGuideRoles) dom.variableGuideRoles.innerHTML = "";
+    if (dom.variableGuideChecks) dom.variableGuideChecks.innerHTML = "";
+    if (dom.variableGuideRaw) dom.variableGuideRaw.textContent = "";
+    if (dom.variableGuideApply) {
+      dom.variableGuideApply.disabled = true;
+      dom.variableGuideApply.classList.add("hidden");
+    }
+    return;
+  }
+  const recommendation = result.workflow_recommendation || {};
+  const matchedTerms = (result.transparency?.matched_intent_terms || []).join(", ");
+  if (dom.variableGuideMeta) {
+    dom.variableGuideMeta.textContent = [
+      recommendation.label || "Recommendation",
+      recommendation.workflow_type || "",
+      recommendation.model_type || recommendation.processing_family || "",
+      matchedTerms ? `signals: ${matchedTerms}` : "",
+    ]
+      .filter(Boolean)
+      .join(" | ");
+  }
+  if (dom.variableGuideSummary) {
+    dom.variableGuideSummary.innerHTML = `
+      <p>${escapeHtml(result.summary || "")}</p>
+      ${(result.reasoning || []).map((item) => `<p class="muted">${escapeHtml(item)}</p>`).join("")}
+    `;
+  }
+  if (dom.variableGuideRoles) {
+    const roles = result.suggested_roles || [];
+    dom.variableGuideRoles.innerHTML = roles.length
+      ? roles
+          .map(
+            (role) => `
+              <article class="card compact-card">
+                <h4>${escapeHtml(role.label || role.role)}</h4>
+                <p><strong>${escapeHtml(role.value || "Not selected")}</strong></p>
+                <p class="muted">${escapeHtml((role.reasoning || []).join(" | ") || "Chosen from dataset profile and prompt matching.")}</p>
+              </article>
+            `,
+          )
+          .join("")
+      : emptyCard("No clear variable roles were inferred.");
+  }
+  if (dom.variableGuideChecks) {
+    const checks = result.manual_checklist || [];
+    dom.variableGuideChecks.innerHTML = checks.length
+      ? checks.map((item) => `<p>${escapeHtml(item)}</p>`).join("")
+      : `<p class="muted">No manual checklist available.</p>`;
+  }
+  if (dom.variableGuideRaw) {
+    dom.variableGuideRaw.textContent = JSON.stringify(result, null, 2);
+  }
+  if (dom.variableGuideApply) {
+    dom.variableGuideApply.disabled = false;
+    dom.variableGuideApply.classList.remove("hidden");
+  }
+}
+
+function applyVariableGuidePrefill() {
+  const result = state.variableGuideResult;
+  if (!result) {
+    throw new Error("Run the variable guide first.");
+  }
+  const prefill = result.prefill || {};
+  const workflowType = prefill.workflow_type || result.workflow_recommendation?.workflow_type || "model";
+  if (workflowType === "data_processing") {
+    const family = prefill.processing_family || result.workflow_recommendation?.processing_family || "sample_preparation";
+    activateProcessingFamily(family);
+    setMultiSelectValues(dom.prepareKeepColumns, prefill.include_columns || []);
+    setMultiSelectValues(dom.prepareRequiredColumns, prefill.required_columns || []);
+    setMultiSelectValues(dom.prepareNumericColumns, prefill.numeric_columns || []);
+    setMultiSelectValues(dom.prepareBinaryColumns, prefill.binary_columns || []);
+    setMultiSelectValues(dom.prepareDateColumns, prefill.date_columns || []);
+    setSelectValue(dom.prepareSortColumn, prefill.sort_column || "");
+    setSelectValue(dom.prepareTimeGroupColumn, prefill.time_group_column || "");
+    setMultiSelectValues(dom.prepareDifferenceColumns, prefill.difference_columns || []);
+    setMultiSelectValues(dom.prepareReturnColumns, prefill.return_columns || []);
+    setSelectValue(dom.plotXColumn, prefill.plot_x_column || "");
+    setMultiSelectValues(dom.plotYColumns, prefill.plot_y_columns || []);
+    setSelectValue(dom.plotGroupColumn, prefill.plot_group_column || "");
+  } else {
+    const family = prefill.model_family || result.workflow_recommendation?.model_family || "econometrics_baseline";
+    const modelType = prefill.model_type || result.workflow_recommendation?.model_type || "ols";
+    activateModelFamily(family, modelType);
+    setSelectValue(dom.modelDependent, prefill.dependent || "");
+    setMultiSelectValues(dom.modelIndependents, prefill.independents || []);
+    setMultiSelectValues(dom.modelControls, prefill.controls || []);
+    setMultiSelectValues(dom.modelSeriesColumns, prefill.series_columns || []);
+    setSelectValue(dom.didTreatmentColumn, prefill.treatment_column || "");
+    setSelectValue(dom.eventTreatmentColumn, prefill.treatment_column || "");
+    setSelectValue(dom.didPostColumn, prefill.post_column || "");
+    setSelectValue(dom.eventTimeColumn, prefill.event_time_column || "");
+    setSelectValue(dom.panelEntityColumn, prefill.entity_column || "");
+    setSelectValue(dom.panelTimeColumn, prefill.time_column || "");
+    setSelectValue(dom.modelTimeColumn, prefill.time_column || "");
+    setSelectValue(dom.rddRunningColumn, prefill.running_column || "");
+    setSelectValue(dom.gravityOriginMassColumn, prefill.origin_mass_column || "");
+    setSelectValue(dom.gravityDestinationMassColumn, prefill.destination_mass_column || "");
+    setSelectValue(dom.gravityDistanceColumn, prefill.distance_column || "");
+    setSelectValue(dom.ivEndogenousColumn, prefill.endogenous_column || "");
+    setMultiSelectValues(dom.ivInstrumentColumns, prefill.instrument_columns || []);
+    setSelectValue(dom.marketColumn, prefill.market_column || "");
+    setSelectValue(dom.riskFreeColumn, prefill.risk_free_column || "");
+    setSelectValue(dom.smbColumn, prefill.smb_column || "");
+    setSelectValue(dom.hmlColumn, prefill.hml_column || "");
+    setSelectValue(dom.spotColumn, prefill.spot_column || "");
+    setSelectValue(dom.strikeColumn, prefill.strike_column || "");
+    setSelectValue(dom.maturityColumn, prefill.maturity_column || "");
+    setSelectValue(dom.rateColumn, prefill.rate_column || "");
+    setSelectValue(dom.volatilityColumn, prefill.volatility_column || "");
+    setSelectValue(dom.workingCapitalColumn, prefill.working_capital_column || "");
+    setSelectValue(dom.retainedEarningsColumn, prefill.retained_earnings_column || "");
+    setSelectValue(dom.ebitColumn, prefill.ebit_column || "");
+    setSelectValue(dom.marketEquityColumn, prefill.market_equity_column || "");
+    setSelectValue(dom.totalAssetsColumn, prefill.total_assets_column || "");
+    setSelectValue(dom.totalLiabilitiesColumn, prefill.total_liabilities_column || "");
+    setSelectValue(dom.salesColumn, prefill.sales_column || "");
+    setSelectValue(dom.netIncomeColumn, prefill.net_income_column || "");
+    setSelectValue(dom.revenueColumn, prefill.revenue_column || "");
+    setSelectValue(dom.equityColumn, prefill.equity_column || "");
+    setSelectValue(dom.inflationGapColumn, prefill.inflation_gap_column || "");
+    setSelectValue(dom.outputGapColumn, prefill.output_gap_column || "");
+    setSelectValue(dom.impulseColumn, prefill.impulse_column || "");
+    setSelectValue(dom.responseColumn, prefill.response_column || "");
+  }
+  renderLabContext();
+  showToast("Variable guide suggestions applied to the workbench.");
+}
+
+async function handleVariableGuide(event) {
+  event.preventDefault();
+  ensureWorkspace();
+  const assetId = dom.analysisAssetSelect?.value || state.selectedAnalysisAssetId;
+  if (!assetId) {
+    throw new Error("Select a dataset asset first.");
+  }
+  const prompt = (dom.variableGuidePrompt?.value || "").trim();
+  if (prompt.length < 8) {
+    throw new Error("Describe the research question in more detail.");
+  }
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/analysis/variable-guide`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ asset_id: assetId, prompt }),
+  });
+  renderVariableGuide(response);
+  showToast("Variable guide updated.");
+}
+
 async function handlePrepareSample(event) {
   event.preventDefault();
   ensureWorkspace();
@@ -2494,7 +2790,7 @@ async function handleModelRun(event) {
     throw new Error("Select a dataset asset first.");
   }
   const modelType = dom.modelType?.value || "ols";
-  const useSeriesTimeColumn = ["arima", "var", "historical_var", "parametric_var", "ewma_volatility"].includes(modelType);
+  const useSeriesTimeColumn = ["arima", "arch", "garch", "virf", "var", "svar_irf", "dy_connectedness", "bk_connectedness", "historical_var", "parametric_var", "ewma_volatility"].includes(modelType);
   const payload = {
     asset_id: assetId,
     model_family: dom.modelFamily?.value || "",
@@ -2547,8 +2843,16 @@ async function handleModelRun(event) {
     arima_p: Number(dom.arimaP?.value || 1),
     arima_d: Number(dom.arimaD?.value || 0),
     arima_q: Number(dom.arimaQ?.value || 0),
+    garch_p: Number(dom.garchP?.value || 1),
+    garch_q: Number(dom.garchQ?.value || 1),
     forecast_steps: Number(dom.forecastSteps?.value || 5),
     var_lags: Number(dom.varLags?.value || 1),
+    irf_horizon: Number(dom.irfHorizon?.value || 12),
+    impulse_column: dom.impulseColumn?.value || "",
+    response_column: dom.responseColumn?.value || "",
+    virf_shock_size: Number(dom.virfShockSize?.value || 1),
+    bk_short_horizon: Number(dom.bkShortHorizon?.value || 5),
+    bk_medium_horizon: Number(dom.bkMediumHorizon?.value || 20),
     confidence_level: Number(dom.confidenceLevel?.value || 0.95),
     holding_period_days: Number(dom.holdingPeriodDays?.value || 1),
     ewma_lambda: Number(dom.ewmaLambda?.value || 0.94),
@@ -2749,6 +3053,7 @@ function bind() {
   const uploadForm = document.getElementById("upload-form");
   const knowledgeForm = document.getElementById("knowledge-form");
   const scheduleForm = document.getElementById("schedule-form");
+  const variableGuideForm = document.getElementById("variable-guide-form");
   const prepareForm = document.getElementById("prepare-form");
   const modelForm = document.getElementById("model-form");
   const plotForm = document.getElementById("plot-form");
@@ -2763,9 +3068,13 @@ function bind() {
   uploadForm?.addEventListener("submit", wrap(handleUpload));
   knowledgeForm?.addEventListener("submit", wrap(handleKnowledge));
   scheduleForm?.addEventListener("submit", wrap(handleSchedule));
+  variableGuideForm?.addEventListener("submit", wrap(handleVariableGuide));
   prepareForm?.addEventListener("submit", wrap(handlePrepareSample));
   modelForm?.addEventListener("submit", wrap(handleModelRun));
   plotForm?.addEventListener("submit", wrap(handlePlot));
+  dom.variableGuideApply?.addEventListener("click", wrap(async () => {
+    applyVariableGuidePrefill();
+  }));
 
   dom.refreshPublicButton?.addEventListener("click", wrap(async () => {
     await loadPublicData();
