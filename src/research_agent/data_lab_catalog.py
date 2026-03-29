@@ -688,6 +688,118 @@ MODEL_METHOD_GUIDES: dict[str, dict[str, object]] = {
 }
 
 
+def _paper_table_expectations(method_slug: str, method_name: str) -> list[str]:
+    table_map: dict[str, list[str]] = {
+        "ols": ["Main regression table with coefficients, standard errors, significance stars, N, and R-squared."],
+        "ppml": ["PPML coefficient table with robust standard errors, convergence flag, and row count."],
+        "logit": ["Binary-response table with coefficients, standard errors, and the positive-case share."],
+        "probit": ["Binary-response table with coefficients, standard errors, and convergence diagnostics."],
+        "did": ["DID regression table with the treated x post interaction highlighted.", "2x2 cell-means table for treated/control before/after."],
+        "event_study": ["Lead-lag coefficient table indexed by event time.", "Reference period note showing the omitted relative-time bin."],
+        "rdd": ["RDD estimate table with cutoff, bandwidth, polynomial order, and local sample size."],
+        "fixed_effects": ["Coefficient table on time-varying regressors plus a note on entity/time fixed effects."],
+        "gravity": ["Gravity regression table with origin mass, destination mass, and distance coefficients."],
+        "iv_2sls": ["Second-stage coefficient table.", "First-stage or weak-instrument diagnostics table."],
+        "panel_iv": ["Panel-IV coefficient table.", "Instrument-strength and fixed-effects diagnostics table."],
+        "arima": ["Forecast table with horizon, point forecast, and any confidence interval columns."],
+        "arch": ["Variance-parameter table with ARCH terms and positivity checks."],
+        "garch": ["Variance-parameter table with omega, alpha, and beta terms."],
+        "var": ["Coefficient-block summary by equation and lag.", "Forecast table for each series across the chosen horizon."],
+        "svar_irf": ["Impulse-response table by horizon, impulse, and response variable."],
+        "virf": ["Volatility-response table by horizon."],
+        "dy_connectedness": ["Connectedness matrix with from/to/NET spillover totals."],
+        "bk_connectedness": ["Frequency-band connectedness table for short, medium, and long horizons."],
+        "historical_var": ["Risk table with VaR, Expected Shortfall, confidence level, and holding period."],
+        "parametric_var": ["Risk table with mean, volatility, VaR, and Expected Shortfall under the chosen distribution."],
+        "ewma_volatility": ["Latest EWMA volatility summary with lambda and recent conditional variance."],
+        "altman_z": ["Component ratio table plus final Z-score by firm or observation."],
+        "dupont": ["Margin, turnover, and leverage breakdown table reconstructing ROE."],
+        "black_scholes": ["Input-and-price table listing spot, strike, maturity, rate, volatility, and option value."],
+        "binomial_option": ["Tree-parameter table with step count and final option price."],
+        "taylor_rule": ["Policy-rule regression table with inflation-gap and output-gap coefficients."],
+        "rbc_dsge": ["Calibration table with alpha, beta, delta, persistence, and shock size."],
+        "mean_variance": ["Portfolio weight table plus expected return and variance metrics."],
+        "minimum_variance": ["Portfolio weight table plus achieved minimum-variance metric."],
+        "risk_parity": ["Portfolio weight table plus risk-contribution breakdown."],
+        "capm": ["Factor table with alpha, market beta, standard errors, and fit statistics."],
+        "fama_french_3": ["Factor-loading table with alpha, market, SMB, and HML coefficients."],
+    }
+    return table_map.get(
+        method_slug,
+        [f"Main empirical table for {method_name}, including coefficients or calibrated metrics and the final sample count."],
+    )
+
+
+def _paper_figure_expectations(method_slug: str) -> list[str]:
+    figure_map: dict[str, list[str]] = {
+        "did": ["Optional coefficient/event-timing graphic if the paper supplements the main DID table with dynamics."],
+        "event_study": ["Lead-lag coefficient plot centered on the omitted period with confidence intervals."],
+        "rdd": ["Cutoff figure with local fit or binned scatter on both sides of the threshold."],
+        "arima": ["Observed-versus-forecast path for the target series."],
+        "arch": ["In-sample conditional-volatility figure.", "Forecast volatility path over the selected horizon."],
+        "garch": ["In-sample conditional-volatility figure.", "Forecast volatility path over the selected horizon."],
+        "var": ["Observed and forecast paths for the core endogenous series."],
+        "svar_irf": ["Orthogonalized impulse-response figure by horizon.", "Cumulative impulse-response companion figure."],
+        "virf": ["Volatility-response figure.", "Variance-response companion figure."],
+        "dy_connectedness": ["Connectedness heatmap.", "Net directional spillover bar chart."],
+        "bk_connectedness": ["Frequency-band heatmap.", "Frequency-band total connectedness summary figure."],
+        "rbc_dsge": ["Impulse-style transition paths for capital, output, and consumption."],
+    }
+    return figure_map.get(method_slug, [])
+
+
+def _paper_appendix_expectations(method_slug: str) -> list[str]:
+    appendix_map: dict[str, list[str]] = {
+        "did": ["Appendix should restate treatment coding, timing logic, and any robustness variants on the sample."],
+        "event_study": ["Appendix should record lead/lag window choice, omitted period, and fixed-effects specification."],
+        "rdd": ["Appendix should show bandwidth choice, polynomial order, and any alternate local windows."],
+        "iv_2sls": ["Appendix should restate the instrument list, first-stage strength, and exclusion restriction discussion."],
+        "panel_iv": ["Appendix should report panel dimensions, fixed-effects choice, and instrument diagnostics."],
+        "gravity": ["Appendix should state how zeros, logs, and distance scaling were handled."],
+        "arch": ["Appendix should restate variance-order choice and the return construction used."],
+        "garch": ["Appendix should restate variance-order choice and the return construction used."],
+        "svar_irf": ["Appendix should state recursive ordering, horizon length, and any identifying restrictions."],
+        "virf": ["Appendix should state the fitted volatility process and shock size used for the response path."],
+        "dy_connectedness": ["Appendix should document VAR lag order, FEVD horizon, and series ordering."],
+        "bk_connectedness": ["Appendix should document frequency-band cutoffs and VAR lag order."],
+    }
+    return appendix_map.get(
+        method_slug,
+        ["Appendix should preserve the exact sample, variable construction, and diagnostics needed to reproduce the reported result."],
+    )
+
+
+def _paper_results_template(method_slug: str, method_name: str, guide: dict[str, object]) -> list[dict[str, object]]:
+    figures = _paper_figure_expectations(method_slug)
+    return [
+        {
+            "title": "Main Table In The Paper Body",
+            "body": "This is the first table a reader should see if the method is part of the main empirical result.",
+            "items": _paper_table_expectations(method_slug, method_name),
+        },
+        {
+            "title": "Main Figure In The Paper Body",
+            "body": "Only include a figure when the model is inherently dynamic, graphical, or identification depends on a visual diagnostic.",
+            "items": figures
+            or ["No dedicated figure is required for the main text if the core evidence is already transparent in the result table."],
+        },
+        {
+            "title": "Reporting Notes Under The Result",
+            "body": "These notes help a reader verify that the reported output is the same one generated in the workbench.",
+            "items": [
+                "State the exact sample definition and final observation count.",
+                "State the covariance type, lag order, horizon, bandwidth, or calibration values used in the run.",
+                guide.get("normal_result") or "Summarize what a normal result should look like before claiming interpretation.",
+            ],
+        },
+        {
+            "title": "Appendix And Replication Material",
+            "body": "Keep enough detail for a referee or coauthor to reproduce the same result manually.",
+            "items": _paper_appendix_expectations(method_slug),
+        },
+    ]
+
+
 def _teaching_sections(method_name: str, family: dict[str, object], guide: dict[str, object]) -> list[dict[str, object]]:
     return [
         {
@@ -741,6 +853,7 @@ def get_model_method(family_slug: str, method_slug: str) -> dict[str, object] | 
         "outputs": list(guide.get("outputs") or []),
         "manual_checks": list(guide.get("manual_checks") or family.get("manual_checks") or []),
         "normal_result": guide.get("normal_result") or "",
+        "paper_template": _paper_results_template(method_slug, str(method.get("name") or method_slug), guide),
     }
 
 
@@ -761,4 +874,5 @@ def get_model_teaching_guide(family_slug: str, method_slug: str) -> dict[str, ob
         "detail_path": method["detail_path"],
         "workbench_path": method["workbench_path"],
         "sections": _teaching_sections(str(method["name"]), family or {}, guide),
+        "paper_template": _paper_results_template(method_slug, str(method["name"]), guide),
     }

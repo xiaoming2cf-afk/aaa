@@ -125,6 +125,10 @@ const dom = {
   publicLatestMeta: document.getElementById("public-latest-meta"),
   publicLatestView: document.getElementById("public-latest-view"),
   publicThemeStrip: document.getElementById("public-theme-strip"),
+  publicSourcePanel: document.getElementById("public-source-panel"),
+  publicReviewNote: document.getElementById("public-review-note"),
+  publicReviewList: document.getElementById("public-review-list"),
+  publicExcludedList: document.getElementById("public-excluded-list"),
   publicClusterList: document.getElementById("public-cluster-list"),
   publicReadingList: document.getElementById("public-reading-list"),
   publicSummaryTitle: document.getElementById("public-summary-title"),
@@ -366,6 +370,7 @@ const dom = {
   labModelMethodEquation: document.getElementById("lab-model-method-equation"),
   labModelMethodInputs: document.getElementById("lab-model-method-inputs"),
   labModelMethodOutputs: document.getElementById("lab-model-method-outputs"),
+  labModelMethodPaper: document.getElementById("lab-model-method-paper"),
   labModelMethodAudit: document.getElementById("lab-model-method-audit"),
   labTeachingEyebrow: document.getElementById("lab-teaching-eyebrow"),
   labTeachingTitle: document.getElementById("lab-teaching-title"),
@@ -376,6 +381,7 @@ const dom = {
   labTeachingMethodLink: document.getElementById("lab-teaching-method-link"),
   labTeachingWorkbenchLink: document.getElementById("lab-teaching-workbench-link"),
   labTeachingSections: document.getElementById("lab-teaching-sections"),
+  labTeachingPaper: document.getElementById("lab-teaching-paper"),
   labResultEyebrow: document.getElementById("lab-result-eyebrow"),
   labResultTitle: document.getElementById("lab-result-title"),
   labResultSummary: document.getElementById("lab-result-summary"),
@@ -581,6 +587,21 @@ async function ensureAuthenticatedUser() {
   return state.user;
 }
 
+async function maybeLoadPublicIdentity() {
+  if (!state.token || state.user) {
+    return state.user;
+  }
+  try {
+    const payload = await api("/api/auth/me");
+    state.user = payload.user;
+    state.workspaces = payload.workspaces || [];
+    return state.user;
+  } catch {
+    state.user = null;
+    return null;
+  }
+}
+
 function formatInlineMarkdown(text) {
   const escaped = escapeHtml(text || "");
   return escaped.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noreferrer">$1</a>');
@@ -644,6 +665,35 @@ function renderListCards(target, items, formatter) {
     return;
   }
   target.innerHTML = items.map(formatter).join("");
+}
+
+function renderPaperTemplateCards(target, sections) {
+  if (!target) {
+    return;
+  }
+  if (!sections || !sections.length) {
+    target.innerHTML = emptyCard("No paper-template metadata is available for this method yet.");
+    return;
+  }
+  target.innerHTML = sections
+    .map(
+      (section) => `
+        <article class="card paper-template-card">
+          <p class="eyebrow eyebrow-compact">${escapeHtml(section.title || "Template Section")}</p>
+          <p>${escapeHtml(section.body || "")}</p>
+          ${
+            Array.isArray(section.items) && section.items.length
+              ? `
+                <ul class="detail-bullet-list">
+                  ${section.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+                </ul>
+              `
+              : ""
+          }
+        </article>
+      `,
+    )
+    .join("");
 }
 
 function resultMetricCards(result) {
@@ -1810,6 +1860,149 @@ function renderPublicClusters(clusters) {
     .join("");
 }
 
+function hasPublicModerationAccess() {
+  return Boolean(state.user && state.token);
+}
+
+function renderPublicSourcePanel(panel) {
+  if (!dom.publicSourcePanel) {
+    return;
+  }
+  if (!panel) {
+    dom.publicSourcePanel.innerHTML = emptyCard("Source mix and feed-health metadata will appear with the current public edition.");
+    return;
+  }
+  const overview = Array.isArray(panel.overview) ? panel.overview : [];
+  const domains = Array.isArray(panel.domains) ? panel.domains : [];
+  const countries = Array.isArray(panel.countries) ? panel.countries : [];
+  const feeds = Array.isArray(panel.feeds) ? panel.feeds : [];
+  dom.publicSourcePanel.innerHTML = `
+    <article class="source-panel-card">
+      <h4>Edition Overview</h4>
+      <div class="chip-row chip-row-compact">
+        ${overview
+          .map((item) => `<span class="topic-chip">${escapeHtml(item.label)} <strong>${escapeHtml(item.value)}</strong></span>`)
+          .join("") || `<span class="muted">No overview metrics yet.</span>`}
+      </div>
+      <p class="muted">GDELT status: ${escapeHtml(panel.gdelt?.status || "unknown")} | Items scanned: ${escapeHtml(panel.gdelt?.item_count ?? 0)}</p>
+    </article>
+    <article class="source-panel-card">
+      <h4>Domain Mix</h4>
+      <div class="source-list">
+        ${
+          domains.length
+            ? domains
+                .map(
+                  (item) => `
+                    <div class="source-list-row">
+                      <strong>${escapeHtml(item.domain)}</strong>
+                      <span>Visible ${escapeHtml(item.active_count)} | Filtered ${escapeHtml(item.excluded_count)}</span>
+                    </div>
+                  `,
+                )
+                .join("")
+            : `<p class="muted">No domain breakdown yet.</p>`
+        }
+      </div>
+    </article>
+    <article class="source-panel-card">
+      <h4>Geography Mix</h4>
+      <div class="source-list">
+        ${
+          countries.length
+            ? countries
+                .map(
+                  (item) => `
+                    <div class="source-list-row">
+                      <strong>${escapeHtml(item.country)}</strong>
+                      <span>Visible ${escapeHtml(item.active_count)} | Filtered ${escapeHtml(item.excluded_count)}</span>
+                    </div>
+                  `,
+                )
+                .join("")
+            : `<p class="muted">No source-country mix yet.</p>`
+        }
+      </div>
+    </article>
+    <article class="source-panel-card">
+      <h4>Feed Health</h4>
+      <div class="source-list">
+        ${
+          feeds.length
+            ? feeds
+                .map(
+                  (feed) => `
+                    <div class="source-list-row">
+                      <strong>${escapeHtml(feed.name)}</strong>
+                      <span>${escapeHtml(feed.status)} | matched ${escapeHtml(feed.matched_items)}</span>
+                    </div>
+                    ${feed.message ? `<p class="muted source-error">${escapeHtml(feed.message)}</p>` : ""}
+                  `,
+                )
+                .join("")
+            : `<p class="muted">Feed-status detail is not available for this edition.</p>`
+        }
+      </div>
+    </article>
+  `;
+}
+
+function publicReviewCard(item, actionLabel, actionName, enabled) {
+  const metaParts = [item.source_name, item.domain, item.source_country, (item.themes || []).slice(0, 2).join(", ")]
+    .filter(Boolean)
+    .map((part) => escapeHtml(part));
+  return `
+    <article class="review-card">
+      <div class="panel-head panel-head-wrap">
+        <div>
+          <h4>${escapeHtml(item.title || "Untitled headline")}</h4>
+          <span class="muted">${metaParts.join(" | ") || "Public headline"}</span>
+        </div>
+        ${
+          enabled
+            ? `<button
+                type="button"
+                class="secondary"
+                data-public-moderation="${escapeHtml(actionName)}"
+                data-public-url="${escapeHtml(item.url || "")}"
+                data-public-title="${escapeHtml(item.title || "")}"
+              >${escapeHtml(actionLabel)}</button>`
+            : ""
+        }
+      </div>
+      ${item.excerpt ? `<p>${escapeHtml(item.excerpt)}</p>` : ""}
+      <div class="actions actions-wrap compact-actions">
+        ${item.url ? `<a class="button-link secondary-link" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">Open source article</a>` : ""}
+      </div>
+    </article>
+  `;
+}
+
+function renderPublicReviewQueue(briefing) {
+  if (!dom.publicReviewList || !dom.publicExcludedList || !dom.publicReviewNote) {
+    return;
+  }
+  if (!briefing) {
+    dom.publicReviewNote.textContent = "Moderation controls will appear once a public edition is available.";
+    dom.publicReviewList.innerHTML = emptyCard("No visible headlines are available yet.");
+    dom.publicExcludedList.innerHTML = emptyCard("No excluded headlines yet.");
+    return;
+  }
+  const canModerate = hasPublicModerationAccess();
+  const moderation = briefing.moderation || {};
+  dom.publicReviewNote.textContent = canModerate
+    ? `Signed in as ${state.user?.full_name || state.user?.email || "moderator"} | visible ${moderation.active_count ?? briefing.headline_count} | filtered ${moderation.excluded_count ?? 0}`
+    : "Sign in on the main platform to manually exclude or restore headlines. Anonymous visitors can only browse.";
+  const reviewItems = Array.isArray(briefing.review_items) ? briefing.review_items : [];
+  const excludedItems = Array.isArray(briefing.excluded_items) ? briefing.excluded_items : [];
+  dom.publicReviewList.innerHTML = reviewItems.length
+    ? reviewItems.map((item) => publicReviewCard(item, "Exclude", "exclude", canModerate)).join("")
+    : emptyCard("No visible headlines are available for this edition.");
+  dom.publicExcludedList.innerHTML = excludedItems.length
+    ? excludedItems.map((item) => publicReviewCard(item, "Restore", "restore", canModerate)).join("")
+    : emptyCard("No headlines have been manually removed from this edition.");
+}
+
 function renderRecommendedReading(payload) {
   if (!dom.publicReadingList) {
     return;
@@ -1915,6 +2108,8 @@ function renderPublicLatest(briefing) {
     dom.publicLatestView.innerHTML = `<p class="muted">The public daily monitor will appear here after the first scheduled collection.</p>`;
     renderPublicDateSwitcher(state.publicBriefings || [], "");
     renderPublicThemes([]);
+    renderPublicSourcePanel(null);
+    renderPublicReviewQueue(null);
     renderPublicClusters([]);
     renderRecommendedReading(null);
     return;
@@ -1930,6 +2125,8 @@ function renderPublicLatest(briefing) {
   dom.publicLatestView.innerHTML = markdownToHtml(briefing.summary_markdown);
   renderPublicDateSwitcher(state.publicBriefings || [], briefing.slug);
   renderPublicThemes(briefing.top_themes || []);
+  renderPublicSourcePanel(briefing.source_panel || null);
+  renderPublicReviewQueue(briefing);
   renderPublicClusters(briefing.news_clusters || []);
   renderRecommendedReading(briefing.recommended_reading || null);
 }
@@ -2033,6 +2230,7 @@ function renderModelMethodPage(detail) {
       <p>${escapeHtml(item)}</p>
     </article>
   `);
+  renderPaperTemplateCards(dom.labModelMethodPaper, detail.paper_template || []);
   renderListCards(dom.labModelMethodAudit, detail.manual_checks || [], (item) => `
     <article class="card">
       <p>${escapeHtml(item)}</p>
@@ -2063,6 +2261,7 @@ function renderModelTeachingPage(guide) {
       <p>${escapeHtml(section.body || "")}</p>
     </article>
   `);
+  renderPaperTemplateCards(dom.labTeachingPaper, guide.paper_template || []);
   updateDocumentTitle();
 }
 
@@ -2569,6 +2768,7 @@ function updateDocumentTitle() {
 }
 
 async function loadPublicData() {
+  await maybeLoadPublicIdentity();
   const requestedSlug = extractBriefingSlugFromLocation();
   state.selectedSummaryWindow = extractSummaryWindowFromLocation();
   const [latestResponse, listResponse, detailResponse] = await Promise.all([
@@ -3257,15 +3457,35 @@ async function handleAssetActions(event) {
 }
 
 async function handlePublicActions(event) {
-  const target = event.target.closest("[data-public-slug], [data-copy-public-url]");
+  const target = event.target.closest("[data-public-slug], [data-copy-public-url], [data-public-moderation]");
   if (!target) {
     return;
   }
   const slug = target.getAttribute("data-public-slug");
   const publicUrl = target.getAttribute("data-copy-public-url");
+  const moderationAction = target.getAttribute("data-public-moderation");
   if (publicUrl) {
     await copyToClipboard(publicUrl);
     showToast("Public link copied.");
+    return;
+  }
+  if (moderationAction) {
+    const briefingSlug = state.selectedPublicBriefing?.slug || extractBriefingSlugFromLocation();
+    if (!briefingSlug) {
+      throw new Error("No public briefing is selected.");
+    }
+    await ensureAuthenticatedUser();
+    await api(`/api/public/briefings/${briefingSlug}/moderation`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: moderationAction,
+        url: target.getAttribute("data-public-url") || "",
+        title: target.getAttribute("data-public-title") || "",
+      }),
+    });
+    await loadPublicData();
+    showToast(moderationAction === "restore" ? "Headline restored to the public edition." : "Headline removed from the public edition.");
     return;
   }
   if (!slug) {
@@ -3396,6 +3616,8 @@ function bind() {
   dom.publicDateSwitcher?.addEventListener("click", wrap(handlePublicActions));
   dom.publicBriefingList?.addEventListener("click", wrap(handlePublicActions));
   dom.publicSummaryFeatured?.addEventListener("click", wrap(handlePublicActions));
+  dom.publicReviewList?.addEventListener("click", wrap(handlePublicActions));
+  dom.publicExcludedList?.addEventListener("click", wrap(handlePublicActions));
   initializeDataLabFromLocation();
   updateWorkflowVisibility();
 }

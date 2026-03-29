@@ -90,6 +90,8 @@
             </div>
             <nav class="public-section-nav">
               <a href="#latest-edition">Latest Edition</a>
+              <a href="#source-panel">Source Panel</a>
+              <a href="#review-queue">Manual Review Queue</a>
               <a href="#summary-window">Rolling Summary</a>
               <a href="#news-clusters">News Clusters</a>
               <a href="#reading-list">Recommended Reading</a>
@@ -112,6 +114,40 @@
               </div>
             </div>
             <div id="public-latest-view" class="report-view report-prose">Loading the latest public briefing...</div>
+          </article>
+
+          <article class="panel public-section" id="source-panel">
+            <div class="panel-head">
+              <h3>Source Panel</h3>
+              <span class="muted">Feed health, domain mix, geography, and moderation counts for the current edition</span>
+            </div>
+            <div id="public-source-panel" class="source-panel-grid"></div>
+          </article>
+
+          <article class="panel public-section" id="review-queue">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h3>Manual Review Queue</h3>
+                <span class="muted">Signed-in users can exclude or restore headlines without changing the public page structure</span>
+              </div>
+              <div id="public-review-note" class="muted">Checking moderation access...</div>
+            </div>
+            <div class="review-grid">
+              <div class="stack">
+                <div class="panel-head">
+                  <h4>Visible Headlines</h4>
+                  <span class="muted">These items currently feed the public briefing body</span>
+                </div>
+                <div id="public-review-list" class="review-card-list"></div>
+              </div>
+              <div class="stack">
+                <div class="panel-head">
+                  <h4>Excluded Headlines</h4>
+                  <span class="muted">Items manually removed from the public edition but retained for audit</span>
+                </div>
+                <div id="public-excluded-list" class="review-card-list"></div>
+              </div>
+            </div>
           </article>
 
           <article class="panel public-section" id="summary-window">

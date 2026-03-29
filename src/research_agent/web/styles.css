@@ -568,7 +568,9 @@ button.secondary,
 
 .summary-page-grid,
 .cluster-grid,
-.reading-grid {
+.reading-grid,
+.source-panel-grid,
+.review-grid {
   display: grid;
   gap: 0.8rem;
 }
@@ -662,9 +664,16 @@ button.secondary,
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.source-panel-grid,
+.review-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .summary-page-card,
 .cluster-card,
-.reading-card {
+.reading-card,
+.source-panel-card,
+.review-card {
   display: grid;
   gap: 0.7rem;
   border: 1px solid var(--line);
@@ -682,13 +691,17 @@ button.secondary,
 
 .summary-page-card h4,
 .cluster-card h4,
-.reading-card h4 {
+.reading-card h4,
+.source-panel-card h4,
+.review-card h4 {
   margin: 0;
 }
 
 .summary-page-card p,
 .cluster-card p,
-.reading-card p {
+.reading-card p,
+.source-panel-card p,
+.review-card p {
   margin: 0;
   color: var(--muted);
   line-height: 1.55;
@@ -720,6 +733,55 @@ button.secondary,
 .reading-links a span {
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+.source-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.source-list-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.72rem 0.8rem;
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.source-list-row strong {
+  font-size: 0.95rem;
+}
+
+.source-list-row span {
+  color: var(--muted);
+  font-size: 0.92rem;
+  text-align: right;
+}
+
+.source-error {
+  padding-left: 0.2rem;
+}
+
+.review-card-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.review-note {
+  text-align: right;
+}
+
+.detail-bullet-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  display: grid;
+  gap: 0.3rem;
+}
+
+.paper-template-card {
+  gap: 0.8rem;
 }
 
 .card h4 {
@@ -916,7 +978,9 @@ button.secondary,
   .workflow-guide-grid,
   .lab-status-grid,
   .context-grid,
-  .interpretation-grid {
+  .interpretation-grid,
+  .source-panel-grid,
+  .review-grid {
     grid-template-columns: 1fr;
   }
 

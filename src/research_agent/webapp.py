@@ -66,6 +66,7 @@ from .platform_research import (
     list_literature_entries,
     list_public_briefings,
     list_schedule_jobs,
+    moderate_public_briefing_item,
     run_due_schedule_jobs,
     search_openalex,
     serialize_briefing,
@@ -275,6 +276,12 @@ class VariableGuideRequest(BaseModel):
     prompt: str = Field(min_length=8, max_length=4000)
 
 
+class PublicBriefingModerationRequest(BaseModel):
+    action: str = Field(min_length=2, max_length=20)
+    url: str = ""
+    title: str = ""
+
+
 def _token_from_headers(authorization: str | None, x_session_token: str | None) -> str:
     bearer = (authorization or "").strip()
     if bearer.lower().startswith("bearer "):
@@ -465,6 +472,39 @@ def create_app() -> FastAPI:
                 if not briefing:
                     raise FileNotFoundError("Public briefing not found.")
                 return {"briefing": serialize_public_briefing_detail(db, briefing, public_base_url=settings.public_base_url)}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/public/briefings/{slug}/moderation")
+    def public_briefing_moderation(
+        slug: str,
+        request: PublicBriefingModerationRequest,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                briefing = get_public_briefing_by_slug(db, slug=slug)
+                if not briefing:
+                    raise FileNotFoundError("Public briefing not found.")
+                moderated = moderate_public_briefing_item(
+                    db,
+                    settings,
+                    briefing,
+                    action=request.action,
+                    item_url=request.url,
+                    item_title=request.title,
+                    actor_email=user.email,
+                )
+                return {
+                    "briefing": serialize_public_briefing_detail(
+                        db,
+                        moderated,
+                        public_base_url=settings.public_base_url,
+                    )
+                }
         except Exception as exc:
             _raise_http_error(exc)
 

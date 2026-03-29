@@ -401,6 +401,225 @@ def build_public_recommended_reading(
     }
 
 
+def _copy_public_item(item: dict[str, Any]) -> dict[str, Any]:
+    copied = dict(item)
+    if isinstance(item.get("themes"), list):
+        copied["themes"] = list(item.get("themes") or [])
+    return copied
+
+
+def _public_item_identity(item: dict[str, Any]) -> str:
+    url = str(item.get("url", "")).strip().lower()
+    if url:
+        return url
+    title = str(item.get("title", "")).strip().lower()
+    if title:
+        return title
+    return slugify(str(item), max_length=120)
+
+
+def _sorted_public_items(items: list[dict[str, Any]], *, timezone_name: str) -> list[dict[str, Any]]:
+    return sorted(
+        [_copy_public_item(item) for item in items],
+        key=lambda item: _public_item_sort_key(item, timezone_name=timezone_name),
+        reverse=True,
+    )
+
+
+def _all_public_briefing_items(briefing: PublicEconomicBriefing) -> list[dict[str, Any]]:
+    public_news = briefing.raw_json.get("public_news", {}) if isinstance(briefing.raw_json, dict) else {}
+    all_items = public_news.get("all_items")
+    if isinstance(all_items, list) and all_items:
+        return [_copy_public_item(item) for item in all_items if isinstance(item, dict)]
+    fallback_items = public_news.get("items")
+    if isinstance(fallback_items, list) and fallback_items:
+        return [_copy_public_item(item) for item in fallback_items if isinstance(item, dict)]
+    return [_copy_public_item(item) for item in briefing.items_json if isinstance(item, dict)]
+
+
+def _excluded_public_briefing_items(briefing: PublicEconomicBriefing) -> list[dict[str, Any]]:
+    manual_filters = briefing.raw_json.get("manual_filters", {}) if isinstance(briefing.raw_json, dict) else {}
+    excluded_items = manual_filters.get("excluded_items")
+    if isinstance(excluded_items, list):
+        return [_copy_public_item(item) for item in excluded_items if isinstance(item, dict)]
+    return []
+
+
+def _public_review_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    review_items: list[dict[str, Any]] = []
+    for item in items:
+        review_items.append(
+            {
+                "title": str(item.get("title", "")).strip(),
+                "url": str(item.get("url", "")).strip(),
+                "domain": str(item.get("domain", "")).strip(),
+                "source_country": str(item.get("source_country", "")).strip().upper(),
+                "source_name": str(item.get("source_name", "")).strip(),
+                "excerpt": str(item.get("excerpt", "")).strip(),
+                "themes": _headline_theme_labels(item),
+                "seendate": str(item.get("seendate", "")).strip(),
+            }
+        )
+    return review_items
+
+
+def build_public_source_panel(briefing: PublicEconomicBriefing) -> dict[str, Any]:
+    all_items = _all_public_briefing_items(briefing)
+    active_items = [_copy_public_item(item) for item in briefing.items_json if isinstance(item, dict)]
+    excluded_items = _excluded_public_briefing_items(briefing)
+    active_domain_counts = Counter(dict(_top_domains(active_items, limit=50)))
+    excluded_domain_counts = Counter(dict(_top_domains(excluded_items, limit=50)))
+    active_country_counts = Counter(dict(_top_source_countries(active_items, limit=20)))
+    excluded_country_counts = Counter(dict(_top_source_countries(excluded_items, limit=20)))
+    all_domains = sorted(set(active_domain_counts) | set(excluded_domain_counts))
+    all_countries = sorted(set(active_country_counts) | set(excluded_country_counts))
+    public_news = briefing.raw_json.get("public_news", {}) if isinstance(briefing.raw_json, dict) else {}
+    source_payload = public_news.get("sources", {}) if isinstance(public_news, dict) else {}
+    rss_payload = source_payload.get("rss", {}) if isinstance(source_payload, dict) else {}
+    gdelt_payload = source_payload.get("gdelt", {}) if isinstance(source_payload, dict) else {}
+    feed_rows = []
+    for feed in rss_payload.get("feeds", []) if isinstance(rss_payload, dict) else []:
+        if not isinstance(feed, dict):
+            continue
+        feed_rows.append(
+            {
+                "name": str(feed.get("name", "")).strip(),
+                "status": str(feed.get("status", "")).strip() or "unknown",
+                "matched_items": int(feed.get("matched_items", 0) or 0),
+                "message": str(feed.get("message", "")).strip(),
+            }
+        )
+    ok_feed_count = sum(1 for feed in feed_rows if feed.get("status") == "ok")
+    gdelt_items = gdelt_payload.get("items", []) if isinstance(gdelt_payload, dict) else []
+    return {
+        "overview": [
+            {"label": "Visible headlines", "value": str(len(active_items))},
+            {"label": "Filtered headlines", "value": str(len(excluded_items))},
+            {
+                "label": "Unique domains",
+                "value": str(len({str(item.get("domain", "")).strip().lower() for item in all_items if str(item.get("domain", "")).strip()})),
+            },
+            {"label": "Feed health", "value": f"{ok_feed_count}/{len(feed_rows) or len(PUBLIC_RSS_FEEDS)} ok"},
+        ],
+        "domains": [
+            {
+                "domain": domain,
+                "active_count": int(active_domain_counts.get(domain, 0)),
+                "excluded_count": int(excluded_domain_counts.get(domain, 0)),
+            }
+            for domain in all_domains[:8]
+        ],
+        "countries": [
+            {
+                "country": country,
+                "active_count": int(active_country_counts.get(country, 0)),
+                "excluded_count": int(excluded_country_counts.get(country, 0)),
+            }
+            for country in all_countries[:8]
+        ],
+        "feeds": feed_rows,
+        "gdelt": {
+            "status": str(gdelt_payload.get("status", "")).strip() or "unknown",
+            "item_count": len(gdelt_items) if isinstance(gdelt_items, list) else 0,
+        },
+    }
+
+
+def _rebuild_public_briefing_summary(
+    briefing: PublicEconomicBriefing,
+    *,
+    active_items: list[dict[str, Any]],
+) -> None:
+    raw_json = json.loads(json.dumps(briefing.raw_json if isinstance(briefing.raw_json, dict) else {}))
+    public_news = raw_json.get("public_news", {}) if isinstance(raw_json, dict) else {}
+    fred_snapshots = raw_json.get("fred", []) if isinstance(raw_json.get("fred"), list) else []
+    public_news["items"] = [_copy_public_item(item) for item in active_items]
+    public_news.setdefault("all_items", _all_public_briefing_items(briefing))
+    raw_json["public_news"] = public_news
+    briefing.raw_json = raw_json
+    briefing.items_json = [_copy_public_item(item) for item in active_items]
+    briefing.headline_count = len(active_items)
+    briefing.summary_markdown = build_structured_economic_briefing(
+        title=briefing.title,
+        report_date=briefing.briefing_date,
+        timezone_name=briefing.timezone_name,
+        headlines=briefing.items_json,
+        fred_snapshots=fred_snapshots if isinstance(fred_snapshots, list) else [],
+        query_text=briefing.query_text,
+        template_version=briefing.template_version or PUBLIC_TEMPLATE_VERSION,
+    )
+
+
+def moderate_public_briefing_item(
+    db: Session,
+    settings: Settings,
+    briefing: PublicEconomicBriefing,
+    *,
+    action: str,
+    item_url: str = "",
+    item_title: str = "",
+    actor_email: str = "",
+) -> PublicEconomicBriefing:
+    normalized_action = action.strip().lower()
+    if normalized_action not in {"exclude", "restore"}:
+        raise ValueError("Unsupported moderation action.")
+    url_value = item_url.strip()
+    title_value = item_title.strip()
+    if not url_value and not title_value:
+        raise ValueError("A headline URL or title is required for moderation.")
+
+    def matches(item: dict[str, Any]) -> bool:
+        url_match = url_value and str(item.get("url", "")).strip().lower() == url_value.lower()
+        title_match = title_value and str(item.get("title", "")).strip() == title_value
+        return bool(url_match or title_match)
+
+    all_items = _all_public_briefing_items(briefing)
+    excluded_items = _excluded_public_briefing_items(briefing)
+    active_items = [_copy_public_item(item) for item in briefing.items_json if isinstance(item, dict)]
+
+    raw_json = json.loads(json.dumps(briefing.raw_json if isinstance(briefing.raw_json, dict) else {}))
+    manual_filters = raw_json.get("manual_filters", {}) if isinstance(raw_json.get("manual_filters"), dict) else {}
+    history = manual_filters.get("history", []) if isinstance(manual_filters.get("history"), list) else []
+
+    if normalized_action == "exclude":
+        target = next((item for item in all_items if matches(item)), None)
+        if not target:
+            raise FileNotFoundError("Public headline not found for exclusion.")
+        target_id = _public_item_identity(target)
+        if any(_public_item_identity(item) == target_id for item in excluded_items):
+            return briefing
+        excluded_items.append(_copy_public_item(target))
+        active_items = [item for item in active_items if _public_item_identity(item) != target_id]
+    else:
+        target = next((item for item in excluded_items if matches(item)), None)
+        if not target:
+            raise FileNotFoundError("Excluded public headline not found for restore.")
+        target_id = _public_item_identity(target)
+        excluded_items = [item for item in excluded_items if _public_item_identity(item) != target_id]
+        if not any(_public_item_identity(item) == target_id for item in active_items):
+            active_items.append(_copy_public_item(target))
+
+    active_items = _sorted_public_items(active_items, timezone_name=briefing.timezone_name or settings.public_digest_timezone)
+    excluded_items = _sorted_public_items(excluded_items, timezone_name=briefing.timezone_name or settings.public_digest_timezone)
+    manual_filters["excluded_items"] = excluded_items
+    history.append(
+        {
+            "action": normalized_action,
+            "url": url_value,
+            "title": title_value,
+            "actor_email": actor_email,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    )
+    manual_filters["history"] = history[-50:]
+    raw_json["manual_filters"] = manual_filters
+    briefing.raw_json = raw_json
+    _rebuild_public_briefing_summary(briefing, active_items=active_items)
+    db.add(briefing)
+    db.flush()
+    return briefing
+
+
 def serialize_public_briefing_detail(
     db: Session,
     briefing: PublicEconomicBriefing,
@@ -414,6 +633,19 @@ def serialize_public_briefing_detail(
         briefing,
         public_base_url=public_base_url,
     )
+    payload["source_panel"] = build_public_source_panel(briefing)
+    payload["review_items"] = _public_review_items(briefing.items_json)
+    payload["excluded_items"] = _public_review_items(_excluded_public_briefing_items(briefing))
+    manual_filters = briefing.raw_json.get("manual_filters", {}) if isinstance(briefing.raw_json, dict) else {}
+    payload["moderation"] = {
+        "active_count": len(briefing.items_json),
+        "excluded_count": len(payload["excluded_items"]),
+        "last_action_at": (
+            manual_filters.get("history", [])[-1].get("timestamp")
+            if isinstance(manual_filters.get("history"), list) and manual_filters.get("history")
+            else None
+        ),
+    }
     return payload
 
 
@@ -1221,8 +1453,9 @@ def generate_public_daily_briefing(
     briefing.headline_count = len(annotated_items)
     briefing.items_json = annotated_items
     briefing.raw_json = {
-        "public_news": {**headlines_payload, "items": annotated_items},
+        "public_news": {**headlines_payload, "items": annotated_items, "all_items": annotated_items},
         "fred": fred_snapshots,
+        "manual_filters": {"excluded_items": [], "history": []},
     }
     db.add(briefing)
     db.flush()
