@@ -362,6 +362,7 @@ const dom = {
   labResultDescription: document.getElementById("lab-result-description"),
   labResultWorkbenchLink: document.getElementById("lab-result-workbench-link"),
   labResultMetrics: document.getElementById("lab-result-metrics"),
+  labResultInterpretation: document.getElementById("lab-result-interpretation"),
   labResultSpecification: document.getElementById("lab-result-specification"),
   labResultTables: document.getElementById("lab-result-tables"),
   labResultAudit: document.getElementById("lab-result-audit"),
@@ -1937,6 +1938,23 @@ function renderDataLabMethodDetail(detail) {
   updateDocumentTitle();
 }
 
+function significanceStars(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "";
+  }
+  if (numeric < 0.01) {
+    return "***";
+  }
+  if (numeric < 0.05) {
+    return "**";
+  }
+  if (numeric < 0.1) {
+    return "*";
+  }
+  return "";
+}
+
 function renderResultMetrics(target, result) {
   if (!target) {
     return;
@@ -1952,6 +1970,79 @@ function renderResultMetrics(target, result) {
       ${metricHtml}
       <div>${narrativeHtml || `<p>${escapeHtml(result.summary?.rows_after_prepare ? `Rows after prepare: ${result.summary.rows_after_prepare}` : "No narrative available.")}</p>`}</div>
     </article>
+  `;
+}
+
+function renderResultInterpretation(target, result) {
+  if (!target) {
+    return;
+  }
+  const interpretation = result.interpretation || {};
+  const sections = Array.isArray(interpretation.sections) ? interpretation.sections : [];
+  const paperOutputs = Array.isArray(interpretation.paper_outputs) ? interpretation.paper_outputs : [];
+  const specification = result.specification || {};
+  const quickFacts = [
+    specification.equation ? `Equation: ${specification.equation}` : "",
+    result.audit_trail?.rows_used ? `Rows used: ${result.audit_trail.rows_used}` : "",
+    specification.covariance_type ? `Covariance: ${specification.covariance_type}` : "",
+    Array.isArray(result.figures) ? `Figures: ${result.figures.length}` : "",
+    result.tables && typeof result.tables === "object" ? `Tables: ${Object.keys(result.tables).length}` : "",
+  ].filter(Boolean);
+  if (!sections.length && !paperOutputs.length) {
+    target.innerHTML = emptyCard("No interpretation metadata is available for this result yet.");
+    return;
+  }
+  target.innerHTML = `
+    <article class="card interpretation-lead">
+      <h4>Interpretation headline</h4>
+      <p>${escapeHtml(interpretation.headline || "Use the result together with its tables, figures, and sample metadata.")}</p>
+    </article>
+    ${
+      quickFacts.length
+        ? `
+          <article class="card">
+            <h4>Quick replication facts</h4>
+            <div class="chip-row chip-row-compact">
+              ${quickFacts.map((item) => `<span class="topic-chip">${escapeHtml(item)}</span>`).join("")}
+            </div>
+          </article>
+        `
+        : ""
+    }
+    ${
+      sections.length
+        ? `
+          <div class="interpretation-grid">
+            ${sections
+              .map(
+                (section) => `
+                  <article class="card interpretation-card">
+                    <h4>${escapeHtml(section.title || "Interpretation")}</h4>
+                    <div class="stack compact">
+                      ${(Array.isArray(section.items) ? section.items : [])
+                        .map((item) => `<p>${escapeHtml(item)}</p>`)
+                        .join("")}
+                    </div>
+                  </article>
+                `,
+              )
+              .join("")}
+          </div>
+        `
+        : ""
+    }
+    ${
+      paperOutputs.length
+        ? `
+          <article class="card">
+            <h4>Expected paper outputs</h4>
+            <div class="chip-row chip-row-compact">
+              ${paperOutputs.map((item) => `<span class="topic-chip">${escapeHtml(item)}</span>`).join("")}
+            </div>
+          </article>
+        `
+        : ""
+    }
   `;
 }
 
@@ -2021,6 +2112,7 @@ function renderResultTables(target, result) {
     blocks.push(`
       <article class="card">
         <h4>Coefficient Table</h4>
+        <p class="muted">Significance legend: *** p&lt;0.01, ** p&lt;0.05, * p&lt;0.10.</p>
         <div class="table-scroll">
           <table class="data-table">
             <thead>
@@ -2032,7 +2124,7 @@ function renderResultTables(target, result) {
                   (row) => `
                     <tr>
                       <td>${escapeHtml(row.term)}</td>
-                      <td>${escapeHtml(row.coefficient ?? "")}</td>
+                      <td>${escapeHtml(row.coefficient ?? "")}${row.p_value != null ? `<span class="sig-star">${escapeHtml(significanceStars(row.p_value))}</span>` : ""}</td>
                       <td>${escapeHtml(row.std_error ?? "")}</td>
                       <td>${escapeHtml(row.t_stat ?? "")}</td>
                       <td>${escapeHtml(row.p_value ?? "")}</td>
@@ -2187,6 +2279,7 @@ async function loadResultDetailPage() {
     dom.labResultWorkbenchLink.href = route.category === "models" ? "/data-lab?workflow=model#data-lab-workbench" : "/data-lab?workflow=data_processing#data-lab-workbench";
   }
   renderResultMetrics(dom.labResultMetrics, result);
+  renderResultInterpretation(dom.labResultInterpretation, result);
   renderResultSpecification(dom.labResultSpecification, result);
   renderResultTables(dom.labResultTables, result);
   renderResultAudit(dom.labResultAudit, result);

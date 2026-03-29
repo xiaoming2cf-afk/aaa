@@ -333,6 +333,23 @@ h1 {
   line-height: 1.5;
 }
 
+.interpretation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.interpretation-card,
+.interpretation-lead {
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.sig-star {
+  margin-left: 0.2rem;
+  color: #a16207;
+  font-weight: 700;
+}
+
 .table-wrap {
   padding: 0.9rem;
   border-radius: 1rem;
@@ -883,7 +900,8 @@ button.secondary,
   .method-browser-grid,
   .workflow-guide-grid,
   .lab-status-grid,
-  .context-grid {
+  .context-grid,
+  .interpretation-grid {
     grid-template-columns: 1fr;
   }
 

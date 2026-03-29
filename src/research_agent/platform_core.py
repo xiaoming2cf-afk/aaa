@@ -793,6 +793,379 @@ def get_owned_asset(db: Session, *, user: User, asset_id: str) -> DataAsset:
     return asset
 
 
+def _significance_stars(p_value: Any) -> str:
+    numeric = _safe_float(p_value)
+    if numeric is None:
+        return ""
+    if numeric < 0.01:
+        return "***"
+    if numeric < 0.05:
+        return "**"
+    if numeric < 0.1:
+        return "*"
+    return ""
+
+
+def _format_number(value: Any, *, digits: int = 4) -> str:
+    numeric = _safe_float(value)
+    if numeric is None:
+        return "n/a"
+    return f"{numeric:.{digits}f}"
+
+
+def _find_coefficient_row(rows: list[dict[str, Any]], *candidates: str) -> dict[str, Any] | None:
+    if not rows:
+        return None
+    candidate_set = {candidate for candidate in candidates if candidate}
+    for row in rows:
+        if str(row.get("term", "")) in candidate_set:
+            return row
+    return None
+
+
+def _result_table_names(result: dict[str, Any]) -> list[str]:
+    tables = result.get("tables") or {}
+    if isinstance(tables, dict):
+        return [str(name) for name in tables.keys()]
+    return []
+
+
+def _result_figure_titles(result: dict[str, Any]) -> list[str]:
+    figures = result.get("figures") or []
+    titles: list[str] = []
+    if isinstance(figures, list):
+        for figure in figures:
+            if isinstance(figure, dict):
+                title = str(figure.get("title") or "").strip()
+                if title:
+                    titles.append(title)
+    return titles
+
+
+def _build_model_result_interpretation(result: dict[str, Any]) -> dict[str, Any]:
+    model_type = str(result.get("model_type") or "").strip().lower()
+    model_label = str(result.get("model_label") or model_type or "Model")
+    specification = result.get("specification") or {}
+    coefficients = result.get("coefficients") or []
+    table_names = _result_table_names(result)
+    figure_titles = _result_figure_titles(result)
+    headline = f"{model_label} estimates are exposed in full so you can read the result and reproduce it manually."
+    sections: list[dict[str, Any]] = []
+
+    def add_section(title: str, items: list[str]) -> None:
+        cleaned = [item for item in items if item]
+        if cleaned:
+            sections.append({"title": title, "items": cleaned})
+
+    generic_outputs = []
+    if coefficients:
+        generic_outputs.append("Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.")
+    if table_names:
+        generic_outputs.append(f"Supporting tables included: {', '.join(table_names)}.")
+    if figure_titles:
+        generic_outputs.append(f"Figures included: {', '.join(figure_titles)}.")
+    add_section("What is shown on this page", generic_outputs)
+
+    if model_type == "did":
+        did_row = _find_coefficient_row(coefficients, "did_interaction")
+        did_text = "The focal DID coefficient is `did_interaction`."
+        if did_row:
+            did_text = (
+                f"The focal DID coefficient is `did_interaction` = {_format_number(did_row.get('coefficient'))}"
+                f"{_significance_stars(did_row.get('p_value'))}."
+            )
+        add_section(
+            "How to read the main result",
+            [
+                did_text,
+                "A positive sign means the treated group rose more after treatment than the control group did over the same period.",
+                "The 2x2 cell-means table should tell the same story as the regression coefficient.",
+            ],
+        )
+        add_section(
+            "What a normal paper should report",
+            [
+                "A coefficient table with treatment, post, and DID interaction terms.",
+                "A 2x2 before/after by treated/control summary or plot.",
+                "A discussion of parallel-trends plausibility and sample construction.",
+            ],
+        )
+        add_section(
+            "Manual replication focus",
+            [
+                "Check that treatment and post indicators are coded exactly as intended in the downloaded sample.",
+                "Recompute the 2x2 cell means manually before trusting the DID coefficient.",
+                "Re-estimate the regression with the documented covariance type and compare the `did_interaction` row term by term.",
+            ],
+        )
+    elif model_type == "event_study":
+        add_section(
+            "How to read the main result",
+            [
+                "Use the dynamic-effects table and the event-study figure together: coefficients before treatment help diagnose pre-trends, while post-treatment coefficients show the effect path over time.",
+                f"The omitted reference period is {specification.get('omitted_period', 'n/a')}. All dynamic coefficients are relative to that period.",
+            ],
+        )
+        add_section(
+            "What a normal paper should report",
+            [
+                "A dynamic coefficient table by relative event time.",
+                "An event-study plot with confidence intervals and a clearly stated omitted period.",
+                "A discussion of pre-trend behavior and event-window choice.",
+            ],
+        )
+        add_section(
+            "Manual replication focus",
+            [
+                "Verify the relative event-time variable and omitted period in the prepared sample.",
+                "Check that the pre-treatment coefficients are approximately centered around zero if the identifying design relies on parallel pre-trends.",
+                "Reproduce the plotted points from the dynamic-effects table horizon by horizon.",
+            ],
+        )
+    elif model_type == "rdd":
+        tau_row = _find_coefficient_row(coefficients, "rdd_treatment")
+        tau_text = "The cutoff effect is carried by the `rdd_treatment` coefficient."
+        if tau_row:
+            tau_text = (
+                f"The cutoff effect is `rdd_treatment` = {_format_number(tau_row.get('coefficient'))}"
+                f"{_significance_stars(tau_row.get('p_value'))}."
+            )
+        add_section(
+            "How to read the main result",
+            [
+                tau_text,
+                "The fitted-line figure should show a visible jump at the cutoff if the local treatment effect is economically meaningful.",
+                "Polynomial and bandwidth choices matter; always read the cutoff estimate together with the selected window.",
+            ],
+        )
+        add_section(
+            "What a normal paper should report",
+            [
+                "A local treatment-effect table around the cutoff.",
+                "An RDD figure with separate fits on each side of the threshold.",
+                "Bandwidth, polynomial-order, and treatment-assignment-rule disclosure.",
+            ],
+        )
+        add_section(
+            "Manual replication focus",
+            [
+                "Confirm the running variable and cutoff coding in the downloaded sample.",
+                "Check whether the bandwidth filter leaves the same number of observations as reported.",
+                "Rebuild the fitted lines using the same polynomial order and compare the local effect row.",
+            ],
+        )
+    elif model_type in {"arch", "garch"}:
+        add_section(
+            "How to read the main result",
+            [
+                f"Volatility persistence is reported directly in the metrics panel and should normally be below 1. Current value: {_format_number(result.get('persistence'))}.",
+                "The parameter table is the formal estimation output; the volatility-path chart shows how conditional volatility evolves through the sample.",
+                "The forecast-volatility table and forecast chart extend the conditional variance path beyond the last observation.",
+            ],
+        )
+        add_section(
+            "What a normal paper should report",
+            [
+                "A parameter table with omega, alpha, and beta terms.",
+                "A conditional-volatility figure over time.",
+                "A short discussion of persistence and forecasted volatility.",
+            ],
+        )
+        add_section(
+            "Manual replication focus",
+            [
+                "Re-estimate the same ARCH/GARCH order on the downloaded return series.",
+                "Check whether alpha plus beta matches the reported persistence.",
+                "Recompute the forecast variance path and compare it step by step with the forecast table.",
+            ],
+        )
+    elif model_type == "var":
+        add_section(
+            "How to read the main result",
+            [
+                "Read the coefficient table equation by equation because each endogenous series has its own regression block.",
+                "The forecast table and figure summarize the joint path implied by the fitted system.",
+                f"Use the selected lag order `{specification.get('lags', 'n/a')}` consistently when reproducing the system.",
+            ],
+        )
+        add_section(
+            "What a normal paper should report",
+            [
+                "Equation-level coefficient blocks or a compact companion-form summary.",
+                "Forecast tables or dynamic plots for each series.",
+                "Lag-order choice with AIC/BIC or another stated criterion.",
+            ],
+        )
+        add_section(
+            "Manual replication focus",
+            [
+                "Sort the sample by the declared time column before estimation.",
+                "Re-estimate the VAR with the documented lag order and compare coefficient blocks equation by equation.",
+                "Regenerate the forecast path using the final lag_order observations from the sample.",
+            ],
+        )
+    elif model_type == "svar_irf":
+        add_section(
+            "How to read the main result",
+            [
+                f"The recursive identification is driven by the Cholesky ordering: {', '.join(specification.get('series_columns', []))}.",
+                f"Shock variable: {specification.get('impulse_column', 'n/a')}. Response panels and the IRF table should match horizon by horizon.",
+                "Use the cumulative IRF figure when you care about accumulated rather than one-period responses.",
+            ],
+        )
+        add_section(
+            "What a normal paper should report",
+            [
+                "An orthogonalized IRF figure.",
+                "A cumulative IRF figure or cumulative response table when accumulation matters.",
+                "A clear statement of ordering or other identification assumptions.",
+            ],
+        )
+        add_section(
+            "Manual replication focus",
+            [
+                "Do not change the variable ordering when reproducing the result.",
+                "Rebuild the orthogonalized IRF using the same lag order and horizon.",
+                "Compare the cumulative IRF figure against the cumulative response column in the IRF table.",
+            ],
+        )
+    elif model_type == "virf":
+        add_section(
+            "How to read the main result",
+            [
+                f"The reported shock size is {specification.get('shock_size', 'n/a')} sigma.",
+                "The volatility path shows the level of implied volatility after the shock, while the variance-response plot shows the raw variance adjustment.",
+                "Persistence close to 1 means the shock decays slowly.",
+            ],
+        )
+        add_section(
+            "What a normal paper should report",
+            [
+                "Estimated GARCH parameters and persistence.",
+                "A volatility impulse-response plot.",
+                "A table listing volatility or variance responses by horizon.",
+            ],
+        )
+        add_section(
+            "Manual replication focus",
+            [
+                "Recover omega, alpha, and beta from the fitted GARCH(1,1) specification.",
+                "Rebuild the VIRF path from the documented recurrence formula and shock size.",
+                "Compare both the volatility and variance response outputs horizon by horizon.",
+            ],
+        )
+    elif model_type == "dy_connectedness":
+        add_section(
+            "How to read the main result",
+            [
+                f"The total connectedness index is {_format_number(result.get('total_connectedness_index'), digits=2)} percent.",
+                "The connectedness matrix shows how much of each variable's forecast error variance comes from shocks to the other variables.",
+                "The directional spillover chart highlights which variables are net transmitters and receivers of shocks.",
+            ],
+        )
+        add_section(
+            "What a normal paper should report",
+            [
+                "A generalized FEVD connectedness matrix.",
+                "Directional spillover measures (to, from, and net).",
+                "A visual summary such as a heatmap or bar chart of net spillovers.",
+            ],
+        )
+        add_section(
+            "Manual replication focus",
+            [
+                "Rebuild the generalized FEVD with the same horizon and lag order.",
+                "Check that row normalization matches the reported connectedness matrix.",
+                "Recompute net spillovers from the matrix and compare them with the directional bar chart.",
+            ],
+        )
+    elif model_type == "bk_connectedness":
+        add_section(
+            "How to read the main result",
+            [
+                "Each band isolates spillovers at a different horizon segment; compare short-, medium-, and long-run connectedness rather than collapsing everything into one number.",
+                "The band-total connectedness chart summarizes how much spillover intensity sits in each frequency range.",
+                "Band-specific matrices remain normalized within band, so they are for structural comparison rather than direct level comparison across bands.",
+            ],
+        )
+        add_section(
+            "What a normal paper should report",
+            [
+                "Band-specific connectedness matrices.",
+                "A summary table of total connectedness by frequency band.",
+                "A figure showing how connectedness is distributed across short, medium, and long horizons.",
+            ],
+        )
+        add_section(
+            "Manual replication focus",
+            [
+                "Rebuild the VAR with the same lag order before moving to the frequency decomposition.",
+                "Use the documented short and medium horizon cutoffs exactly when reconstructing the bands.",
+                "Check each band's total connectedness against the band summary chart and table.",
+            ],
+        )
+    else:
+        add_section(
+            "How to read the main result",
+            [
+                "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+                "The specification block records the exact equation or parameterization that should be reproduced manually.",
+            ],
+        )
+        add_section(
+            "Manual replication focus",
+            [
+                "Download the referenced sample and rebuild all listed derived columns before estimation.",
+                "Match the equation, regressors, covariance type, and sample filters exactly.",
+                "Compare the resulting table or figure object term by term with the result shown here.",
+            ],
+        )
+    return {
+        "headline": headline,
+        "sections": sections,
+        "paper_outputs": table_names + figure_titles,
+    }
+
+
+def _build_processing_result_interpretation(result: dict[str, Any]) -> dict[str, Any]:
+    summary = result.get("summary") or {}
+    workflow_group = str(result.get("processing_family") or "data_processing")
+    derived_columns = summary.get("derived_columns") or []
+    operations = result.get("audit_trail", {}).get("operations") or {}
+    transformed = operations.get("transformed_columns") if isinstance(operations, dict) else None
+    sections = [
+        {
+            "title": "What this processing run produced",
+            "items": [
+                f"Prepared rows: {summary.get('rows_after_prepare', 'n/a')}.",
+                f"Missing-value drops: {summary.get('rows_removed_for_missing_required', 'n/a')}.",
+                f"Derived columns created: {', '.join(derived_columns) if derived_columns else 'none'}.",
+            ],
+        },
+        {
+            "title": "What a normal appendix should show",
+            "items": [
+                "A concise data-preparation log that lists the exact transformations applied in order.",
+                "A preview or schema of the final prepared sample.",
+                "A downloadable prepared dataset used for estimation.",
+            ],
+        },
+        {
+            "title": "Manual replication focus",
+            "items": [
+                "Reapply imputation, winsorization, transforms, feature construction, and filtering in the documented order.",
+                "Verify row and column counts against the saved preparation summary.",
+                f"Check transformation groups explicitly: {json.dumps(transformed, ensure_ascii=False) if transformed else 'no grouped transforms documented'}.",
+            ],
+        },
+    ]
+    return {
+        "headline": f"{workflow_group.replace('_', ' ').title()} created a reproducible prepared sample with full audit metadata.",
+        "sections": sections,
+        "paper_outputs": ["Preparation summary", "Prepared sample preview", "Downloadable prepared dataset"],
+    }
+
+
 def search_knowledge_records(
     db: Session,
     *,
@@ -828,6 +1201,7 @@ def build_model_result_detail(db: Session, *, user: User, record_id: str) -> dic
     metadata.setdefault("model_family", _infer_model_family(str(metadata.get("model_type", ""))))
     metadata.setdefault("result_record_id", record.id)
     metadata.setdefault("result_detail_path", f"/data-lab/results/models/{record.id}")
+    metadata["interpretation"] = _build_model_result_interpretation(metadata)
     return {
         "record": serialize_knowledge_record(record),
         "result": metadata,
@@ -1968,6 +2342,7 @@ def build_processing_result_detail(
     detail["result_detail_path"] = detail.get("result_detail_path") or f"/data-lab/results/processing/{asset.id}"
     detail["profile"] = profile
     detail.setdefault("preview_rows", profile.get("preview_rows", []))
+    detail["interpretation"] = _build_processing_result_interpretation(detail)
     detail["workspace_id"] = workspace.id
     return detail
 
@@ -3568,6 +3943,28 @@ def run_arima_analysis(
         raise ValueError("Not enough observations for the selected ARIMA order.")
     fitted = ARIMA(sample[dependent], order=(p, d, q)).fit()
     forecast = fitted.forecast(steps=int(forecast_steps))
+    x_actual = sample[time_column] if time_column else np.arange(1, len(sample) + 1)
+    x_forecast = np.arange(len(sample) + 1, len(sample) + int(forecast_steps) + 1)
+    figure, axis = plt.subplots(figsize=(10.2, 5.8), dpi=160)
+    axis.plot(x_actual, sample[dependent], color="#0b5f45", linewidth=1.6, label="Observed")
+    axis.plot(x_forecast, np.asarray(forecast, dtype=float), color="#d97706", linewidth=1.8, marker="o", label="Forecast")
+    axis.set_title(f"ARIMA({p}, {d}, {q}) forecast")
+    axis.set_xlabel(time_column or "Observation")
+    axis.set_ylabel(dependent)
+    axis.legend(loc="best")
+    axis.grid(alpha=0.18, linestyle="--")
+    figure.tight_layout()
+    figure_asset = _save_model_figure_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        source_asset=asset,
+        figure=figure,
+        filename_slug="arima-forecast",
+        title="ARIMA fitted series and forecast",
+        summary=f"Observed {dependent} path with the ARIMA({p}, {d}, {q}) forecast extension.",
+    )
     summary_lines = [
         f"ARIMA({p}, {d}, {q}) run on {asset.title}.",
         f"Target series: {dependent}.",
@@ -3586,6 +3983,7 @@ def run_arima_analysis(
             "model_family": "time_series_finance",
             "time_column": time_column,
             "forecast": [{"step": index + 1, "forecast": float(value)} for index, value in enumerate(np.asarray(forecast).tolist())],
+            "figures": [figure_asset],
             "audit_trail": {
                 "derived_columns": [],
                 "filters": ["Rows with missing target values are dropped.", "Series is sorted by the selected time column before estimation." if time_column else "Series order follows the uploaded sample order."],
@@ -3642,6 +4040,31 @@ def run_var_analysis(
         {"step": step, **{series_columns[index]: float(value) for index, value in enumerate(row)}}
         for step, row in enumerate(forecast_values, start=1)
     ]
+    figure, axes = plt.subplots(len(series_columns), 1, figsize=(10.8, 3.0 * len(series_columns)), dpi=160, sharex=False)
+    if len(series_columns) == 1:
+        axes = [axes]
+    actual_x = sample[time_column] if time_column else np.arange(1, len(sample) + 1)
+    forecast_x = np.arange(len(sample) + 1, len(sample) + int(forecast_steps) + 1)
+    for axis, series_name in zip(axes, series_columns):
+        axis.plot(actual_x, sample[series_name], color="#0b5f45", linewidth=1.4, label="Observed")
+        axis.plot(forecast_x, forecast_values[:, series_columns.index(series_name)], color="#d97706", linewidth=1.6, marker="o", label="Forecast")
+        axis.set_title(series_name)
+        axis.grid(alpha=0.18, linestyle="--")
+        axis.legend(loc="best")
+    axes[-1].set_xlabel(time_column or "Observation")
+    figure.suptitle("VAR forecast paths", y=1.01)
+    figure.tight_layout()
+    forecast_figure = _save_model_figure_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        source_asset=asset,
+        figure=figure,
+        filename_slug="var-forecast",
+        title="VAR forecast paths",
+        summary="Observed and forecast paths for each endogenous series from the fitted VAR.",
+    )
     summary_lines = [
         f"VAR({lag_order}) run on {asset.title}.",
         f"Series: {', '.join(series_columns)}.",
@@ -3674,6 +4097,7 @@ def run_var_analysis(
         },
         tables={"coefficients": coefficients, "forecast": forecast_rows},
         metrics={"lag_order": lag_order, "aic": float(fitted.aic), "bic": float(fitted.bic)},
+        extra={"figures": [forecast_figure]},
     )
 
 
@@ -3755,6 +4179,25 @@ def run_arch_garch_analysis(
         title=f"{label} volatility path",
         summary=f"{label} conditional volatility path estimated from {dependent}.",
     )
+    forecast_figure, forecast_axis = plt.subplots(figsize=(9.2, 5.4), dpi=160)
+    forecast_steps_axis = np.arange(1, len(volatility_forecast) + 1)
+    forecast_axis.plot(forecast_steps_axis, volatility_forecast, marker="o", linewidth=1.8, color="#7c3aed")
+    forecast_axis.set_title(f"{label} forecast volatility path")
+    forecast_axis.set_xlabel("Forecast horizon")
+    forecast_axis.set_ylabel("Forecast volatility")
+    forecast_axis.grid(alpha=0.18, linestyle="--")
+    forecast_figure.tight_layout()
+    forecast_figure_asset = _save_model_figure_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        source_asset=asset,
+        figure=forecast_figure,
+        filename_slug=f"{normalized_model}-forecast-volatility",
+        title=f"{label} forecast volatility",
+        summary=f"{label} multi-step forecast volatility path.",
+    )
     parameter_table = _parameter_table(
         fitted.params,
         std_errors=getattr(fitted, "std_err", None),
@@ -3811,7 +4254,7 @@ def run_arch_garch_analysis(
                 limit=12,
             ),
         },
-        extra={"figures": [figure_asset]},
+        extra={"figures": [figure_asset, forecast_figure_asset]},
     )
 
 
@@ -3885,6 +4328,34 @@ def run_svar_irf_analysis(
         title=f"SVAR IRF for {impulse}",
         summary=f"Recursive structural impulse response chart for a shock to {impulse}.",
     )
+    cumulative_figure, cumulative_axis = plt.subplots(figsize=(9.8, 6.2), dpi=160)
+    for response_name in response_targets:
+        response_index = series_columns.index(response_name)
+        cumulative_axis.plot(
+            steps,
+            cumulative_irfs[:, response_index, impulse_index],
+            marker="o",
+            linewidth=1.6,
+            label=response_name,
+        )
+    cumulative_axis.axhline(0.0, color="#7c4d1c", linewidth=1.0, linestyle="--")
+    cumulative_axis.set_title(f"Cumulative recursive IRF: shock to {impulse}")
+    cumulative_axis.set_xlabel("Horizon")
+    cumulative_axis.set_ylabel("Cumulative response")
+    cumulative_axis.legend(loc="best")
+    cumulative_axis.grid(alpha=0.18, linestyle="--")
+    cumulative_figure.tight_layout()
+    cumulative_figure_asset = _save_model_figure_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        source_asset=asset,
+        figure=cumulative_figure,
+        filename_slug="svar-cumulative-irf",
+        title=f"Cumulative SVAR IRF for {impulse}",
+        summary=f"Cumulative recursive structural impulse responses for a shock to {impulse}.",
+    )
     return _nonregression_result_payload(
         model_type="svar_irf",
         model_label="SVAR IRF",
@@ -3920,7 +4391,7 @@ def run_svar_irf_analysis(
         },
         metrics={"lag_order": lag_order, "aic": float(fitted.aic), "bic": float(fitted.bic), "horizon": int(horizon)},
         tables={"irf_table": table_rows},
-        extra={"figures": [figure_asset]},
+        extra={"figures": [figure_asset, cumulative_figure_asset]},
     )
 
 
@@ -3997,6 +4468,33 @@ def run_virf_analysis(
         title="Volatility impulse response",
         summary=f"VIRF path from a {normalized_shock:.2f} sigma shock under a fitted GARCH(1,1) model.",
     )
+    variance_figure, variance_axis = plt.subplots(figsize=(9.4, 5.8), dpi=160)
+    variance_axis.plot(
+        horizons,
+        [row["variance"] for row in response_rows],
+        marker="o",
+        linewidth=1.8,
+        color="#0f766e",
+        label="Variance path",
+    )
+    variance_axis.axhline(unconditional_variance, color="#7c4d1c", linestyle="--", linewidth=1.2, label="Baseline variance")
+    variance_axis.set_title("Variance impulse response")
+    variance_axis.set_xlabel("Horizon")
+    variance_axis.set_ylabel("Variance")
+    variance_axis.legend(loc="best")
+    variance_axis.grid(alpha=0.18, linestyle="--")
+    variance_figure.tight_layout()
+    variance_figure_asset = _save_model_figure_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        source_asset=asset,
+        figure=variance_figure,
+        filename_slug="virf-variance",
+        title="Variance impulse response",
+        summary="Variance response path implied by the fitted GARCH(1,1) volatility shock.",
+    )
     return _nonregression_result_payload(
         model_type="virf",
         model_label="VIRF",
@@ -4039,7 +4537,7 @@ def run_virf_analysis(
             "shock_size": normalized_shock,
         },
         tables={"parameter_table": _parameter_table(params, std_errors=getattr(fitted, "std_err", None)), "virf_path": response_rows},
-        extra={"figures": [figure_asset]},
+        extra={"figures": [figure_asset, variance_figure_asset]},
     )
 
 
@@ -4084,6 +4582,28 @@ def run_dy_connectedness_analysis(
         title="DY connectedness heatmap",
         summary="Diebold-Yilmaz spillover heatmap from generalized forecast-error variance decomposition.",
     )
+    directional_figure, directional_axis = plt.subplots(figsize=(9.4, 5.6), dpi=160)
+    directional_axis.bar(
+        [row["variable"] for row in directional_rows],
+        [row["net"] for row in directional_rows],
+        color=["#0b5f45" if float(row["net"]) >= 0 else "#b45309" for row in directional_rows],
+    )
+    directional_axis.axhline(0.0, color="#7c4d1c", linestyle="--", linewidth=1.0)
+    directional_axis.set_title("Net directional spillovers")
+    directional_axis.set_ylabel("Net spillover")
+    directional_axis.grid(alpha=0.18, linestyle="--", axis="y")
+    directional_figure.tight_layout()
+    directional_figure_asset = _save_model_figure_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        source_asset=asset,
+        figure=directional_figure,
+        filename_slug="dy-net-spillovers",
+        title="DY net directional spillovers",
+        summary="Net spillover bar chart derived from the Diebold-Yilmaz connectedness matrix.",
+    )
     return _nonregression_result_payload(
         model_type="dy_connectedness",
         model_label="DY Connectedness",
@@ -4120,7 +4640,7 @@ def run_dy_connectedness_analysis(
             "connectedness_matrix": _connectedness_matrix_rows(normalized, series_columns),
             "directional_spillovers": directional_rows,
         },
-        extra={"figures": [figure_asset]},
+        extra={"figures": [figure_asset, directional_figure_asset]},
     )
 
 
@@ -4199,6 +4719,25 @@ def run_bk_connectedness_analysis(
         title="BK frequency connectedness",
         summary="Frequency-domain connectedness heatmaps across short, medium, and long horizons.",
     )
+    summary_figure, summary_axis = plt.subplots(figsize=(8.8, 5.2), dpi=160)
+    band_labels = [band_result["band"] for band_result in band_results]
+    band_tci = [float(band_result["total_connectedness_index"]) for band_result in band_results]
+    summary_axis.bar(band_labels, band_tci, color=["#d97706", "#0b5f45", "#7c3aed"][: len(band_results)])
+    summary_axis.set_title("Band total connectedness")
+    summary_axis.set_ylabel("Total connectedness index")
+    summary_axis.grid(alpha=0.18, linestyle="--", axis="y")
+    summary_figure.tight_layout()
+    summary_figure_asset = _save_model_figure_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        source_asset=asset,
+        figure=summary_figure,
+        filename_slug="bk-band-summary",
+        title="BK band connectedness summary",
+        summary="Band-level total connectedness index across short, medium, and long frequencies.",
+    )
     table_payload: dict[str, Any] = {
         "band_total_connectedness": [
             {
@@ -4259,7 +4798,7 @@ def run_bk_connectedness_analysis(
             "truncation_horizon": int(truncation_horizon),
         },
         tables=table_payload,
-        extra={"figures": [figure_asset]},
+        extra={"figures": [figure_asset, summary_figure_asset]},
     )
 
 

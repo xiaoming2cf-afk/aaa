@@ -269,14 +269,17 @@ def run_model(client: TestClient, token: str, workspace_id: str, payload: dict, 
         raise AssertionError(f"{label}: missing result_record_id")
     detail = client.get(f"/api/data-lab/results/models/{record_id}", headers=auth_headers(token))
     detail.raise_for_status()
+    detail_payload = detail.json()
+    result = detail_payload["result"]
+    result["_record_id"] = record_id
     if expect_figure:
-        figures = detail.json()["result"].get("figures", [])
+        figures = result.get("figures", [])
         if not figures:
             raise AssertionError(f"{label}: expected a figure but none were returned")
         for figure in figures:
             download = client.get(f"/api/assets/{figure['asset_id']}/download", headers=auth_headers(token))
             assert_png_response(download, f"{label} figure")
-    return data
+    return result
 
 
 def main() -> None:
@@ -457,15 +460,37 @@ def main() -> None:
         svar_result = results["SVAR IRF"]
         if not svar_result.get("tables", {}).get("irf_table"):
             raise AssertionError("SVAR IRF did not return the impulse-response table")
+        if len(svar_result.get("figures", [])) < 2:
+            raise AssertionError("SVAR IRF did not return both orthogonalized and cumulative IRF figures")
 
         bk_result = results["BK Connectedness"]
         band_rows = bk_result.get("tables", {}).get("band_total_connectedness", [])
         if len(band_rows) < 3:
             raise AssertionError("BK connectedness did not return short/medium/long band summaries")
+        if len(bk_result.get("figures", [])) < 2:
+            raise AssertionError("BK connectedness did not return both the heatmap and band-summary figures")
 
         dydetail = results["DY Connectedness"].get("tables", {}).get("connectedness_matrix", [])
         if not dydetail:
             raise AssertionError("DY connectedness did not return a connectedness matrix")
+        if len(results["DY Connectedness"].get("figures", [])) < 2:
+            raise AssertionError("DY connectedness did not return both heatmap and directional-spillover figures")
+
+        if len(results["GARCH"].get("figures", [])) < 2:
+            raise AssertionError("GARCH did not return both in-sample and forecast-volatility figures")
+        if len(results["ARCH"].get("figures", [])) < 2:
+            raise AssertionError("ARCH did not return both in-sample and forecast-volatility figures")
+        if len(results["VAR"].get("figures", [])) < 1:
+            raise AssertionError("VAR did not return a forecast figure")
+        if len(results["ARIMA"].get("figures", [])) < 1:
+            raise AssertionError("ARIMA did not return a forecast figure")
+        if len(results["VIRF"].get("figures", [])) < 2:
+            raise AssertionError("VIRF did not return both volatility and variance response figures")
+
+        if not results["DID"].get("interpretation", {}).get("sections"):
+            raise AssertionError("DID result detail is missing interpretation metadata")
+        if not results["SVAR IRF"].get("interpretation", {}).get("sections"):
+            raise AssertionError("SVAR IRF result detail is missing interpretation metadata")
 
         home = client.get("/")
         home.raise_for_status()
@@ -475,6 +500,11 @@ def main() -> None:
             raise AssertionError("Standalone Data Lab page is missing the beginner guide section")
         if "Time Series &amp; Econometric Finance" not in data_lab_page.text and "Time Series & Econometric Finance" not in data_lab_page.text:
             raise AssertionError("Standalone Data Lab page is missing the expanded time-series family section")
+
+        result_page = client.get(f"/data-lab/results/models/{results['DID']['_record_id']}")
+        result_page.raise_for_status()
+        if "Interpretation &amp; Replication" not in result_page.text and "Interpretation & Replication" not in result_page.text:
+            raise AssertionError("Result detail page is missing the interpretation section")
 
         print("All Data Lab verification checks passed.")
         print(f"Workspace: {workspace_id}")
