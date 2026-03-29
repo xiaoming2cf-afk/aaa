@@ -21,6 +21,82 @@ const state = {
   bootstrap: null,
 };
 
+const MODEL_FAMILY_OPTIONS = {
+  econometrics_baseline: [
+    { value: "ols", label: "OLS" },
+    { value: "ppml", label: "PPML" },
+    { value: "logit", label: "Logit" },
+    { value: "probit", label: "Probit" },
+    { value: "did", label: "Difference-in-Differences" },
+    { value: "event_study", label: "Event Study" },
+    { value: "rdd", label: "Regression Discontinuity" },
+    { value: "fixed_effects", label: "Fixed Effects" },
+    { value: "gravity", label: "Gravity Model" },
+    { value: "iv_2sls", label: "IV-2SLS" },
+    { value: "panel_iv", label: "Panel IV" },
+  ],
+  time_series_finance: [
+    { value: "arima", label: "ARIMA Forecast" },
+    { value: "var", label: "Vector Autoregression" },
+  ],
+  corporate_finance: [
+    { value: "altman_z", label: "Altman Z-Score" },
+    { value: "dupont", label: "DuPont Analysis" },
+  ],
+  risk_management: [
+    { value: "historical_var", label: "Historical VaR / ES" },
+    { value: "parametric_var", label: "Parametric VaR / ES" },
+    { value: "ewma_volatility", label: "EWMA Volatility" },
+  ],
+  derivatives_pricing: [
+    { value: "black_scholes", label: "Black-Scholes" },
+    { value: "binomial_option", label: "Binomial Option Pricing" },
+  ],
+  macro_finance_dsge: [
+    { value: "taylor_rule", label: "Taylor Rule" },
+    { value: "rbc_dsge", label: "Toy RBC / DSGE" },
+  ],
+  portfolio_allocation: [
+    { value: "mean_variance", label: "Mean-Variance Portfolio" },
+    { value: "minimum_variance", label: "Minimum Variance Portfolio" },
+    { value: "risk_parity", label: "Risk Parity Portfolio" },
+  ],
+  asset_pricing: [
+    { value: "capm", label: "CAPM" },
+    { value: "fama_french_3", label: "Fama-French 3-Factor" },
+  ],
+};
+
+const MODEL_CONFIG = {
+  ols: { dependentKind: "numeric", independents: true, controls: true, robust: true },
+  ppml: { dependentKind: "numeric", independents: true, controls: true, robust: true },
+  logit: { dependentKind: "binary", independents: true, controls: true, robust: true },
+  probit: { dependentKind: "binary", independents: true, controls: true, robust: true },
+  did: { dependentKind: "numeric", controls: true, did: true, robust: true },
+  event_study: { dependentKind: "numeric", controls: true, eventStudy: true, fe: true, robust: true },
+  rdd: { dependentKind: "numeric", controls: true, rdd: true, robust: true },
+  fixed_effects: { dependentKind: "numeric", independents: true, controls: true, fe: true, robust: true },
+  gravity: { dependentKind: "numeric", controls: true, gravity: true, robust: true, dependentLabel: "Outcome / flow variable" },
+  iv_2sls: { dependentKind: "numeric", independents: true, controls: true, iv: true, robust: true },
+  panel_iv: { dependentKind: "numeric", independents: true, controls: true, fe: true, iv: true, robust: true },
+  arima: { dependentKind: "numeric", timeColumn: true, forecast: true, arima: true },
+  var: { series: true, timeColumn: true, forecast: true, var: true },
+  historical_var: { dependentKind: "numeric", timeColumn: true, risk: true },
+  parametric_var: { dependentKind: "numeric", timeColumn: true, risk: true },
+  ewma_volatility: { dependentKind: "numeric", timeColumn: true, risk: true },
+  altman_z: { corporateAltman: true },
+  dupont: { corporateDupont: true },
+  black_scholes: { derivative: true },
+  binomial_option: { derivative: true },
+  taylor_rule: { dependentKind: "numeric", controls: true, macroTaylor: true, robust: true },
+  rbc_dsge: { dsge: true },
+  mean_variance: { series: true, portfolio: true },
+  minimum_variance: { series: true, portfolio: true },
+  risk_parity: { series: true, portfolio: true },
+  capm: { dependentKind: "numeric", assetPricing: true, robust: true, dependentLabel: "Asset return series" },
+  fama_french_3: { dependentKind: "numeric", assetPricing: true, ff3: true, robust: true, dependentLabel: "Asset return series" },
+};
+
 const dom = {
   publicPanel: document.getElementById("public-panel"),
   toast: document.getElementById("toast"),
@@ -57,7 +133,15 @@ const dom = {
   analysisAssetOverview: document.getElementById("analysis-asset-overview"),
   analysisColumnGrid: document.getElementById("analysis-column-grid"),
   analysisPreviewTable: document.getElementById("analysis-preview-table"),
+  labWorkflowType: document.getElementById("lab-workflow-type"),
+  processingFamilyWrap: document.getElementById("processing-family-wrap"),
+  processingFamily: document.getElementById("processing-family"),
+  modelFamilyWrap: document.getElementById("model-family-wrap"),
+  modelFamily: document.getElementById("model-family"),
   prepareForm: document.getElementById("prepare-form"),
+  prepareCoreFields: document.getElementById("prepare-core-fields"),
+  prepareCleaningFields: document.getElementById("prepare-cleaning-fields"),
+  prepareTimeSeriesFields: document.getElementById("prepare-time-series-fields"),
   prepareKeepColumns: document.getElementById("prepare-keep-columns"),
   prepareRequiredColumns: document.getElementById("prepare-required-columns"),
   prepareNumericColumns: document.getElementById("prepare-numeric-columns"),
@@ -70,9 +154,22 @@ const dom = {
   prepareWinsorUpper: document.getElementById("prepare-winsor-upper"),
   prepareLogTransformColumns: document.getElementById("prepare-log-transform-columns"),
   prepareStandardizeColumns: document.getElementById("prepare-standardize-columns"),
+  prepareMinmaxScaleColumns: document.getElementById("prepare-minmax-scale-columns"),
   prepareOutlierColumns: document.getElementById("prepare-outlier-columns"),
   prepareOutlierMethod: document.getElementById("prepare-outlier-method"),
   prepareOutlierThreshold: document.getElementById("prepare-outlier-threshold"),
+  prepareSortColumn: document.getElementById("prepare-sort-column"),
+  prepareTimeGroupColumn: document.getElementById("prepare-time-group-column"),
+  prepareDifferenceColumns: document.getElementById("prepare-difference-columns"),
+  prepareReturnColumns: document.getElementById("prepare-return-columns"),
+  prepareReturnMethod: document.getElementById("prepare-return-method"),
+  prepareLagColumns: document.getElementById("prepare-lag-columns"),
+  prepareLagPeriods: document.getElementById("prepare-lag-periods"),
+  prepareLeadColumns: document.getElementById("prepare-lead-columns"),
+  prepareLeadPeriods: document.getElementById("prepare-lead-periods"),
+  prepareRollingMeanColumns: document.getElementById("prepare-rolling-mean-columns"),
+  prepareRollingVolatilityColumns: document.getElementById("prepare-rolling-volatility-columns"),
+  prepareRollingWindow: document.getElementById("prepare-rolling-window"),
   prepareOutput: document.getElementById("prepare-output"),
   modelForm: document.getElementById("model-form"),
   modelType: document.getElementById("model-type"),
@@ -80,6 +177,17 @@ const dom = {
   modelIndependents: document.getElementById("model-independents"),
   modelControls: document.getElementById("model-controls"),
   modelRobustCovariance: document.getElementById("model-robust-covariance"),
+  seriesModelFields: document.getElementById("series-model-fields"),
+  modelSeriesColumns: document.getElementById("model-series-columns"),
+  timeSeriesModelFields: document.getElementById("time-series-model-fields"),
+  modelTimeColumn: document.getElementById("model-time-column"),
+  forecastSteps: document.getElementById("forecast-steps"),
+  arimaFields: document.getElementById("arima-fields"),
+  arimaP: document.getElementById("arima-p"),
+  arimaD: document.getElementById("arima-d"),
+  arimaQ: document.getElementById("arima-q"),
+  varFields: document.getElementById("var-fields"),
+  varLags: document.getElementById("var-lags"),
   didFields: document.getElementById("did-fields"),
   didTreatmentColumn: document.getElementById("did-treatment-column"),
   didPostColumn: document.getElementById("did-post-column"),
@@ -111,6 +219,54 @@ const dom = {
   ivEndogenousColumn: document.getElementById("iv-endogenous-column"),
   ivInstrumentColumns: document.getElementById("iv-instrument-columns"),
   olsFields: document.getElementById("ols-fields"),
+  riskFields: document.getElementById("risk-fields"),
+  confidenceLevel: document.getElementById("confidence-level"),
+  holdingPeriodDays: document.getElementById("holding-period-days"),
+  ewmaLambda: document.getElementById("ewma-lambda"),
+  corporateAltmanFields: document.getElementById("corporate-altman-fields"),
+  corporateAltmanFields2: document.getElementById("corporate-altman-fields-2"),
+  corporateDupontFields: document.getElementById("corporate-dupont-fields"),
+  workingCapitalColumn: document.getElementById("working-capital-column"),
+  retainedEarningsColumn: document.getElementById("retained-earnings-column"),
+  ebitColumn: document.getElementById("ebit-column"),
+  marketEquityColumn: document.getElementById("market-equity-column"),
+  totalAssetsColumn: document.getElementById("total-assets-column"),
+  totalLiabilitiesColumn: document.getElementById("total-liabilities-column"),
+  salesColumn: document.getElementById("sales-column"),
+  netIncomeColumn: document.getElementById("net-income-column"),
+  revenueColumn: document.getElementById("revenue-column"),
+  equityColumn: document.getElementById("equity-column"),
+  derivativeFields: document.getElementById("derivative-fields"),
+  derivativeFields2: document.getElementById("derivative-fields-2"),
+  spotColumn: document.getElementById("spot-column"),
+  strikeColumn: document.getElementById("strike-column"),
+  maturityColumn: document.getElementById("maturity-column"),
+  rateColumn: document.getElementById("rate-column"),
+  volatilityColumn: document.getElementById("volatility-column"),
+  optionType: document.getElementById("option-type"),
+  optionSteps: document.getElementById("option-steps"),
+  macroTaylorFields: document.getElementById("macro-taylor-fields"),
+  inflationGapColumn: document.getElementById("inflation-gap-column"),
+  outputGapColumn: document.getElementById("output-gap-column"),
+  dsgeFields: document.getElementById("dsge-fields"),
+  dsgeFields2: document.getElementById("dsge-fields-2"),
+  dsgeAlpha: document.getElementById("dsge-alpha"),
+  dsgeBeta: document.getElementById("dsge-beta"),
+  dsgeDelta: document.getElementById("dsge-delta"),
+  dsgeProductivity: document.getElementById("dsge-productivity"),
+  dsgeLabor: document.getElementById("dsge-labor"),
+  dsgeShockPersistence: document.getElementById("dsge-shock-persistence"),
+  dsgeShockSize: document.getElementById("dsge-shock-size"),
+  dsgeImpulseHorizon: document.getElementById("dsge-impulse-horizon"),
+  portfolioFields: document.getElementById("portfolio-fields"),
+  portfolioRiskAversion: document.getElementById("portfolio-risk-aversion"),
+  portfolioLongOnly: document.getElementById("portfolio-long-only"),
+  assetPricingFields: document.getElementById("asset-pricing-fields"),
+  ff3Fields: document.getElementById("ff3-fields"),
+  marketColumn: document.getElementById("market-column"),
+  riskFreeColumn: document.getElementById("risk-free-column"),
+  smbColumn: document.getElementById("smb-column"),
+  hmlColumn: document.getElementById("hml-column"),
   plotForm: document.getElementById("plot-form"),
   plotType: document.getElementById("plot-type"),
   plotXColumn: document.getElementById("plot-x-column"),
@@ -296,6 +452,29 @@ function emptyCard(message) {
   return `<div class="card"><p>${escapeHtml(message)}</p></div>`;
 }
 
+function toggleHidden(element, hidden) {
+  if (!element) {
+    return;
+  }
+  element.classList.toggle("hidden", hidden);
+}
+
+function closestWrap(element, selector = ".stack.compact") {
+  return element?.closest(selector) || null;
+}
+
+function currentWorkflowType() {
+  return dom.labWorkflowType?.value || "data_processing";
+}
+
+function currentProcessingFamily() {
+  return dom.processingFamily?.value || "sample_preparation";
+}
+
+function currentModelFamily() {
+  return dom.modelFamily?.value || "econometrics_baseline";
+}
+
 function getSelectedValues(select) {
   if (!select) {
     return [];
@@ -421,7 +600,16 @@ function populateDataLabSelectors(profile) {
   setSelectOptions(dom.prepareWinsorizeColumns, numericColumns, { multiple: true });
   setSelectOptions(dom.prepareLogTransformColumns, numericColumns, { multiple: true });
   setSelectOptions(dom.prepareStandardizeColumns, numericColumns, { multiple: true });
+  setSelectOptions(dom.prepareMinmaxScaleColumns, numericColumns, { multiple: true });
   setSelectOptions(dom.prepareOutlierColumns, numericColumns, { multiple: true });
+  setSelectOptions(dom.prepareSortColumn, allColumns, { placeholder: "Select sort column" });
+  setSelectOptions(dom.prepareTimeGroupColumn, allColumns, { placeholder: "Optional grouping column" });
+  setSelectOptions(dom.prepareDifferenceColumns, numericColumns, { multiple: true });
+  setSelectOptions(dom.prepareReturnColumns, numericColumns, { multiple: true });
+  setSelectOptions(dom.prepareLagColumns, numericColumns, { multiple: true });
+  setSelectOptions(dom.prepareLeadColumns, numericColumns, { multiple: true });
+  setSelectOptions(dom.prepareRollingMeanColumns, numericColumns, { multiple: true });
+  setSelectOptions(dom.prepareRollingVolatilityColumns, numericColumns, { multiple: true });
 
   setSelectOptions(dom.modelIndependents, numericColumns, { multiple: true });
   setSelectOptions(dom.modelControls, numericColumns, { multiple: true });
@@ -435,14 +623,37 @@ function populateDataLabSelectors(profile) {
   setSelectOptions(dom.gravityDistanceColumn, numericColumns, { placeholder: "Select distance variable" });
   setSelectOptions(dom.panelEntityColumn, allColumns, { placeholder: "Select entity column" });
   setSelectOptions(dom.panelTimeColumn, allColumns, { placeholder: "Select time column" });
+  setSelectOptions(dom.modelSeriesColumns, numericColumns, { multiple: true });
+  setSelectOptions(dom.modelTimeColumn, allColumns, { placeholder: "Select time column" });
   setSelectOptions(dom.ivEndogenousColumn, numericColumns, { placeholder: "Select endogenous regressor" });
   setSelectOptions(dom.ivInstrumentColumns, numericColumns, { multiple: true });
+  setSelectOptions(dom.marketColumn, numericColumns, { placeholder: "Select market return / factor" });
+  setSelectOptions(dom.riskFreeColumn, numericColumns, { placeholder: "Optional risk-free rate" });
+  setSelectOptions(dom.smbColumn, numericColumns, { placeholder: "Select SMB factor" });
+  setSelectOptions(dom.hmlColumn, numericColumns, { placeholder: "Select HML factor" });
+  setSelectOptions(dom.spotColumn, numericColumns, { placeholder: "Select spot price column" });
+  setSelectOptions(dom.strikeColumn, numericColumns, { placeholder: "Select strike column" });
+  setSelectOptions(dom.maturityColumn, numericColumns, { placeholder: "Select maturity column" });
+  setSelectOptions(dom.rateColumn, numericColumns, { placeholder: "Select rate column" });
+  setSelectOptions(dom.volatilityColumn, numericColumns, { placeholder: "Select volatility column" });
+  setSelectOptions(dom.workingCapitalColumn, numericColumns, { placeholder: "Select working capital" });
+  setSelectOptions(dom.retainedEarningsColumn, numericColumns, { placeholder: "Select retained earnings" });
+  setSelectOptions(dom.ebitColumn, numericColumns, { placeholder: "Select EBIT" });
+  setSelectOptions(dom.marketEquityColumn, numericColumns, { placeholder: "Select market equity" });
+  setSelectOptions(dom.totalAssetsColumn, numericColumns, { placeholder: "Select total assets" });
+  setSelectOptions(dom.totalLiabilitiesColumn, numericColumns, { placeholder: "Select total liabilities" });
+  setSelectOptions(dom.salesColumn, numericColumns, { placeholder: "Select sales" });
+  setSelectOptions(dom.netIncomeColumn, numericColumns, { placeholder: "Select net income" });
+  setSelectOptions(dom.revenueColumn, numericColumns, { placeholder: "Select revenue" });
+  setSelectOptions(dom.equityColumn, numericColumns, { placeholder: "Select equity" });
+  setSelectOptions(dom.inflationGapColumn, numericColumns, { placeholder: "Select inflation gap" });
+  setSelectOptions(dom.outputGapColumn, numericColumns, { placeholder: "Select output gap" });
 
   setSelectOptions(dom.plotXColumn, allColumns, { placeholder: "Select X variable" });
   setSelectOptions(dom.plotYColumns, numericColumns, { multiple: true });
   setSelectOptions(dom.plotGroupColumn, columns, { placeholder: "Optional group column" });
-  refreshModelVariableOptions();
-  updateModelFieldVisibility();
+  syncModelTypeOptions();
+  updateWorkflowVisibility();
 }
 
 function renderAssetProfile(profile) {
@@ -479,32 +690,95 @@ function refreshModelVariableOptions() {
   const numericColumns = (profile?.column_roles?.numeric || []).map((value) => ({ value, label: value }));
   const binaryColumns = (profile?.column_roles?.binary || []).map((value) => ({ value, label: value }));
   const modelType = dom.modelType?.value || "ols";
+  const config = MODEL_CONFIG[modelType] || {};
   const currentDependent = dom.modelDependent?.value || "";
-  const placeholder =
-    modelType === "gravity"
+  const placeholder = config.dependentLabel
+    || (modelType === "gravity"
       ? "Select a flow variable"
       : modelType === "logit" || modelType === "probit"
         ? "Select a binary outcome"
-        : "Select an outcome variable";
-  const options = modelType === "logit" || modelType === "probit" ? binaryColumns : numericColumns;
-  setSelectOptions(dom.modelDependent, options, { placeholder, selected: currentDependent });
+        : modelType.includes("var") || modelType === "capm" || modelType === "fama_french_3"
+          ? "Select a return series"
+          : "Select an outcome variable");
+  const options = config.dependentKind === "binary" ? binaryColumns : numericColumns;
+  setSelectOptions(dom.modelDependent, options, {
+    placeholder: config.dependentKind ? placeholder : "This model does not use an outcome variable",
+    selected: currentDependent,
+  });
+}
+
+function syncModelTypeOptions() {
+  const family = currentModelFamily();
+  const options = MODEL_FAMILY_OPTIONS[family] || MODEL_FAMILY_OPTIONS.econometrics_baseline;
+  const current = dom.modelType?.value || "";
+  const selected = options.some((item) => item.value === current) ? current : options[0]?.value || "ols";
+  setSelectOptions(dom.modelType, options, { placeholder: "Select a model", selected });
+  if (dom.modelType) {
+    dom.modelType.value = selected;
+  }
 }
 
 function updateModelFieldVisibility() {
   const modelType = dom.modelType?.value || "ols";
-  const usesCoreRegressionFields = ["ols", "ppml", "logit", "probit", "fixed_effects", "iv_2sls", "panel_iv"].includes(modelType);
-  dom.olsFields?.classList.toggle("hidden", !usesCoreRegressionFields);
-  dom.didFields?.classList.toggle("hidden", modelType !== "did");
-  dom.eventStudyFields?.classList.toggle("hidden", modelType !== "event_study");
-  dom.eventStudyWindowFields?.classList.toggle("hidden", modelType !== "event_study");
-  dom.rddFields?.classList.toggle("hidden", modelType !== "rdd");
-  dom.rddConfigFields?.classList.toggle("hidden", modelType !== "rdd");
-  dom.gravityFields?.classList.toggle("hidden", modelType !== "gravity");
-  dom.gravityDistanceWrap?.classList.toggle("hidden", modelType !== "gravity");
-  dom.feFields?.classList.toggle("hidden", !["fixed_effects", "event_study", "panel_iv"].includes(modelType));
-  dom.feTimeToggle?.classList.toggle("hidden", !["fixed_effects", "event_study", "panel_iv"].includes(modelType));
-  dom.ivFields?.classList.toggle("hidden", !["iv_2sls", "panel_iv"].includes(modelType));
+  const config = MODEL_CONFIG[modelType] || {};
+  toggleHidden(closestWrap(dom.modelDependent), !config.dependentKind);
+  toggleHidden(dom.olsFields, !config.independents);
+  toggleHidden(closestWrap(dom.modelControls), !config.controls);
+  toggleHidden(dom.didFields, !config.did);
+  toggleHidden(dom.eventStudyFields, !config.eventStudy);
+  toggleHidden(dom.eventStudyWindowFields, !config.eventStudy);
+  toggleHidden(dom.rddFields, !config.rdd);
+  toggleHidden(dom.rddConfigFields, !config.rdd);
+  toggleHidden(dom.gravityFields, !config.gravity);
+  toggleHidden(dom.gravityDistanceWrap, !config.gravity);
+  toggleHidden(dom.seriesModelFields, !config.series);
+  toggleHidden(dom.timeSeriesModelFields, !(config.timeColumn || config.forecast));
+  toggleHidden(closestWrap(dom.modelTimeColumn), !config.timeColumn);
+  toggleHidden(closestWrap(dom.forecastSteps), !config.forecast);
+  toggleHidden(dom.arimaFields, !config.arima);
+  toggleHidden(dom.varFields, !config.var);
+  toggleHidden(dom.feFields, !config.fe);
+  toggleHidden(dom.feTimeToggle, !config.fe);
+  toggleHidden(dom.ivFields, !config.iv);
+  toggleHidden(dom.riskFields, !config.risk);
+  toggleHidden(closestWrap(dom.ewmaLambda), modelType !== "ewma_volatility");
+  toggleHidden(dom.corporateAltmanFields, !config.corporateAltman);
+  toggleHidden(dom.corporateAltmanFields2, !config.corporateAltman);
+  toggleHidden(dom.corporateDupontFields, !config.corporateDupont);
+  toggleHidden(dom.derivativeFields, !config.derivative);
+  toggleHidden(dom.derivativeFields2, !config.derivative);
+  toggleHidden(dom.macroTaylorFields, !config.macroTaylor);
+  toggleHidden(dom.dsgeFields, !config.dsge);
+  toggleHidden(dom.dsgeFields2, !config.dsge);
+  toggleHidden(dom.portfolioFields, !config.portfolio);
+  toggleHidden(dom.assetPricingFields, !config.assetPricing);
+  toggleHidden(dom.ff3Fields, !config.ff3);
+  toggleHidden(dom.modelRobustCovariance?.closest("label.checkbox"), !config.robust);
   refreshModelVariableOptions();
+}
+
+function updateWorkflowVisibility() {
+  const workflowType = currentWorkflowType();
+  const processingFamily = currentProcessingFamily();
+  const isProcessing = workflowType === "data_processing";
+  const isVisualization = isProcessing && processingFamily === "visualization";
+
+  toggleHidden(dom.processingFamilyWrap, !isProcessing);
+  toggleHidden(dom.modelFamilyWrap, isProcessing);
+  toggleHidden(dom.prepareForm, !isProcessing || isVisualization);
+  toggleHidden(dom.plotForm, !isVisualization);
+  toggleHidden(dom.modelForm, isProcessing);
+
+  if (isProcessing && !isVisualization) {
+    toggleHidden(dom.prepareCoreFields, processingFamily !== "sample_preparation");
+    toggleHidden(dom.prepareCleaningFields, processingFamily !== "cleaning_transforms");
+    toggleHidden(dom.prepareTimeSeriesFields, processingFamily !== "time_series_features");
+  }
+
+  if (!isProcessing) {
+    syncModelTypeOptions();
+    updateModelFieldVisibility();
+  }
 }
 
 function hasPrivateWorkspaceUI() {
@@ -1339,6 +1613,7 @@ async function handlePrepareSample(event) {
   }
   const payload = {
     asset_id: assetId,
+    workflow_group: dom.processingFamily?.value || "sample_preparation",
     include_columns: getSelectedValues(dom.prepareKeepColumns),
     required_columns: getSelectedValues(dom.prepareRequiredColumns),
     numeric_columns: getSelectedValues(dom.prepareNumericColumns),
@@ -1351,9 +1626,22 @@ async function handlePrepareSample(event) {
     winsor_upper_quantile: Number(dom.prepareWinsorUpper?.value || 0.99),
     log_transform_columns: getSelectedValues(dom.prepareLogTransformColumns),
     standardize_columns: getSelectedValues(dom.prepareStandardizeColumns),
+    minmax_scale_columns: getSelectedValues(dom.prepareMinmaxScaleColumns),
     outlier_columns: getSelectedValues(dom.prepareOutlierColumns),
     outlier_method: dom.prepareOutlierMethod?.value || "none",
     outlier_threshold: Number(dom.prepareOutlierThreshold?.value || 1.5),
+    sort_column: dom.prepareSortColumn?.value || "",
+    time_group_column: dom.prepareTimeGroupColumn?.value || "",
+    difference_columns: getSelectedValues(dom.prepareDifferenceColumns),
+    return_columns: getSelectedValues(dom.prepareReturnColumns),
+    return_method: dom.prepareReturnMethod?.value || "simple",
+    lag_columns: getSelectedValues(dom.prepareLagColumns),
+    lag_periods: Number(dom.prepareLagPeriods?.value || 1),
+    lead_columns: getSelectedValues(dom.prepareLeadColumns),
+    lead_periods: Number(dom.prepareLeadPeriods?.value || 1),
+    rolling_mean_columns: getSelectedValues(dom.prepareRollingMeanColumns),
+    rolling_volatility_columns: getSelectedValues(dom.prepareRollingVolatilityColumns),
+    rolling_window: Number(dom.prepareRollingWindow?.value || 5),
     drop_duplicates: event.currentTarget.querySelector('[name=\"drop_duplicates\"]')?.checked ?? true,
     drop_missing_required:
       event.currentTarget.querySelector('[name=\"drop_missing_required\"]')?.checked ?? true,
@@ -1378,12 +1666,15 @@ async function handleModelRun(event) {
     throw new Error("Select a dataset asset first.");
   }
   const modelType = dom.modelType?.value || "ols";
+  const useSeriesTimeColumn = ["arima", "var", "historical_var", "parametric_var", "ewma_volatility"].includes(modelType);
   const payload = {
     asset_id: assetId,
+    model_family: dom.modelFamily?.value || "",
     model_type: modelType,
     dependent: dom.modelDependent?.value || "",
     independents: getSelectedValues(dom.modelIndependents),
     controls: getSelectedValues(dom.modelControls),
+    series_columns: getSelectedValues(dom.modelSeriesColumns),
     treatment_column:
       modelType === "event_study" ? dom.eventTreatmentColumn?.value || "" : dom.didTreatmentColumn?.value || "",
     post_column: dom.didPostColumn?.value || "",
@@ -1400,10 +1691,51 @@ async function handleModelRun(event) {
     rdd_polynomial_order: Number(dom.rddPolynomialOrder?.value || 1),
     treat_above_cutoff: dom.rddTreatAboveCutoff?.checked ?? true,
     entity_column: dom.panelEntityColumn?.value || "",
-    time_column: dom.panelTimeColumn?.value || "",
+    time_column: useSeriesTimeColumn ? dom.modelTimeColumn?.value || "" : dom.panelTimeColumn?.value || "",
     include_time_effects: dom.includeTimeEffects?.checked ?? false,
     endogenous_column: dom.ivEndogenousColumn?.value || "",
     instrument_columns: getSelectedValues(dom.ivInstrumentColumns),
+    market_column: dom.marketColumn?.value || "",
+    risk_free_column: dom.riskFreeColumn?.value || "",
+    smb_column: dom.smbColumn?.value || "",
+    hml_column: dom.hmlColumn?.value || "",
+    spot_column: dom.spotColumn?.value || "",
+    strike_column: dom.strikeColumn?.value || "",
+    maturity_column: dom.maturityColumn?.value || "",
+    rate_column: dom.rateColumn?.value || "",
+    volatility_column: dom.volatilityColumn?.value || "",
+    working_capital_column: dom.workingCapitalColumn?.value || "",
+    retained_earnings_column: dom.retainedEarningsColumn?.value || "",
+    ebit_column: dom.ebitColumn?.value || "",
+    market_equity_column: dom.marketEquityColumn?.value || "",
+    total_assets_column: dom.totalAssetsColumn?.value || "",
+    total_liabilities_column: dom.totalLiabilitiesColumn?.value || "",
+    sales_column: dom.salesColumn?.value || "",
+    net_income_column: dom.netIncomeColumn?.value || "",
+    revenue_column: dom.revenueColumn?.value || "",
+    equity_column: dom.equityColumn?.value || "",
+    inflation_gap_column: dom.inflationGapColumn?.value || "",
+    output_gap_column: dom.outputGapColumn?.value || "",
+    arima_p: Number(dom.arimaP?.value || 1),
+    arima_d: Number(dom.arimaD?.value || 0),
+    arima_q: Number(dom.arimaQ?.value || 0),
+    forecast_steps: Number(dom.forecastSteps?.value || 5),
+    var_lags: Number(dom.varLags?.value || 1),
+    confidence_level: Number(dom.confidenceLevel?.value || 0.95),
+    holding_period_days: Number(dom.holdingPeriodDays?.value || 1),
+    ewma_lambda: Number(dom.ewmaLambda?.value || 0.94),
+    option_type: dom.optionType?.value || "call",
+    option_steps: Number(dom.optionSteps?.value || 50),
+    risk_aversion: Number(dom.portfolioRiskAversion?.value || 3),
+    long_only: dom.portfolioLongOnly?.checked ?? true,
+    dsge_alpha: Number(dom.dsgeAlpha?.value || 0.33),
+    dsge_beta: Number(dom.dsgeBeta?.value || 0.99),
+    dsge_delta: Number(dom.dsgeDelta?.value || 0.025),
+    dsge_productivity: Number(dom.dsgeProductivity?.value || 1),
+    dsge_labor: Number(dom.dsgeLabor?.value || 0.33),
+    dsge_shock_persistence: Number(dom.dsgeShockPersistence?.value || 0.9),
+    dsge_shock_size: Number(dom.dsgeShockSize?.value || 0.01),
+    dsge_impulse_horizon: Number(dom.dsgeImpulseHorizon?.value || 12),
     robust_covariance: dom.modelRobustCovariance?.checked ?? true,
   };
   const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/analysis/models`, {
@@ -1652,6 +1984,12 @@ function bind() {
     await loadSelectedAssetProfile(true);
     showToast("Dataset profile refreshed.");
   }));
+  dom.labWorkflowType?.addEventListener("change", () => updateWorkflowVisibility());
+  dom.processingFamily?.addEventListener("change", () => updateWorkflowVisibility());
+  dom.modelFamily?.addEventListener("change", () => {
+    syncModelTypeOptions();
+    updateModelFieldVisibility();
+  });
   dom.modelType?.addEventListener("change", () => updateModelFieldVisibility());
   dom.downloadPlotButton?.addEventListener("click", wrap(async () => {
     if (!state.currentPlotAssetId) {
@@ -1665,7 +2003,7 @@ function bind() {
   dom.publicDateSwitcher?.addEventListener("click", wrap(handlePublicActions));
   dom.publicBriefingList?.addEventListener("click", wrap(handlePublicActions));
   dom.publicSummaryFeatured?.addEventListener("click", wrap(handlePublicActions));
-  updateModelFieldVisibility();
+  updateWorkflowVisibility();
 }
 
 async function init() {

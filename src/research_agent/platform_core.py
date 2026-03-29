@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import math
+from statistics import NormalDist
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
@@ -14,6 +16,8 @@ import numpy as np
 import pandas as pd
 import requests
 import statsmodels.api as sm
+from statsmodels.tsa.api import VAR
+from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.sandbox.regression.gmm import IV2SLS
 from statsmodels.tools.sm_exceptions import PerfectSeparationError
 from pandas.api.types import is_datetime64_any_dtype, is_numeric_dtype
@@ -784,9 +788,22 @@ def _prepare_selected_sample(
     winsor_upper_quantile: float = 0.99,
     log_transform_columns: list[str] | None = None,
     standardize_columns: list[str] | None = None,
+    minmax_scale_columns: list[str] | None = None,
     outlier_columns: list[str] | None = None,
     outlier_method: str = "none",
     outlier_threshold: float = 1.5,
+    sort_column: str = "",
+    time_group_column: str = "",
+    difference_columns: list[str] | None = None,
+    return_columns: list[str] | None = None,
+    return_method: str = "simple",
+    lag_columns: list[str] | None = None,
+    lag_periods: int = 1,
+    lead_columns: list[str] | None = None,
+    lead_periods: int = 1,
+    rolling_mean_columns: list[str] | None = None,
+    rolling_volatility_columns: list[str] | None = None,
+    rolling_window: int = 5,
     drop_duplicates: bool = True,
     drop_missing_required: bool = True,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
@@ -804,7 +821,14 @@ def _prepare_selected_sample(
     winsorize_columns = [column for column in (winsorize_columns or []) if column]
     log_transform_columns = [column for column in (log_transform_columns or []) if column]
     standardize_columns = [column for column in (standardize_columns or []) if column]
+    minmax_scale_columns = [column for column in (minmax_scale_columns or []) if column]
     outlier_columns = [column for column in (outlier_columns or []) if column]
+    difference_columns = [column for column in (difference_columns or []) if column]
+    return_columns = [column for column in (return_columns or []) if column]
+    lag_columns = [column for column in (lag_columns or []) if column]
+    lead_columns = [column for column in (lead_columns or []) if column]
+    rolling_mean_columns = [column for column in (rolling_mean_columns or []) if column]
+    rolling_volatility_columns = [column for column in (rolling_volatility_columns or []) if column]
 
     requested_columns = {
         *(include_columns or []),
@@ -816,13 +840,28 @@ def _prepare_selected_sample(
         *winsorize_columns,
         *log_transform_columns,
         *standardize_columns,
+        *minmax_scale_columns,
         *outlier_columns,
+        *difference_columns,
+        *return_columns,
+        *lag_columns,
+        *lead_columns,
+        *rolling_mean_columns,
+        *rolling_volatility_columns,
     }
+    if sort_column:
+        requested_columns.add(sort_column)
+    if time_group_column:
+        requested_columns.add(time_group_column)
     missing_columns = [column for column in requested_columns if column not in sample.columns]
     if missing_columns:
         raise ValueError(f"Missing required columns: {', '.join(sorted(missing_columns))}")
 
     if include_columns:
+        if sort_column and sort_column not in include_columns:
+            include_columns.append(sort_column)
+        if time_group_column and time_group_column not in include_columns:
+            include_columns.append(time_group_column)
         sample = sample[include_columns].copy()
 
     numeric_pipeline_columns = {
@@ -830,7 +869,14 @@ def _prepare_selected_sample(
         *winsorize_columns,
         *log_transform_columns,
         *standardize_columns,
+        *minmax_scale_columns,
         *outlier_columns,
+        *difference_columns,
+        *return_columns,
+        *lag_columns,
+        *lead_columns,
+        *rolling_mean_columns,
+        *rolling_volatility_columns,
     }
     if impute_method.strip().lower() in {"mean", "median", "zero"}:
         numeric_pipeline_columns.update(impute_columns)
@@ -862,7 +908,7 @@ def _prepare_selected_sample(
             sample[column] = _winsorize_series(sample[column], winsor_lower_quantile, winsor_upper_quantile)
             winsorization_log[column] = {"lower": winsor_lower_quantile, "upper": winsor_upper_quantile}
 
-    transformed_columns: dict[str, list[str]] = {"log": [], "zscore": []}
+    transformed_columns: dict[str, list[str]] = {"log": [], "zscore": [], "minmax": []}
     for column in log_transform_columns:
         if (sample[column].dropna() <= 0).any():
             raise ValueError(f"Log transform requires strictly positive values in column: {column}")
@@ -876,6 +922,103 @@ def _prepare_selected_sample(
             continue
         sample[column] = (sample[column] - clean.mean()) / std
         transformed_columns["zscore"].append(column)
+
+    for column in minmax_scale_columns:
+        clean = sample[column].dropna()
+        if clean.empty:
+            continue
+        col_min = clean.min()
+        col_max = clean.max()
+        if pd.isna(col_min) or pd.isna(col_max) or col_max == col_min:
+            continue
+        sample[column] = (sample[column] - col_min) / (col_max - col_min)
+        transformed_columns["minmax"].append(column)
+
+    timeseries_requested = bool(
+        difference_columns
+        or return_columns
+        or lag_columns
+        or lead_columns
+        or rolling_mean_columns
+        or rolling_volatility_columns
+    )
+    if timeseries_requested and not sort_column:
+        raise ValueError("Time-series preparation requires a sort column.")
+    if lag_periods < 1 or lead_periods < 1:
+        raise ValueError("Lag and lead periods must be at least 1.")
+    if rolling_window < 2 and (rolling_mean_columns or rolling_volatility_columns):
+        raise ValueError("Rolling window must be at least 2.")
+
+    time_series_log: dict[str, Any] = {
+        "sort_column": sort_column,
+        "group_column": time_group_column,
+        "difference_columns": [],
+        "return_columns": [],
+        "lag_columns": [],
+        "lead_columns": [],
+        "rolling_mean_columns": [],
+        "rolling_volatility_columns": [],
+    }
+    derived_columns: list[str] = []
+    if timeseries_requested:
+        sort_keys = [column for column in [time_group_column, sort_column] if column]
+        sample = sample.sort_values(sort_keys).copy()
+        grouped = sample.groupby(time_group_column, dropna=False) if time_group_column else None
+
+        def grouped_series(column: str):
+            return grouped[column] if grouped is not None else sample[column]
+
+        for column in difference_columns:
+            derived_name = f"diff_{column}"
+            sample[derived_name] = grouped_series(column).diff() if grouped is not None else sample[column].diff()
+            time_series_log["difference_columns"].append(derived_name)
+            derived_columns.append(derived_name)
+
+        normalized_return_method = (return_method or "simple").strip().lower()
+        for column in return_columns:
+            shifted = grouped_series(column).shift(1) if grouped is not None else sample[column].shift(1)
+            if normalized_return_method == "log":
+                if (sample[column].dropna() <= 0).any():
+                    raise ValueError(f"Log returns require strictly positive values in column: {column}")
+                if (shifted.dropna() <= 0).any():
+                    raise ValueError(f"Log returns require strictly positive lagged values in column: {column}")
+                series = np.log(sample[column] / shifted)
+            else:
+                series = (sample[column] / shifted) - 1.0
+            derived_name = f"{'logret' if normalized_return_method == 'log' else 'ret'}_{column}"
+            sample[derived_name] = series
+            time_series_log["return_columns"].append(derived_name)
+            derived_columns.append(derived_name)
+
+        for column in lag_columns:
+            derived_name = f"lag{int(lag_periods)}_{column}"
+            sample[derived_name] = grouped_series(column).shift(int(lag_periods)) if grouped is not None else sample[column].shift(int(lag_periods))
+            time_series_log["lag_columns"].append(derived_name)
+            derived_columns.append(derived_name)
+
+        for column in lead_columns:
+            derived_name = f"lead{int(lead_periods)}_{column}"
+            sample[derived_name] = grouped_series(column).shift(-int(lead_periods)) if grouped is not None else sample[column].shift(-int(lead_periods))
+            time_series_log["lead_columns"].append(derived_name)
+            derived_columns.append(derived_name)
+
+        for column in rolling_mean_columns:
+            derived_name = f"rollmean{int(rolling_window)}_{column}"
+            if grouped is not None:
+                sample[derived_name] = grouped[column].transform(lambda values: values.rolling(int(rolling_window)).mean())
+            else:
+                sample[derived_name] = sample[column].rolling(int(rolling_window)).mean()
+            time_series_log["rolling_mean_columns"].append(derived_name)
+            derived_columns.append(derived_name)
+
+        for column in rolling_volatility_columns:
+            derived_name = f"rollvol{int(rolling_window)}_{column}"
+            if grouped is not None:
+                sample[derived_name] = grouped[column].transform(lambda values: values.rolling(int(rolling_window)).std())
+            else:
+                sample[derived_name] = sample[column].rolling(int(rolling_window)).std()
+            time_series_log["rolling_volatility_columns"].append(derived_name)
+            derived_columns.append(derived_name)
 
     sample, outliers_removed = _drop_outliers(
         sample,
@@ -907,6 +1050,8 @@ def _prepare_selected_sample(
         "imputed_columns": imputation_log,
         "winsorized_columns": winsorization_log,
         "transformed_columns": transformed_columns,
+        "time_series_features": time_series_log,
+        "derived_columns": derived_columns,
         "outlier_columns": outlier_columns,
         "outlier_method": outlier_method,
         "outlier_threshold": outlier_threshold,
@@ -942,14 +1087,14 @@ def profile_dataset_asset(
     if role_map["binary"] and role_map["numeric"]:
         suggested_models.extend(["logit", "probit"])
     if role_map["numeric"]:
-        suggested_models.append("ppml")
-        suggested_models.append("rdd")
+        suggested_models.extend(["ppml", "rdd", "historical_var", "parametric_var", "ewma_volatility", "capm", "mean_variance", "minimum_variance", "risk_parity"])
     if role_map["numeric"] and len(role_map["binary"]) >= 2:
         suggested_models.extend(["did", "event_study"])
     if len(role_map["numeric"]) >= 3 and (role_map["categorical"] or role_map["text"] or role_map["date"]):
-        suggested_models.append("fixed_effects")
+        suggested_models.extend(["fixed_effects", "arima", "var", "taylor_rule"])
     if len(role_map["numeric"]) >= 4:
-        suggested_models.extend(["gravity", "iv_2sls", "panel_iv"])
+        suggested_models.extend(["gravity", "iv_2sls", "panel_iv", "fama_french_3", "black_scholes", "binomial_option", "altman_z", "dupont"])
+    suggested_models.append("rbc_dsge")
     suggested_models = list(dict.fromkeys(suggested_models))
 
     return {
@@ -972,6 +1117,7 @@ def prepare_dataset_asset(
     user: User,
     workspace: Workspace,
     asset_id: str,
+    workflow_group: str = "sample_preparation",
     include_columns: list[str] | None = None,
     required_columns: list[str] | None = None,
     numeric_columns: list[str] | None = None,
@@ -984,9 +1130,22 @@ def prepare_dataset_asset(
     winsor_upper_quantile: float = 0.99,
     log_transform_columns: list[str] | None = None,
     standardize_columns: list[str] | None = None,
+    minmax_scale_columns: list[str] | None = None,
     outlier_columns: list[str] | None = None,
     outlier_method: str = "none",
     outlier_threshold: float = 1.5,
+    sort_column: str = "",
+    time_group_column: str = "",
+    difference_columns: list[str] | None = None,
+    return_columns: list[str] | None = None,
+    return_method: str = "simple",
+    lag_columns: list[str] | None = None,
+    lag_periods: int = 1,
+    lead_columns: list[str] | None = None,
+    lead_periods: int = 1,
+    rolling_mean_columns: list[str] | None = None,
+    rolling_volatility_columns: list[str] | None = None,
+    rolling_window: int = 5,
     drop_duplicates: bool = True,
     drop_missing_required: bool = True,
 ) -> dict[str, Any]:
@@ -1006,9 +1165,22 @@ def prepare_dataset_asset(
         winsor_upper_quantile=winsor_upper_quantile,
         log_transform_columns=log_transform_columns,
         standardize_columns=standardize_columns,
+        minmax_scale_columns=minmax_scale_columns,
         outlier_columns=outlier_columns,
         outlier_method=outlier_method,
         outlier_threshold=outlier_threshold,
+        sort_column=sort_column,
+        time_group_column=time_group_column,
+        difference_columns=difference_columns,
+        return_columns=return_columns,
+        return_method=return_method,
+        lag_columns=lag_columns,
+        lag_periods=lag_periods,
+        lead_columns=lead_columns,
+        lead_periods=lead_periods,
+        rolling_mean_columns=rolling_mean_columns,
+        rolling_volatility_columns=rolling_volatility_columns,
+        rolling_window=rolling_window,
         drop_duplicates=drop_duplicates,
         drop_missing_required=drop_missing_required,
     )
@@ -1030,6 +1202,8 @@ def prepare_dataset_asset(
     }
     db.flush()
     return {
+        "workflow_type": "data_processing",
+        "processing_family": workflow_group or "sample_preparation",
         "asset": serialize_asset(prepared_asset),
         "summary": summary,
         "preview_rows": _frame_preview_rows(prepared_frame),
@@ -1051,11 +1225,14 @@ def prepare_dataset_asset(
                 "imputed_columns": summary["imputed_columns"],
                 "winsorized_columns": summary["winsorized_columns"],
                 "transformed_columns": summary["transformed_columns"],
+                "time_series_features": summary["time_series_features"],
+                "derived_columns": summary["derived_columns"],
                 "outlier_columns": summary["outlier_columns"],
                 "outlier_method": summary["outlier_method"],
                 "outlier_threshold": summary["outlier_threshold"],
                 "drop_duplicates": drop_duplicates,
                 "drop_missing_required": drop_missing_required,
+                "workflow_group": workflow_group or "sample_preparation",
             },
         },
     }
@@ -1287,6 +1464,144 @@ def _model_result_payload(
         payload["audit_trail"].update(audit_extra)
     payload.update(extra)
     return payload
+
+
+def _nonregression_result_payload(
+    *,
+    model_type: str,
+    model_label: str,
+    asset: DataAsset,
+    sample: pd.DataFrame | None,
+    narrative_lines: list[str],
+    specification: dict[str, Any],
+    audit_trail: dict[str, Any],
+    metrics: dict[str, Any] | None = None,
+    tables: dict[str, Any] | None = None,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload = {
+        "model_type": model_type,
+        "model_label": model_label,
+        "asset": serialize_asset(asset),
+        "observations": int(len(sample)) if sample is not None else 0,
+        "narrative": narrative_lines,
+        "specification": specification,
+        "audit_trail": {
+            "sample_asset_id": asset.id,
+            "sample_title": asset.title,
+            "sample_download_url": f"/api/assets/{asset.id}/download",
+            **audit_trail,
+        },
+        "metrics": metrics or {},
+        "tables": tables or {},
+        "sample_columns": list(sample.columns) if sample is not None else [],
+        "sample_preview": _frame_preview_rows(sample, limit=5) if sample is not None else [],
+    }
+    if extra:
+        payload.update(extra)
+    return payload
+
+
+def _sort_sample_by_time(sample: pd.DataFrame, time_column: str) -> pd.DataFrame:
+    if not time_column or time_column not in sample.columns:
+        return sample
+    prepared = sample.copy()
+    parsed = pd.to_datetime(prepared[time_column], errors="coerce")
+    if parsed.notna().sum():
+        prepared["__sort_time"] = parsed
+    else:
+        numeric = pd.to_numeric(prepared[time_column], errors="coerce")
+        if numeric.notna().sum():
+            prepared["__sort_time"] = numeric
+        else:
+            prepared["__sort_time"] = prepared[time_column].astype(str)
+    prepared = prepared.sort_values("__sort_time").drop(columns="__sort_time")
+    return prepared
+
+
+def _normal_cdf(value: float) -> float:
+    return 0.5 * (1.0 + math.erf(value / math.sqrt(2.0)))
+
+
+def _black_scholes_price(
+    *,
+    spot: float,
+    strike: float,
+    maturity: float,
+    rate: float,
+    volatility: float,
+    option_type: str,
+) -> dict[str, float]:
+    if spot <= 0 or strike <= 0 or maturity <= 0 or volatility <= 0:
+        raise ValueError("Black-Scholes requires strictly positive spot, strike, maturity, and volatility.")
+    sqrt_t = math.sqrt(maturity)
+    d1 = (math.log(spot / strike) + (rate + 0.5 * volatility**2) * maturity) / (volatility * sqrt_t)
+    d2 = d1 - volatility * sqrt_t
+    if option_type == "put":
+        price = strike * math.exp(-rate * maturity) * _normal_cdf(-d2) - spot * _normal_cdf(-d1)
+        delta = _normal_cdf(d1) - 1.0
+    else:
+        price = spot * _normal_cdf(d1) - strike * math.exp(-rate * maturity) * _normal_cdf(d2)
+        delta = _normal_cdf(d1)
+    gamma = math.exp(-(d1**2) / 2.0) / (spot * volatility * sqrt_t * math.sqrt(2.0 * math.pi))
+    return {"price": price, "delta": delta, "gamma": gamma, "d1": d1, "d2": d2}
+
+
+def _binomial_option_price(
+    *,
+    spot: float,
+    strike: float,
+    maturity: float,
+    rate: float,
+    volatility: float,
+    steps: int,
+    option_type: str,
+) -> float:
+    if steps < 1:
+        raise ValueError("Binomial option pricing requires at least one step.")
+    if spot <= 0 or strike <= 0 or maturity <= 0 or volatility <= 0:
+        raise ValueError("Binomial option pricing requires strictly positive spot, strike, maturity, and volatility.")
+    dt = maturity / steps
+    up = math.exp(volatility * math.sqrt(dt))
+    down = 1.0 / up
+    discount = math.exp(-rate * dt)
+    probability = (math.exp(rate * dt) - down) / (up - down)
+    if probability <= 0 or probability >= 1:
+        raise ValueError("Invalid binomial probability. Check rate, volatility, maturity, and step count.")
+    terminal = []
+    for step in range(steps + 1):
+        stock_price = spot * (up ** (steps - step)) * (down**step)
+        if option_type == "put":
+            payoff = max(strike - stock_price, 0.0)
+        else:
+            payoff = max(stock_price - strike, 0.0)
+        terminal.append(payoff)
+    values = terminal
+    for level in range(steps, 0, -1):
+        values = [
+            discount * (probability * values[index] + (1 - probability) * values[index + 1])
+            for index in range(level)
+        ]
+    return float(values[0])
+
+
+def _risk_parity_weights(covariance: np.ndarray, *, iterations: int = 600, tolerance: float = 1e-7) -> np.ndarray:
+    count = covariance.shape[0]
+    weights = np.full(count, 1.0 / count)
+    for _ in range(iterations):
+        portfolio_variance = float(weights @ covariance @ weights)
+        if portfolio_variance <= 0:
+            break
+        marginal = covariance @ weights
+        risk_contrib = weights * marginal / math.sqrt(portfolio_variance)
+        target = risk_contrib.sum() / count
+        if np.max(np.abs(risk_contrib - target)) <= tolerance:
+            break
+        safe_rc = np.where(np.abs(risk_contrib) < 1e-12, 1e-12, risk_contrib)
+        weights = weights * target / safe_rc
+        weights = np.clip(weights, 1e-8, None)
+        weights = weights / weights.sum()
+    return weights
 
 
 def clean_dataset_asset(
@@ -1974,6 +2289,675 @@ def run_panel_iv_analysis(
     return payload
 
 
+def run_arima_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    dependent: str,
+    time_column: str = "",
+    arima_order: tuple[int, int, int] = (1, 0, 0),
+    forecast_steps: int = 5,
+) -> dict[str, Any]:
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    required_columns = [dependent] + ([time_column] if time_column else [])
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+    sample = frame[required_columns].copy()
+    sample[dependent] = _coerce_numeric_series(sample[dependent])
+    sample = sample.dropna(subset=[dependent]).copy()
+    if time_column:
+        sample = _sort_sample_by_time(sample, time_column)
+    p, d, q = arima_order
+    if len(sample) < max(20, p + d + q + 8):
+        raise ValueError("Not enough observations for the selected ARIMA order.")
+    fitted = ARIMA(sample[dependent], order=(p, d, q)).fit()
+    forecast = fitted.forecast(steps=int(forecast_steps))
+    summary_lines = [
+        f"ARIMA({p}, {d}, {q}) run on {asset.title}.",
+        f"Target series: {dependent}.",
+        f"Forecast horizon: {int(forecast_steps)} step(s).",
+    ]
+    return _model_result_payload(
+        model_type="arima",
+        model_label="ARIMA Forecast",
+        asset=asset,
+        dependent=dependent,
+        regressors=[f"ARIMA({p},{d},{q})"],
+        sample=sample,
+        result=fitted,
+        narrative_lines=summary_lines,
+        extra={
+            "model_family": "time_series_finance",
+            "time_column": time_column,
+            "forecast": [{"step": index + 1, "forecast": float(value)} for index, value in enumerate(np.asarray(forecast).tolist())],
+            "audit_trail": {
+                "derived_columns": [],
+                "filters": ["Rows with missing target values are dropped.", "Series is sorted by the selected time column before estimation." if time_column else "Series order follows the uploaded sample order."],
+            },
+        },
+    )
+
+
+def run_var_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    series_columns: list[str],
+    time_column: str = "",
+    lags: int = 1,
+    forecast_steps: int = 5,
+) -> dict[str, Any]:
+    series_columns = [column for column in series_columns if column]
+    if len(series_columns) < 2:
+        raise ValueError("VAR requires at least two series columns.")
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    required_columns = [*series_columns, *([time_column] if time_column else [])]
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+    sample = frame[required_columns].copy()
+    for column in series_columns:
+        sample[column] = _coerce_numeric_series(sample[column])
+    sample = sample.dropna().copy()
+    if time_column:
+        sample = _sort_sample_by_time(sample, time_column)
+    if len(sample) < max(18, len(series_columns) * (lags + 2)):
+        raise ValueError("Not enough observations for VAR estimation.")
+    fitted = VAR(sample[series_columns]).fit(maxlags=int(lags), trend="c")
+    lag_order = int(fitted.k_ar)
+    forecast_values = fitted.forecast(sample[series_columns].values[-lag_order:], steps=int(forecast_steps))
+    coefficients: list[dict[str, Any]] = []
+    for equation in fitted.names:
+        for term in fitted.params.index:
+            coefficients.append(
+                {
+                    "equation": equation,
+                    "term": term,
+                    "coefficient": float(fitted.params.loc[term, equation]),
+                    "std_error": float(fitted.stderr.loc[term, equation]) if term in fitted.stderr.index else None,
+                    "p_value": float(fitted.pvalues.loc[term, equation]) if term in fitted.pvalues.index else None,
+                }
+            )
+    forecast_rows = [
+        {"step": step, **{series_columns[index]: float(value) for index, value in enumerate(row)}}
+        for step, row in enumerate(forecast_values, start=1)
+    ]
+    summary_lines = [
+        f"VAR({lag_order}) run on {asset.title}.",
+        f"Series: {', '.join(series_columns)}.",
+        f"Forecast horizon: {int(forecast_steps)} step(s).",
+    ]
+    return _nonregression_result_payload(
+        model_type="var",
+        model_label="Vector Autoregression",
+        asset=asset,
+        sample=sample[[*([time_column] if time_column else []), *series_columns]].copy(),
+        narrative_lines=summary_lines,
+        specification={
+            "model_type": "var",
+            "model_family": "time_series_finance",
+            "series_columns": series_columns,
+            "time_column": time_column,
+            "lags": lag_order,
+            "forecast_steps": int(forecast_steps),
+        },
+        audit_trail={
+            "rows_used": int(len(sample)),
+            "sample_columns": [*([time_column] if time_column else []), *series_columns],
+            "manual_checklist": [
+                "Download the sample asset and sort it by the listed time_column if one is provided.",
+                "Estimate a VAR with the same lag order on the listed series columns.",
+                "Compare coefficient blocks and forecast rows equation by equation.",
+            ],
+            "derived_columns": [],
+            "filters": ["Rows with missing selected series values are dropped."],
+        },
+        tables={"coefficients": coefficients, "forecast": forecast_rows},
+        metrics={"lag_order": lag_order, "aic": float(fitted.aic), "bic": float(fitted.bic)},
+    )
+
+
+def run_altman_z_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    working_capital_column: str,
+    retained_earnings_column: str,
+    ebit_column: str,
+    market_equity_column: str,
+    sales_column: str,
+    total_assets_column: str,
+    total_liabilities_column: str,
+) -> dict[str, Any]:
+    required_columns = [working_capital_column, retained_earnings_column, ebit_column, market_equity_column, sales_column, total_assets_column, total_liabilities_column]
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+    sample = frame[required_columns].copy()
+    for column in required_columns:
+        sample[column] = _coerce_numeric_series(sample[column])
+    sample = sample.dropna().copy()
+    positive_mask = (sample[total_assets_column] > 0) & (sample[total_liabilities_column] > 0)
+    sample = sample.loc[positive_mask].copy()
+    if sample.empty:
+        raise ValueError("Altman Z-score requires positive total assets and total liabilities.")
+    sample["altman_z"] = 1.2 * (sample[working_capital_column] / sample[total_assets_column]) + 1.4 * (sample[retained_earnings_column] / sample[total_assets_column]) + 3.3 * (sample[ebit_column] / sample[total_assets_column]) + 0.6 * (sample[market_equity_column] / sample[total_liabilities_column]) + 1.0 * (sample[sales_column] / sample[total_assets_column])
+    sample["distress_zone"] = np.where(sample["altman_z"] < 1.81, "distress", np.where(sample["altman_z"] < 2.99, "grey", "safe"))
+    latest = sample.iloc[-1]
+    return _nonregression_result_payload(
+        model_type="altman_z",
+        model_label="Altman Z-Score",
+        asset=asset,
+        sample=sample[required_columns + ["altman_z", "distress_zone"]].copy(),
+        narrative_lines=[f"Altman Z-score computed on {asset.title}.", f"Latest Z-score: {float(latest['altman_z']):.4f}.", f"Latest zone: {latest['distress_zone']}."],
+        specification={
+            "model_type": "altman_z",
+            "model_family": "corporate_finance",
+            "equation": "1.2*(WC/TA)+1.4*(RE/TA)+3.3*(EBIT/TA)+0.6*(MVE/TL)+1.0*(Sales/TA)",
+            "input_columns": {"working_capital": working_capital_column, "retained_earnings": retained_earnings_column, "ebit": ebit_column, "market_equity": market_equity_column, "sales": sales_column, "total_assets": total_assets_column, "total_liabilities": total_liabilities_column},
+        },
+        audit_trail={
+            "rows_used": int(len(sample)),
+            "sample_columns": required_columns,
+            "manual_checklist": [
+                "Recompute each ratio term using the listed accounting columns.",
+                "Apply the standard Altman weights to reproduce altman_z.",
+                "Check the distress-zone cutoff against 1.81 and 2.99.",
+            ],
+            "derived_columns": ["altman_z", "distress_zone"],
+            "filters": ["Rows with missing inputs are dropped.", "Rows with nonpositive total assets or total liabilities are removed."],
+        },
+        metrics={"latest_score": float(latest["altman_z"]), "mean_score": float(sample["altman_z"].mean()), "distress_share": float((sample["distress_zone"] == "distress").mean())},
+        tables={"score_preview": _frame_preview_rows(sample[required_columns + ["altman_z", "distress_zone"]].copy(), limit=10)},
+    )
+
+
+def run_dupont_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    net_income_column: str,
+    revenue_column: str,
+    total_assets_column: str,
+    equity_column: str,
+) -> dict[str, Any]:
+    required_columns = [net_income_column, revenue_column, total_assets_column, equity_column]
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+    sample = frame[required_columns].copy()
+    for column in required_columns:
+        sample[column] = _coerce_numeric_series(sample[column])
+    sample = sample.dropna().copy()
+    positive_mask = (sample[revenue_column] != 0) & (sample[total_assets_column] != 0) & (sample[equity_column] != 0)
+    sample = sample.loc[positive_mask].copy()
+    if sample.empty:
+        raise ValueError("DuPont analysis requires nonzero revenue, total assets, and equity.")
+    sample["profit_margin"] = sample[net_income_column] / sample[revenue_column]
+    sample["asset_turnover"] = sample[revenue_column] / sample[total_assets_column]
+    sample["equity_multiplier"] = sample[total_assets_column] / sample[equity_column]
+    sample["roe_dupont"] = sample["profit_margin"] * sample["asset_turnover"] * sample["equity_multiplier"]
+    latest = sample.iloc[-1]
+    return _nonregression_result_payload(
+        model_type="dupont",
+        model_label="DuPont Analysis",
+        asset=asset,
+        sample=sample[required_columns + ["profit_margin", "asset_turnover", "equity_multiplier", "roe_dupont"]].copy(),
+        narrative_lines=[f"DuPont analysis computed on {asset.title}.", f"Latest ROE decomposition: {float(latest['roe_dupont']):.4f}."],
+        specification={
+            "model_type": "dupont",
+            "model_family": "corporate_finance",
+            "equation": "ROE = (NetIncome/Revenue) * (Revenue/Assets) * (Assets/Equity)",
+            "input_columns": {"net_income": net_income_column, "revenue": revenue_column, "total_assets": total_assets_column, "equity": equity_column},
+        },
+        audit_trail={
+            "rows_used": int(len(sample)),
+            "sample_columns": required_columns,
+            "manual_checklist": [
+                "Compute profit margin, asset turnover, and equity multiplier from the listed accounting columns.",
+                "Multiply the three terms to reproduce roe_dupont.",
+                "Compare the latest-row decomposition with the preview table.",
+            ],
+            "derived_columns": ["profit_margin", "asset_turnover", "equity_multiplier", "roe_dupont"],
+            "filters": ["Rows with missing inputs are dropped.", "Rows with zero revenue, assets, or equity are removed."],
+        },
+        metrics={"latest_roe": float(latest["roe_dupont"]), "mean_roe": float(sample["roe_dupont"].mean())},
+        tables={"dupont_preview": _frame_preview_rows(sample[required_columns + ["profit_margin", "asset_turnover", "equity_multiplier", "roe_dupont"]].copy(), limit=10)},
+    )
+
+
+def run_risk_metric_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    model_type: str,
+    return_column: str,
+    time_column: str = "",
+    confidence_level: float = 0.95,
+    holding_period_days: int = 1,
+    ewma_lambda: float = 0.94,
+) -> dict[str, Any]:
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    required_columns = [return_column] + ([time_column] if time_column else [])
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+    sample = frame[required_columns].copy()
+    sample[return_column] = _coerce_numeric_series(sample[return_column])
+    sample = sample.dropna().copy()
+    if time_column:
+        sample = _sort_sample_by_time(sample, time_column)
+    if len(sample) < 20:
+        raise ValueError("Risk models require at least 20 return observations.")
+    returns = sample[return_column].astype(float)
+    alpha = 1.0 - float(confidence_level)
+    if not (0 < alpha < 1):
+        raise ValueError("Confidence level must lie between 0 and 1.")
+    if holding_period_days < 1:
+        raise ValueError("Holding period must be at least 1 day.")
+    normal = NormalDist()
+
+    if model_type == "historical_var":
+        raw_var = float(returns.quantile(alpha))
+        tail = returns.loc[returns <= raw_var]
+        expected_shortfall = float(tail.mean()) if not tail.empty else raw_var
+        label = "Historical VaR / ES"
+        equation = "VaR_alpha = empirical quantile; ES_alpha = mean(returns <= VaR_alpha)"
+        metrics = {"confidence_level": float(confidence_level), "holding_period_days": int(holding_period_days), "var": -raw_var * math.sqrt(holding_period_days), "expected_shortfall": -expected_shortfall * math.sqrt(holding_period_days), "mean_return": float(returns.mean()), "volatility": float(returns.std())}
+        derived_columns: list[str] = []
+    elif model_type == "parametric_var":
+        z_value = normal.inv_cdf(alpha)
+        mean_return = float(returns.mean())
+        volatility = float(returns.std())
+        raw_var = mean_return + z_value * volatility
+        es = mean_return - volatility * (math.exp(-(z_value**2) / 2.0) / math.sqrt(2.0 * math.pi)) / alpha
+        label = "Parametric VaR / ES"
+        equation = "VaR_alpha = mu + z_alpha*sigma under normality"
+        metrics = {"confidence_level": float(confidence_level), "holding_period_days": int(holding_period_days), "var": -raw_var * math.sqrt(holding_period_days), "expected_shortfall": -es * math.sqrt(holding_period_days), "mean_return": mean_return, "volatility": volatility}
+        derived_columns = []
+    else:
+        normalized_lambda = float(ewma_lambda)
+        if not (0 < normalized_lambda < 1):
+            raise ValueError("EWMA lambda must lie between 0 and 1.")
+        ewma_variance = float(np.var(returns))
+        volatility_path = []
+        for value in returns.astype(float):
+            ewma_variance = normalized_lambda * ewma_variance + (1 - normalized_lambda) * float(value) ** 2
+            volatility_path.append(math.sqrt(max(ewma_variance, 0.0)))
+        label = "EWMA Volatility"
+        equation = "sigma_t^2 = lambda*sigma_{t-1}^2 + (1-lambda)*r_{t-1}^2"
+        sample = sample.copy()
+        sample["ewma_volatility"] = volatility_path
+        metrics = {"ewma_lambda": normalized_lambda, "latest_volatility": float(volatility_path[-1]), "mean_return": float(returns.mean()), "volatility": float(returns.std())}
+        derived_columns = ["ewma_volatility"]
+
+    return _nonregression_result_payload(
+        model_type=model_type,
+        model_label=label,
+        asset=asset,
+        sample=sample,
+        narrative_lines=[f"{label} run on {asset.title}.", f"Return series: {return_column}."],
+        specification={"model_type": model_type, "model_family": "risk_management", "equation": equation, "return_column": return_column, "time_column": time_column, "confidence_level": float(confidence_level), "holding_period_days": int(holding_period_days), "ewma_lambda": float(ewma_lambda)},
+        audit_trail={
+            "rows_used": int(len(sample)),
+            "sample_columns": list(sample.columns),
+            "manual_checklist": [
+                "Download the sample asset and sort it by the listed time_column if one is provided.",
+                "Recompute the return distribution statistics and the stated risk metric formula.",
+                "Compare the reproduced VaR/ES or EWMA volatility against the metrics block.",
+            ],
+            "derived_columns": derived_columns,
+            "filters": ["Rows with missing selected return values are dropped."],
+        },
+        metrics=metrics,
+        tables={"series_preview": _frame_preview_rows(sample, limit=10)},
+    )
+
+
+def run_option_pricing_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    model_type: str,
+    spot_column: str,
+    strike_column: str,
+    maturity_column: str,
+    rate_column: str,
+    volatility_column: str,
+    option_type: str = "call",
+    option_steps: int = 50,
+) -> dict[str, Any]:
+    required_columns = [spot_column, strike_column, maturity_column, rate_column, volatility_column]
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+    sample = frame[required_columns].copy()
+    for column in required_columns:
+        sample[column] = _coerce_numeric_series(sample[column])
+    sample = sample.dropna().copy()
+    if sample.empty:
+        raise ValueError("No complete observations are available for option pricing.")
+    records = []
+    truncated = sample.head(500).copy()
+    for _, row in truncated.iterrows():
+        if model_type == "binomial_option":
+            records.append(
+                {
+                    "price": _binomial_option_price(
+                        spot=float(row[spot_column]),
+                        strike=float(row[strike_column]),
+                        maturity=float(row[maturity_column]),
+                        rate=float(row[rate_column]),
+                        volatility=float(row[volatility_column]),
+                        steps=int(option_steps),
+                        option_type=option_type,
+                    )
+                }
+            )
+        else:
+            records.append(
+                _black_scholes_price(
+                    spot=float(row[spot_column]),
+                    strike=float(row[strike_column]),
+                    maturity=float(row[maturity_column]),
+                    rate=float(row[rate_column]),
+                    volatility=float(row[volatility_column]),
+                    option_type=option_type,
+                )
+            )
+    valuations = pd.DataFrame(records)
+    preview = pd.concat([truncated.reset_index(drop=True), valuations], axis=1)
+    latest = preview.iloc[-1]
+    label = "Binomial Option Pricing" if model_type == "binomial_option" else "Black-Scholes"
+    equation = "CRR binomial tree backward induction" if model_type == "binomial_option" else "Closed-form Black-Scholes-Merton pricing formula"
+    return _nonregression_result_payload(
+        model_type=model_type,
+        model_label=label,
+        asset=asset,
+        sample=preview,
+        narrative_lines=[f"{label} run on {asset.title}.", f"Option type: {option_type}.", f"Latest price: {float(latest['price']):.4f}."],
+        specification={
+            "model_type": model_type,
+            "model_family": "derivatives_pricing",
+            "equation": equation,
+            "input_columns": {"spot": spot_column, "strike": strike_column, "maturity": maturity_column, "rate": rate_column, "volatility": volatility_column},
+            "option_type": option_type,
+            "option_steps": int(option_steps),
+        },
+        audit_trail={
+            "rows_used": int(len(preview)),
+            "sample_columns": list(preview.columns),
+            "manual_checklist": [
+                "Download the sample asset and reproduce the pricing inputs row by row.",
+                "Use the same option_type and option_steps when applicable.",
+                "Compare the reproduced option values against the preview table and latest price metric.",
+            ],
+            "derived_columns": list(valuations.columns),
+            "filters": ["Rows with missing pricing inputs are dropped.", "Only the first 500 complete rows are priced for stability."],
+        },
+        metrics={"latest_price": float(latest["price"]), "mean_price": float(preview["price"].mean())},
+        tables={"valuation_preview": _frame_preview_rows(preview, limit=10)},
+    )
+
+
+def run_taylor_rule_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    dependent: str,
+    inflation_gap_column: str,
+    output_gap_column: str,
+    controls: list[str] | None = None,
+    robust_covariance: bool = True,
+) -> dict[str, Any]:
+    regressors = [inflation_gap_column, output_gap_column, *[column for column in (controls or []) if column]]
+    payload = run_ols_analysis(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        asset_id=asset_id,
+        dependent=dependent,
+        independents=regressors,
+        robust_covariance=robust_covariance,
+    )
+    payload["model_type"] = "taylor_rule"
+    payload["model_label"] = "Taylor Rule"
+    payload["model_family"] = "macro_finance_dsge"
+    payload["inflation_gap_column"] = inflation_gap_column
+    payload["output_gap_column"] = output_gap_column
+    payload["specification"]["model_type"] = "taylor_rule"
+    payload["specification"]["model_family"] = "macro_finance_dsge"
+    payload["specification"]["equation"] = f"{dependent} ~ {inflation_gap_column} + {output_gap_column}" + (f" + {' + '.join(controls or [])}" if controls else "")
+    payload["audit_trail"]["manual_checklist"].append("Interpret the inflation-gap and output-gap coefficients against the standard Taylor-rule benchmark.")
+    return payload
+
+
+def run_rbc_dsge_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    alpha: float = 0.33,
+    beta: float = 0.99,
+    delta: float = 0.025,
+    productivity: float = 1.0,
+    labor: float = 0.33,
+    shock_persistence: float = 0.9,
+    shock_size: float = 0.01,
+    impulse_horizon: int = 12,
+) -> dict[str, Any]:
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    if not (0 < alpha < 1 and 0 < beta < 1 and 0 < delta < 1 and productivity > 0 and labor > 0):
+        raise ValueError("RBC/DSGE calibration requires alpha, beta, delta in (0,1) and positive productivity/labor.")
+    capital_return = (1 / beta) - 1 + delta
+    capital_per_labor = (alpha * productivity / capital_return) ** (1 / (1 - alpha))
+    capital = capital_per_labor * labor
+    output = productivity * (capital**alpha) * (labor ** (1 - alpha))
+    investment = delta * capital
+    consumption = output - investment
+    impulse = []
+    for step in range(int(impulse_horizon) + 1):
+        technology = productivity * (1 + shock_size * (shock_persistence**step))
+        shocked_output = technology * (capital**alpha) * (labor ** (1 - alpha))
+        impulse.append({"step": step, "technology": float(technology), "output": float(shocked_output), "consumption": float(shocked_output - investment)})
+    return _nonregression_result_payload(
+        model_type="rbc_dsge",
+        model_label="Toy RBC / DSGE",
+        asset=asset,
+        sample=None,
+        narrative_lines=[f"Toy RBC/DSGE calibration run on {asset.title}.", f"Steady-state output: {float(output):.4f}.", f"Steady-state consumption: {float(consumption):.4f}."],
+        specification={
+            "model_type": "rbc_dsge",
+            "model_family": "macro_finance_dsge",
+            "equation": "Calibrated Cobb-Douglas RBC steady state with a productivity shock impulse path",
+            "parameters": {"alpha": float(alpha), "beta": float(beta), "delta": float(delta), "productivity": float(productivity), "labor": float(labor), "shock_persistence": float(shock_persistence), "shock_size": float(shock_size), "impulse_horizon": int(impulse_horizon)},
+        },
+        audit_trail={
+            "rows_used": 0,
+            "sample_columns": [],
+            "manual_checklist": [
+                "Recompute the Euler-implied capital return and steady-state capital-labor ratio from the listed calibration parameters.",
+                "Rebuild steady-state output, investment, and consumption under the Cobb-Douglas production function.",
+                "Reproduce the impulse path using the same shock persistence and shock size.",
+            ],
+            "derived_columns": [],
+            "filters": [],
+        },
+        metrics={"steady_state_capital": float(capital), "steady_state_output": float(output), "steady_state_consumption": float(consumption), "steady_state_investment": float(investment)},
+        tables={"impulse_response": impulse},
+    )
+
+
+def run_portfolio_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    model_type: str,
+    series_columns: list[str],
+    risk_aversion: float = 3.0,
+    long_only: bool = True,
+) -> dict[str, Any]:
+    series_columns = [column for column in series_columns if column]
+    if len(series_columns) < 2:
+        raise ValueError("Portfolio allocation requires at least two return series.")
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    missing = [column for column in series_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+    sample = frame[series_columns].copy()
+    for column in series_columns:
+        sample[column] = _coerce_numeric_series(sample[column])
+    returns = sample.dropna().astype(float)
+    if len(returns) < 20:
+        raise ValueError("Portfolio models require at least 20 complete return observations.")
+    mean_returns = returns.mean().to_numpy()
+    covariance = returns.cov().to_numpy()
+    inverse_covariance = np.linalg.pinv(covariance)
+    ones = np.ones(len(series_columns))
+    if model_type == "minimum_variance":
+        weights = inverse_covariance @ ones
+        label = "Minimum Variance Portfolio"
+    elif model_type == "risk_parity":
+        weights = _risk_parity_weights(covariance)
+        label = "Risk Parity Portfolio"
+    else:
+        weights = inverse_covariance @ mean_returns / max(float(risk_aversion), 1e-6)
+        label = "Mean-Variance Portfolio"
+    if long_only:
+        weights = np.clip(weights, 0.0, None)
+    if np.allclose(weights.sum(), 0.0):
+        weights = np.full(len(series_columns), 1.0 / len(series_columns))
+    else:
+        weights = weights / weights.sum()
+    portfolio_return = float(mean_returns @ weights)
+    portfolio_volatility = float(math.sqrt(max(weights @ covariance @ weights, 0.0)))
+    weights_table = [{"asset_column": series_columns[index], "weight": float(weights[index]), "mean_return": float(mean_returns[index])} for index in range(len(series_columns))]
+    return _nonregression_result_payload(
+        model_type=model_type,
+        model_label=label,
+        asset=asset,
+        sample=returns,
+        narrative_lines=[f"{label} run on {asset.title}.", f"Assets: {', '.join(series_columns)}.", f"Expected portfolio return: {portfolio_return:.6f}.", f"Portfolio volatility: {portfolio_volatility:.6f}."],
+        specification={"model_type": model_type, "model_family": "portfolio_allocation", "series_columns": series_columns, "risk_aversion": float(risk_aversion), "long_only": bool(long_only)},
+        audit_trail={
+            "rows_used": int(len(returns)),
+            "sample_columns": series_columns,
+            "manual_checklist": [
+                "Recompute the sample mean vector and covariance matrix from the listed return columns.",
+                "Apply the same allocation rule and long_only setting to reproduce the portfolio weights.",
+                "Check the resulting portfolio return and volatility against the metrics block.",
+            ],
+            "derived_columns": [],
+            "filters": ["Rows with missing return values across any selected asset column are dropped."],
+        },
+        metrics={"expected_return": portfolio_return, "volatility": portfolio_volatility},
+        tables={"weights": weights_table},
+    )
+
+
+def run_asset_pricing_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    model_type: str,
+    asset_return_column: str,
+    market_column: str,
+    risk_free_column: str = "",
+    smb_column: str = "",
+    hml_column: str = "",
+    robust_covariance: bool = True,
+) -> dict[str, Any]:
+    required_columns = [asset_return_column, market_column]
+    if risk_free_column:
+        required_columns.append(risk_free_column)
+    if model_type == "fama_french_3":
+        required_columns.extend([smb_column, hml_column])
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+    sample = frame[required_columns].copy()
+    for column in required_columns:
+        sample[column] = _coerce_numeric_series(sample[column])
+    sample = sample.dropna().copy()
+    sample["asset_excess"] = sample[asset_return_column] - sample[risk_free_column] if risk_free_column else sample[asset_return_column]
+    sample["market_excess"] = sample[market_column] - sample[risk_free_column] if risk_free_column else sample[market_column]
+    regressors = ["market_excess"]
+    if model_type == "fama_french_3":
+        regressors.extend([smb_column, hml_column])
+    fitted = _fit_ols(sample[["asset_excess", *regressors]].copy(), "asset_excess", regressors, robust_covariance=robust_covariance)
+    payload = _model_result_payload(
+        model_type=model_type,
+        model_label="Fama-French 3-Factor" if model_type == "fama_french_3" else "CAPM",
+        asset=asset,
+        dependent="asset_excess",
+        regressors=regressors,
+        sample=sample[["asset_excess", *regressors]].copy(),
+        result=fitted,
+        narrative_lines=[
+            f"{'Fama-French 3-Factor' if model_type == 'fama_french_3' else 'CAPM'} run on {asset.title}.",
+            f"Asset return column: {asset_return_column}.",
+            f"Market factor column: {market_column}.",
+        ],
+        extra={
+            "model_family": "asset_pricing",
+            "asset_return_column": asset_return_column,
+            "market_column": market_column,
+            "risk_free_column": risk_free_column,
+            "smb_column": smb_column,
+            "hml_column": hml_column,
+            "audit_trail": {
+                "derived_columns": ["asset_excess", "market_excess"],
+                "filters": ["Rows with missing factor or return inputs are dropped."],
+            },
+        },
+    )
+    payload["specification"]["equation"] = "asset_excess ~ " + " + ".join(regressors)
+    return payload
+
+
 def run_logit_analysis(
     settings: Settings,
     db: Session,
@@ -2258,6 +3242,39 @@ def run_iv_2sls_analysis(
     return payload
 
 
+def _infer_model_family(model_type: str) -> str:
+    mapping = {
+        "ols": "econometrics_baseline",
+        "ppml": "econometrics_baseline",
+        "logit": "econometrics_baseline",
+        "probit": "econometrics_baseline",
+        "did": "econometrics_baseline",
+        "event_study": "econometrics_baseline",
+        "rdd": "econometrics_baseline",
+        "fixed_effects": "econometrics_baseline",
+        "gravity": "econometrics_baseline",
+        "iv_2sls": "econometrics_baseline",
+        "panel_iv": "econometrics_baseline",
+        "arima": "time_series_finance",
+        "var": "time_series_finance",
+        "altman_z": "corporate_finance",
+        "dupont": "corporate_finance",
+        "historical_var": "risk_management",
+        "parametric_var": "risk_management",
+        "ewma_volatility": "risk_management",
+        "black_scholes": "derivatives_pricing",
+        "binomial_option": "derivatives_pricing",
+        "taylor_rule": "macro_finance_dsge",
+        "rbc_dsge": "macro_finance_dsge",
+        "mean_variance": "portfolio_allocation",
+        "minimum_variance": "portfolio_allocation",
+        "risk_parity": "portfolio_allocation",
+        "capm": "asset_pricing",
+        "fama_french_3": "asset_pricing",
+    }
+    return mapping.get(model_type, "econometrics_baseline")
+
+
 def run_model_analysis(
     settings: Settings,
     db: Session,
@@ -2269,6 +3286,7 @@ def run_model_analysis(
     dependent: str = "",
     independents: list[str] | None = None,
     controls: list[str] | None = None,
+    series_columns: list[str] | None = None,
     treatment_column: str = "",
     post_column: str = "",
     event_time_column: str = "",
@@ -2288,163 +3306,393 @@ def run_model_analysis(
     include_time_effects: bool = False,
     endogenous_column: str = "",
     instrument_columns: list[str] | None = None,
+    market_column: str = "",
+    risk_free_column: str = "",
+    smb_column: str = "",
+    hml_column: str = "",
+    spot_column: str = "",
+    strike_column: str = "",
+    maturity_column: str = "",
+    rate_column: str = "",
+    volatility_column: str = "",
+    working_capital_column: str = "",
+    retained_earnings_column: str = "",
+    ebit_column: str = "",
+    market_equity_column: str = "",
+    total_assets_column: str = "",
+    total_liabilities_column: str = "",
+    sales_column: str = "",
+    net_income_column: str = "",
+    revenue_column: str = "",
+    equity_column: str = "",
+    inflation_gap_column: str = "",
+    output_gap_column: str = "",
+    arima_p: int = 1,
+    arima_d: int = 0,
+    arima_q: int = 0,
+    forecast_steps: int = 5,
+    var_lags: int = 1,
+    confidence_level: float = 0.95,
+    holding_period_days: int = 1,
+    ewma_lambda: float = 0.94,
+    option_type: str = "call",
+    option_steps: int = 50,
+    risk_aversion: float = 3.0,
+    long_only: bool = True,
+    dsge_alpha: float = 0.33,
+    dsge_beta: float = 0.99,
+    dsge_delta: float = 0.025,
+    dsge_productivity: float = 1.0,
+    dsge_labor: float = 0.33,
+    dsge_shock_persistence: float = 0.9,
+    dsge_shock_size: float = 0.01,
+    dsge_impulse_horizon: int = 12,
     robust_covariance: bool = True,
 ) -> dict[str, Any]:
     normalized_model = model_type.strip().lower()
+
+    def attach(payload: dict[str, Any]) -> dict[str, Any]:
+        family = _infer_model_family(normalized_model)
+        payload["workflow_type"] = "model"
+        payload.setdefault("model_family", family)
+        specification = payload.get("specification")
+        if isinstance(specification, dict):
+            specification.setdefault("model_family", family)
+        return payload
+
     if normalized_model == "ols":
-        return run_ols_analysis(
-            settings,
-            db,
-            user=user,
-            workspace=workspace,
-            asset_id=asset_id,
-            dependent=dependent,
-            independents=independents or [],
-            robust_covariance=robust_covariance,
+        return attach(
+            run_ols_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                dependent=dependent,
+                independents=independents or [],
+                robust_covariance=robust_covariance,
+            )
         )
     if normalized_model == "logit":
-        return run_logit_analysis(
-            settings,
-            db,
-            user=user,
-            workspace=workspace,
-            asset_id=asset_id,
-            dependent=dependent,
-            independents=independents or [],
-            controls=controls or [],
-            robust_covariance=robust_covariance,
+        return attach(
+            run_logit_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                dependent=dependent,
+                independents=independents or [],
+                controls=controls or [],
+                robust_covariance=robust_covariance,
+            )
         )
     if normalized_model == "probit":
-        return run_probit_analysis(
-            settings,
-            db,
-            user=user,
-            workspace=workspace,
-            asset_id=asset_id,
-            dependent=dependent,
-            independents=independents or [],
-            controls=controls or [],
-            robust_covariance=robust_covariance,
+        return attach(
+            run_probit_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                dependent=dependent,
+                independents=independents or [],
+                controls=controls or [],
+                robust_covariance=robust_covariance,
+            )
         )
     if normalized_model == "ppml":
-        return run_ppml_analysis(
-            settings,
-            db,
-            user=user,
-            workspace=workspace,
-            asset_id=asset_id,
-            dependent=dependent,
-            independents=independents or [],
-            controls=controls or [],
-            robust_covariance=robust_covariance,
+        return attach(
+            run_ppml_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                dependent=dependent,
+                independents=independents or [],
+                controls=controls or [],
+                robust_covariance=robust_covariance,
+            )
+        )
+    if normalized_model == "arima":
+        return attach(
+            run_arima_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                dependent=dependent,
+                time_column=time_column,
+                arima_order=(int(arima_p), int(arima_d), int(arima_q)),
+                forecast_steps=int(forecast_steps),
+            )
+        )
+    if normalized_model == "var":
+        return attach(
+            run_var_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                series_columns=series_columns or [],
+                time_column=time_column,
+                lags=int(var_lags),
+                forecast_steps=int(forecast_steps),
+            )
         )
     if normalized_model == "did":
-        return run_did_analysis(
-            settings,
-            db,
-            user=user,
-            workspace=workspace,
-            asset_id=asset_id,
-            dependent=dependent,
-            treatment_column=treatment_column,
-            post_column=post_column,
-            controls=controls or [],
-            robust_covariance=robust_covariance,
+        return attach(
+            run_did_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                dependent=dependent,
+                treatment_column=treatment_column,
+                post_column=post_column,
+                controls=controls or [],
+                robust_covariance=robust_covariance,
+            )
         )
     if normalized_model == "event_study":
-        return run_event_study_analysis(
-            settings,
-            db,
-            user=user,
-            workspace=workspace,
-            asset_id=asset_id,
-            dependent=dependent,
-            treatment_column=treatment_column,
-            event_time_column=event_time_column,
-            controls=controls or [],
-            entity_column=entity_column,
-            time_column=time_column,
-            include_time_effects=include_time_effects,
-            lead_window=lead_window,
-            lag_window=lag_window,
-            omitted_period=omitted_period,
-            robust_covariance=robust_covariance,
+        return attach(
+            run_event_study_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                dependent=dependent,
+                treatment_column=treatment_column,
+                event_time_column=event_time_column,
+                controls=controls or [],
+                entity_column=entity_column,
+                time_column=time_column,
+                include_time_effects=include_time_effects,
+                lead_window=lead_window,
+                lag_window=lag_window,
+                omitted_period=omitted_period,
+                robust_covariance=robust_covariance,
+            )
         )
     if normalized_model == "fixed_effects":
-        return run_fixed_effects_analysis(
-            settings,
-            db,
-            user=user,
-            workspace=workspace,
-            asset_id=asset_id,
-            dependent=dependent,
-            independents=independents or [],
-            controls=controls or [],
-            entity_column=entity_column,
-            time_column=time_column,
-            include_time_effects=include_time_effects,
-            robust_covariance=robust_covariance,
+        return attach(
+            run_fixed_effects_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                dependent=dependent,
+                independents=independents or [],
+                controls=controls or [],
+                entity_column=entity_column,
+                time_column=time_column,
+                include_time_effects=include_time_effects,
+                robust_covariance=robust_covariance,
+            )
         )
     if normalized_model == "gravity":
-        return run_gravity_analysis(
-            settings,
-            db,
-            user=user,
-            workspace=workspace,
-            asset_id=asset_id,
-            flow_column=dependent,
-            origin_mass_column=origin_mass_column,
-            destination_mass_column=destination_mass_column,
-            distance_column=distance_column,
-            controls=controls or [],
-            robust_covariance=robust_covariance,
+        return attach(
+            run_gravity_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                flow_column=dependent,
+                origin_mass_column=origin_mass_column,
+                destination_mass_column=destination_mass_column,
+                distance_column=distance_column,
+                controls=controls or [],
+                robust_covariance=robust_covariance,
+            )
         )
     if normalized_model == "rdd":
-        return run_rdd_analysis(
-            settings,
-            db,
-            user=user,
-            workspace=workspace,
-            asset_id=asset_id,
-            dependent=dependent,
-            running_column=running_column,
-            controls=controls or [],
-            cutoff=cutoff,
-            bandwidth=bandwidth,
-            polynomial_order=polynomial_order,
-            treat_above_cutoff=treat_above_cutoff,
-            robust_covariance=robust_covariance,
+        return attach(
+            run_rdd_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                dependent=dependent,
+                running_column=running_column,
+                controls=controls or [],
+                cutoff=cutoff,
+                bandwidth=bandwidth,
+                polynomial_order=polynomial_order,
+                treat_above_cutoff=treat_above_cutoff,
+                robust_covariance=robust_covariance,
+            )
+        )
+    if normalized_model in {"historical_var", "parametric_var", "ewma_volatility"}:
+        return attach(
+            run_risk_metric_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                model_type=normalized_model,
+                return_column=dependent,
+                time_column=time_column,
+                confidence_level=confidence_level,
+                holding_period_days=holding_period_days,
+                ewma_lambda=ewma_lambda,
+            )
         )
     if normalized_model == "iv_2sls":
-        return run_iv_2sls_analysis(
-            settings,
-            db,
-            user=user,
-            workspace=workspace,
-            asset_id=asset_id,
-            dependent=dependent,
-            independents=independents or [],
-            controls=controls or [],
-            endogenous_column=endogenous_column,
-            instrument_columns=instrument_columns or [],
-            robust_covariance=robust_covariance,
+        return attach(
+            run_iv_2sls_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                dependent=dependent,
+                independents=independents or [],
+                controls=controls or [],
+                endogenous_column=endogenous_column,
+                instrument_columns=instrument_columns or [],
+                robust_covariance=robust_covariance,
+            )
         )
     if normalized_model == "panel_iv":
-        return run_panel_iv_analysis(
-            settings,
-            db,
-            user=user,
-            workspace=workspace,
-            asset_id=asset_id,
-            dependent=dependent,
-            independents=independents or [],
-            controls=controls or [],
-            endogenous_column=endogenous_column,
-            instrument_columns=instrument_columns or [],
-            entity_column=entity_column,
-            time_column=time_column,
-            include_time_effects=include_time_effects,
-            robust_covariance=robust_covariance,
+        return attach(
+            run_panel_iv_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                dependent=dependent,
+                independents=independents or [],
+                controls=controls or [],
+                endogenous_column=endogenous_column,
+                instrument_columns=instrument_columns or [],
+                entity_column=entity_column,
+                time_column=time_column,
+                include_time_effects=include_time_effects,
+                robust_covariance=robust_covariance,
+            )
+        )
+    if normalized_model in {"black_scholes", "binomial_option"}:
+        return attach(
+            run_option_pricing_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                model_type=normalized_model,
+                spot_column=spot_column,
+                strike_column=strike_column,
+                maturity_column=maturity_column,
+                rate_column=rate_column,
+                volatility_column=volatility_column,
+                option_type=option_type,
+                option_steps=option_steps,
+            )
+        )
+    if normalized_model == "taylor_rule":
+        return attach(
+            run_taylor_rule_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                dependent=dependent,
+                inflation_gap_column=inflation_gap_column,
+                output_gap_column=output_gap_column,
+                controls=controls or [],
+                robust_covariance=robust_covariance,
+            )
+        )
+    if normalized_model == "rbc_dsge":
+        return attach(
+            run_rbc_dsge_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                alpha=dsge_alpha,
+                beta=dsge_beta,
+                delta=dsge_delta,
+                productivity=dsge_productivity,
+                labor=dsge_labor,
+                shock_persistence=dsge_shock_persistence,
+                shock_size=dsge_shock_size,
+                impulse_horizon=dsge_impulse_horizon,
+            )
+        )
+    if normalized_model in {"mean_variance", "minimum_variance", "risk_parity"}:
+        return attach(
+            run_portfolio_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                model_type=normalized_model,
+                series_columns=series_columns or [],
+                risk_aversion=risk_aversion,
+                long_only=long_only,
+            )
+        )
+    if normalized_model in {"capm", "fama_french_3"}:
+        return attach(
+            run_asset_pricing_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                model_type=normalized_model,
+                asset_return_column=dependent,
+                market_column=market_column,
+                risk_free_column=risk_free_column,
+                smb_column=smb_column,
+                hml_column=hml_column,
+                robust_covariance=robust_covariance,
+            )
+        )
+    if normalized_model == "altman_z":
+        return attach(
+            run_altman_z_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                working_capital_column=working_capital_column,
+                retained_earnings_column=retained_earnings_column,
+                ebit_column=ebit_column,
+                market_equity_column=market_equity_column,
+                sales_column=sales_column,
+                total_assets_column=total_assets_column,
+                total_liabilities_column=total_liabilities_column,
+            )
+        )
+    if normalized_model == "dupont":
+        return attach(
+            run_dupont_analysis(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                asset_id=asset_id,
+                net_income_column=net_income_column,
+                revenue_column=revenue_column,
+                total_assets_column=total_assets_column,
+                equity_column=equity_column,
+            )
         )
     raise ValueError("Unsupported model type.")
 
@@ -2580,6 +3828,8 @@ def create_plot_asset(
     }
     db.flush()
     return {
+        "workflow_type": "data_processing",
+        "processing_family": "visualization",
         "asset": serialize_asset(plot_asset),
         "chart_type": normalized_chart_type or "line",
         "title": title.strip() or summary,

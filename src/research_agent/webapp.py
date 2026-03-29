@@ -133,6 +133,7 @@ class OlsAnalysisRequest(BaseModel):
 
 class DatasetPrepareRequest(BaseModel):
     asset_id: str
+    workflow_group: str = Field(default="sample_preparation")
     include_columns: list[str] = Field(default_factory=list)
     required_columns: list[str] = Field(default_factory=list)
     numeric_columns: list[str] = Field(default_factory=list)
@@ -145,19 +146,34 @@ class DatasetPrepareRequest(BaseModel):
     winsor_upper_quantile: float = 0.99
     log_transform_columns: list[str] = Field(default_factory=list)
     standardize_columns: list[str] = Field(default_factory=list)
+    minmax_scale_columns: list[str] = Field(default_factory=list)
     outlier_columns: list[str] = Field(default_factory=list)
     outlier_method: str = Field(default="none")
     outlier_threshold: float = 1.5
+    sort_column: str = ""
+    time_group_column: str = ""
+    difference_columns: list[str] = Field(default_factory=list)
+    return_columns: list[str] = Field(default_factory=list)
+    return_method: str = Field(default="simple")
+    lag_columns: list[str] = Field(default_factory=list)
+    lag_periods: int = 1
+    lead_columns: list[str] = Field(default_factory=list)
+    lead_periods: int = 1
+    rolling_mean_columns: list[str] = Field(default_factory=list)
+    rolling_volatility_columns: list[str] = Field(default_factory=list)
+    rolling_window: int = 5
     drop_duplicates: bool = True
     drop_missing_required: bool = True
 
 
 class ModelRunRequest(BaseModel):
     asset_id: str
+    model_family: str = ""
     model_type: str = Field(default="ols")
     dependent: str = ""
     independents: list[str] = Field(default_factory=list)
     controls: list[str] = Field(default_factory=list)
+    series_columns: list[str] = Field(default_factory=list)
     treatment_column: str = ""
     post_column: str = ""
     event_time_column: str = ""
@@ -177,6 +193,47 @@ class ModelRunRequest(BaseModel):
     include_time_effects: bool = False
     endogenous_column: str = ""
     instrument_columns: list[str] = Field(default_factory=list)
+    market_column: str = ""
+    risk_free_column: str = ""
+    smb_column: str = ""
+    hml_column: str = ""
+    spot_column: str = ""
+    strike_column: str = ""
+    maturity_column: str = ""
+    rate_column: str = ""
+    volatility_column: str = ""
+    working_capital_column: str = ""
+    retained_earnings_column: str = ""
+    ebit_column: str = ""
+    market_equity_column: str = ""
+    total_assets_column: str = ""
+    total_liabilities_column: str = ""
+    sales_column: str = ""
+    net_income_column: str = ""
+    revenue_column: str = ""
+    equity_column: str = ""
+    inflation_gap_column: str = ""
+    output_gap_column: str = ""
+    arima_p: int = 1
+    arima_d: int = 0
+    arima_q: int = 0
+    forecast_steps: int = 5
+    var_lags: int = 1
+    confidence_level: float = 0.95
+    holding_period_days: int = 1
+    ewma_lambda: float = 0.94
+    option_type: str = "call"
+    option_steps: int = 50
+    risk_aversion: float = 3.0
+    long_only: bool = True
+    dsge_alpha: float = 0.33
+    dsge_beta: float = 0.99
+    dsge_delta: float = 0.025
+    dsge_productivity: float = 1.0
+    dsge_labor: float = 0.33
+    dsge_shock_persistence: float = 0.9
+    dsge_shock_size: float = 0.01
+    dsge_impulse_horizon: int = 12
     robust_covariance: bool = True
 
 
@@ -643,6 +700,7 @@ def create_app() -> FastAPI:
                     user=user,
                     workspace=workspace,
                     asset_id=request.asset_id,
+                    workflow_group=request.workflow_group,
                     include_columns=request.include_columns,
                     required_columns=request.required_columns,
                     numeric_columns=request.numeric_columns,
@@ -655,9 +713,22 @@ def create_app() -> FastAPI:
                     winsor_upper_quantile=request.winsor_upper_quantile,
                     log_transform_columns=request.log_transform_columns,
                     standardize_columns=request.standardize_columns,
+                    minmax_scale_columns=request.minmax_scale_columns,
                     outlier_columns=request.outlier_columns,
                     outlier_method=request.outlier_method,
                     outlier_threshold=request.outlier_threshold,
+                    sort_column=request.sort_column,
+                    time_group_column=request.time_group_column,
+                    difference_columns=request.difference_columns,
+                    return_columns=request.return_columns,
+                    return_method=request.return_method,
+                    lag_columns=request.lag_columns,
+                    lag_periods=request.lag_periods,
+                    lead_columns=request.lead_columns,
+                    lead_periods=request.lead_periods,
+                    rolling_mean_columns=request.rolling_mean_columns,
+                    rolling_volatility_columns=request.rolling_volatility_columns,
+                    rolling_window=request.rolling_window,
                     drop_duplicates=request.drop_duplicates,
                     drop_missing_required=request.drop_missing_required,
                 )
@@ -711,6 +782,7 @@ def create_app() -> FastAPI:
                     dependent=request.dependent,
                     independents=request.independents,
                     controls=request.controls,
+                    series_columns=request.series_columns,
                     treatment_column=request.treatment_column,
                     post_column=request.post_column,
                     event_time_column=request.event_time_column,
@@ -730,6 +802,47 @@ def create_app() -> FastAPI:
                     include_time_effects=request.include_time_effects,
                     endogenous_column=request.endogenous_column,
                     instrument_columns=request.instrument_columns,
+                    market_column=request.market_column,
+                    risk_free_column=request.risk_free_column,
+                    smb_column=request.smb_column,
+                    hml_column=request.hml_column,
+                    spot_column=request.spot_column,
+                    strike_column=request.strike_column,
+                    maturity_column=request.maturity_column,
+                    rate_column=request.rate_column,
+                    volatility_column=request.volatility_column,
+                    working_capital_column=request.working_capital_column,
+                    retained_earnings_column=request.retained_earnings_column,
+                    ebit_column=request.ebit_column,
+                    market_equity_column=request.market_equity_column,
+                    total_assets_column=request.total_assets_column,
+                    total_liabilities_column=request.total_liabilities_column,
+                    sales_column=request.sales_column,
+                    net_income_column=request.net_income_column,
+                    revenue_column=request.revenue_column,
+                    equity_column=request.equity_column,
+                    inflation_gap_column=request.inflation_gap_column,
+                    output_gap_column=request.output_gap_column,
+                    arima_p=request.arima_p,
+                    arima_d=request.arima_d,
+                    arima_q=request.arima_q,
+                    forecast_steps=request.forecast_steps,
+                    var_lags=request.var_lags,
+                    confidence_level=request.confidence_level,
+                    holding_period_days=request.holding_period_days,
+                    ewma_lambda=request.ewma_lambda,
+                    option_type=request.option_type,
+                    option_steps=request.option_steps,
+                    risk_aversion=request.risk_aversion,
+                    long_only=request.long_only,
+                    dsge_alpha=request.dsge_alpha,
+                    dsge_beta=request.dsge_beta,
+                    dsge_delta=request.dsge_delta,
+                    dsge_productivity=request.dsge_productivity,
+                    dsge_labor=request.dsge_labor,
+                    dsge_shock_persistence=request.dsge_shock_persistence,
+                    dsge_shock_size=request.dsge_shock_size,
+                    dsge_impulse_horizon=request.dsge_impulse_horizon,
                     robust_covariance=request.robust_covariance,
                 )
         except Exception as exc:
