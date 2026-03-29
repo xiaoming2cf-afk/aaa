@@ -68,6 +68,7 @@ from .platform_research import (
 
 WEB_DIR = Path(__file__).with_name("web")
 PUBLIC_WEB_FILE = WEB_DIR / "public.html"
+DATA_LAB_WEB_FILE = WEB_DIR / "data_lab.html"
 
 
 class RegisterRequest(BaseModel):
@@ -279,6 +280,10 @@ def create_app() -> FastAPI:
     @app.get("/public-monitor")
     def public_monitor_page() -> FileResponse:
         return FileResponse(PUBLIC_WEB_FILE)
+
+    @app.get("/data-lab")
+    def data_lab_page() -> FileResponse:
+        return FileResponse(DATA_LAB_WEB_FILE)
 
     @app.get("/macro-desk")
     def public_macro_desk_page() -> FileResponse:

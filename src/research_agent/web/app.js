@@ -339,6 +339,9 @@ function detectPageMode() {
   if (window.location.pathname === "/") {
     return "home";
   }
+  if (window.location.pathname === "/data-lab") {
+    return "data-lab";
+  }
   if (window.location.pathname === "/public-monitor" || window.location.pathname === "/macro-desk") {
     return "public-monitor";
   }
@@ -473,6 +476,34 @@ function currentProcessingFamily() {
 
 function currentModelFamily() {
   return dom.modelFamily?.value || "econometrics_baseline";
+}
+
+function focusWorkbench() {
+  document.getElementById("data-lab-workbench")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function activateProcessingFamily(family) {
+  if (!dom.labWorkflowType || !dom.processingFamily) {
+    return;
+  }
+  dom.labWorkflowType.value = "data_processing";
+  dom.processingFamily.value = family;
+  updateWorkflowVisibility();
+  focusWorkbench();
+}
+
+function activateModelFamily(family, modelType = "") {
+  if (!dom.labWorkflowType || !dom.modelFamily) {
+    return;
+  }
+  dom.labWorkflowType.value = "model";
+  dom.modelFamily.value = family;
+  syncModelTypeOptions();
+  if (modelType && dom.modelType) {
+    dom.modelType.value = modelType;
+  }
+  updateWorkflowVisibility();
+  focusWorkbench();
 }
 
 function getSelectedValues(select) {
@@ -782,7 +813,16 @@ function updateWorkflowVisibility() {
 }
 
 function hasPrivateWorkspaceUI() {
-  return Boolean(dom.workspaceSelect && dom.integrationList);
+  return Boolean(
+    dom.workspaceSelect &&
+      (dom.analysisAssetSelect ||
+        dom.assetList ||
+        dom.integrationList ||
+        dom.briefingList ||
+        dom.literatureList ||
+        dom.knowledgeList ||
+        dom.scheduleList),
+  );
 }
 
 function hasPublicMonitorUI() {
@@ -793,14 +833,30 @@ function clearPrivateLists() {
   if (!hasPrivateWorkspaceUI()) {
     return;
   }
-  dom.integrationList.innerHTML = emptyCard("Log in to view saved provider connections.");
-  dom.briefingList.innerHTML = emptyCard("Log in to generate private briefings.");
-  dom.openalexResults.innerHTML = emptyCard("Search results will appear here.");
-  dom.literatureList.innerHTML = emptyCard("Your imported literature will appear here.");
-  dom.assetList.innerHTML = emptyCard("Your uploaded data assets will appear here.");
-  dom.knowledgeList.innerHTML = emptyCard("Your private notes will appear here.");
-  dom.scheduleList.innerHTML = emptyCard("Your scheduled jobs will appear here.");
-  dom.analysisOutput.textContent = "Waiting for analysis output.";
+  if (dom.integrationList) {
+    dom.integrationList.innerHTML = emptyCard("Log in to view saved provider connections.");
+  }
+  if (dom.briefingList) {
+    dom.briefingList.innerHTML = emptyCard("Log in to generate private briefings.");
+  }
+  if (dom.openalexResults) {
+    dom.openalexResults.innerHTML = emptyCard("Search results will appear here.");
+  }
+  if (dom.literatureList) {
+    dom.literatureList.innerHTML = emptyCard("Your imported literature will appear here.");
+  }
+  if (dom.assetList) {
+    dom.assetList.innerHTML = emptyCard("Your uploaded data assets will appear here.");
+  }
+  if (dom.knowledgeList) {
+    dom.knowledgeList.innerHTML = emptyCard("Your private notes will appear here.");
+  }
+  if (dom.scheduleList) {
+    dom.scheduleList.innerHTML = emptyCard("Your scheduled jobs will appear here.");
+  }
+  if (dom.analysisOutput) {
+    dom.analysisOutput.textContent = "Waiting for analysis output.";
+  }
   if (dom.analysisAssetSelect) {
     dom.analysisAssetSelect.innerHTML = `<option value="">Select a dataset asset</option>`;
   }
@@ -881,6 +937,9 @@ function renderWorkspaceOptions() {
 }
 
 function renderIntegrations(items) {
+  if (!dom.integrationList) {
+    return;
+  }
   if (!items.length) {
     dom.integrationList.innerHTML = emptyCard("No saved connections yet.");
     return;
@@ -903,6 +962,9 @@ function renderIntegrations(items) {
 }
 
 function renderBriefings(items) {
+  if (!dom.briefingList) {
+    return;
+  }
   if (!items.length) {
     dom.briefingList.innerHTML = emptyCard("No private briefings yet.");
     return;
@@ -921,6 +983,9 @@ function renderBriefings(items) {
 }
 
 function renderOpenAlexResults(items) {
+  if (!dom.openalexResults) {
+    return;
+  }
   if (!items.length) {
     dom.openalexResults.innerHTML = emptyCard("No literature results yet.");
     return;
@@ -939,6 +1004,9 @@ function renderOpenAlexResults(items) {
 }
 
 function renderLiterature(items) {
+  if (!dom.literatureList) {
+    return;
+  }
   if (!items.length) {
     dom.literatureList.innerHTML = emptyCard("Your literature library is empty.");
     return;
@@ -958,6 +1026,9 @@ function renderLiterature(items) {
 
 function renderAssets(items) {
   syncDataLabAssetOptions(items);
+  if (!dom.assetList) {
+    return;
+  }
   if (!items.length) {
     dom.assetList.innerHTML = emptyCard("No uploaded assets yet.");
     return;
@@ -981,6 +1052,9 @@ function renderAssets(items) {
 }
 
 function renderKnowledge(items) {
+  if (!dom.knowledgeList) {
+    return;
+  }
   if (!items.length) {
     dom.knowledgeList.innerHTML = emptyCard("No private notes yet.");
     return;
@@ -999,6 +1073,9 @@ function renderKnowledge(items) {
 }
 
 function renderSchedules(items) {
+  if (!dom.scheduleList) {
+    return;
+  }
   if (!items.length) {
     dom.scheduleList.innerHTML = emptyCard("No private recurring jobs yet.");
     return;
@@ -1350,6 +1427,10 @@ function updateDocumentTitle() {
     document.title = "Public Daily Monitor | Economic Research Platform";
     return;
   }
+  if (pageMode === "data-lab") {
+    document.title = "Data Lab | Economic Research Platform";
+    return;
+  }
   document.title = "Economic Research Platform";
 }
 
@@ -1429,7 +1510,7 @@ async function refreshWorkspaceData() {
   renderAssets(assets.items || []);
   renderKnowledge(knowledge.items || []);
   renderSchedules(schedules.items || []);
-  if (state.selectedAnalysisAssetId) {
+  if (state.selectedAnalysisAssetId && dom.analysisAssetSelect) {
     try {
       await loadSelectedAssetProfile();
     } catch (error) {
@@ -1964,6 +2045,14 @@ function bind() {
         await loadPublicSummary(days, nextWindow);
         showToast(`Loaded ${button.getAttribute("data-summary-days")}-day summary.`);
       }),
+    );
+  });
+  document.querySelectorAll("[data-open-processing-family]").forEach((button) => {
+    button.addEventListener("click", () => activateProcessingFamily(button.getAttribute("data-open-processing-family")));
+  });
+  document.querySelectorAll("[data-open-model-family]").forEach((button) => {
+    button.addEventListener("click", () =>
+      activateModelFamily(button.getAttribute("data-open-model-family"), button.getAttribute("data-open-model-type") || ""),
     );
   });
   dom.workspaceSelect?.addEventListener(

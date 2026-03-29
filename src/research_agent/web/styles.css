@@ -170,7 +170,7 @@ h1 {
 
 .public-entry-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
   margin-top: 1rem;
 }
@@ -546,6 +546,12 @@ button.secondary,
   gap: 0.8rem;
 }
 
+.method-browser-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
 .summary-page-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -660,6 +666,26 @@ button.secondary,
   line-height: 1.65;
 }
 
+.method-card {
+  display: grid;
+  gap: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.method-card h4 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.method-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
 .report-prose {
   white-space: normal;
 }
@@ -734,7 +760,8 @@ button.secondary,
   .data-lab-grid,
   .column-profile-grid,
   .public-toolbar-grid,
-  .public-layout {
+  .public-layout,
+  .method-browser-grid {
     grid-template-columns: 1fr;
   }
 
