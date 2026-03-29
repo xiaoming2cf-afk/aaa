@@ -83,6 +83,20 @@ const dom = {
   didFields: document.getElementById("did-fields"),
   didTreatmentColumn: document.getElementById("did-treatment-column"),
   didPostColumn: document.getElementById("did-post-column"),
+  eventStudyFields: document.getElementById("event-study-fields"),
+  eventStudyWindowFields: document.getElementById("event-study-window-fields"),
+  eventTreatmentColumn: document.getElementById("event-treatment-column"),
+  eventTimeColumn: document.getElementById("event-time-column"),
+  eventLeadWindow: document.getElementById("event-lead-window"),
+  eventLagWindow: document.getElementById("event-lag-window"),
+  eventOmittedPeriod: document.getElementById("event-omitted-period"),
+  rddFields: document.getElementById("rdd-fields"),
+  rddConfigFields: document.getElementById("rdd-config-fields"),
+  rddRunningColumn: document.getElementById("rdd-running-column"),
+  rddCutoff: document.getElementById("rdd-cutoff"),
+  rddBandwidth: document.getElementById("rdd-bandwidth"),
+  rddPolynomialOrder: document.getElementById("rdd-polynomial-order"),
+  rddTreatAboveCutoff: document.getElementById("rdd-treat-above-cutoff"),
   gravityFields: document.getElementById("gravity-fields"),
   gravityDistanceWrap: document.getElementById("gravity-distance-wrap"),
   gravityOriginMassColumn: document.getElementById("gravity-origin-mass-column"),
@@ -413,6 +427,9 @@ function populateDataLabSelectors(profile) {
   setSelectOptions(dom.modelControls, numericColumns, { multiple: true });
   setSelectOptions(dom.didTreatmentColumn, binaryColumns, { placeholder: "Select treatment indicator" });
   setSelectOptions(dom.didPostColumn, binaryColumns, { placeholder: "Select post indicator" });
+  setSelectOptions(dom.eventTreatmentColumn, binaryColumns, { placeholder: "Select treatment indicator" });
+  setSelectOptions(dom.eventTimeColumn, numericColumns, { placeholder: "Select relative event time" });
+  setSelectOptions(dom.rddRunningColumn, numericColumns, { placeholder: "Select running variable" });
   setSelectOptions(dom.gravityOriginMassColumn, numericColumns, { placeholder: "Select origin mass" });
   setSelectOptions(dom.gravityDestinationMassColumn, numericColumns, { placeholder: "Select destination mass" });
   setSelectOptions(dom.gravityDistanceColumn, numericColumns, { placeholder: "Select distance variable" });
@@ -475,14 +492,18 @@ function refreshModelVariableOptions() {
 
 function updateModelFieldVisibility() {
   const modelType = dom.modelType?.value || "ols";
-  const usesCoreRegressionFields = ["ols", "logit", "probit", "fixed_effects", "iv_2sls"].includes(modelType);
+  const usesCoreRegressionFields = ["ols", "ppml", "logit", "probit", "fixed_effects", "iv_2sls", "panel_iv"].includes(modelType);
   dom.olsFields?.classList.toggle("hidden", !usesCoreRegressionFields);
   dom.didFields?.classList.toggle("hidden", modelType !== "did");
+  dom.eventStudyFields?.classList.toggle("hidden", modelType !== "event_study");
+  dom.eventStudyWindowFields?.classList.toggle("hidden", modelType !== "event_study");
+  dom.rddFields?.classList.toggle("hidden", modelType !== "rdd");
+  dom.rddConfigFields?.classList.toggle("hidden", modelType !== "rdd");
   dom.gravityFields?.classList.toggle("hidden", modelType !== "gravity");
   dom.gravityDistanceWrap?.classList.toggle("hidden", modelType !== "gravity");
-  dom.feFields?.classList.toggle("hidden", modelType !== "fixed_effects");
-  dom.feTimeToggle?.classList.toggle("hidden", modelType !== "fixed_effects");
-  dom.ivFields?.classList.toggle("hidden", modelType !== "iv_2sls");
+  dom.feFields?.classList.toggle("hidden", !["fixed_effects", "event_study", "panel_iv"].includes(modelType));
+  dom.feTimeToggle?.classList.toggle("hidden", !["fixed_effects", "event_study", "panel_iv"].includes(modelType));
+  dom.ivFields?.classList.toggle("hidden", !["iv_2sls", "panel_iv"].includes(modelType));
   refreshModelVariableOptions();
 }
 
@@ -1363,11 +1384,21 @@ async function handleModelRun(event) {
     dependent: dom.modelDependent?.value || "",
     independents: getSelectedValues(dom.modelIndependents),
     controls: getSelectedValues(dom.modelControls),
-    treatment_column: dom.didTreatmentColumn?.value || "",
+    treatment_column:
+      modelType === "event_study" ? dom.eventTreatmentColumn?.value || "" : dom.didTreatmentColumn?.value || "",
     post_column: dom.didPostColumn?.value || "",
+    event_time_column: dom.eventTimeColumn?.value || "",
+    lead_window: Number(dom.eventLeadWindow?.value || 4),
+    lag_window: Number(dom.eventLagWindow?.value || 4),
+    omitted_period: Number(dom.eventOmittedPeriod?.value || -1),
     origin_mass_column: dom.gravityOriginMassColumn?.value || "",
     destination_mass_column: dom.gravityDestinationMassColumn?.value || "",
     distance_column: dom.gravityDistanceColumn?.value || "",
+    running_column: dom.rddRunningColumn?.value || "",
+    rdd_cutoff: Number(dom.rddCutoff?.value || 0),
+    rdd_bandwidth: Number(dom.rddBandwidth?.value || 0),
+    rdd_polynomial_order: Number(dom.rddPolynomialOrder?.value || 1),
+    treat_above_cutoff: dom.rddTreatAboveCutoff?.checked ?? true,
     entity_column: dom.panelEntityColumn?.value || "",
     time_column: dom.panelTimeColumn?.value || "",
     include_time_effects: dom.includeTimeEffects?.checked ?? false,

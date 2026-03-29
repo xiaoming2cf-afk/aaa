@@ -941,12 +941,15 @@ def profile_dataset_asset(
     suggested_models = ["ols"]
     if role_map["binary"] and role_map["numeric"]:
         suggested_models.extend(["logit", "probit"])
+    if role_map["numeric"]:
+        suggested_models.append("ppml")
+        suggested_models.append("rdd")
     if role_map["numeric"] and len(role_map["binary"]) >= 2:
-        suggested_models.append("did")
+        suggested_models.extend(["did", "event_study"])
     if len(role_map["numeric"]) >= 3 and (role_map["categorical"] or role_map["text"] or role_map["date"]):
         suggested_models.append("fixed_effects")
     if len(role_map["numeric"]) >= 4:
-        suggested_models.extend(["gravity", "iv_2sls"])
+        suggested_models.extend(["gravity", "iv_2sls", "panel_iv"])
     suggested_models = list(dict.fromkeys(suggested_models))
 
     return {
@@ -1026,7 +1029,36 @@ def prepare_dataset_asset(
         "source_asset_id": asset.id,
     }
     db.flush()
-    return {"asset": serialize_asset(prepared_asset), "summary": summary}
+    return {
+        "asset": serialize_asset(prepared_asset),
+        "summary": summary,
+        "preview_rows": _frame_preview_rows(prepared_frame),
+        "audit_trail": {
+            "source_asset_id": asset.id,
+            "source_asset_title": asset.title,
+            "prepared_asset_id": prepared_asset.id,
+            "prepared_download_url": f"/api/assets/{prepared_asset.id}/download",
+            "manual_checklist": [
+                "Download the prepared asset and compare row/column counts with rows_after_prepare and columns.",
+                "Reapply each cleaning step in order: imputation, winsorization, transforms, outlier filter, and missing-value filtering.",
+                "Verify the preview_rows against the downloaded prepared sample.",
+            ],
+            "operations": {
+                "required_columns": summary["required_columns"],
+                "numeric_columns": summary["numeric_columns"],
+                "binary_columns": summary["binary_columns"],
+                "date_columns": summary["date_columns"],
+                "imputed_columns": summary["imputed_columns"],
+                "winsorized_columns": summary["winsorized_columns"],
+                "transformed_columns": summary["transformed_columns"],
+                "outlier_columns": summary["outlier_columns"],
+                "outlier_method": summary["outlier_method"],
+                "outlier_threshold": summary["outlier_threshold"],
+                "drop_duplicates": drop_duplicates,
+                "drop_missing_required": drop_missing_required,
+            },
+        },
+    }
 
 
 def _serialize_model_frame(frame: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
@@ -1161,6 +1193,40 @@ def _fit_iv_2sls(
     return fitted, "nonrobust"
 
 
+def _fit_ppml(sample: pd.DataFrame, dependent: str, regressors: list[str], *, robust_covariance: bool = True) -> Any:
+    if not regressors:
+        raise ValueError("At least one explanatory variable is required.")
+    if len(sample) < max(12, len(regressors) + 4):
+        raise ValueError("Not enough complete observations for PPML.")
+    if (sample[dependent] < 0).any():
+        raise ValueError("PPML requires a nonnegative dependent variable.")
+    design = sm.add_constant(sample[regressors], has_constant="add")
+    return sm.GLM(
+        sample[dependent],
+        design,
+        family=sm.families.Poisson(),
+    ).fit(cov_type="HC1" if robust_covariance else "nonrobust")
+
+
+def _build_fe_dummies(
+    sample: pd.DataFrame,
+    *,
+    entity_column: str,
+    time_column: str = "",
+    include_time_effects: bool = False,
+) -> tuple[pd.DataFrame, list[str]]:
+    entity_dummies = pd.get_dummies(sample[entity_column], prefix=f"fe_{entity_column}", drop_first=True, dtype=float)
+    fe_frames = [entity_dummies]
+    fe_labels = [entity_column]
+    if include_time_effects and time_column:
+        time_dummies = pd.get_dummies(sample[time_column], prefix=f"fe_{time_column}", drop_first=True, dtype=float)
+        fe_frames.append(time_dummies)
+        fe_labels.append(time_column)
+    if not fe_frames:
+        return pd.DataFrame(index=sample.index), fe_labels
+    return pd.concat(fe_frames, axis=1), fe_labels
+
+
 def _model_result_payload(
     *,
     model_type: str,
@@ -1173,6 +1239,9 @@ def _model_result_payload(
     narrative_lines: list[str],
     extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    extra = extra or {}
+    covariance_type = extra.get("covariance_type") or getattr(result, "cov_type", "nonrobust")
+    equation_terms = regressors if regressors else ["1"]
     payload = {
         "model_type": model_type,
         "model_label": model_label,
@@ -1190,9 +1259,33 @@ def _model_result_payload(
         "narrative": narrative_lines,
         "sample_columns": list(sample.columns),
         "sample_preview": _frame_preview_rows(sample, limit=5),
+        "specification": {
+            "model_type": model_type,
+            "model_label": model_label,
+            "dependent": dependent,
+            "regressors": regressors,
+            "covariance_type": covariance_type,
+            "equation": f"{dependent} ~ {' + '.join(equation_terms)}",
+        },
+        "audit_trail": {
+            "sample_asset_id": asset.id,
+            "sample_title": asset.title,
+            "sample_download_url": f"/api/assets/{asset.id}/download",
+            "rows_used": int(len(sample)),
+            "sample_columns": list(sample.columns),
+            "covariance_type": covariance_type,
+            "manual_checklist": [
+                "Download the prepared sample asset referenced in sample_asset_id.",
+                "Rebuild any derived regressors listed in derived_columns before estimation.",
+                "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+                "Compare the reproduced coefficient table with the coefficients array term by term.",
+            ],
+        },
     }
-    if extra:
-        payload.update(extra)
+    audit_extra = extra.pop("audit_trail", None)
+    if audit_extra:
+        payload["audit_trail"].update(audit_extra)
+    payload.update(extra)
     return payload
 
 
@@ -1272,7 +1365,13 @@ def run_ols_analysis(
         sample=sample,
         result=fitted,
         narrative_lines=summary_lines,
-        extra={"residual_sum_squares": float(np.sum(np.square(fitted.resid)))},
+        extra={
+            "residual_sum_squares": float(np.sum(np.square(fitted.resid))),
+            "audit_trail": {
+                "derived_columns": [],
+                "filters": ["Rows with missing dependent or regressor values are dropped."],
+            },
+        },
     )
     create_knowledge_record(
         db,
@@ -1352,6 +1451,10 @@ def run_did_analysis(
             "post_column": post_column,
             "did_effect": did_effect,
             "cell_means": cell_means,
+            "audit_trail": {
+                "derived_columns": ["did_interaction"],
+                "filters": ["Rows with missing outcome, treatment, post indicator, or selected controls are dropped."],
+            },
         },
     )
     create_knowledge_record(
@@ -1432,6 +1535,13 @@ def run_gravity_analysis(
             "destination_mass_column": destination_mass_column,
             "distance_column": distance_column,
             "dropped_nonpositive_rows": dropped_nonpositive,
+            "audit_trail": {
+                "derived_columns": ["ln_flow", "ln_origin_mass", "ln_destination_mass", "ln_distance"],
+                "filters": [
+                    "Rows with missing flow, mass, distance, or selected controls are dropped.",
+                    "Rows with negative flow or nonpositive mass/distance are excluded before log transforms.",
+                ],
+            },
         },
     )
     create_knowledge_record(
@@ -1441,6 +1551,424 @@ def run_gravity_analysis(
         title=f"Gravity model summary for {asset.title}",
         content="\n".join(summary_lines),
         tags=["gravity", "dataset", "economics"],
+        metadata=payload,
+    )
+    return payload
+
+
+def run_ppml_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    dependent: str,
+    independents: list[str] | None = None,
+    controls: list[str] | None = None,
+    robust_covariance: bool = True,
+) -> dict[str, Any]:
+    regressors = [column for column in [*(independents or []), *(controls or [])] if column]
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    required_columns = [dependent, *regressors]
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+
+    sample = _serialize_model_frame(frame, required_columns)
+    fitted = _fit_ppml(sample, dependent, regressors, robust_covariance=robust_covariance)
+    summary_lines = [
+        f"PPML run on {asset.title}.",
+        f"Outcome variable: {dependent}.",
+        f"Regressors: {', '.join(regressors)}.",
+        f"Observations used: {int(fitted.nobs)}.",
+    ]
+    payload = _model_result_payload(
+        model_type="ppml",
+        model_label="PPML",
+        asset=asset,
+        dependent=dependent,
+        regressors=regressors,
+        sample=sample,
+        result=fitted,
+        narrative_lines=summary_lines,
+        extra={
+            "mean_prediction": float(np.mean(fitted.predict())) if len(sample) else None,
+            "audit_trail": {
+                "derived_columns": [],
+                "filters": ["Rows with missing dependent or regressor values are dropped."],
+            },
+        },
+    )
+    create_knowledge_record(
+        db,
+        user=user,
+        workspace=workspace,
+        title=f"PPML summary for {asset.title}",
+        content="\n".join(summary_lines),
+        tags=["ppml", "poisson", "econometrics"],
+        metadata=payload,
+    )
+    return payload
+
+
+def _event_period_label(period: int) -> str:
+    if period < 0:
+        return f"lead_{abs(period)}"
+    if period > 0:
+        return f"lag_{period}"
+    return "event_0"
+
+
+def run_event_study_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    dependent: str,
+    treatment_column: str,
+    event_time_column: str,
+    controls: list[str] | None = None,
+    entity_column: str = "",
+    time_column: str = "",
+    include_time_effects: bool = False,
+    lead_window: int = 4,
+    lag_window: int = 4,
+    omitted_period: int = -1,
+    robust_covariance: bool = True,
+) -> dict[str, Any]:
+    controls = [column for column in (controls or []) if column]
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    required_columns = [dependent, treatment_column, event_time_column, *controls]
+    if entity_column:
+        required_columns.append(entity_column)
+    if include_time_effects and time_column:
+        required_columns.append(time_column)
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+
+    sample = frame[required_columns].copy()
+    sample[dependent] = _coerce_numeric_series(sample[dependent])
+    sample[treatment_column] = _coerce_binary_series(sample[treatment_column])
+    sample[event_time_column] = _coerce_numeric_series(sample[event_time_column])
+    for column in controls:
+        sample[column] = _coerce_numeric_series(sample[column])
+    if entity_column:
+        sample[entity_column] = sample[entity_column].astype(str).str.strip()
+    if include_time_effects and time_column:
+        sample[time_column] = sample[time_column].astype(str).str.strip()
+    sample = sample.dropna().copy()
+    sample[event_time_column] = sample[event_time_column].round().astype(int)
+
+    if lead_window < 0 or lag_window < 0:
+        raise ValueError("Lead and lag windows must be nonnegative.")
+    periods = list(range(-int(lead_window), int(lag_window) + 1))
+    if omitted_period not in periods:
+        raise ValueError("Omitted period must lie within the requested lead/lag window.")
+
+    event_columns: list[str] = []
+    dynamic_effects: list[dict[str, Any]] = []
+    for period in periods:
+        if period == omitted_period:
+            continue
+        column_name = f"event_{_event_period_label(period)}"
+        sample[column_name] = (
+            (sample[treatment_column] == 1.0) & (sample[event_time_column] == period)
+        ).astype(float)
+        if sample[column_name].sum() <= 0:
+            sample = sample.drop(columns=[column_name])
+            continue
+        event_columns.append(column_name)
+        dynamic_effects.append({"period": period, "column": column_name})
+
+    if not event_columns:
+        raise ValueError("No event-time cells are available in the selected window.")
+
+    regressors = [*event_columns, *controls]
+    fe_labels: list[str] = []
+    derived_columns = event_columns.copy()
+    if entity_column:
+        fe_dummies, fe_labels = _build_fe_dummies(
+            sample,
+            entity_column=entity_column,
+            time_column=time_column,
+            include_time_effects=include_time_effects,
+        )
+        if not fe_dummies.empty:
+            sample = pd.concat([sample, fe_dummies], axis=1)
+            regressors.extend(list(fe_dummies.columns))
+            derived_columns.extend(list(fe_dummies.columns))
+
+    fitted = _fit_ols(sample[[dependent, *regressors]].copy(), dependent, regressors, robust_covariance=robust_covariance)
+    effect_map = {row["column"]: row["period"] for row in dynamic_effects}
+    for coefficient in _serialize_coefficients(fitted):
+        period = effect_map.get(coefficient["term"])
+        if period is not None:
+            coefficient["period"] = period
+
+    summary_lines = [
+        f"Event study run on {asset.title}.",
+        f"Outcome variable: {dependent}.",
+        f"Treatment indicator: {treatment_column}.",
+        f"Relative event-time column: {event_time_column}.",
+        f"Window: [{-int(lead_window)}, {int(lag_window)}], omitted period {int(omitted_period)}.",
+    ]
+    payload = _model_result_payload(
+        model_type="event_study",
+        model_label="Event Study",
+        asset=asset,
+        dependent=dependent,
+        regressors=regressors,
+        sample=sample[[dependent, treatment_column, event_time_column, *controls]].copy(),
+        result=fitted,
+        narrative_lines=summary_lines,
+        extra={
+            "treatment_column": treatment_column,
+            "event_time_column": event_time_column,
+            "control_columns": controls,
+            "lead_window": int(lead_window),
+            "lag_window": int(lag_window),
+            "omitted_period": int(omitted_period),
+            "dynamic_effects": [
+                {
+                    "period": effect_map.get(item["term"]),
+                    "term": item["term"],
+                    "coefficient": item["coefficient"],
+                    "std_error": item["std_error"],
+                    "p_value": item["p_value"],
+                }
+                for item in _serialize_coefficients(fitted)
+                if item["term"] in effect_map
+            ],
+            "audit_trail": {
+                "derived_columns": derived_columns,
+                "filters": [
+                    "Rows with missing outcome, treatment, event-time, or selected controls are dropped.",
+                    f"Event window restricted to periods between {-int(lead_window)} and {int(lag_window)}.",
+                ],
+                "fixed_effects": fe_labels,
+            },
+        },
+    )
+    create_knowledge_record(
+        db,
+        user=user,
+        workspace=workspace,
+        title=f"Event study summary for {asset.title}",
+        content="\n".join(summary_lines),
+        tags=["event_study", "dynamic_did", "econometrics"],
+        metadata=payload,
+    )
+    return payload
+
+
+def run_rdd_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    dependent: str,
+    running_column: str,
+    controls: list[str] | None = None,
+    cutoff: float = 0.0,
+    bandwidth: float = 0.0,
+    polynomial_order: int = 1,
+    treat_above_cutoff: bool = True,
+    robust_covariance: bool = True,
+) -> dict[str, Any]:
+    controls = [column for column in (controls or []) if column]
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    required_columns = [dependent, running_column, *controls]
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+    if polynomial_order < 1 or polynomial_order > 3:
+        raise ValueError("RDD polynomial order must be between 1 and 3.")
+
+    sample = frame[required_columns].copy()
+    sample[dependent] = _coerce_numeric_series(sample[dependent])
+    sample[running_column] = _coerce_numeric_series(sample[running_column])
+    for column in controls:
+        sample[column] = _coerce_numeric_series(sample[column])
+    sample = sample.dropna().copy()
+    sample["running_centered"] = sample[running_column] - float(cutoff)
+    if bandwidth and bandwidth > 0:
+        sample = sample.loc[sample["running_centered"].abs() <= float(bandwidth)].copy()
+    if sample.empty:
+        raise ValueError("RDD bandwidth leaves no usable observations.")
+
+    if treat_above_cutoff:
+        sample["rdd_treatment"] = (sample["running_centered"] >= 0).astype(float)
+    else:
+        sample["rdd_treatment"] = (sample["running_centered"] <= 0).astype(float)
+
+    regressors = ["rdd_treatment"]
+    derived_columns = ["running_centered", "rdd_treatment"]
+    for power in range(1, int(polynomial_order) + 1):
+        base_name = "running_centered" if power == 1 else f"running_centered_pow_{power}"
+        if power > 1:
+            sample[base_name] = sample["running_centered"] ** power
+            derived_columns.append(base_name)
+        regressors.append(base_name)
+        interaction_name = f"rdd_treatment_x_{base_name}"
+        sample[interaction_name] = sample["rdd_treatment"] * sample[base_name]
+        regressors.append(interaction_name)
+        derived_columns.append(interaction_name)
+    regressors.extend(controls)
+
+    fitted = _fit_ols(sample[[dependent, *regressors]].copy(), dependent, regressors, robust_covariance=robust_covariance)
+    local_effect = float(fitted.params.get("rdd_treatment", np.nan))
+    summary_lines = [
+        f"RDD run on {asset.title}.",
+        f"Outcome variable: {dependent}.",
+        f"Running variable: {running_column}.",
+        f"Cutoff: {float(cutoff):.4f}.",
+        f"Local treatment effect at cutoff: {local_effect:.4f}.",
+    ]
+    payload = _model_result_payload(
+        model_type="rdd",
+        model_label="RDD",
+        asset=asset,
+        dependent=dependent,
+        regressors=regressors,
+        sample=sample[[dependent, running_column, *controls]].copy(),
+        result=fitted,
+        narrative_lines=summary_lines,
+        extra={
+            "running_column": running_column,
+            "cutoff": float(cutoff),
+            "bandwidth": float(bandwidth),
+            "polynomial_order": int(polynomial_order),
+            "treat_above_cutoff": bool(treat_above_cutoff),
+            "local_effect": local_effect,
+            "audit_trail": {
+                "derived_columns": derived_columns,
+                "filters": [
+                    "Rows with missing outcome, running variable, or selected controls are dropped.",
+                    f"Bandwidth filter: {float(bandwidth)}." if bandwidth and bandwidth > 0 else "No bandwidth filter applied.",
+                ],
+            },
+        },
+    )
+    create_knowledge_record(
+        db,
+        user=user,
+        workspace=workspace,
+        title=f"RDD summary for {asset.title}",
+        content="\n".join(summary_lines),
+        tags=["rdd", "causal_inference", "econometrics"],
+        metadata=payload,
+    )
+    return payload
+
+
+def run_panel_iv_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    dependent: str,
+    independents: list[str] | None = None,
+    controls: list[str] | None = None,
+    endogenous_column: str,
+    instrument_columns: list[str] | None = None,
+    entity_column: str,
+    time_column: str = "",
+    include_time_effects: bool = False,
+    robust_covariance: bool = True,
+) -> dict[str, Any]:
+    exogenous = [column for column in [*(independents or []), *(controls or [])] if column]
+    instruments = [column for column in (instrument_columns or []) if column]
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    required_columns = [dependent, endogenous_column, entity_column, *exogenous, *instruments]
+    if include_time_effects and time_column:
+        required_columns.append(time_column)
+    missing = [column for column in required_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(missing)}")
+
+    sample = frame[required_columns].copy()
+    numeric_columns = [dependent, endogenous_column, *exogenous, *instruments]
+    for column in numeric_columns:
+        sample[column] = _coerce_numeric_series(sample[column])
+    sample[entity_column] = sample[entity_column].astype(str).str.strip()
+    if include_time_effects and time_column:
+        sample[time_column] = sample[time_column].astype(str).str.strip()
+    sample = sample.dropna().copy()
+
+    fe_dummies, fe_labels = _build_fe_dummies(
+        sample,
+        entity_column=entity_column,
+        time_column=time_column,
+        include_time_effects=include_time_effects,
+    )
+    if not fe_dummies.empty:
+        sample = pd.concat([sample, fe_dummies], axis=1)
+    expanded_exogenous = [*exogenous, *list(fe_dummies.columns)]
+    fitted, covariance_type = _fit_iv_2sls(
+        sample,
+        dependent,
+        exogenous=expanded_exogenous,
+        endogenous=endogenous_column,
+        instruments=instruments,
+        robust_covariance=robust_covariance,
+    )
+    summary_lines = [
+        f"Panel IV run on {asset.title}.",
+        f"Outcome variable: {dependent}.",
+        f"Endogenous regressor: {endogenous_column}.",
+        f"Instruments: {', '.join(instruments)}.",
+        f"Fixed effects: {', '.join(fe_labels)}.",
+    ]
+    payload = _model_result_payload(
+        model_type="panel_iv",
+        model_label="Panel IV",
+        asset=asset,
+        dependent=dependent,
+        regressors=[*expanded_exogenous, endogenous_column],
+        sample=sample[[dependent, endogenous_column, *exogenous, *instruments, entity_column] + ([time_column] if include_time_effects and time_column else [])].copy(),
+        result=fitted,
+        narrative_lines=summary_lines,
+        extra={
+            "endogenous_column": endogenous_column,
+            "instrument_columns": instruments,
+            "exogenous_columns": exogenous,
+            "entity_column": entity_column,
+            "time_column": time_column if include_time_effects else "",
+            "include_time_effects": include_time_effects,
+            "entity_count": int(sample[entity_column].nunique()),
+            "time_count": int(sample[time_column].nunique()) if include_time_effects and time_column else 0,
+            "covariance_type": covariance_type,
+            "covariance_note": "Panel IV uses conventional covariance when robust covariance is unavailable in the current backend."
+            if robust_covariance and covariance_type != "HC1"
+            else "",
+            "audit_trail": {
+                "derived_columns": list(fe_dummies.columns),
+                "filters": [
+                    "Rows with missing dependent, endogenous regressor, instrument, or selected controls are dropped.",
+                ],
+                "fixed_effects": fe_labels,
+            },
+        },
+    )
+    create_knowledge_record(
+        db,
+        user=user,
+        workspace=workspace,
+        title=f"Panel IV summary for {asset.title}",
+        content="\n".join(summary_lines),
+        tags=["panel_iv", "instrumental_variables", "econometrics"],
         metadata=payload,
     )
     return payload
@@ -1487,6 +2015,12 @@ def run_logit_analysis(
         sample=sample,
         result=fitted,
         narrative_lines=summary_lines,
+        extra={
+            "audit_trail": {
+                "derived_columns": [],
+                "filters": ["Rows with missing binary outcome or selected regressors are dropped."],
+            },
+        },
     )
     create_knowledge_record(
         db,
@@ -1541,6 +2075,12 @@ def run_probit_analysis(
         sample=sample,
         result=fitted,
         narrative_lines=summary_lines,
+        extra={
+            "audit_trail": {
+                "derived_columns": [],
+                "filters": ["Rows with missing binary outcome or selected regressors are dropped."],
+            },
+        },
     )
     create_knowledge_record(
         db,
@@ -1622,6 +2162,11 @@ def run_fixed_effects_analysis(
             "include_time_effects": include_time_effects,
             "entity_count": int(sample[entity_column].nunique()),
             "time_count": int(sample[time_column].nunique()) if include_time_effects and time_column else 0,
+            "audit_trail": {
+                "derived_columns": list(design.columns),
+                "filters": ["Rows with missing outcome, slope regressors, entity ids, or time ids are dropped."],
+                "fixed_effects": fe_labels,
+            },
         },
     )
     create_knowledge_record(
@@ -1695,6 +2240,10 @@ def run_iv_2sls_analysis(
             "covariance_note": "IV-2SLS uses conventional covariance when robust covariance is unavailable in the current backend."
             if robust_covariance and covariance_type != "HC1"
             else "",
+            "audit_trail": {
+                "derived_columns": [],
+                "filters": ["Rows with missing dependent, endogenous regressor, exogenous regressors, or instruments are dropped."],
+            },
         },
     )
     create_knowledge_record(
@@ -1722,9 +2271,18 @@ def run_model_analysis(
     controls: list[str] | None = None,
     treatment_column: str = "",
     post_column: str = "",
+    event_time_column: str = "",
+    lead_window: int = 4,
+    lag_window: int = 4,
+    omitted_period: int = -1,
     origin_mass_column: str = "",
     destination_mass_column: str = "",
     distance_column: str = "",
+    running_column: str = "",
+    cutoff: float = 0.0,
+    bandwidth: float = 0.0,
+    polynomial_order: int = 1,
+    treat_above_cutoff: bool = True,
     entity_column: str = "",
     time_column: str = "",
     include_time_effects: bool = False,
@@ -1768,6 +2326,18 @@ def run_model_analysis(
             controls=controls or [],
             robust_covariance=robust_covariance,
         )
+    if normalized_model == "ppml":
+        return run_ppml_analysis(
+            settings,
+            db,
+            user=user,
+            workspace=workspace,
+            asset_id=asset_id,
+            dependent=dependent,
+            independents=independents or [],
+            controls=controls or [],
+            robust_covariance=robust_covariance,
+        )
     if normalized_model == "did":
         return run_did_analysis(
             settings,
@@ -1779,6 +2349,25 @@ def run_model_analysis(
             treatment_column=treatment_column,
             post_column=post_column,
             controls=controls or [],
+            robust_covariance=robust_covariance,
+        )
+    if normalized_model == "event_study":
+        return run_event_study_analysis(
+            settings,
+            db,
+            user=user,
+            workspace=workspace,
+            asset_id=asset_id,
+            dependent=dependent,
+            treatment_column=treatment_column,
+            event_time_column=event_time_column,
+            controls=controls or [],
+            entity_column=entity_column,
+            time_column=time_column,
+            include_time_effects=include_time_effects,
+            lead_window=lead_window,
+            lag_window=lag_window,
+            omitted_period=omitted_period,
             robust_covariance=robust_covariance,
         )
     if normalized_model == "fixed_effects":
@@ -1810,6 +2399,22 @@ def run_model_analysis(
             controls=controls or [],
             robust_covariance=robust_covariance,
         )
+    if normalized_model == "rdd":
+        return run_rdd_analysis(
+            settings,
+            db,
+            user=user,
+            workspace=workspace,
+            asset_id=asset_id,
+            dependent=dependent,
+            running_column=running_column,
+            controls=controls or [],
+            cutoff=cutoff,
+            bandwidth=bandwidth,
+            polynomial_order=polynomial_order,
+            treat_above_cutoff=treat_above_cutoff,
+            robust_covariance=robust_covariance,
+        )
     if normalized_model == "iv_2sls":
         return run_iv_2sls_analysis(
             settings,
@@ -1822,6 +2427,23 @@ def run_model_analysis(
             controls=controls or [],
             endogenous_column=endogenous_column,
             instrument_columns=instrument_columns or [],
+            robust_covariance=robust_covariance,
+        )
+    if normalized_model == "panel_iv":
+        return run_panel_iv_analysis(
+            settings,
+            db,
+            user=user,
+            workspace=workspace,
+            asset_id=asset_id,
+            dependent=dependent,
+            independents=independents or [],
+            controls=controls or [],
+            endogenous_column=endogenous_column,
+            instrument_columns=instrument_columns or [],
+            entity_column=entity_column,
+            time_column=time_column,
+            include_time_effects=include_time_effects,
             robust_covariance=robust_covariance,
         )
     raise ValueError("Unsupported model type.")
@@ -1963,4 +2585,23 @@ def create_plot_asset(
         "title": title.strip() or summary,
         "summary": summary,
         "download_url": f"/api/assets/{plot_asset.id}/download",
+        "plot_specification": {
+            "chart_type": normalized_chart_type or "line",
+            "x_column": x_column,
+            "y_columns": y_columns,
+            "group_column": group_column,
+            "title": title.strip() or summary,
+            "max_points": int(max_points),
+        },
+        "audit_trail": {
+            "source_asset_id": asset.id,
+            "source_asset_title": asset.title,
+            "plot_asset_id": plot_asset.id,
+            "download_url": f"/api/assets/{plot_asset.id}/download",
+            "manual_checklist": [
+                "Download the plotted image and the source sample asset.",
+                "Recreate the chart using the listed chart_type, x_column, y_columns, and group_column.",
+                "Compare the visible point counts or grouped bars against the summary and source sample.",
+            ],
+        },
     }

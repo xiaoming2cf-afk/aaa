@@ -160,9 +160,18 @@ class ModelRunRequest(BaseModel):
     controls: list[str] = Field(default_factory=list)
     treatment_column: str = ""
     post_column: str = ""
+    event_time_column: str = ""
+    lead_window: int = 4
+    lag_window: int = 4
+    omitted_period: int = -1
     origin_mass_column: str = ""
     destination_mass_column: str = ""
     distance_column: str = ""
+    running_column: str = ""
+    rdd_cutoff: float = 0.0
+    rdd_bandwidth: float = 0.0
+    rdd_polynomial_order: int = 1
+    treat_above_cutoff: bool = True
     entity_column: str = ""
     time_column: str = ""
     include_time_effects: bool = False
@@ -704,9 +713,18 @@ def create_app() -> FastAPI:
                     controls=request.controls,
                     treatment_column=request.treatment_column,
                     post_column=request.post_column,
+                    event_time_column=request.event_time_column,
+                    lead_window=request.lead_window,
+                    lag_window=request.lag_window,
+                    omitted_period=request.omitted_period,
                     origin_mass_column=request.origin_mass_column,
                     destination_mass_column=request.destination_mass_column,
                     distance_column=request.distance_column,
+                    running_column=request.running_column,
+                    cutoff=request.rdd_cutoff,
+                    bandwidth=request.rdd_bandwidth,
+                    polynomial_order=request.rdd_polynomial_order,
+                    treat_above_cutoff=request.treat_above_cutoff,
                     entity_column=request.entity_column,
                     time_column=request.time_column,
                     include_time_effects=request.include_time_effects,
