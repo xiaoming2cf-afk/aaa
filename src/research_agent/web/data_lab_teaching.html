@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Data Lab Teaching Page | Economic Research Platform</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="page-bg"></div>
+    <header class="hero">
+      <div>
+        <p class="eyebrow" id="lab-teaching-eyebrow">Teaching Page</p>
+        <h1 id="lab-teaching-title">Loading teaching page...</h1>
+        <p class="hero-copy" id="lab-teaching-summary">
+          This page explains when to use the model, what a normal output looks like, and how to verify it manually.
+        </p>
+      </div>
+      <div class="hero-meta">
+        <div class="meta-card">
+          <span>Model family</span>
+          <strong id="lab-teaching-family">Loading...</strong>
+        </div>
+        <div class="meta-card">
+          <span>Teaching mode</span>
+          <strong>No auto-suggestion</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell public-shell">
+      <section class="panel public-toolbar">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h2 id="lab-teaching-heading">Teaching Page</h2>
+            <p class="muted" id="lab-teaching-description">
+              Use this page to understand the method before opening the workbench.
+            </p>
+          </div>
+          <div class="actions">
+            <a href="/data-lab" class="button-link secondary-link">Back to Data Lab</a>
+            <a href="/data-lab" id="lab-teaching-method-link" class="button-link secondary-link">Open method page</a>
+            <a href="/data-lab" id="lab-teaching-workbench-link" class="button-link">Open in workbench</a>
+          </div>
+        </div>
+      </section>
+
+      <div class="public-layout">
+        <aside class="panel public-sidebar">
+          <div class="stack">
+            <div>
+              <p class="eyebrow eyebrow-compact">Navigate</p>
+              <h3>Teaching Page</h3>
+            </div>
+            <nav class="public-section-nav">
+              <a href="#lab-teaching-sections">Core lessons</a>
+            </nav>
+            <div class="public-sidebar-note">
+              <p class="muted">This page explains the model step by step. It does not infer your variables or generate a design suggestion.</p>
+            </div>
+          </div>
+        </aside>
+
+        <section class="public-main">
+          <article class="panel public-section" id="lab-teaching-sections-card">
+            <div class="panel-head">
+              <h3>Core Lessons</h3>
+              <span class="muted">A compact teaching outline for self-study and manual replication.</span>
+            </div>
+            <div id="lab-teaching-sections" class="card-list">
+              <div class="card"><p>Loading teaching sections...</p></div>
+            </div>
+          </article>
+        </section>
+      </div>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>

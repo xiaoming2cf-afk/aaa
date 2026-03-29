@@ -354,6 +354,28 @@ const dom = {
   labDetailMethodList: document.getElementById("lab-detail-method-list"),
   labDetailInputList: document.getElementById("lab-detail-input-list"),
   labDetailAuditList: document.getElementById("lab-detail-audit-list"),
+  labModelMethodEyebrow: document.getElementById("lab-model-method-eyebrow"),
+  labModelMethodTitle: document.getElementById("lab-model-method-title"),
+  labModelMethodSummary: document.getElementById("lab-model-method-summary"),
+  labModelMethodFamily: document.getElementById("lab-model-method-family"),
+  labModelMethodHeading: document.getElementById("lab-model-method-heading"),
+  labModelMethodDescription: document.getElementById("lab-model-method-description"),
+  labModelMethodFamilyLink: document.getElementById("lab-model-method-family-link"),
+  labModelMethodTeachingLink: document.getElementById("lab-model-method-teaching-link"),
+  labModelMethodWorkbenchLink: document.getElementById("lab-model-method-workbench-link"),
+  labModelMethodEquation: document.getElementById("lab-model-method-equation"),
+  labModelMethodInputs: document.getElementById("lab-model-method-inputs"),
+  labModelMethodOutputs: document.getElementById("lab-model-method-outputs"),
+  labModelMethodAudit: document.getElementById("lab-model-method-audit"),
+  labTeachingEyebrow: document.getElementById("lab-teaching-eyebrow"),
+  labTeachingTitle: document.getElementById("lab-teaching-title"),
+  labTeachingSummary: document.getElementById("lab-teaching-summary"),
+  labTeachingFamily: document.getElementById("lab-teaching-family"),
+  labTeachingHeading: document.getElementById("lab-teaching-heading"),
+  labTeachingDescription: document.getElementById("lab-teaching-description"),
+  labTeachingMethodLink: document.getElementById("lab-teaching-method-link"),
+  labTeachingWorkbenchLink: document.getElementById("lab-teaching-workbench-link"),
+  labTeachingSections: document.getElementById("lab-teaching-sections"),
   labResultEyebrow: document.getElementById("lab-result-eyebrow"),
   labResultTitle: document.getElementById("lab-result-title"),
   labResultSummary: document.getElementById("lab-result-summary"),
@@ -436,6 +458,28 @@ function extractDataLabMethodRoute() {
   };
 }
 
+function extractDataLabModelMethodRoute() {
+  const match = window.location.pathname.match(/^\/data-lab\/models\/([^/]+)\/([^/]+)$/);
+  if (!match) {
+    return null;
+  }
+  return {
+    family: decodeURIComponent(match[1]),
+    method: decodeURIComponent(match[2]),
+  };
+}
+
+function extractDataLabTeachingRoute() {
+  const match = window.location.pathname.match(/^\/data-lab\/learn\/models\/([^/]+)\/([^/]+)$/);
+  if (!match) {
+    return null;
+  }
+  return {
+    family: decodeURIComponent(match[1]),
+    method: decodeURIComponent(match[2]),
+  };
+}
+
 function extractDataLabResultRoute() {
   const match = window.location.pathname.match(/^\/data-lab\/results\/(processing|models)\/([^/]+)$/);
   if (!match) {
@@ -453,6 +497,12 @@ function detectPageMode() {
   }
   if (window.location.pathname === "/data-lab") {
     return "data-lab";
+  }
+  if (extractDataLabTeachingRoute()) {
+    return "data-lab-teaching";
+  }
+  if (extractDataLabModelMethodRoute()) {
+    return "data-lab-model-method";
   }
   if (extractDataLabMethodRoute()) {
     return "data-lab-method-detail";
@@ -1923,6 +1973,17 @@ function renderDataLabMethodDetail(detail) {
       <p class="eyebrow eyebrow-compact">${escapeHtml(detail.category_label || detail.category || "Method")}</p>
       <h4>${escapeHtml(item.name || item.slug || "Method")}</h4>
       <p>${escapeHtml(item.description || "")}</p>
+      ${
+        detail.category === "model"
+          ? `
+            <div class="actions actions-wrap compact-actions">
+              <a class="button-link secondary-link" href="${escapeHtml(item.detail_path || "#")}">Method page</a>
+              <a class="button-link secondary-link" href="${escapeHtml(item.teaching_path || "#")}">Teaching page</a>
+              <a class="button-link" href="${escapeHtml(item.workbench_path || "/data-lab")}">Open in workbench</a>
+            </div>
+          `
+          : ""
+      }
     </article>
   `);
   renderListCards(dom.labDetailInputList, detail.key_inputs || [], (item) => `
@@ -1933,6 +1994,73 @@ function renderDataLabMethodDetail(detail) {
   renderListCards(dom.labDetailAuditList, detail.manual_checks || [], (item) => `
     <article class="card">
       <p>${escapeHtml(item)}</p>
+    </article>
+  `);
+  updateDocumentTitle();
+}
+
+function renderModelMethodPage(detail) {
+  if (!detail) {
+    throw new Error("Model method not found.");
+  }
+  dom.labModelMethodEyebrow && (dom.labModelMethodEyebrow.textContent = "Model Method");
+  dom.labModelMethodTitle && (dom.labModelMethodTitle.textContent = detail.name || "Model Method");
+  dom.labModelMethodSummary &&
+    (dom.labModelMethodSummary.textContent =
+      detail.summary || "Review the method, then open the workbench with the correct settings preselected.");
+  dom.labModelMethodFamily && (dom.labModelMethodFamily.textContent = detail.family_title || "Model family");
+  dom.labModelMethodHeading && (dom.labModelMethodHeading.textContent = detail.name || "Model Method Detail");
+  dom.labModelMethodDescription &&
+    (dom.labModelMethodDescription.textContent = detail.overview || detail.summary || "");
+  dom.labModelMethodFamilyLink && (dom.labModelMethodFamilyLink.href = detail.family_path || "/data-lab");
+  dom.labModelMethodTeachingLink && (dom.labModelMethodTeachingLink.href = detail.teaching_path || "/data-lab");
+  dom.labModelMethodWorkbenchLink && (dom.labModelMethodWorkbenchLink.href = detail.workbench_path || "/data-lab");
+  renderListCards(dom.labModelMethodEquation, [detail], (item) => `
+    <article class="card">
+      <h4>${escapeHtml(item.name || "Specification")}</h4>
+      <p class="console-box">${escapeHtml(item.equation || "Equation not provided.")}</p>
+      <p>${escapeHtml(item.overview || item.summary || "")}</p>
+    </article>
+  `);
+  renderListCards(dom.labModelMethodInputs, detail.inputs || [], (item) => `
+    <article class="card">
+      <p>${escapeHtml(item)}</p>
+    </article>
+  `);
+  const outputItems = [...(detail.outputs || []), ...(detail.normal_result ? [detail.normal_result] : [])];
+  renderListCards(dom.labModelMethodOutputs, outputItems, (item, index) => `
+    <article class="card">
+      <p>${escapeHtml(item)}</p>
+    </article>
+  `);
+  renderListCards(dom.labModelMethodAudit, detail.manual_checks || [], (item) => `
+    <article class="card">
+      <p>${escapeHtml(item)}</p>
+    </article>
+  `);
+  updateDocumentTitle();
+}
+
+function renderModelTeachingPage(guide) {
+  if (!guide) {
+    throw new Error("Teaching guide not found.");
+  }
+  dom.labTeachingEyebrow && (dom.labTeachingEyebrow.textContent = "Teaching Page");
+  dom.labTeachingTitle && (dom.labTeachingTitle.textContent = `${guide.name || "Model"} Teaching Page`);
+  dom.labTeachingSummary &&
+    (dom.labTeachingSummary.textContent =
+      guide.summary || "Use this page to learn the model before opening the workbench.");
+  dom.labTeachingFamily && (dom.labTeachingFamily.textContent = guide.family_title || "Model family");
+  dom.labTeachingHeading && (dom.labTeachingHeading.textContent = `${guide.name || "Model"} Teaching Page`);
+  dom.labTeachingDescription &&
+    (dom.labTeachingDescription.textContent =
+      guide.equation ? `Core equation: ${guide.equation}` : "Review the sections below before estimation.");
+  dom.labTeachingMethodLink && (dom.labTeachingMethodLink.href = guide.detail_path || "/data-lab");
+  dom.labTeachingWorkbenchLink && (dom.labTeachingWorkbenchLink.href = guide.workbench_path || "/data-lab");
+  renderListCards(dom.labTeachingSections, guide.sections || [], (section) => `
+    <article class="card">
+      <p class="eyebrow eyebrow-compact">${escapeHtml(section.title || "Section")}</p>
+      <p>${escapeHtml(section.body || "")}</p>
     </article>
   `);
   updateDocumentTitle();
@@ -2252,6 +2380,24 @@ async function loadMethodDetailPage() {
   renderDataLabMethodDetail(payload.family);
 }
 
+async function loadModelMethodPage() {
+  const route = extractDataLabModelMethodRoute();
+  if (!route) {
+    return;
+  }
+  const payload = await api(`/api/data-lab/models/${route.family}/${route.method}`, {}, false);
+  renderModelMethodPage(payload.method);
+}
+
+async function loadTeachingGuidePage() {
+  const route = extractDataLabTeachingRoute();
+  if (!route) {
+    return;
+  }
+  const payload = await api(`/api/data-lab/learn/models/${route.family}/${route.method}`, {}, false);
+  renderModelTeachingPage(payload.guide);
+}
+
 async function loadResultDetailPage() {
   const route = extractDataLabResultRoute();
   if (!route) {
@@ -2401,6 +2547,14 @@ function updateDocumentTitle() {
   }
   if (pageMode === "data-lab") {
     document.title = "Data Lab | Economic Research Platform";
+    return;
+  }
+  if (pageMode === "data-lab-model-method" && dom.labModelMethodTitle?.textContent) {
+    document.title = `${dom.labModelMethodTitle.textContent} | Economic Research Platform`;
+    return;
+  }
+  if (pageMode === "data-lab-teaching" && dom.labTeachingTitle?.textContent) {
+    document.title = `${dom.labTeachingTitle.textContent} | Economic Research Platform`;
     return;
   }
   if (pageMode === "data-lab-method-detail" && dom.labDetailTitle?.textContent) {
@@ -3251,7 +3405,12 @@ async function init() {
   try {
     await fetchHealth();
     const pageMode = detectPageMode();
-    if (pageMode === "data-lab" || pageMode === "data-lab-method-detail") {
+    if (
+      pageMode === "data-lab" ||
+      pageMode === "data-lab-method-detail" ||
+      pageMode === "data-lab-model-method" ||
+      pageMode === "data-lab-teaching"
+    ) {
       await loadDataLabCatalog();
     }
     if (pageMode === "data-lab") {
@@ -3261,6 +3420,12 @@ async function init() {
     }
     if (pageMode === "data-lab-method-detail") {
       await loadMethodDetailPage();
+    }
+    if (pageMode === "data-lab-model-method") {
+      await loadModelMethodPage();
+    }
+    if (pageMode === "data-lab-teaching") {
+      await loadTeachingGuidePage();
     }
     if (pageMode === "data-lab-result-detail") {
       await loadResultDetailPage();

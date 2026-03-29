@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter
 from datetime import datetime, time, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from typing import Any
+from urllib.parse import urlparse
+from xml.etree import ElementTree
 from zoneinfo import ZoneInfo
 
 import requests
@@ -31,6 +35,43 @@ from .utils import reconstruct_abstract, slugify, truncate_text
 GDELT_DOC_API = "https://api.gdeltproject.org/api/v2/doc/doc"
 FRED_OBSERVATIONS_API = "https://api.stlouisfed.org/fred/series/observations"
 PUBLIC_TEMPLATE_VERSION = "daily-macro-v1"
+PUBLIC_RSS_FEEDS = [
+    {
+        "name": "BBC Business",
+        "url": "https://feeds.bbci.co.uk/news/business/rss.xml",
+        "domain": "bbc.com",
+        "source_country": "GB",
+        "language": "English",
+    },
+    {
+        "name": "NYT Business",
+        "url": "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
+        "domain": "nytimes.com",
+        "source_country": "US",
+        "language": "English",
+    },
+    {
+        "name": "CNBC Top News",
+        "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html",
+        "domain": "cnbc.com",
+        "source_country": "US",
+        "language": "English",
+    },
+    {
+        "name": "MarketWatch Top Stories",
+        "url": "https://feeds.content.dowjones.io/public/rss/mw_topstories",
+        "domain": "marketwatch.com",
+        "source_country": "US",
+        "language": "English",
+    },
+    {
+        "name": "Investing.com News",
+        "url": "https://www.investing.com/rss/news_25.rss",
+        "domain": "investing.com",
+        "source_country": "US",
+        "language": "English",
+    },
+]
 FRED_SERIES_LABELS = {
     "FEDFUNDS": "Fed policy rate",
     "CPIAUCSL": "US CPI index",
@@ -46,6 +87,25 @@ MACRO_THEME_KEYWORDS = {
     "energy": ["oil", "gas", "energy", "crude", "opec"],
     "markets": ["yield", "bond", "stocks", "equity", "currency", "dollar", "fx"],
 }
+PUBLIC_NEWS_KEYWORDS = sorted(
+    {
+        keyword.lower()
+        for keywords in MACRO_THEME_KEYWORDS.values()
+        for keyword in keywords
+    }
+    | {
+        "economy",
+        "economic",
+        "bank",
+        "treasury",
+        "tariffs",
+        "inflation report",
+        "policy rate",
+        "employment",
+        "fiscal",
+        "markets",
+    }
+)
 PUBLIC_SUMMARY_WINDOWS = {
     "weekly": {
         "days": 7,
@@ -501,23 +561,30 @@ def fetch_gdelt_hotspots(
     query_text: str = "",
     max_records: int | None = None,
 ) -> dict[str, Any]:
-    query = query_text.strip() or settings.gdelt_query
-    response = requests.get(
-        GDELT_DOC_API,
-        headers=DEFAULT_HEADERS,
-        params={
-            "query": query,
-            "mode": "ArtList",
-            "format": "json",
-            "sort": "DateDesc",
-            "maxrecords": max_records or settings.gdelt_max_records,
-        },
-        timeout=30,
-    )
+    query = _normalize_gdelt_query(query_text.strip() or settings.gdelt_query)
+    try:
+        response = requests.get(
+            GDELT_DOC_API,
+            headers=DEFAULT_HEADERS,
+            params={
+                "query": query,
+                "mode": "ArtList",
+                "format": "json",
+                "sort": "DateDesc",
+                "maxrecords": max_records or settings.gdelt_max_records,
+            },
+            timeout=30,
+        )
+    except requests.RequestException as exc:
+        return {"status": "error", "query": query, "items": [], "message": str(exc)}
     if response.status_code == 429:
         return {"status": "rate_limited", "query": query, "items": [], "message": response.text}
-    response.raise_for_status()
-    payload = response.json()
+    if response.status_code >= 400:
+        return {"status": "error", "query": query, "items": [], "message": response.text}
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        return {"status": "error", "query": query, "items": [], "message": str(exc)}
     items = []
     for article in payload.get("articles", [])[: max_records or settings.gdelt_max_records]:
         items.append(
@@ -532,6 +599,186 @@ def fetch_gdelt_hotspots(
             }
         )
     return {"status": "ok", "query": query, "items": items}
+
+
+def _normalize_gdelt_query(query: str) -> str:
+    normalized = " ".join(query.split()).strip()
+    if " OR " in normalized and not (normalized.startswith("(") and normalized.endswith(")")):
+        return f"({normalized})"
+    return normalized
+
+
+def _strip_html(value: str) -> str:
+    return re.sub(r"<[^>]+>", " ", value or "").replace("&nbsp;", " ").strip()
+
+
+def _query_terms(query_text: str) -> list[str]:
+    normalized = (
+        query_text.replace("(", " ")
+        .replace(")", " ")
+        .replace('"', " ")
+        .replace("'", " ")
+        .replace(",", " ")
+    )
+    terms = [part.strip().lower() for part in normalized.split("OR")]
+    return [term for term in terms if term]
+
+
+def _keyword_present(text: str, keyword: str) -> bool:
+    phrase = keyword.strip().lower()
+    if not phrase:
+        return False
+    pattern = r"\b" + r"\s+".join(re.escape(part) for part in phrase.split()) + r"\b"
+    return re.search(pattern, text) is not None
+
+
+def _parse_news_datetime(raw_value: str, *, timezone_name: str) -> datetime | None:
+    raw = str(raw_value or "").strip()
+    if not raw:
+        return None
+    try:
+        if raw.endswith("Z") and "T" in raw:
+            parsed = datetime.strptime(raw, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+            return parsed.astimezone(ZoneInfo(timezone_name))
+    except ValueError:
+        pass
+    try:
+        parsed = datetime.strptime(raw, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+        return parsed.astimezone(ZoneInfo(timezone_name))
+    except ValueError:
+        pass
+    try:
+        parsed = parsedate_to_datetime(raw)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(ZoneInfo(timezone_name))
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def _is_same_local_day(raw_value: str, *, timezone_name: str, target_date: datetime.date) -> bool:
+    parsed = _parse_news_datetime(raw_value, timezone_name=timezone_name)
+    if parsed is None:
+        return False
+    return parsed.date() == target_date
+
+
+def _is_relevant_public_news(item: dict[str, Any], *, query_text: str) -> bool:
+    haystack = " ".join(
+        [
+            str(item.get("title", "")),
+            str(item.get("excerpt", "")),
+        ]
+    ).lower()
+    keywords = set(PUBLIC_NEWS_KEYWORDS)
+    keywords.update(_query_terms(query_text))
+    return any(_keyword_present(haystack, keyword) for keyword in keywords)
+
+
+def fetch_rss_hotspots(
+    settings: Settings,
+    *,
+    query_text: str = "",
+    max_records: int | None = None,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    local_now = _current_local_time(settings.public_digest_timezone, now=now)
+    target_date = local_now.date()
+    items: list[dict[str, Any]] = []
+    feed_status: list[dict[str, Any]] = []
+    limit = max(4, max_records or settings.gdelt_max_records)
+    for feed in PUBLIC_RSS_FEEDS:
+        try:
+            response = requests.get(feed["url"], headers=DEFAULT_HEADERS, timeout=20)
+            response.raise_for_status()
+            root = ElementTree.fromstring(response.content)
+        except (requests.RequestException, ElementTree.ParseError) as exc:
+            feed_status.append({"name": feed["name"], "status": "error", "message": str(exc)})
+            continue
+        matched_count = 0
+        for node in root.findall(".//item"):
+            title = (node.findtext("title") or "").strip()
+            link = (node.findtext("link") or "").strip()
+            pub_date = (node.findtext("pubDate") or "").strip()
+            description = _strip_html(node.findtext("description") or "")
+            if not title or not link:
+                continue
+            if not _is_same_local_day(pub_date, timezone_name=settings.public_digest_timezone, target_date=target_date):
+                continue
+            item = {
+                "title": title,
+                "seendate": pub_date,
+                "domain": (urlparse(link).netloc or feed["domain"]).lower(),
+                "source_country": feed["source_country"],
+                "language": feed["language"],
+                "source_name": feed["name"],
+                "url": link,
+                "excerpt": truncate_text(description or title, 220),
+            }
+            if not _is_relevant_public_news(item, query_text=query_text):
+                continue
+            items.append(item)
+            matched_count += 1
+            if matched_count >= limit:
+                break
+        feed_status.append({"name": feed["name"], "status": "ok", "matched_items": matched_count})
+    return {"status": "ok", "query": query_text.strip() or settings.gdelt_query, "items": items, "feeds": feed_status}
+
+
+def _public_item_sort_key(item: dict[str, Any], *, timezone_name: str) -> tuple[int, str]:
+    parsed = _parse_news_datetime(str(item.get("seendate", "")), timezone_name=timezone_name)
+    if parsed is None:
+        return (0, str(item.get("title", "")))
+    return (int(parsed.timestamp()), str(item.get("title", "")))
+
+
+def _merge_public_news_items(
+    settings: Settings,
+    *,
+    query_text: str,
+    now: datetime | None = None,
+    max_records: int | None = None,
+) -> dict[str, Any]:
+    gdelt_payload = fetch_gdelt_hotspots(settings, query_text=query_text, max_records=max_records)
+    rss_payload = fetch_rss_hotspots(settings, query_text=query_text, max_records=max_records, now=now)
+    local_now = _current_local_time(settings.public_digest_timezone, now=now)
+    target_date = local_now.date()
+    merged: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for candidate in [*(gdelt_payload.get("items") or []), *(rss_payload.get("items") or [])]:
+        title = str(candidate.get("title", "")).strip()
+        url = str(candidate.get("url", "")).strip()
+        if not title or not url:
+            continue
+        if candidate.get("seendate") and not _is_same_local_day(
+            str(candidate.get("seendate", "")),
+            timezone_name=settings.public_digest_timezone,
+            target_date=target_date,
+        ):
+            continue
+        if not _is_relevant_public_news(candidate, query_text=query_text):
+            continue
+        dedupe_key = url.lower()
+        fallback_key = title.lower()
+        if dedupe_key in seen or fallback_key in seen:
+            continue
+        seen.add(dedupe_key)
+        seen.add(fallback_key)
+        merged.append(candidate)
+    merged.sort(
+        key=lambda item: _public_item_sort_key(item, timezone_name=settings.public_digest_timezone),
+        reverse=True,
+    )
+    limit = max(6, max_records or settings.gdelt_max_records)
+    return {
+        "status": "ok" if merged else "empty",
+        "query": query_text,
+        "items": merged[:limit],
+        "sources": {
+            "gdelt": gdelt_payload,
+            "rss": rss_payload,
+        },
+    }
 
 
 def fetch_fred_snapshots(fred_api_key: str, *, series_ids: list[str]) -> list[dict[str, Any]]:
@@ -936,11 +1183,16 @@ def generate_public_daily_briefing(
     existing = db.scalar(
         select(PublicEconomicBriefing).where(PublicEconomicBriefing.briefing_date == briefing_date)
     )
-    if existing and not force:
+    if existing and not force and existing.headline_count > 0:
         return existing
 
     query_text = settings.public_digest_query or settings.gdelt_query
-    headlines_payload = fetch_gdelt_hotspots(settings, query_text=query_text)
+    headlines_payload = _merge_public_news_items(
+        settings,
+        query_text=query_text,
+        now=now,
+        max_records=max(8, settings.gdelt_max_records),
+    )
     annotated_items = _annotate_headlines_with_themes(headlines_payload.get("items", []))
     fred_snapshots = fetch_fred_snapshots(
         settings.fred_api_key,
@@ -969,7 +1221,7 @@ def generate_public_daily_briefing(
     briefing.headline_count = len(annotated_items)
     briefing.items_json = annotated_items
     briefing.raw_json = {
-        "gdelt": {**headlines_payload, "items": annotated_items},
+        "public_news": {**headlines_payload, "items": annotated_items},
         "fred": fred_snapshots,
     }
     db.add(briefing)
@@ -991,7 +1243,7 @@ def ensure_public_daily_briefing(
     existing = db.scalar(
         select(PublicEconomicBriefing).where(PublicEconomicBriefing.briefing_date == briefing_date)
     )
-    if existing and not force:
+    if existing and not force and existing.headline_count > 0:
         return existing
     if not force and not _public_digest_is_due(settings, now=now):
         return existing

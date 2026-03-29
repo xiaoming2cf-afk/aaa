@@ -11,7 +11,13 @@ from pydantic import BaseModel, Field
 
 from .asset_storage import is_remote_asset_reference, load_asset_bytes
 from .config import get_settings
-from .data_lab_catalog import get_data_lab_catalog, get_model_family, get_processing_family
+from .data_lab_catalog import (
+    get_data_lab_catalog,
+    get_model_family,
+    get_model_method,
+    get_model_teaching_guide,
+    get_processing_family,
+)
 from .db import init_database, session_scope
 from .entities import DataAsset
 from .platform_core import (
@@ -74,6 +80,8 @@ WEB_DIR = Path(__file__).with_name("web")
 PUBLIC_WEB_FILE = WEB_DIR / "public.html"
 DATA_LAB_WEB_FILE = WEB_DIR / "data_lab.html"
 DATA_LAB_DETAIL_WEB_FILE = WEB_DIR / "data_lab_detail.html"
+DATA_LAB_METHOD_WEB_FILE = WEB_DIR / "data_lab_method.html"
+DATA_LAB_TEACHING_WEB_FILE = WEB_DIR / "data_lab_teaching.html"
 DATA_LAB_RESULT_WEB_FILE = WEB_DIR / "data_lab_result.html"
 
 
@@ -316,6 +324,18 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=404, detail="Model family not found.")
         return FileResponse(DATA_LAB_DETAIL_WEB_FILE)
 
+    @app.get("/data-lab/models/{family}/{method}")
+    def data_lab_model_method_page(family: str, method: str) -> FileResponse:
+        if not get_model_method(family, method):
+            raise HTTPException(status_code=404, detail="Model method not found.")
+        return FileResponse(DATA_LAB_METHOD_WEB_FILE)
+
+    @app.get("/data-lab/learn/models/{family}/{method}")
+    def data_lab_model_teaching_page(family: str, method: str) -> FileResponse:
+        if not get_model_teaching_guide(family, method):
+            raise HTTPException(status_code=404, detail="Model teaching guide not found.")
+        return FileResponse(DATA_LAB_TEACHING_WEB_FILE)
+
     @app.get("/data-lab/results/processing/{asset_id}")
     def data_lab_processing_result_page(asset_id: str) -> FileResponse:
         return FileResponse(DATA_LAB_RESULT_WEB_FILE)
@@ -395,6 +415,20 @@ def create_app() -> FastAPI:
         if not detail:
             raise HTTPException(status_code=404, detail="Model family not found.")
         return {"family": detail}
+
+    @app.get("/api/data-lab/models/{family}/{method}")
+    def data_lab_model_method_detail(family: str, method: str) -> dict[str, Any]:
+        detail = get_model_method(family, method)
+        if not detail:
+            raise HTTPException(status_code=404, detail="Model method not found.")
+        return {"method": detail}
+
+    @app.get("/api/data-lab/learn/models/{family}/{method}")
+    def data_lab_model_teaching_detail(family: str, method: str) -> dict[str, Any]:
+        guide = get_model_teaching_guide(family, method)
+        if not guide:
+            raise HTTPException(status_code=404, detail="Model teaching guide not found.")
+        return {"guide": guide}
 
     @app.get("/api/public/briefings")
     def public_briefings(limit: int = 10) -> dict[str, Any]:

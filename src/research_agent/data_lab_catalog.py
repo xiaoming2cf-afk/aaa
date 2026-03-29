@@ -424,12 +424,36 @@ def _family_detail_path(kind: str, slug: str) -> str:
     return f"/data-lab/{kind}/{slug}"
 
 
+def _model_method_detail_path(family_slug: str, method_slug: str) -> str:
+    return f"/data-lab/models/{family_slug}/{method_slug}"
+
+
+def _model_teaching_path(family_slug: str, method_slug: str) -> str:
+    return f"/data-lab/learn/models/{family_slug}/{method_slug}"
+
+
 def _decorate_family(item: dict[str, object], *, kind: str) -> dict[str, object]:
     detail = deepcopy(item)
     slug = str(detail["slug"])
     default_query = deepcopy(detail.get("default_workbench_query") or {})
     detail["detail_path"] = _family_detail_path("processing" if kind == "processing" else "models", slug)
     detail["workbench_path"] = _prefilled_data_lab_link(default_query)
+    methods = []
+    for method in detail.get("methods") or []:
+        method_copy = deepcopy(method)
+        method_slug = str(method_copy.get("slug") or "")
+        if kind == "models":
+            method_copy["detail_path"] = _model_method_detail_path(slug, method_slug)
+            method_copy["teaching_path"] = _model_teaching_path(slug, method_slug)
+            method_copy["workbench_path"] = _prefilled_data_lab_link(
+                {
+                    "workflow": "model",
+                    "model_family": slug,
+                    "model_type": method_slug,
+                }
+            )
+        methods.append(method_copy)
+    detail["methods"] = methods
     return detail
 
 
@@ -459,4 +483,282 @@ def get_data_lab_catalog() -> dict[str, object]:
     return {
         "processing_families": list_processing_families(),
         "model_families": list_model_families(),
+    }
+
+
+MODEL_METHOD_GUIDES: dict[str, dict[str, object]] = {
+    "ols": {
+        "overview": "Estimate the conditional mean effect of regressors on a continuous outcome with a transparent coefficient table.",
+        "equation": "y_i = alpha + X_i beta + epsilon_i",
+        "outputs": ["Coefficient table", "Model fit metrics", "Residual scale and audit trail"],
+        "normal_result": "A normal paper-style output shows coefficients, standard errors, significance marks, N, and R-squared.",
+    },
+    "ppml": {
+        "overview": "Estimate multiplicative effects for nonnegative outcomes or flow data while keeping zeros in the sample.",
+        "equation": "E[y_i | X_i] = exp(alpha + X_i beta)",
+        "outputs": ["Coefficient table", "Pseudo log-likelihood diagnostics", "Audit trail"],
+        "normal_result": "A normal output reports coefficients, robust standard errors, convergence status, and row counts.",
+    },
+    "logit": {
+        "overview": "Model a binary outcome through the logistic link and inspect the direction and significance of each regressor.",
+        "equation": "Pr(y_i = 1 | X_i) = 1 / (1 + exp(-(alpha + X_i beta)))",
+        "outputs": ["Coefficient table", "Classification fit metrics", "Audit trail"],
+        "normal_result": "A normal output shows coefficients, standard errors, p-values, and the number of positive cases.",
+    },
+    "probit": {
+        "overview": "Model a binary outcome through the standard-normal link when the research design prefers probit interpretation.",
+        "equation": "Pr(y_i = 1 | X_i) = Phi(alpha + X_i beta)",
+        "outputs": ["Coefficient table", "Model fit metrics", "Audit trail"],
+        "normal_result": "A normal output shows coefficients, standard errors, p-values, and convergence diagnostics.",
+    },
+    "did": {
+        "overview": "Estimate the average treatment effect from treatment and post indicators with an explicit DID interaction term.",
+        "equation": "y_it = alpha + beta1 treated_i + beta2 post_t + beta3 treated_i*post_t + controls + epsilon_it",
+        "outputs": ["Coefficient table with DID interaction", "2x2 cell means", "Manual audit trail"],
+        "normal_result": "A normal output includes the DID interaction row and a 2x2 means table for treated/control before/after.",
+    },
+    "event_study": {
+        "overview": "Estimate dynamic treatment effects across leads and lags around an event date.",
+        "equation": "y_it = alpha_i + gamma_t + sum_k beta_k event_time_k + controls + epsilon_it",
+        "outputs": ["Lead/lag coefficient table", "Event-study figure", "Audit trail"],
+        "normal_result": "A normal output includes relative-time coefficients and a lead-lag figure centered on the omitted period.",
+    },
+    "rdd": {
+        "overview": "Estimate a local discontinuity around a known cutoff using a running variable and explicit bandwidth choice.",
+        "equation": "y_i = alpha + tau D_i + f(running_i - cutoff) + controls + epsilon_i",
+        "outputs": ["Coefficient table", "RDD diagnostic figure", "Bandwidth and cutoff metadata"],
+        "normal_result": "A normal output shows the treatment jump, bandwidth, polynomial order, and a cutoff figure.",
+    },
+    "fixed_effects": {
+        "overview": "Control for unit-specific heterogeneity through entity and optional time fixed effects.",
+        "equation": "y_it = alpha_i + gamma_t + X_it beta + epsilon_it",
+        "outputs": ["Coefficient table", "Panel fit metrics", "Audit trail"],
+        "normal_result": "A normal output reports coefficients on time-varying regressors and states which fixed effects were included.",
+    },
+    "gravity": {
+        "overview": "Estimate trade- or flow-style relations using origin mass, destination mass, and distance terms.",
+        "equation": "log(flow_ij) = alpha + beta1 log(origin_i) + beta2 log(destination_j) - beta3 log(distance_ij) + epsilon_ij",
+        "outputs": ["Coefficient table", "Gravity term diagnostics", "Audit trail"],
+        "normal_result": "A normal output shows mass terms with positive signs, a distance term with a negative sign, and sample counts.",
+    },
+    "iv_2sls": {
+        "overview": "Estimate causal effects when one regressor is endogenous and instruments are available.",
+        "equation": "Stage 1: x_endog = Z pi + W delta + u; Stage 2: y = alpha + x_hat beta + W gamma + epsilon",
+        "outputs": ["Second-stage coefficient table", "First-stage diagnostics", "Audit trail"],
+        "normal_result": "A normal output shows both stages or at least first-stage strength and second-stage coefficients.",
+    },
+    "panel_iv": {
+        "overview": "Combine panel structure with instrumental variables when endogeneity appears in repeated observations.",
+        "equation": "y_it = alpha_i + gamma_t + x_hat_it beta + W_it delta + epsilon_it",
+        "outputs": ["Panel IV coefficient table", "Instrument diagnostics", "Audit trail"],
+        "normal_result": "A normal output states the panel dimensions, fixed-effect choices, and IV diagnostics.",
+    },
+    "arima": {
+        "overview": "Fit a univariate forecasting model with explicit ARIMA order and horizon choices.",
+        "equation": "phi(L)(1-L)^d y_t = theta(L) epsilon_t",
+        "outputs": ["Forecast table", "Observed vs forecast figure", "Order metadata"],
+        "normal_result": "A normal output shows fitted order, out-of-sample forecast values, and a forecast-path figure.",
+    },
+    "arch": {
+        "overview": "Model volatility clustering with an ARCH process using lagged squared shocks.",
+        "equation": "sigma_t^2 = omega + sum_i alpha_i epsilon_{t-i}^2",
+        "outputs": ["Variance parameter table", "In-sample volatility figure", "Forecast volatility figure"],
+        "normal_result": "A normal output shows positive variance parameters and both in-sample and forecast volatility plots.",
+    },
+    "garch": {
+        "overview": "Model persistent conditional variance through ARCH and lagged variance terms.",
+        "equation": "sigma_t^2 = omega + sum_i alpha_i epsilon_{t-i}^2 + sum_j beta_j sigma_{t-j}^2",
+        "outputs": ["Variance parameter table", "In-sample volatility figure", "Forecast volatility figure"],
+        "normal_result": "A normal output shows positive alpha/beta terms and volatility figures for fitted and forecast periods.",
+    },
+    "var": {
+        "overview": "Estimate a multivariate dynamic system to trace interactions across several ordered series.",
+        "equation": "Y_t = c + A_1 Y_{t-1} + ... + A_p Y_{t-p} + u_t",
+        "outputs": ["Coefficient blocks", "Forecast table", "Forecast path figure"],
+        "normal_result": "A normal output reports lag order, coefficient blocks, and a multivariate forecast figure.",
+    },
+    "svar_irf": {
+        "overview": "Estimate recursively identified structural impulse responses from a fitted VAR system.",
+        "equation": "A_0 Y_t = c + A_1 Y_{t-1} + ... + A_p Y_{t-p} + e_t",
+        "outputs": ["IRF table", "Orthogonalized IRF figure", "Cumulative IRF figure"],
+        "normal_result": "A normal output includes an IRF table and at least one impulse-response figure across the chosen horizon.",
+    },
+    "virf": {
+        "overview": "Track how a volatility shock propagates through a fitted GARCH-style variance process.",
+        "equation": "VIRF_h = E[sigma^2_{t+h} | shock] - E[sigma^2_{t+h}]",
+        "outputs": ["Volatility response table", "Volatility response figure", "Variance response figure"],
+        "normal_result": "A normal output includes a volatility-response path and a companion variance-response figure.",
+    },
+    "dy_connectedness": {
+        "overview": "Measure directional spillovers across a system using generalized FEVD-based connectedness.",
+        "equation": "Connectedness = function(FEVD_h across all variables)",
+        "outputs": ["Connectedness matrix", "Heatmap figure", "Net directional spillover figure"],
+        "normal_result": "A normal output includes a connectedness table, a heatmap, and a net-spillover summary graphic.",
+    },
+    "bk_connectedness": {
+        "overview": "Decompose connectedness into short-, medium-, and long-horizon frequency bands.",
+        "equation": "Frequency connectedness = spectral decomposition of generalized FEVD",
+        "outputs": ["Band total connectedness table", "Band heatmap figure", "Band summary figure"],
+        "normal_result": "A normal output includes frequency-band summaries and figures for each horizon bucket.",
+    },
+    "historical_var": {
+        "overview": "Compute tail risk directly from the empirical distribution of returns or losses.",
+        "equation": "VaR_alpha = empirical quantile_alpha(losses); ES_alpha = mean(losses beyond VaR)",
+        "outputs": ["VaR and ES table", "Tail sample diagnostics", "Audit trail"],
+        "normal_result": "A normal output shows VaR, ES, confidence level, and holding period information.",
+    },
+    "parametric_var": {
+        "overview": "Compute VaR and ES under a parametric distribution, typically normal, using mean and volatility estimates.",
+        "equation": "VaR_alpha = mu + sigma z_alpha",
+        "outputs": ["VaR and ES table", "Distribution parameters", "Audit trail"],
+        "normal_result": "A normal output reports mean, volatility, VaR, ES, and the confidence level used.",
+    },
+    "ewma_volatility": {
+        "overview": "Track recent volatility with exponentially decaying weights.",
+        "equation": "sigma_t^2 = lambda sigma_{t-1}^2 + (1-lambda) r_{t-1}^2",
+        "outputs": ["EWMA volatility table", "Latest volatility metric", "Audit trail"],
+        "normal_result": "A normal output reports lambda, recent conditional volatility, and the effective sample size logic.",
+    },
+    "altman_z": {
+        "overview": "Compute a transparent distress score from classic accounting ratios.",
+        "equation": "Z = 1.2 X1 + 1.4 X2 + 3.3 X3 + 0.6 X4 + 1.0 X5",
+        "outputs": ["Ratio breakdown", "Z-score table", "Audit trail"],
+        "normal_result": "A normal output lists each ratio component and the final Z-score by firm or observation.",
+    },
+    "dupont": {
+        "overview": "Decompose return on equity into profitability, turnover, and leverage components.",
+        "equation": "ROE = Net Profit Margin * Asset Turnover * Equity Multiplier",
+        "outputs": ["DuPont component table", "ROE breakdown", "Audit trail"],
+        "normal_result": "A normal output reports margin, turnover, multiplier, and reconstructed ROE.",
+    },
+    "black_scholes": {
+        "overview": "Price a vanilla European option from spot, strike, maturity, rate, and volatility inputs.",
+        "equation": "C = S N(d1) - K e^{-rT} N(d2)",
+        "outputs": ["Option valuation table", "Pricing inputs", "Audit trail"],
+        "normal_result": "A normal output lists the pricing inputs and the resulting call or put value.",
+    },
+    "binomial_option": {
+        "overview": "Price a vanilla option from a discrete-time lattice with an explicit step count.",
+        "equation": "Option price = backward induction on a recombining binomial tree",
+        "outputs": ["Option valuation table", "Tree parameter metadata", "Audit trail"],
+        "normal_result": "A normal output reports step count, up/down factors or equivalents, and the final price.",
+    },
+    "taylor_rule": {
+        "overview": "Estimate a reduced-form policy rule relating the policy rate to inflation and output gaps.",
+        "equation": "i_t = alpha + beta_pi inflation_gap_t + beta_y output_gap_t + epsilon_t",
+        "outputs": ["Coefficient table", "Policy-rule fit metrics", "Audit trail"],
+        "normal_result": "A normal output includes inflation-gap and output-gap coefficients with standard errors.",
+    },
+    "rbc_dsge": {
+        "overview": "Run a lightweight calibrated dynamic macro model to inspect impulse-style trajectories.",
+        "equation": "Toy RBC / DSGE calibration with alpha, beta, delta, shock persistence, and horizon",
+        "outputs": ["Calibration table", "Impulse-style paths", "Audit trail"],
+        "normal_result": "A normal output reports calibration inputs and impulse-style responses for key variables.",
+    },
+    "mean_variance": {
+        "overview": "Construct portfolio weights from expected returns and the covariance matrix.",
+        "equation": "w* = argmax_w (mu'w - gamma/2 * w'Sigma w)",
+        "outputs": ["Weight table", "Portfolio mean/variance metrics", "Audit trail"],
+        "normal_result": "A normal output reports final weights, expected return, and risk metrics, with weights summing to one.",
+    },
+    "minimum_variance": {
+        "overview": "Construct the variance-minimizing portfolio under the chosen constraints.",
+        "equation": "w* = argmin_w w'Sigma w",
+        "outputs": ["Weight table", "Portfolio variance metrics", "Audit trail"],
+        "normal_result": "A normal output reports minimum-variance weights and the achieved portfolio variance.",
+    },
+    "risk_parity": {
+        "overview": "Construct weights so each asset contributes roughly equal marginal risk.",
+        "equation": "Choose w so risk contributions are approximately equal across assets",
+        "outputs": ["Weight table", "Risk contribution table", "Audit trail"],
+        "normal_result": "A normal output reports final weights and a risk-contribution breakdown across assets.",
+    },
+    "capm": {
+        "overview": "Estimate a single-factor return regression against market excess returns.",
+        "equation": "r_i - r_f = alpha + beta (r_m - r_f) + epsilon",
+        "outputs": ["Alpha and beta table", "Fit metrics", "Audit trail"],
+        "normal_result": "A normal output shows alpha, market beta, standard errors, and the excess-return construction.",
+    },
+    "fama_french_3": {
+        "overview": "Estimate a three-factor return regression using market, SMB, and HML factors.",
+        "equation": "r_i - r_f = alpha + beta_m MKT + beta_s SMB + beta_h HML + epsilon",
+        "outputs": ["Factor loading table", "Fit metrics", "Audit trail"],
+        "normal_result": "A normal output reports alpha and three factor loadings with standard errors and sample counts.",
+    },
+}
+
+
+def _teaching_sections(method_name: str, family: dict[str, object], guide: dict[str, object]) -> list[dict[str, object]]:
+    return [
+        {
+            "title": "What this method is for",
+            "body": guide.get("overview") or f"{method_name} belongs to {family['title']} and is documented as a transparent workflow.",
+            "items": [],
+        },
+        {
+            "title": "What data shape you need",
+            "body": "Before running the workbench, make sure the uploaded dataset already has the variables named in the input list and has passed profile inspection.",
+            "items": list(family.get("key_inputs") or []),
+        },
+        {
+            "title": "What a normal result should look like",
+            "body": guide.get("normal_result") or "The output should include a result table, explicit sample metadata, and any figures required by the method family.",
+            "items": list(guide.get("outputs") or []),
+        },
+        {
+            "title": "Manual verification checklist",
+            "body": "Use the published audit trail, prepared sample download, and raw JSON to challenge the run manually.",
+            "items": list(guide.get("manual_checks") or family.get("manual_checks") or []),
+        },
+    ]
+
+
+def get_model_method(family_slug: str, method_slug: str) -> dict[str, object] | None:
+    family = get_model_family(family_slug)
+    if not family:
+        return None
+    method = next((item for item in family.get("methods") or [] if item.get("slug") == method_slug), None)
+    if not method:
+        return None
+    guide = MODEL_METHOD_GUIDES.get(method_slug, {})
+    return {
+        "family_slug": family_slug,
+        "family_title": family["title"],
+        "family_path": family["detail_path"],
+        "category": "model",
+        "category_label": "Model",
+        "slug": method_slug,
+        "name": method.get("name") or method_slug,
+        "summary": method.get("description") or guide.get("overview") or family.get("summary") or "",
+        "overview": guide.get("overview") or method.get("description") or "",
+        "equation": guide.get("equation") or "",
+        "detail_path": method.get("detail_path") or _model_method_detail_path(family_slug, method_slug),
+        "teaching_path": method.get("teaching_path") or _model_teaching_path(family_slug, method_slug),
+        "workbench_path": method.get("workbench_path") or _prefilled_data_lab_link(
+            {"workflow": "model", "model_family": family_slug, "model_type": method_slug}
+        ),
+        "inputs": list(family.get("key_inputs") or []),
+        "outputs": list(guide.get("outputs") or []),
+        "manual_checks": list(guide.get("manual_checks") or family.get("manual_checks") or []),
+        "normal_result": guide.get("normal_result") or "",
+    }
+
+
+def get_model_teaching_guide(family_slug: str, method_slug: str) -> dict[str, object] | None:
+    method = get_model_method(family_slug, method_slug)
+    if not method:
+        return None
+    family = get_model_family(family_slug)
+    guide = MODEL_METHOD_GUIDES.get(method_slug, {})
+    return {
+        "family_slug": family_slug,
+        "family_title": method["family_title"],
+        "family_path": method["family_path"],
+        "slug": method_slug,
+        "name": method["name"],
+        "summary": f"Teaching page for {method['name']} in {method['family_title']}.",
+        "equation": method["equation"],
+        "detail_path": method["detail_path"],
+        "workbench_path": method["workbench_path"],
+        "sections": _teaching_sections(str(method["name"]), family or {}, guide),
     }

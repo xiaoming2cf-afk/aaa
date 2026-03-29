@@ -501,6 +501,32 @@ def main() -> None:
         if "Time Series &amp; Econometric Finance" not in data_lab_page.text and "Time Series & Econometric Finance" not in data_lab_page.text:
             raise AssertionError("Standalone Data Lab page is missing the expanded time-series family section")
 
+        catalog_response = client.get("/api/data-lab/catalog")
+        catalog_response.raise_for_status()
+        catalog_payload = catalog_response.json()
+        for family in catalog_payload.get("model_families", []):
+            family_slug = family["slug"]
+            family_page = client.get(f"/data-lab/models/{family_slug}")
+            family_page.raise_for_status()
+            for method in family.get("methods", []):
+                method_slug = method["slug"]
+                method_detail = client.get(f"/api/data-lab/models/{family_slug}/{method_slug}")
+                method_detail.raise_for_status()
+                if method_detail.json()["method"]["slug"] != method_slug:
+                    raise AssertionError(f"{family_slug}/{method_slug}: model detail route returned the wrong method payload")
+                teaching_detail = client.get(f"/api/data-lab/learn/models/{family_slug}/{method_slug}")
+                teaching_detail.raise_for_status()
+                if not teaching_detail.json()["guide"].get("sections"):
+                    raise AssertionError(f"{family_slug}/{method_slug}: teaching route returned no teaching sections")
+                method_page = client.get(f"/data-lab/models/{family_slug}/{method_slug}")
+                method_page.raise_for_status()
+                if "lab-model-method-title" not in method_page.text:
+                    raise AssertionError(f"{family_slug}/{method_slug}: method page template failed to load")
+                teaching_page = client.get(f"/data-lab/learn/models/{family_slug}/{method_slug}")
+                teaching_page.raise_for_status()
+                if "lab-teaching-sections" not in teaching_page.text:
+                    raise AssertionError(f"{family_slug}/{method_slug}: teaching page template failed to load")
+
         result_page = client.get(f"/data-lab/results/models/{results['DID']['_record_id']}")
         result_page.raise_for_status()
         if "Interpretation &amp; Replication" not in result_page.text and "Interpretation & Replication" not in result_page.text:
