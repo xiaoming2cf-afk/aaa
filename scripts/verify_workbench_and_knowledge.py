@@ -47,12 +47,22 @@ def main() -> None:
         html = index_response.text
         assert "Workspace Cockpit" in html
         assert "Research Flow Lane" in html
+        assert "Cross-Module Surface Map" in html
         assert 'id="cockpit-flow-list"' in html
+        assert 'id="cockpit-linkage-grid"' in html
         assert 'id="knowledge-search-form"' in html
         assert 'id="knowledge-status-filter"' in html
         assert 'id="knowledge-preview"' in html
         assert 'id="knowledge-form-title"' in html
         assert 'id="knowledge-cancel-button"' in html
+        assert "Knowledge Linkage Board" in html
+        assert 'id="knowledge-linkage-grid"' in html
+
+        result_page_response = client.get("/data-lab/results/models/demo-model-result")
+        expect_status(result_page_response, 200)
+        result_html = result_page_response.text
+        assert "Export & Reuse Board" in result_html
+        assert 'id="lab-result-export-board"' in result_html
 
         register_response = client.post(
             "/api/auth/register",
@@ -319,9 +329,14 @@ def main() -> None:
         "homepage": {
             "contains_workspace_cockpit": True,
             "contains_research_flow_lane": True,
+            "contains_cross_module_surface_map": True,
             "contains_knowledge_status_filter": True,
             "contains_knowledge_preview": True,
             "contains_editable_knowledge_form": True,
+            "contains_knowledge_linkage_board": True,
+        },
+        "result_page_template": {
+            "contains_export_reuse_board": True,
         },
         "knowledge_summary_view": {
             "record_count_before_delete": 3,

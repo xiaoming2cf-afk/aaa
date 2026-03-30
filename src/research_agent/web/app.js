@@ -41,6 +41,7 @@ const state = {
   dataLabCatalog: null,
   variableGuideResult: null,
   resultPreviewUrls: [],
+  currentResultDetail: null,
   publicSourceView: "official",
   publicSourceTypeFilter: "all",
   publicSourceCountryFilter: "all",
@@ -266,6 +267,7 @@ const dom = {
   cockpitNextActionCopy: document.getElementById("cockpit-next-action-copy"),
   cockpitStatGrid: document.getElementById("cockpit-stat-grid"),
   cockpitStepGrid: document.getElementById("cockpit-step-grid"),
+  cockpitLinkageGrid: document.getElementById("cockpit-linkage-grid"),
   cockpitActionList: document.getElementById("cockpit-action-list"),
   cockpitActivityList: document.getElementById("cockpit-activity-list"),
   cockpitFlowList: document.getElementById("cockpit-flow-list"),
@@ -286,6 +288,7 @@ const dom = {
   knowledgeCaseActiveSelect: document.getElementById("active-case-select"),
   knowledgeList: document.getElementById("knowledge-list"),
   knowledgeSummaryGrid: document.getElementById("knowledge-summary-grid"),
+  knowledgeLinkageGrid: document.getElementById("knowledge-linkage-grid"),
   knowledgeSearchForm: document.getElementById("knowledge-search-form"),
   knowledgeSearchInput: document.getElementById("knowledge-search-input"),
   knowledgeStatusFilter: document.getElementById("knowledge-status-filter"),
@@ -561,6 +564,7 @@ const dom = {
   labResultRaw: document.getElementById("lab-result-raw"),
   labResultSnapshot: document.getElementById("lab-result-snapshot"),
   labResultActions: document.getElementById("lab-result-actions"),
+  labResultExportBoard: document.getElementById("lab-result-export-board"),
 };
 
 function escapeHtml(value) {
@@ -1178,6 +1182,54 @@ function knowledgeTypeSpec(item) {
   return { key: "manual_note", label: "Manual Note", description: "Workspace-authored note or memo" };
 }
 
+function knowledgeSourceCategory(item) {
+  const spec = knowledgeTypeSpec(item);
+  if (spec.key === "model_result") {
+    return {
+      key: "model",
+      label: "Data Lab model outputs",
+      description: "Model results saved from Data Lab into reusable private notes.",
+    };
+  }
+  if (spec.key === "briefing_note") {
+    return {
+      key: "briefing",
+      label: "Briefing notes",
+      description: "Private briefings captured into the knowledge base.",
+    };
+  }
+  if (spec.key === "workspace_digest") {
+    return {
+      key: "digest",
+      label: "Workspace digests",
+      description: "Cross-module synthesis notes built from recent workspace materials.",
+    };
+  }
+  if (spec.key.startsWith("paper_")) {
+    return {
+      key: "literature",
+      label: "Literature notes",
+      description: "Imported papers and follow-up reading notes from the Paper Library.",
+    };
+  }
+  return {
+    key: "manual",
+    label: "Manual notes",
+    description: "Workspace-authored memos, checklists, and freeform notes.",
+  };
+}
+
+function summarizeKnowledgeSourceCounts(items) {
+  const buckets = new Map();
+  (items || []).forEach((item) => {
+    const source = knowledgeSourceCategory(item);
+    const current = buckets.get(source.key) || { ...source, count: 0 };
+    current.count += 1;
+    buckets.set(source.key, current);
+  });
+  return [...buckets.values()].sort((left, right) => right.count - left.count);
+}
+
 function knowledgeSearchableText(item) {
   const metadata = item?.metadata || {};
   const tags = Array.isArray(item?.tags) ? item.tags.join(" ") : "";
@@ -1409,6 +1461,7 @@ function renderKnowledgeSummary(items, filteredItems) {
   }
   if (!items.length) {
     dom.knowledgeSummaryGrid.innerHTML = "";
+    renderKnowledgeLinkageBoard([]);
     return;
   }
   const typeCounts = new Map();
@@ -1416,9 +1469,20 @@ function renderKnowledgeSummary(items, filteredItems) {
     const spec = knowledgeTypeSpec(item);
     typeCounts.set(spec.label, (typeCounts.get(spec.label) || 0) + 1);
   });
+  const sourceCounts = summarizeKnowledgeSourceCounts(items);
   const archivedCount = items.filter((item) => isKnowledgeArchived(item)).length;
   const topTags = collectKnowledgeTags(items).slice(0, 4);
   const latestItem = [...items].sort((left, right) => new Date(right.updated_at || right.created_at || 0) - new Date(left.updated_at || left.created_at || 0))[0];
+  const linkedRecordCount = items.filter((item) => {
+    const metadata = item.metadata || {};
+    return Boolean(
+      metadata.result_detail_path ||
+        metadata.briefing_id ||
+        metadata.doi ||
+        metadata.base_knowledge_record_id ||
+        metadata.workspace_id,
+    );
+  }).length;
   dom.knowledgeSummaryGrid.innerHTML = `
     <article class="knowledge-summary-card">
       <span>Total notes</span>
@@ -1445,7 +1509,75 @@ function renderKnowledgeSummary(items, filteredItems) {
       <strong>${escapeHtml(topTags.join(", ") || "No tags")}</strong>
       <p class="muted">${escapeHtml(latestItem ? `Latest update: ${prettyDate(latestItem.updated_at || latestItem.created_at)}` : "No update history yet.")}</p>
     </article>
+    <article class="knowledge-summary-card">
+      <span>Linked from other modules</span>
+      <strong>${escapeHtml(linkedRecordCount)}</strong>
+      <p class="muted">Notes with a paper, briefing, model result, or digest link that can be traced back to another workspace surface.</p>
+    </article>
+    <article class="knowledge-summary-card">
+      <span>Top source families</span>
+      <strong>${escapeHtml(sourceCounts.slice(0, 2).map((item) => item.label).join(" / ") || "n/a")}</strong>
+      <p class="muted">${escapeHtml(sourceCounts.slice(0, 3).map((item) => `${item.label}: ${item.count}`).join(" | ") || "No linked sources yet.")}</p>
+    </article>
   `;
+  renderKnowledgeLinkageBoard(items);
+}
+
+function renderKnowledgeLinkageBoard(items) {
+  if (!dom.knowledgeLinkageGrid) {
+    return;
+  }
+  if (!items.length) {
+    dom.knowledgeLinkageGrid.innerHTML = "";
+    return;
+  }
+  const sourceCounts = summarizeKnowledgeSourceCounts(items);
+  const byKey = Object.fromEntries(sourceCounts.map((item) => [item.key, item]));
+  const cards = [
+    {
+      eyebrow: "Paper Library",
+      title: "Literature -> Knowledge",
+      count: byKey.literature?.count || 0,
+      copy: "Imported papers, summaries, annotations, and question breakdowns stay reusable inside the private workspace.",
+      action: `<button type="button" class="secondary" data-scroll-target="paper-library-panel">Open Paper Library</button>`,
+    },
+    {
+      eyebrow: "Private Briefing",
+      title: "Briefings -> Knowledge",
+      count: byKey.briefing?.count || 0,
+      copy: "Private daily briefings can be captured into notes and re-used later in synthesis or case workspaces.",
+      action: `<button type="button" class="secondary" data-scroll-target="private-briefing-panel">Open briefings</button>`,
+    },
+    {
+      eyebrow: "Data Lab",
+      title: "Model outputs -> Knowledge",
+      count: byKey.model?.count || 0,
+      copy: "Transparent model runs should end up here so the specification, tables, and result page remain traceable.",
+      action: `<a href="/data-lab" class="button-link secondary-link">Open Data Lab</a>`,
+    },
+    {
+      eyebrow: "Workspace",
+      title: "Manual notes & digests",
+      count: (byKey.manual?.count || 0) + (byKey.digest?.count || 0),
+      copy: "Manual notes hold hypotheses and interpretation; digests turn recent workspace materials into a reusable synthesis layer.",
+      action: `<button type="button" class="secondary" data-create-workspace-digest="true">Build workspace digest</button>`,
+    },
+  ];
+  dom.knowledgeLinkageGrid.innerHTML = cards
+    .map(
+      (item) => `
+        <article class="guide-card">
+          <p class="eyebrow eyebrow-compact">${escapeHtml(item.eyebrow)}</p>
+          <h4>${escapeHtml(item.title)}</h4>
+          <p>${escapeHtml(item.copy)}</p>
+          <div class="chip-row chip-row-compact">
+            <span class="topic-chip">Count <strong>${escapeHtml(item.count)}</strong></span>
+          </div>
+          <div class="actions compact-actions">${item.action}</div>
+        </article>
+      `,
+    )
+    .join("");
 }
 
 function resetKnowledgeCaseComposer() {
@@ -1768,8 +1900,88 @@ function renderKnowledgePreview(record, { loading = false } = {}) {
   `;
 }
 
+function renderCockpitLinkageMap() {
+  if (!dom.cockpitLinkageGrid) {
+    return;
+  }
+  const workspace = currentWorkspace();
+  if (!state.user || !workspace) {
+    dom.cockpitLinkageGrid.innerHTML = `
+      <article class="guide-card">
+        <p class="eyebrow eyebrow-compact">Workspace</p>
+        <h4>Cross-module map</h4>
+        <p>Sign in and select a workspace to see how providers, papers, Data Lab runs, notes, and cases connect.</p>
+      </article>
+    `;
+    return;
+  }
+  const sourceCounts = Object.fromEntries(summarizeKnowledgeSourceCounts(state.workspaceKnowledge).map((item) => [item.key, item.count]));
+  const activeCase = currentKnowledgeCase();
+  const linkageCards = [
+    {
+      eyebrow: "Provider Center",
+      title: "Providers -> Briefings & Data Lab",
+      copy: state.integrations.length
+        ? `${state.integrations.length} provider connection(s) are ready for private briefings, diagnostics, and model execution.`
+        : "No provider is connected yet, so private generation and diagnostics remain blocked.",
+      chips: [`Providers ${state.integrations.length}`, `Schedules ${state.workspaceSchedules.length}`],
+      action: `<button type="button" class="secondary" data-scroll-target="provider-center-panel">Open Provider Center</button>`,
+    },
+    {
+      eyebrow: "Paper Library",
+      title: "Papers -> Notes -> Cases",
+      copy: state.literatureEntries.length
+        ? `${state.literatureEntries.length} paper(s) are in the workspace and ${sourceCounts.literature || 0} literature note(s) are already reusable in the knowledge base.`
+        : "Import papers first, then branch them into base notes, summaries, and case-linked evidence.",
+      chips: [`Papers ${state.literatureEntries.length}`, `Paper notes ${sourceCounts.literature || 0}`],
+      action: `<button type="button" class="secondary" data-scroll-target="paper-library-panel">Open Paper Library</button>`,
+    },
+    {
+      eyebrow: "Data Lab",
+      title: "Datasets -> Results -> Knowledge",
+      copy:
+        state.workspaceAssets.length || sourceCounts.model
+          ? `${processingHistoryItems().length} processing output(s) and ${sourceCounts.model || 0} model note(s) are available for manual review and reuse.`
+          : "Profile a dataset, run a model, then capture the result into notes and case workspaces.",
+      chips: [`Assets ${state.workspaceAssets.length}`, `Model notes ${sourceCounts.model || 0}`],
+      action: `<a href="/data-lab" class="button-link secondary-link">Open Data Lab</a>`,
+    },
+    {
+      eyebrow: "Private Knowledge Base",
+      title: activeCase ? `Knowledge -> Active Case: ${activeCase.title}` : "Knowledge -> Case Workspace",
+      copy: activeCase
+        ? `${state.workspaceKnowledge.length} note(s) and ${activeCase.item_count || 0} linked case item(s) can be reviewed together in the active case.`
+        : `${state.workspaceKnowledge.length} note(s) are available. Select an active case when you want to group outputs from multiple modules.`,
+      chips: [`Notes ${state.workspaceKnowledge.length}`, `Cases ${state.workspaceCases.length}`],
+      action: `<button type="button" class="secondary" data-scroll-target="knowledge-base-panel">Open Knowledge Base</button>`,
+    },
+  ];
+  dom.cockpitLinkageGrid.innerHTML = linkageCards
+    .map(
+      (item) => `
+        <article class="guide-card">
+          <p class="eyebrow eyebrow-compact">${escapeHtml(item.eyebrow)}</p>
+          <h4>${escapeHtml(item.title)}</h4>
+          <p>${escapeHtml(item.copy)}</p>
+          <div class="chip-row chip-row-compact">
+            ${item.chips.map((chip) => `<span class="topic-chip">${escapeHtml(chip)}</span>`).join("")}
+          </div>
+          <div class="actions compact-actions">${item.action}</div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
 function renderWorkspaceCockpit() {
-  if (!dom.cockpitWorkspaceName || !dom.cockpitStatGrid || !dom.cockpitStepGrid || !dom.cockpitActionList || !dom.cockpitActivityList || !dom.cockpitFlowList) {
+  if (
+    !dom.cockpitWorkspaceName ||
+    !dom.cockpitStatGrid ||
+    !dom.cockpitStepGrid ||
+    !dom.cockpitActionList ||
+    !dom.cockpitActivityList ||
+    !dom.cockpitFlowList
+  ) {
     return;
   }
   const workspace = currentWorkspace();
@@ -1833,6 +2045,7 @@ function renderWorkspaceCockpit() {
     `;
     dom.cockpitActivityList.innerHTML = emptyCard("No private workspace activity yet.");
     dom.cockpitFlowList.innerHTML = emptyCard("Sign in and select a workspace to unlock guided cross-module flows.");
+    renderCockpitLinkageMap();
     return;
   }
   const nextAction = !stats.providers
@@ -2077,6 +2290,7 @@ function renderWorkspaceCockpit() {
         )
         .join("")
     : emptyCard("Import at least one briefing, paper, or dataset to unlock guided cross-module flows.");
+  renderCockpitLinkageMap();
 }
 
 function setWorkflowStep(card, textNode, stateName, copy) {
@@ -2814,6 +3028,9 @@ function clearPrivateLists() {
   if (dom.knowledgeSummaryGrid) {
     dom.knowledgeSummaryGrid.innerHTML = "";
   }
+  if (dom.knowledgeLinkageGrid) {
+    dom.knowledgeLinkageGrid.innerHTML = "";
+  }
   if (dom.knowledgePreview) {
     dom.knowledgePreview.innerHTML = emptyCard("Select a note to inspect its full content, metadata, and source links.");
   }
@@ -2835,6 +3052,7 @@ function clearPrivateLists() {
   if (dom.analysisAssetSelect) {
     dom.analysisAssetSelect.innerHTML = `<option value="">Select a dataset asset</option>`;
   }
+  state.currentResultDetail = null;
   renderDataLabPlaceholders();
   renderProcessingHistory([]);
   renderModelHistory([]);
@@ -4499,6 +4717,82 @@ function renderResultActions(target, payload, result, route) {
     .join("");
 }
 
+function renderResultExportBoard(target, payload, result, route) {
+  if (!target) {
+    return;
+  }
+  const audit = result.audit_trail || {};
+  const figureCount = Array.isArray(result.figures) ? result.figures.length : 0;
+  const cards = [
+    {
+      eyebrow: "Export",
+      title: "Download package",
+      copy: "Collect the prepared sample, the exact estimation sample, figures, and the raw JSON payload for manual replication.",
+      controls: [
+        audit.prepared_asset_id
+          ? `<button type="button" class="secondary" data-download-asset="${escapeHtml(audit.prepared_asset_id)}">Prepared sample</button>`
+          : "",
+        audit.sample_asset_id
+          ? `<button type="button" class="secondary" data-download-asset="${escapeHtml(audit.sample_asset_id)}">Sample used</button>`
+          : "",
+        figureCount ? `<a href="#lab-result-gallery-card" class="button-link secondary-link">Figures (${escapeHtml(figureCount)})</a>` : "",
+        `<button type="button" class="secondary" data-download-result-json="true">Raw JSON</button>`,
+      ]
+        .filter(Boolean)
+        .join(""),
+    },
+    {
+      eyebrow: "Verification",
+      title: "Manual check surfaces",
+      copy: "Move directly to the metrics, specification, audit trail, and raw payload anchors before exporting or citing the result.",
+      controls: [
+        `<a href="#lab-result-metrics-card" class="button-link secondary-link">Metrics</a>`,
+        `<a href="#lab-result-specification-card" class="button-link secondary-link">Specification</a>`,
+        `<a href="#lab-result-audit-card" class="button-link secondary-link">Audit trail</a>`,
+        `<a href="#lab-result-raw-card" class="button-link secondary-link">Raw JSON</a>`,
+      ].join(""),
+    },
+    {
+      eyebrow: "Workspace",
+      title: route.category === "models" ? "Result -> Knowledge reuse" : "Prepared output -> Reuse path",
+      copy:
+        route.category === "models"
+          ? `This model result is designed to stay reusable inside the private workspace as ${payload.record?.title || "a knowledge note"}.`
+          : "This processing output can feed the next Data Lab step or move back into the main workspace case and knowledge surfaces.",
+      controls: [
+        `<a href="/#workspace-cockpit-panel" class="button-link secondary-link">Workspace cockpit</a>`,
+        `<a href="/#knowledge-base-panel" class="button-link secondary-link">Knowledge base</a>`,
+        `<a href="/data-lab" class="button-link secondary-link">Data Lab</a>`,
+      ].join(""),
+    },
+    {
+      eyebrow: "Surface map",
+      title: route.category === "models" ? "Where this result belongs" : "Where this output should go next",
+      copy:
+        route.category === "models"
+          ? "Model runs should end in the private knowledge base, remain traceable through the result page, and optionally be grouped inside a case workspace."
+          : "Processing results should feed a model run, become a reusable asset, or be grouped inside a case workspace for later review.",
+      controls: [
+        `<span class="topic-chip">Workbench</span>`,
+        `<span class="topic-chip">Knowledge Base</span>`,
+        `<span class="topic-chip">Case Workspace</span>`,
+      ].join(""),
+    },
+  ];
+  target.innerHTML = cards
+    .map(
+      (item) => `
+        <article class="guide-card">
+          <p class="eyebrow eyebrow-compact">${escapeHtml(item.eyebrow)}</p>
+          <h4>${escapeHtml(item.title)}</h4>
+          <p>${escapeHtml(item.copy)}</p>
+          <div class="actions compact-actions">${item.controls}</div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
 async function renderResultPreview(previewTarget, galleryTarget, result) {
   if (!previewTarget && !galleryTarget) {
     return;
@@ -4608,6 +4902,7 @@ async function loadResultDetailPage() {
   }
   await ensureAuthenticatedUser();
   const payload = await api(`/api/data-lab/results/${route.category}/${route.id}`);
+  state.currentResultDetail = payload;
   const result = payload.result || payload;
   dom.labResultType && (dom.labResultType.textContent = result.model_label || result.processing_family || route.category);
   dom.labResultEyebrow &&
@@ -4629,6 +4924,7 @@ async function loadResultDetailPage() {
   }
   renderResultSnapshot(dom.labResultSnapshot, payload, result, route);
   renderResultActions(dom.labResultActions, payload, result, route);
+  renderResultExportBoard(dom.labResultExportBoard, payload, result, route);
   renderResultMetrics(dom.labResultMetrics, result);
   renderResultInterpretation(dom.labResultInterpretation, result);
   renderResultSpecification(dom.labResultSpecification, result);
@@ -5685,7 +5981,7 @@ function applyKnowledgeTemplate(templateKey) {
 }
 
 async function handleWorkbenchActions(event) {
-  const target = event.target.closest("[data-scroll-target], [data-knowledge-template], [data-select-knowledge], [data-open-knowledge-record], [data-copy-knowledge-markdown], [data-download-knowledge-markdown], [data-edit-knowledge], [data-archive-knowledge], [data-restore-knowledge], [data-delete-knowledge], [data-import-briefing-knowledge], [data-import-literature-knowledge], [data-create-workspace-digest], [data-select-knowledge-case], [data-edit-knowledge-case], [data-delete-knowledge-case], [data-add-case-item], [data-remove-case-item]");
+  const target = event.target.closest("[data-scroll-target], [data-knowledge-template], [data-select-knowledge], [data-open-knowledge-record], [data-copy-knowledge-markdown], [data-download-knowledge-markdown], [data-edit-knowledge], [data-archive-knowledge], [data-restore-knowledge], [data-delete-knowledge], [data-import-briefing-knowledge], [data-import-literature-knowledge], [data-create-workspace-digest], [data-select-knowledge-case], [data-edit-knowledge-case], [data-delete-knowledge-case], [data-add-case-item], [data-remove-case-item], [data-download-result-json]");
   if (!target) {
     return;
   }
@@ -5705,6 +6001,17 @@ async function handleWorkbenchActions(event) {
       titleField?.focus();
     }
     showToast(`Template loaded: ${KNOWLEDGE_TEMPLATES[templateKey]?.label || "Note template"}`);
+    return;
+  }
+  const downloadResultJson = target.getAttribute("data-download-result-json");
+  if (downloadResultJson) {
+    if (!state.currentResultDetail) {
+      throw new Error("No result payload is loaded.");
+    }
+    const route = extractDataLabResultRoute();
+    const filenameBase = route?.category === "models" ? "data-lab-model-result" : "data-lab-processing-result";
+    downloadTextFile(`${filenameBase}.json`, JSON.stringify(state.currentResultDetail, null, 2), "application/json");
+    showToast("Result JSON download started.");
     return;
   }
   const createDigest = target.getAttribute("data-create-workspace-digest");
