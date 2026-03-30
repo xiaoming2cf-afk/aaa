@@ -1850,6 +1850,11 @@ function renderOpenAlexResults(items) {
           <h4>${escapeHtml(item.title)}</h4>
           <p>${escapeHtml((item.authors || []).slice(0, 4).join(", ")) || "Unknown authors"}</p>
           <p>${escapeHtml(`${item.publication_year || "n/a"} | cited ${item.cited_by_count || 0}`)}</p>
+          <p>${escapeHtml(item.venue || "Unknown venue")}</p>
+          <div class="actions">
+            ${item.landing_page_url ? `<a class="action-link" href="${escapeHtml(item.landing_page_url)}" target="_blank" rel="noreferrer">Open source page</a>` : ""}
+            ${item.pdf_url ? `<a class="action-link" href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noreferrer">Open OA PDF</a>` : ""}
+          </div>
         </div>
       `,
     )
@@ -1871,6 +1876,15 @@ function renderLiterature(items) {
           <h4>${escapeHtml(item.title)}</h4>
           <p>${escapeHtml((item.authors || []).slice(0, 4).join(", ")) || "Unknown authors"}</p>
           <p>${escapeHtml(item.venue || "Unknown venue")} | ${escapeHtml(item.publication_year || "n/a")}</p>
+          <div class="actions">
+            ${item.landing_page_url ? `<a class="action-link" href="${escapeHtml(item.landing_page_url)}" target="_blank" rel="noreferrer">Source page</a>` : ""}
+            ${item.pdf_url ? `<a class="action-link" href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noreferrer">Open OA PDF</a>` : ""}
+            ${item.has_open_access_pdf && !item.workspace_pdf_asset_id ? `<button type="button" class="secondary" data-import-literature-pdf="${item.id}">Import PDF</button>` : ""}
+            ${item.workspace_pdf_asset_id ? `<button type="button" class="secondary" data-download-literature-asset="${item.workspace_pdf_asset_id}">Download private copy</button>` : ""}
+          </div>
+          <p class="compact-note muted">
+            ${item.workspace_pdf_asset_id ? `Private workspace copy saved as ${escapeHtml(item.workspace_pdf_asset_title || "paper PDF")}.` : item.has_open_access_pdf ? "Open-access PDF available for private import." : "No direct open-access PDF exposed by this entry."}
+          </p>
         </div>
       `,
     )
@@ -3815,6 +3829,29 @@ async function handleAssetActions(event) {
   }
 }
 
+async function handleLiteratureActions(event) {
+  const target = event.target.closest("[data-import-literature-pdf], [data-download-literature-asset]");
+  if (!target) {
+    return;
+  }
+  ensureWorkspace();
+  const importId = target.getAttribute("data-import-literature-pdf");
+  const downloadId = target.getAttribute("data-download-literature-asset");
+  if (importId) {
+    const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/literature/${importId}/import-pdf`, {
+      method: "POST",
+    });
+    await refreshWorkspaceData();
+    const assetTitle = response.asset?.title || response.entry?.workspace_pdf_asset_title || "paper PDF";
+    showToast(`${response.imported === false ? "Private copy already exists" : "Paper imported"}: ${assetTitle}`);
+    return;
+  }
+  if (downloadId) {
+    await downloadAsset(downloadId);
+    showToast("Private paper download started.");
+  }
+}
+
 async function handlePublicActions(event) {
   const target = event.target.closest("[data-public-slug], [data-copy-public-url], [data-public-moderation]");
   if (!target) {
@@ -3997,6 +4034,7 @@ function bind() {
   }));
   dom.integrationList?.addEventListener("click", wrap(handleIntegrationActions));
   document.body?.addEventListener("click", wrap(handleAssetActions));
+  dom.literatureList?.addEventListener("click", wrap(handleLiteratureActions));
   dom.publicDateSwitcher?.addEventListener("click", wrap(handlePublicActions));
   dom.publicBriefingList?.addEventListener("click", wrap(handlePublicActions));
   dom.publicSummaryFeatured?.addEventListener("click", wrap(handlePublicActions));

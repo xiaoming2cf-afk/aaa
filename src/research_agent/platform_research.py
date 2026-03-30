@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from .config import Settings
 from .entities import (
+    DataAsset,
     EconomicBriefing,
     IntegrationCredential,
     JobRun,
@@ -25,7 +26,7 @@ from .entities import (
     User,
     Workspace,
 )
-from .platform_core import create_knowledge_record
+from .platform_core import create_knowledge_record, save_upload_asset, serialize_asset
 from .provider_gateway import ProviderGateway
 from .research_tools import DEFAULT_HEADERS, OPENALEX_WORKS_API
 from .security import decrypt_secret
@@ -305,6 +306,8 @@ PUBLIC_SUMMARY_WINDOWS = {
 
 
 def serialize_literature_entry(entry: LiteratureEntry) -> dict[str, Any]:
+    workspace_pdf_asset_id = str((entry.raw_json or {}).get("_workspace_pdf_asset_id") or "").strip()
+    workspace_pdf_asset_title = str((entry.raw_json or {}).get("_workspace_pdf_asset_title") or "").strip()
     return {
         "id": entry.id,
         "openalex_id": entry.openalex_id,
@@ -317,6 +320,10 @@ def serialize_literature_entry(entry: LiteratureEntry) -> dict[str, Any]:
         "venue": entry.venue,
         "landing_page_url": entry.landing_page_url,
         "pdf_url": entry.pdf_url,
+        "has_open_access_pdf": bool(str(entry.pdf_url or "").strip()),
+        "workspace_pdf_asset_id": workspace_pdf_asset_id,
+        "workspace_pdf_asset_title": workspace_pdf_asset_title,
+        "workspace_pdf_download_url": f"/api/assets/{workspace_pdf_asset_id}/download" if workspace_pdf_asset_id else "",
         "keywords": entry.keywords_json,
         "created_at": entry.created_at.isoformat(),
         "updated_at": entry.updated_at.isoformat(),
@@ -1078,6 +1085,94 @@ def list_literature_entries(db: Session, *, user: User, workspace: Workspace) ->
             .order_by(LiteratureEntry.updated_at.desc())
         )
     )
+
+
+def import_literature_pdf_asset(
+    db: Session,
+    settings: Settings,
+    *,
+    user: User,
+    workspace: Workspace,
+    literature_entry_id: str,
+) -> dict[str, Any]:
+    entry = db.get(LiteratureEntry, literature_entry_id)
+    if not entry or entry.owner_user_id != user.id or entry.workspace_id != workspace.id:
+        raise FileNotFoundError("Literature entry not found.")
+
+    existing_asset_id = str((entry.raw_json or {}).get("_workspace_pdf_asset_id") or "").strip()
+    if existing_asset_id:
+        existing_asset = db.get(DataAsset, existing_asset_id)
+        if existing_asset and existing_asset.owner_user_id == user.id and existing_asset.workspace_id == workspace.id:
+            return {
+                "entry": serialize_literature_entry(entry),
+                "asset": serialize_asset(existing_asset),
+                "download_url": f"/api/assets/{existing_asset.id}/download",
+                "source_url": existing_asset.source_url or entry.pdf_url or entry.landing_page_url,
+                "imported": False,
+            }
+
+    candidate_urls: list[str] = []
+    for url_value in [entry.pdf_url, entry.landing_page_url]:
+        candidate = str(url_value or "").strip()
+        if candidate and candidate not in candidate_urls:
+            candidate_urls.append(candidate)
+    if not candidate_urls:
+        raise ValueError("This literature entry does not expose a downloadable open-access PDF.")
+
+    pdf_content = b""
+    resolved_source_url = ""
+    last_error = ""
+    for candidate_url in candidate_urls:
+        try:
+            response = requests.get(candidate_url, headers=DEFAULT_HEADERS, timeout=60)
+            response.raise_for_status()
+            content_type = str(response.headers.get("Content-Type", "")).lower()
+            content = response.content or b""
+            if "application/pdf" in content_type or content.startswith(b"%PDF"):
+                pdf_content = content
+                resolved_source_url = candidate_url
+                break
+            last_error = f"URL did not return a PDF. Content-Type: {content_type or 'unknown'}"
+        except Exception as exc:
+            last_error = str(exc)
+
+    if not pdf_content:
+        raise ValueError(last_error or "Open-access PDF download failed.")
+
+    filename_stem = slugify(entry.title or "openalex-paper", max_length=80) or "openalex-paper"
+    if entry.publication_year:
+        filename_stem = f"{filename_stem}-{entry.publication_year}"
+    asset = save_upload_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        filename=f"{filename_stem}.pdf",
+        content=pdf_content,
+        content_type="application/pdf",
+        description=f"Imported from Paper Library: {entry.title}",
+        source_url=resolved_source_url,
+    )
+    asset.metadata_json = {
+        **asset.metadata_json,
+        "literature_entry_id": entry.id,
+        "openalex_id": entry.openalex_id,
+        "literature_title": entry.title,
+        "import_source": "paper_library",
+    }
+    entry.raw_json = {
+        **(entry.raw_json or {}),
+        "_workspace_pdf_asset_id": asset.id,
+        "_workspace_pdf_asset_title": asset.title,
+    }
+    db.flush()
+    return {
+        "entry": serialize_literature_entry(entry),
+        "asset": serialize_asset(asset),
+        "download_url": f"/api/assets/{asset.id}/download",
+        "source_url": resolved_source_url,
+        "imported": True,
+    }
 
 
 def fetch_gdelt_hotspots(

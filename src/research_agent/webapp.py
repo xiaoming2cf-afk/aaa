@@ -63,6 +63,7 @@ from .platform_research import (
     get_or_build_latest_public_briefing,
     get_latest_public_briefing,
     get_public_briefing_by_slug,
+    import_literature_pdf_asset,
     import_openalex_works,
     list_briefings,
     list_literature_entries,
@@ -1133,6 +1134,28 @@ def create_app() -> FastAPI:
                 workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
                 items = import_openalex_works(db, user=user, workspace=workspace, works=request.works)
                 return {"items": [serialize_literature_entry(item) for item in items]}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/literature/{literature_entry_id}/import-pdf")
+    def import_literature_pdf(
+        workspace_id: str,
+        literature_entry_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return import_literature_pdf_asset(
+                    db,
+                    settings,
+                    user=user,
+                    workspace=workspace,
+                    literature_entry_id=literature_entry_id,
+                )
         except Exception as exc:
             _raise_http_error(exc)
 
