@@ -316,6 +316,10 @@ def create_app() -> FastAPI:
     def public_monitor_page() -> FileResponse:
         return FileResponse(PUBLIC_WEB_FILE)
 
+    @app.get("/public-monitor/{view_slug}")
+    def public_monitor_view_page(view_slug: str) -> FileResponse:
+        return FileResponse(PUBLIC_WEB_FILE)
+
     @app.get("/data-lab")
     def data_lab_page() -> FileResponse:
         return FileResponse(DATA_LAB_WEB_FILE)
@@ -354,6 +358,10 @@ def create_app() -> FastAPI:
 
     @app.get("/macro-desk")
     def public_macro_desk_page() -> FileResponse:
+        return FileResponse(PUBLIC_WEB_FILE)
+
+    @app.get("/macro-desk/{view_slug}")
+    def public_macro_desk_view_page(view_slug: str) -> FileResponse:
         return FileResponse(PUBLIC_WEB_FILE)
 
     @app.get("/briefings/{slug}")

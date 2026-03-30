@@ -24,7 +24,7 @@ const state = {
   dataLabCatalog: null,
   variableGuideResult: null,
   resultPreviewUrls: [],
-  publicSourceView: "all",
+  publicSourceView: "official",
   publicSourceTypeFilter: "all",
   publicSourceCountryFilter: "all",
   publicSourceRegionFilter: "all",
@@ -463,6 +463,57 @@ function extractSummaryWindowFromLocation() {
   return match ? decodeURIComponent(match[1]) : "";
 }
 
+function normalizePublicMonitorViewSlug(slug) {
+  const value = (slug || "").trim().toLowerCase();
+  if (!value) {
+    return "official";
+  }
+  if (value === "all") {
+    return "all";
+  }
+  if (value === "official" || value === "official-first") {
+    return "official";
+  }
+  if (value === "us" || value === "united-states") {
+    return "us";
+  }
+  if (value === "cn" || value === "china") {
+    return "cn";
+  }
+  if (value === "developed" || value === "developed-markets") {
+    return "developed";
+  }
+  return "official";
+}
+
+function publicMonitorPathForView(view) {
+  const normalized = normalizePublicMonitorViewSlug(view);
+  if (normalized === "official") {
+    return "/public-monitor";
+  }
+  if (normalized === "all") {
+    return "/public-monitor/all";
+  }
+  if (normalized === "us") {
+    return "/public-monitor/us";
+  }
+  if (normalized === "cn") {
+    return "/public-monitor/china";
+  }
+  if (normalized === "developed") {
+    return "/public-monitor/developed-markets";
+  }
+  return "/public-monitor";
+}
+
+function extractPublicMonitorViewRoute() {
+  const match = window.location.pathname.match(/^\/(?:public-monitor|macro-desk)(?:\/([^/]+))?$/);
+  if (!match) {
+    return "";
+  }
+  return normalizePublicMonitorViewSlug(match[1] || "");
+}
+
 function extractDataLabMethodRoute() {
   const match = window.location.pathname.match(/^\/data-lab\/(processing|models)\/([^/]+)$/);
   if (!match) {
@@ -526,7 +577,7 @@ function detectPageMode() {
   if (extractDataLabResultRoute()) {
     return "data-lab-result-detail";
   }
-  if (window.location.pathname === "/public-monitor" || window.location.pathname === "/macro-desk") {
+  if (extractPublicMonitorViewRoute()) {
     return "public-monitor";
   }
   if (extractBriefingSlugFromLocation()) {
@@ -2930,7 +2981,7 @@ function syncPublicUrl(briefing) {
 
 function syncSummaryUrl(windowName) {
   const pageMode = detectPageMode();
-  let nextPath = "/public-monitor";
+  let nextPath = publicMonitorPathForView(state.publicSourceView);
   if (windowName) {
     nextPath = `/summaries/${windowName}`;
   } else if (pageMode === "home") {
@@ -2945,6 +2996,7 @@ function updateDocumentTitle() {
   const pageMode = detectPageMode();
   const summaryWindow = extractSummaryWindowFromLocation();
   const briefingSlug = extractBriefingSlugFromLocation();
+  const publicView = extractPublicMonitorViewRoute();
   if (briefingSlug && state.selectedPublicBriefing?.title) {
     document.title = `${state.selectedPublicBriefing.title} | Economic Research Platform`;
     return;
@@ -2954,6 +3006,18 @@ function updateDocumentTitle() {
     return;
   }
   if (pageMode === "public-monitor") {
+    if (publicView === "us") {
+      document.title = "United States | Public Daily Monitor";
+      return;
+    }
+    if (publicView === "cn") {
+      document.title = "China | Public Daily Monitor";
+      return;
+    }
+    if (publicView === "developed") {
+      document.title = "Developed Markets | Public Daily Monitor";
+      return;
+    }
     document.title = "Public Daily Monitor | Economic Research Platform";
     return;
   }
@@ -2982,6 +3046,7 @@ function updateDocumentTitle() {
 
 async function loadPublicData() {
   await maybeLoadPublicIdentity();
+  state.publicSourceView = extractPublicMonitorViewRoute() || "official";
   const requestedSlug = extractBriefingSlugFromLocation();
   state.selectedSummaryWindow = extractSummaryWindowFromLocation();
   const [latestResponse, listResponse, detailResponse] = await Promise.all([
@@ -3770,6 +3835,11 @@ function bind() {
   }));
   dom.publicSourceView?.addEventListener("change", () => {
     state.publicSourceView = dom.publicSourceView?.value || "all";
+    const nextPath = publicMonitorPathForView(state.publicSourceView);
+    if (detectPageMode() === "public-monitor" && window.location.pathname !== nextPath) {
+      window.history.replaceState({}, "", nextPath);
+      updateDocumentTitle();
+    }
     renderPublicSourcePanel(state.selectedPublicBriefing?.source_panel || null);
   });
   dom.publicSourceTypeFilter?.addEventListener("change", () => {
