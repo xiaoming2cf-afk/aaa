@@ -308,6 +308,8 @@ PUBLIC_SUMMARY_WINDOWS = {
 def serialize_literature_entry(entry: LiteratureEntry) -> dict[str, Any]:
     workspace_pdf_asset_id = str((entry.raw_json or {}).get("_workspace_pdf_asset_id") or "").strip()
     workspace_pdf_asset_title = str((entry.raw_json or {}).get("_workspace_pdf_asset_title") or "").strip()
+    workspace_knowledge_record_id = str((entry.raw_json or {}).get("_workspace_knowledge_record_id") or "").strip()
+    workspace_knowledge_record_title = str((entry.raw_json or {}).get("_workspace_knowledge_record_title") or "").strip()
     return {
         "id": entry.id,
         "openalex_id": entry.openalex_id,
@@ -320,10 +322,13 @@ def serialize_literature_entry(entry: LiteratureEntry) -> dict[str, Any]:
         "venue": entry.venue,
         "landing_page_url": entry.landing_page_url,
         "pdf_url": entry.pdf_url,
-        "has_open_access_pdf": bool(str(entry.pdf_url or "").strip()),
+        "has_open_access_pdf": bool(str(entry.pdf_url or "").strip() or str(entry.landing_page_url or "").strip()),
         "workspace_pdf_asset_id": workspace_pdf_asset_id,
         "workspace_pdf_asset_title": workspace_pdf_asset_title,
         "workspace_pdf_download_url": f"/api/assets/{workspace_pdf_asset_id}/download" if workspace_pdf_asset_id else "",
+        "workspace_knowledge_record_id": workspace_knowledge_record_id,
+        "workspace_knowledge_record_title": workspace_knowledge_record_title,
+        "citation_text": build_literature_citation(entry),
         "keywords": entry.keywords_json,
         "created_at": entry.created_at.isoformat(),
         "updated_at": entry.updated_at.isoformat(),
@@ -1000,6 +1005,65 @@ def normalize_openalex_work(raw_work: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def build_literature_citation(entry: LiteratureEntry) -> str:
+    authors = [str(name).strip() for name in entry.authors_json if str(name).strip()]
+    author_text = ", ".join(authors[:4]) if authors else "Unknown author"
+    if len(authors) > 4:
+        author_text = f"{author_text}, et al."
+    year_text = str(entry.publication_year or "n.d.")
+    venue_text = str(entry.venue or "").strip()
+    doi_text = str(entry.doi or "").strip()
+    parts = [f"{author_text} ({year_text}).", str(entry.title or "Untitled").strip() + "."]
+    if venue_text:
+        parts.append(f"{venue_text}.")
+    if doi_text:
+        parts.append(f"DOI: {doi_text}.")
+    return " ".join(part for part in parts if part).strip()
+
+
+def _extract_pdf_urls_from_html(html_text: str, *, base_url: str) -> list[str]:
+    candidates: list[str] = []
+    patterns = [
+        r'<meta[^>]+name=["\']citation_pdf_url["\'][^>]+content=["\']([^"\']+)["\']',
+        r'<meta[^>]+property=["\']citation_pdf_url["\'][^>]+content=["\']([^"\']+)["\']',
+        r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\']citation_pdf_url["\']',
+    ]
+    for pattern in patterns:
+        for match in re.findall(pattern, html_text, flags=re.IGNORECASE):
+            candidate = urljoin(base_url, match.strip())
+            if candidate and candidate not in candidates:
+                candidates.append(candidate)
+
+    href_matches = re.findall(r'href=["\']([^"\']+)["\']', html_text, flags=re.IGNORECASE)
+    for href in href_matches:
+        resolved = urljoin(base_url, href.strip())
+        lowered = resolved.lower()
+        if not resolved or resolved in candidates:
+            continue
+        if lowered.endswith(".pdf") or "/pdf" in lowered or "download" in lowered and "pdf" in lowered:
+            candidates.append(resolved)
+    return candidates
+
+
+def _download_pdf_candidate(url: str) -> tuple[bytes, str]:
+    response = requests.get(url, headers=DEFAULT_HEADERS, timeout=60)
+    response.raise_for_status()
+    content_type = str(response.headers.get("Content-Type", "")).lower()
+    content = response.content or b""
+    if "application/pdf" in content_type or content.startswith(b"%PDF"):
+        return content, response.url or url
+    if "html" in content_type or b"<html" in content[:256].lower():
+        for nested_url in _extract_pdf_urls_from_html(content.decode("utf-8", errors="ignore"), base_url=response.url or url):
+            nested_response = requests.get(nested_url, headers=DEFAULT_HEADERS, timeout=60)
+            nested_response.raise_for_status()
+            nested_type = str(nested_response.headers.get("Content-Type", "")).lower()
+            nested_content = nested_response.content or b""
+            if "application/pdf" in nested_type or nested_content.startswith(b"%PDF"):
+                return nested_content, nested_response.url or nested_url
+        raise ValueError("Landing page did not expose a downloadable PDF link.")
+    raise ValueError(f"URL did not return a PDF. Content-Type: {content_type or 'unknown'}")
+
+
 def search_openalex(
     *,
     query: str,
@@ -1124,15 +1188,9 @@ def import_literature_pdf_asset(
     last_error = ""
     for candidate_url in candidate_urls:
         try:
-            response = requests.get(candidate_url, headers=DEFAULT_HEADERS, timeout=60)
-            response.raise_for_status()
-            content_type = str(response.headers.get("Content-Type", "")).lower()
-            content = response.content or b""
-            if "application/pdf" in content_type or content.startswith(b"%PDF"):
-                pdf_content = content
-                resolved_source_url = candidate_url
+            pdf_content, resolved_source_url = _download_pdf_candidate(candidate_url)
+            if pdf_content:
                 break
-            last_error = f"URL did not return a PDF. Content-Type: {content_type or 'unknown'}"
         except Exception as exc:
             last_error = str(exc)
 
@@ -1171,6 +1229,97 @@ def import_literature_pdf_asset(
         "asset": serialize_asset(asset),
         "download_url": f"/api/assets/{asset.id}/download",
         "source_url": resolved_source_url,
+        "imported": True,
+    }
+
+
+def import_literature_knowledge_record(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    literature_entry_id: str,
+) -> dict[str, Any]:
+    entry = db.get(LiteratureEntry, literature_entry_id)
+    if not entry or entry.owner_user_id != user.id or entry.workspace_id != workspace.id:
+        raise FileNotFoundError("Literature entry not found.")
+
+    existing_record_id = str((entry.raw_json or {}).get("_workspace_knowledge_record_id") or "").strip()
+    if existing_record_id:
+        from .entities import KnowledgeRecord
+
+        existing_record = db.get(KnowledgeRecord, existing_record_id)
+        if existing_record and existing_record.owner_user_id == user.id and existing_record.workspace_id == workspace.id:
+            return {
+                "entry": serialize_literature_entry(entry),
+                "record": {
+                    "id": existing_record.id,
+                    "title": existing_record.title,
+                    "created_at": existing_record.created_at.isoformat(),
+                },
+                "imported": False,
+            }
+
+    citation_text = build_literature_citation(entry)
+    authors = [str(name).strip() for name in entry.authors_json if str(name).strip()]
+    note_lines = [
+        f"# {entry.title}",
+        "",
+        "## Citation",
+        "",
+        citation_text,
+        "",
+        "## Abstract",
+        "",
+        entry.abstract or "No abstract available.",
+        "",
+        "## Metadata",
+        "",
+        f"- OpenAlex ID: {entry.openalex_id}",
+        f"- Publication year: {entry.publication_year or 'n/a'}",
+        f"- Venue: {entry.venue or 'n/a'}",
+        f"- DOI: {entry.doi or 'n/a'}",
+        f"- Cited by count: {entry.cited_by_count}",
+        f"- Authors: {', '.join(authors) if authors else 'n/a'}",
+        f"- Landing page: {entry.landing_page_url or 'n/a'}",
+        f"- Open-access PDF: {entry.pdf_url or 'n/a'}",
+    ]
+    if entry.keywords_json:
+        note_lines.extend(["", "## Keywords", "", ", ".join(str(keyword).strip() for keyword in entry.keywords_json if str(keyword).strip())])
+
+    record = create_knowledge_record(
+        db,
+        user=user,
+        workspace=workspace,
+        title=f"Paper Note: {entry.title}",
+        content="\n".join(note_lines).strip(),
+        tags=["paper-library", "literature", "openalex"],
+        metadata={
+            "source_type": "paper_library",
+            "literature_entry_id": entry.id,
+            "openalex_id": entry.openalex_id,
+            "citation_text": citation_text,
+            "doi": entry.doi,
+            "publication_year": entry.publication_year,
+            "venue": entry.venue,
+            "authors": authors,
+            "pdf_url": entry.pdf_url,
+            "landing_page_url": entry.landing_page_url,
+        },
+    )
+    entry.raw_json = {
+        **(entry.raw_json or {}),
+        "_workspace_knowledge_record_id": record.id,
+        "_workspace_knowledge_record_title": record.title,
+    }
+    db.flush()
+    return {
+        "entry": serialize_literature_entry(entry),
+        "record": {
+            "id": record.id,
+            "title": record.title,
+            "created_at": record.created_at.isoformat(),
+        },
         "imported": True,
     }
 

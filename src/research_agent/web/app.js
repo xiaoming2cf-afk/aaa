@@ -1876,15 +1876,18 @@ function renderLiterature(items) {
           <h4>${escapeHtml(item.title)}</h4>
           <p>${escapeHtml((item.authors || []).slice(0, 4).join(", ")) || "Unknown authors"}</p>
           <p>${escapeHtml(item.venue || "Unknown venue")} | ${escapeHtml(item.publication_year || "n/a")}</p>
+          <p class="compact-note">${escapeHtml(item.citation_text || "")}</p>
           <div class="actions">
             ${item.landing_page_url ? `<a class="action-link" href="${escapeHtml(item.landing_page_url)}" target="_blank" rel="noreferrer">Source page</a>` : ""}
             ${item.pdf_url ? `<a class="action-link" href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noreferrer">Open OA PDF</a>` : ""}
             ${item.has_open_access_pdf && !item.workspace_pdf_asset_id ? `<button type="button" class="secondary" data-import-literature-pdf="${item.id}">Import PDF</button>` : ""}
             ${item.workspace_pdf_asset_id ? `<button type="button" class="secondary" data-download-literature-asset="${item.workspace_pdf_asset_id}">Download private copy</button>` : ""}
+            ${!item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-import-literature-knowledge="${item.id}">Save to knowledge base</button>` : ""}
           </div>
           <p class="compact-note muted">
             ${item.workspace_pdf_asset_id ? `Private workspace copy saved as ${escapeHtml(item.workspace_pdf_asset_title || "paper PDF")}.` : item.has_open_access_pdf ? "Open-access PDF available for private import." : "No direct open-access PDF exposed by this entry."}
           </p>
+          ${item.workspace_knowledge_record_id ? `<p class="compact-note muted">Knowledge note saved as ${escapeHtml(item.workspace_knowledge_record_title || "paper note")}.</p>` : ""}
         </div>
       `,
     )
@@ -3830,13 +3833,14 @@ async function handleAssetActions(event) {
 }
 
 async function handleLiteratureActions(event) {
-  const target = event.target.closest("[data-import-literature-pdf], [data-download-literature-asset]");
+  const target = event.target.closest("[data-import-literature-pdf], [data-download-literature-asset], [data-import-literature-knowledge]");
   if (!target) {
     return;
   }
   ensureWorkspace();
   const importId = target.getAttribute("data-import-literature-pdf");
   const downloadId = target.getAttribute("data-download-literature-asset");
+  const knowledgeId = target.getAttribute("data-import-literature-knowledge");
   if (importId) {
     const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/literature/${importId}/import-pdf`, {
       method: "POST",
@@ -3849,6 +3853,15 @@ async function handleLiteratureActions(event) {
   if (downloadId) {
     await downloadAsset(downloadId);
     showToast("Private paper download started.");
+    return;
+  }
+  if (knowledgeId) {
+    const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/literature/${knowledgeId}/import-knowledge`, {
+      method: "POST",
+    });
+    await refreshWorkspaceData();
+    const recordTitle = response.record?.title || response.entry?.workspace_knowledge_record_title || "paper note";
+    showToast(`${response.imported === false ? "Knowledge note already exists" : "Saved to knowledge base"}: ${recordTitle}`);
   }
 }
 

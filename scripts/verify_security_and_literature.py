@@ -48,11 +48,13 @@ class FakeResponse:
         json_payload: dict | None = None,
         content: bytes = b"",
         headers: dict[str, str] | None = None,
+        url: str = "",
     ) -> None:
         self.status_code = status_code
         self._json_payload = json_payload or {}
         self.content = content
         self.headers = headers or {}
+        self.url = url
 
     def raise_for_status(self) -> None:
         if self.status_code >= 400:
@@ -84,31 +86,43 @@ def fake_requests_get(url: str, *, headers: dict | None = None, params: dict | N
                         ],
                         "best_oa_location": {
                             "landing_page_url": "https://example.org/paper/landing",
-                            "pdf_url": "https://example.org/paper/direct.pdf",
+                            "pdf_url": "",
                             "source": {"display_name": "Example Journal"},
                         },
                         "primary_location": {
                             "landing_page_url": "https://example.org/paper/landing",
-                            "pdf_url": "https://example.org/paper/direct.pdf",
+                            "pdf_url": "",
                             "source": {"display_name": "Example Journal"},
                         },
                         "open_access": {
                             "is_oa": True,
-                            "oa_url": "https://example.org/paper/direct.pdf",
+                            "oa_url": "",
                         },
                     }
                 ]
-            }
+            },
+            url=url,
         )
     if url == "https://example.org/paper/direct.pdf":
         return FakeResponse(
             content=build_pdf_bytes("Monetary Policy Spillovers and Capital Flows"),
             headers={"Content-Type": "application/pdf"},
+            url=url,
         )
     if url == "https://example.org/paper/landing":
         return FakeResponse(
-            content=b"<html><body>not a pdf</body></html>",
+            content=(
+                b'<html><head><meta name="citation_pdf_url" content="/paper/files/working-paper.pdf"></head>'
+                b'<body><a href="/paper/files/working-paper.pdf">Download PDF</a></body></html>'
+            ),
             headers={"Content-Type": "text/html"},
+            url=url,
+        )
+    if url == "https://example.org/paper/files/working-paper.pdf":
+        return FakeResponse(
+            content=build_pdf_bytes("Monetary Policy Spillovers and Capital Flows"),
+            headers={"Content-Type": "application/pdf"},
+            url=url,
         )
     raise AssertionError(f"Unexpected URL: {url}")
 
@@ -167,7 +181,8 @@ def main() -> int:
                 expect_status(search_response, 200)
                 search_items = search_response.json()["items"]
                 assert len(search_items) == 1
-                assert search_items[0]["pdf_url"] == "https://example.org/paper/direct.pdf"
+                assert search_items[0]["landing_page_url"] == "https://example.org/paper/landing"
+                assert search_items[0]["pdf_url"] == ""
 
                 import_response = client.post(
                     f"/api/workspaces/{workspace_a['id']}/literature/import",
@@ -207,6 +222,22 @@ def main() -> int:
                 assert import_pdf_payload["asset"]["kind"] == "document_pdf"
                 assert import_pdf_payload["entry"]["workspace_pdf_asset_id"]
                 asset_id = import_pdf_payload["asset"]["id"]
+                assert import_pdf_payload["source_url"] == "https://example.org/paper/files/working-paper.pdf"
+
+                knowledge_response = client.post(
+                    f"/api/workspaces/{workspace_a['id']}/literature/{entry_a['id']}/import-knowledge",
+                    headers=auth_headers(user_a_token),
+                )
+                expect_status(knowledge_response, 200)
+                knowledge_payload = knowledge_response.json()
+                assert knowledge_payload["entry"]["workspace_knowledge_record_id"]
+
+                repeat_knowledge_response = client.post(
+                    f"/api/workspaces/{workspace_a['id']}/literature/{entry_a['id']}/import-knowledge",
+                    headers=auth_headers(user_a_token),
+                )
+                expect_status(repeat_knowledge_response, 200)
+                assert repeat_knowledge_response.json()["imported"] is False
 
                 repeat_import_response = client.post(
                     f"/api/workspaces/{workspace_a['id']}/literature/{entry_a['id']}/import-pdf",
@@ -220,6 +251,12 @@ def main() -> int:
                     headers=auth_headers(user_b_token),
                 )
                 expect_status(forbidden_import_pdf, 404)
+
+                forbidden_import_knowledge = client.post(
+                    f"/api/workspaces/{workspace_a['id']}/literature/{entry_a['id']}/import-knowledge",
+                    headers=auth_headers(user_b_token),
+                )
+                expect_status(forbidden_import_knowledge, 404)
 
                 assets_a = client.get(
                     f"/api/workspaces/{workspace_a['id']}/assets",
@@ -253,6 +290,42 @@ def main() -> int:
                 )
                 expect_status(download_b, 404)
 
+                knowledge_a = client.get(
+                    f"/api/workspaces/{workspace_a['id']}/knowledge",
+                    headers=auth_headers(user_a_token),
+                )
+                knowledge_b = client.get(
+                    f"/api/workspaces/{workspace_b['id']}/knowledge",
+                    headers=auth_headers(user_b_token),
+                )
+                expect_status(knowledge_a, 200)
+                expect_status(knowledge_b, 200)
+                assert len(knowledge_a.json()["items"]) == 1
+                assert len(knowledge_b.json()["items"]) == 0
+
+                large_note_content = "capacity-check-" * 30000
+                large_note_response = client.post(
+                    f"/api/workspaces/{workspace_a['id']}/knowledge",
+                    headers=auth_headers(user_a_token),
+                    json={
+                        "title": "Knowledge Capacity Check",
+                        "content": large_note_content,
+                        "tags": ["capacity", "stress"],
+                        "metadata": {"source": "verification"},
+                    },
+                )
+                expect_status(large_note_response, 200)
+
+                knowledge_after_capacity = client.get(
+                    f"/api/workspaces/{workspace_a['id']}/knowledge",
+                    headers=auth_headers(user_a_token),
+                )
+                expect_status(knowledge_after_capacity, 200)
+                capacity_record = next(
+                    item for item in knowledge_after_capacity.json()["items"] if item["title"] == "Knowledge Capacity Check"
+                )
+                assert len(capacity_record["content"]) == len(large_note_content)
+
                 refreshed_literature = client.get(
                     f"/api/workspaces/{workspace_a['id']}/literature",
                     headers=auth_headers(user_a_token),
@@ -261,6 +334,8 @@ def main() -> int:
                 refreshed_entry = refreshed_literature.json()["items"][0]
                 assert refreshed_entry["workspace_pdf_asset_id"] == asset_id
                 assert refreshed_entry["workspace_pdf_download_url"].endswith(f"/api/assets/{asset_id}/download")
+                assert refreshed_entry["workspace_knowledge_record_id"] == knowledge_payload["record"]["id"]
+                assert "Monetary Policy Spillovers and Capital Flows" in refreshed_entry["citation_text"]
 
                 report = {
                     "security": {
@@ -269,6 +344,7 @@ def main() -> int:
                         "workspace_ids_are_distinct": me_a.json()["workspaces"][0]["id"] != me_b.json()["workspaces"][0]["id"],
                         "user_b_cannot_open_user_a_workspace": forbidden_literature.status_code == 404,
                         "user_b_cannot_import_user_a_literature_pdf": forbidden_import_pdf.status_code == 404,
+                        "user_b_cannot_import_user_a_literature_note": forbidden_import_knowledge.status_code == 404,
                         "user_b_cannot_download_user_a_asset": download_b.status_code == 404,
                     },
                     "paper_library": {
@@ -278,10 +354,17 @@ def main() -> int:
                         "private_pdf_filename": import_pdf_payload["asset"]["title"],
                         "private_pdf_download_url": import_pdf_payload["download_url"],
                         "repeat_import_reused_existing_asset": repeat_import_response.json()["imported"] is False,
+                        "knowledge_record_id": knowledge_payload["record"]["id"],
+                        "knowledge_record_title": knowledge_payload["record"]["title"],
+                        "repeat_knowledge_reused_existing_record": repeat_knowledge_response.json()["imported"] is False,
+                        "citation_text": refreshed_entry["citation_text"],
+                        "knowledge_capacity_chars_written": len(large_note_content),
+                        "knowledge_capacity_chars_read_back": len(capacity_record["content"]),
                     },
                     "samples": {
                         "openalex_result": search_items[0],
                         "literature_entry": refreshed_entry,
+                        "knowledge_record": knowledge_a.json()["items"][0],
                     },
                 }
                 report_dir = REPO_ROOT / "蒙特卡洛" / "security_literature"
