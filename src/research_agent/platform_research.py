@@ -310,19 +310,22 @@ def serialize_literature_entry(entry: LiteratureEntry) -> dict[str, Any]:
     workspace_pdf_asset_title = str((entry.raw_json or {}).get("_workspace_pdf_asset_title") or "").strip()
     workspace_knowledge_record_id = str((entry.raw_json or {}).get("_workspace_knowledge_record_id") or "").strip()
     workspace_knowledge_record_title = str((entry.raw_json or {}).get("_workspace_knowledge_record_title") or "").strip()
+    can_import_pdf = bool(str(entry.pdf_url or "").strip() or str(entry.landing_page_url or "").strip())
     return {
         "id": entry.id,
         "openalex_id": entry.openalex_id,
         "title": entry.title,
         "authors": entry.authors_json,
         "abstract": entry.abstract,
+        "abstract_excerpt": truncate_text(entry.abstract or "", 280),
         "publication_year": entry.publication_year,
         "doi": entry.doi,
         "cited_by_count": entry.cited_by_count,
         "venue": entry.venue,
         "landing_page_url": entry.landing_page_url,
         "pdf_url": entry.pdf_url,
-        "has_open_access_pdf": bool(str(entry.pdf_url or "").strip() or str(entry.landing_page_url or "").strip()),
+        "has_open_access_pdf": can_import_pdf,
+        "can_import_pdf": can_import_pdf,
         "workspace_pdf_asset_id": workspace_pdf_asset_id,
         "workspace_pdf_asset_title": workspace_pdf_asset_title,
         "workspace_pdf_download_url": f"/api/assets/{workspace_pdf_asset_id}/download" if workspace_pdf_asset_id else "",
@@ -1233,6 +1236,54 @@ def import_literature_pdf_asset(
     }
 
 
+def import_literature_pdf_assets(
+    db: Session,
+    settings: Settings,
+    *,
+    user: User,
+    workspace: Workspace,
+    literature_entry_ids: list[str] | None = None,
+) -> dict[str, Any]:
+    entries = list_literature_entries(db, user=user, workspace=workspace)
+    requested_ids = {str(item).strip() for item in (literature_entry_ids or []) if str(item).strip()}
+    if requested_ids:
+        entries = [entry for entry in entries if entry.id in requested_ids]
+    imported: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+    failed: list[dict[str, Any]] = []
+    for entry in entries:
+        if not (str(entry.pdf_url or "").strip() or str(entry.landing_page_url or "").strip()):
+            skipped.append({"entry_id": entry.id, "title": entry.title, "reason": "No open-access source URL."})
+            continue
+        try:
+            result = import_literature_pdf_asset(
+                db,
+                settings,
+                user=user,
+                workspace=workspace,
+                literature_entry_id=entry.id,
+            )
+            imported.append(
+                {
+                    "entry_id": entry.id,
+                    "title": entry.title,
+                    "asset_id": result["asset"]["id"],
+                    "imported": bool(result["imported"]),
+                }
+            )
+        except Exception as exc:
+            failed.append({"entry_id": entry.id, "title": entry.title, "reason": str(exc)})
+    return {
+        "requested_count": len(entries),
+        "imported_count": len(imported),
+        "failed_count": len(failed),
+        "skipped_count": len(skipped),
+        "imported": imported,
+        "failed": failed,
+        "skipped": skipped,
+    }
+
+
 def import_literature_knowledge_record(
     db: Session,
     *,
@@ -1321,6 +1372,46 @@ def import_literature_knowledge_record(
             "created_at": record.created_at.isoformat(),
         },
         "imported": True,
+    }
+
+
+def import_literature_knowledge_records(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    literature_entry_ids: list[str] | None = None,
+) -> dict[str, Any]:
+    entries = list_literature_entries(db, user=user, workspace=workspace)
+    requested_ids = {str(item).strip() for item in (literature_entry_ids or []) if str(item).strip()}
+    if requested_ids:
+        entries = [entry for entry in entries if entry.id in requested_ids]
+    imported: list[dict[str, Any]] = []
+    failed: list[dict[str, Any]] = []
+    for entry in entries:
+        try:
+            result = import_literature_knowledge_record(
+                db,
+                user=user,
+                workspace=workspace,
+                literature_entry_id=entry.id,
+            )
+            imported.append(
+                {
+                    "entry_id": entry.id,
+                    "title": entry.title,
+                    "record_id": result["record"]["id"],
+                    "imported": bool(result["imported"]),
+                }
+            )
+        except Exception as exc:
+            failed.append({"entry_id": entry.id, "title": entry.title, "reason": str(exc)})
+    return {
+        "requested_count": len(entries),
+        "imported_count": len(imported),
+        "failed_count": len(failed),
+        "imported": imported,
+        "failed": failed,
     }
 
 

@@ -1851,6 +1851,7 @@ function renderOpenAlexResults(items) {
           <p>${escapeHtml((item.authors || []).slice(0, 4).join(", ")) || "Unknown authors"}</p>
           <p>${escapeHtml(`${item.publication_year || "n/a"} | cited ${item.cited_by_count || 0}`)}</p>
           <p>${escapeHtml(item.venue || "Unknown venue")}</p>
+          <p class="compact-note">${escapeHtml(item.abstract_excerpt || item.abstract || "")}</p>
           <div class="actions">
             ${item.landing_page_url ? `<a class="action-link" href="${escapeHtml(item.landing_page_url)}" target="_blank" rel="noreferrer">Open source page</a>` : ""}
             ${item.pdf_url ? `<a class="action-link" href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noreferrer">Open OA PDF</a>` : ""}
@@ -1877,6 +1878,7 @@ function renderLiterature(items) {
           <p>${escapeHtml((item.authors || []).slice(0, 4).join(", ")) || "Unknown authors"}</p>
           <p>${escapeHtml(item.venue || "Unknown venue")} | ${escapeHtml(item.publication_year || "n/a")}</p>
           <p class="compact-note">${escapeHtml(item.citation_text || "")}</p>
+          <p class="compact-note">${escapeHtml(item.abstract_excerpt || item.abstract || "")}</p>
           <div class="actions">
             ${item.landing_page_url ? `<a class="action-link" href="${escapeHtml(item.landing_page_url)}" target="_blank" rel="noreferrer">Source page</a>` : ""}
             ${item.pdf_url ? `<a class="action-link" href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noreferrer">Open OA PDF</a>` : ""}
@@ -3340,6 +3342,28 @@ async function handleOpenAlexImport() {
   showToast("Literature imported into your private library.");
 }
 
+async function handleBulkLiteraturePdfImport() {
+  ensureWorkspace();
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/literature/import-pdfs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ entry_ids: [] }),
+  });
+  await refreshWorkspaceData();
+  showToast(`Paper Library PDF import finished: ${response.imported_count} imported, ${response.skipped_count} skipped, ${response.failed_count} failed.`);
+}
+
+async function handleBulkLiteratureKnowledgeImport() {
+  ensureWorkspace();
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/literature/import-knowledge`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ entry_ids: [] }),
+  });
+  await refreshWorkspaceData();
+  showToast(`Knowledge note import finished: ${response.imported_count} processed, ${response.failed_count} failed.`);
+}
+
 async function handleUpload(event) {
   event.preventDefault();
   ensureWorkspace();
@@ -3927,6 +3951,8 @@ function bind() {
   const briefingForm = document.getElementById("briefing-form");
   const openalexForm = document.getElementById("openalex-form");
   const importOpenalexButton = document.getElementById("import-openalex");
+  const importLiteraturePdfsButton = document.getElementById("import-literature-pdfs");
+  const importLiteratureKnowledgeButton = document.getElementById("import-literature-knowledge");
   const uploadForm = document.getElementById("upload-form");
   const knowledgeForm = document.getElementById("knowledge-form");
   const scheduleForm = document.getElementById("schedule-form");
@@ -3945,6 +3971,8 @@ function bind() {
   briefingForm?.addEventListener("submit", wrap(handleBriefing));
   openalexForm?.addEventListener("submit", wrap(handleOpenAlexSearch));
   importOpenalexButton?.addEventListener("click", wrap(handleOpenAlexImport));
+  importLiteraturePdfsButton?.addEventListener("click", wrap(handleBulkLiteraturePdfImport));
+  importLiteratureKnowledgeButton?.addEventListener("click", wrap(handleBulkLiteratureKnowledgeImport));
   uploadForm?.addEventListener("submit", wrap(handleUpload));
   knowledgeForm?.addEventListener("submit", wrap(handleKnowledge));
   scheduleForm?.addEventListener("submit", wrap(handleSchedule));

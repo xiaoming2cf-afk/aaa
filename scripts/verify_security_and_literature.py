@@ -194,6 +194,22 @@ def main() -> int:
                 assert len(imported_items) == 1
                 entry_a = imported_items[0]
 
+                bulk_pdf_response = client.post(
+                    f"/api/workspaces/{workspace_a['id']}/literature/import-pdfs",
+                    headers=auth_headers(user_a_token),
+                    json={"entry_ids": [entry_a["id"]]},
+                )
+                expect_status(bulk_pdf_response, 200)
+                assert bulk_pdf_response.json()["imported_count"] == 1
+
+                bulk_knowledge_response = client.post(
+                    f"/api/workspaces/{workspace_a['id']}/literature/import-knowledge",
+                    headers=auth_headers(user_a_token),
+                    json={"entry_ids": [entry_a["id"]]},
+                )
+                expect_status(bulk_knowledge_response, 200)
+                assert bulk_knowledge_response.json()["imported_count"] == 1
+
                 user_a_literature = client.get(
                     f"/api/workspaces/{workspace_a['id']}/literature",
                     headers=auth_headers(user_a_token),
@@ -354,9 +370,11 @@ def main() -> int:
                         "private_pdf_filename": import_pdf_payload["asset"]["title"],
                         "private_pdf_download_url": import_pdf_payload["download_url"],
                         "repeat_import_reused_existing_asset": repeat_import_response.json()["imported"] is False,
+                        "bulk_pdf_imported_count": bulk_pdf_response.json()["imported_count"],
                         "knowledge_record_id": knowledge_payload["record"]["id"],
                         "knowledge_record_title": knowledge_payload["record"]["title"],
                         "repeat_knowledge_reused_existing_record": repeat_knowledge_response.json()["imported"] is False,
+                        "bulk_knowledge_imported_count": bulk_knowledge_response.json()["imported_count"],
                         "citation_text": refreshed_entry["citation_text"],
                         "knowledge_capacity_chars_written": len(large_note_content),
                         "knowledge_capacity_chars_read_back": len(capacity_record["content"]),
