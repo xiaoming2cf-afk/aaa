@@ -123,7 +123,7 @@
         <section class="panel">
           <div class="panel-head">
             <h2>Provider Center</h2>
-            <span class="muted">OpenAI, Gemini, Anthropic, OpenAI-compatible, and FRED</span>
+            <span class="muted">OpenAI, DeepSeek, Gemini, Anthropic, Kimi, OpenAI-compatible, and FRED</span>
           </div>
           <form id="integration-form" class="stack">
             <input name="label" type="text" placeholder="Connection label" required />
@@ -134,15 +134,19 @@
               </select>
               <select name="kind">
                 <option value="openai">OpenAI</option>
-                <option value="openai_compatible">OpenAI Compatible</option>
+                <option value="deepseek">DeepSeek</option>
                 <option value="gemini">Gemini</option>
                 <option value="anthropic">Anthropic</option>
+                <option value="kimi">Kimi (Moonshot AI)</option>
+                <option value="openai_compatible">OpenAI Compatible</option>
                 <option value="fred">FRED</option>
               </select>
             </div>
             <input name="model" type="text" placeholder="Default model (optional)" />
             <input name="base_url" type="text" placeholder="Base URL for compatible providers" />
             <input name="api_key" type="password" placeholder="API key" required />
+            <div id="integration-provider-hint" class="muted compact-note"></div>
+            <a id="integration-provider-docs" class="inline-link" href="#" target="_blank" rel="noreferrer" hidden>Open official docs</a>
             <label class="checkbox"><input name="is_default" type="checkbox" /> Set as default connection</label>
             <button type="submit">Save connection</button>
           </form>

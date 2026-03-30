@@ -421,6 +421,24 @@ h1 {
   color: var(--muted);
 }
 
+.compact-note {
+  margin-top: -0.2rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.inline-link,
+.action-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.inline-link:hover,
+.action-link:hover {
+  text-decoration: underline;
+}
+
 .panel-head-wrap {
   align-items: flex-start;
   flex-wrap: wrap;
@@ -483,7 +501,9 @@ button.secondary,
 .actions button,
 .card button,
 .actions .button-link,
-.card .button-link {
+.card .button-link,
+.actions .action-link,
+.card .action-link {
   width: auto;
 }
 

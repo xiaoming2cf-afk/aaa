@@ -151,6 +151,8 @@ const dom = {
   userSummary: document.getElementById("user-summary"),
   workspaceSelect: document.getElementById("workspace-select"),
   integrationList: document.getElementById("integration-list"),
+  integrationProviderHint: document.getElementById("integration-provider-hint"),
+  integrationProviderDocs: document.getElementById("integration-provider-docs"),
   briefingList: document.getElementById("briefing-list"),
   openalexResults: document.getElementById("openalex-results"),
   literatureList: document.getElementById("literature-list"),
@@ -1713,6 +1715,78 @@ function renderWorkspaceOptions() {
   renderLabContext();
 }
 
+function getProviderCatalog() {
+  return state.bootstrap?.provider_catalog || { llm: [], data_source: [] };
+}
+
+function getProviderSpec(kind) {
+  const providerCatalog = getProviderCatalog();
+  return [...(providerCatalog.llm || []), ...(providerCatalog.data_source || [])].find((item) => item.kind === kind) || null;
+}
+
+function formatProviderHint(spec) {
+  if (!spec) {
+    return "Use a saved provider preset or enter a custom OpenAI-compatible endpoint.";
+  }
+  const details = [spec.description];
+  if (spec.default_base_url) {
+    details.push(`Default base URL: ${spec.default_base_url}`);
+  }
+  if (spec.default_model) {
+    details.push(`Default model: ${spec.default_model}`);
+  }
+  return details.join(" ");
+}
+
+function applyIntegrationProviderPreset(kind) {
+  const integrationForm = document.getElementById("integration-form");
+  if (!integrationForm) {
+    return;
+  }
+  const spec = getProviderSpec(kind);
+  const categoryField = integrationForm.elements.namedItem("category");
+  const labelField = integrationForm.elements.namedItem("label");
+  const modelField = integrationForm.elements.namedItem("model");
+  const baseUrlField = integrationForm.elements.namedItem("base_url");
+  if (!categoryField || !labelField || !modelField || !baseUrlField) {
+    return;
+  }
+  const previousModelPreset = modelField.dataset.appliedPreset || "";
+  const previousBasePreset = baseUrlField.dataset.appliedPreset || "";
+  if (spec?.category) {
+    categoryField.value = spec.category;
+  }
+  if (spec?.label && !String(labelField.value || "").trim()) {
+    labelField.value = spec.label;
+  }
+  if (spec?.default_model && (!String(modelField.value || "").trim() || modelField.value === previousModelPreset)) {
+    modelField.value = spec.default_model;
+  }
+  if (!spec?.default_model && modelField.value === previousModelPreset) {
+    modelField.value = "";
+  }
+  if (spec?.default_base_url && (!String(baseUrlField.value || "").trim() || baseUrlField.value === previousBasePreset)) {
+    baseUrlField.value = spec.default_base_url;
+  }
+  if (!spec?.default_base_url && baseUrlField.value === previousBasePreset) {
+    baseUrlField.value = "";
+  }
+  modelField.dataset.appliedPreset = spec?.default_model || "";
+  baseUrlField.dataset.appliedPreset = spec?.default_base_url || "";
+  if (dom.integrationProviderHint) {
+    dom.integrationProviderHint.textContent = formatProviderHint(spec);
+  }
+  if (dom.integrationProviderDocs) {
+    if (spec?.docs_url) {
+      dom.integrationProviderDocs.href = spec.docs_url;
+      dom.integrationProviderDocs.hidden = false;
+    } else {
+      dom.integrationProviderDocs.hidden = true;
+      dom.integrationProviderDocs.removeAttribute("href");
+    }
+  }
+}
+
 function renderIntegrations(items) {
   if (!dom.integrationList) {
     return;
@@ -1726,11 +1800,13 @@ function renderIntegrations(items) {
       (item) => `
         <div class="card">
           <h4>${escapeHtml(item.label)}</h4>
-          <p>${escapeHtml(item.category)} | ${escapeHtml(item.kind)} | ${escapeHtml(item.model || "default model")}</p>
+          <p>${escapeHtml(item.category)} | ${escapeHtml(item.provider_name || item.kind)} | ${escapeHtml(item.model || "default model")}</p>
+          <p>${escapeHtml(item.base_url || "Provider default base URL")}</p>
           <p>${item.is_default ? "Default connection" : "Saved connection"}</p>
           <div class="actions">
             <button type="button" class="secondary" data-test-integration="${item.id}">Test</button>
             <button type="button" class="secondary" data-delete-integration="${item.id}">Delete</button>
+            ${item.docs_url ? `<a class="secondary action-link" href="${escapeHtml(item.docs_url)}" target="_blank" rel="noreferrer">Docs</a>` : ""}
           </div>
         </div>
       `,
@@ -2942,6 +3018,10 @@ async function fetchHealth() {
     api("/api/bootstrap", {}, false),
   ]);
   state.bootstrap = bootstrap;
+  const integrationKind = document.querySelector('#integration-form select[name="kind"]');
+  if (integrationKind) {
+    applyIntegrationProviderPreset(integrationKind.value);
+  }
   if (dom.healthStatus) {
     dom.healthStatus.textContent = `${health.status} | ${bootstrap.supported_llm_kinds.length} provider types`;
   }
@@ -3660,7 +3740,8 @@ async function handleIntegrationActions(event) {
   const deleteId = event.target.getAttribute("data-delete-integration");
   if (testId) {
     const response = await api(`/api/integrations/${testId}/test`, { method: "POST" });
-    showToast(response.preview || "Connection test succeeded.");
+    const details = [response.provider_name, response.resolved_model].filter(Boolean).join(" | ");
+    showToast(`${details ? `${details}: ` : ""}${response.preview || "Connection test succeeded."}`);
     return;
   }
   if (deleteId) {
@@ -3792,6 +3873,7 @@ function bind() {
   const loginForm = document.getElementById("login-form");
   const workspaceForm = document.getElementById("workspace-form");
   const integrationForm = document.getElementById("integration-form");
+  const integrationKind = integrationForm?.elements.namedItem("kind");
   const briefingForm = document.getElementById("briefing-form");
   const openalexForm = document.getElementById("openalex-form");
   const importOpenalexButton = document.getElementById("import-openalex");
@@ -3807,6 +3889,9 @@ function bind() {
   loginForm?.addEventListener("submit", wrap(handleLogin));
   workspaceForm?.addEventListener("submit", wrap(handleCreateWorkspace));
   integrationForm?.addEventListener("submit", wrap(handleIntegration));
+  integrationKind?.addEventListener("change", (event) => {
+    applyIntegrationProviderPreset(event.target.value);
+  });
   briefingForm?.addEventListener("submit", wrap(handleBriefing));
   openalexForm?.addEventListener("submit", wrap(handleOpenAlexSearch));
   importOpenalexButton?.addEventListener("click", wrap(handleOpenAlexImport));
@@ -3917,6 +4002,9 @@ function bind() {
   dom.publicSummaryFeatured?.addEventListener("click", wrap(handlePublicActions));
   dom.publicReviewList?.addEventListener("click", wrap(handlePublicActions));
   dom.publicExcludedList?.addEventListener("click", wrap(handlePublicActions));
+  if (integrationKind) {
+    applyIntegrationProviderPreset(integrationKind.value);
+  }
   initializeDataLabFromLocation();
   updateWorkflowVisibility();
 }

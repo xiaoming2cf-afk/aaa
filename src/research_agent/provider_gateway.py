@@ -4,11 +4,8 @@ from openai import OpenAI
 
 from .config import Settings
 from .entities import IntegrationCredential
+from .provider_catalog import apply_provider_defaults, get_provider_spec
 from .security import decrypt_secret
-
-
-GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
-ANTHROPIC_OPENAI_BASE_URL = "https://api.anthropic.com/v1/"
 
 
 class ProviderGateway:
@@ -16,13 +13,22 @@ class ProviderGateway:
         self.settings = settings
 
     def test_integration(self, integration: IntegrationCredential) -> dict:
+        resolved_base_url = self._resolved_base_url(integration)
+        resolved_model = self._resolve_model(integration)
+        provider = get_provider_spec(integration.kind, self.settings.model) or {}
         text = self.generate_markdown(
             integration=integration,
             system_prompt="You are a concise integration health check assistant.",
             user_prompt="Reply with a short sentence confirming the integration is working.",
             max_output_tokens=80,
         )
-        return {"status": "ok", "preview": text}
+        return {
+            "status": "ok",
+            "preview": text,
+            "provider_name": provider.get("label", integration.kind),
+            "resolved_model": resolved_model,
+            "resolved_base_url": resolved_base_url,
+        }
 
     def generate_markdown(
         self,
@@ -46,25 +52,34 @@ class ProviderGateway:
 
     def _build_client(self, integration: IntegrationCredential) -> OpenAI:
         api_key = decrypt_secret(self.settings, integration.api_key_encrypted)
-        base_url = (integration.base_url or "").strip() or self._default_base_url(integration.kind)
+        base_url = self._resolved_base_url(integration)
         if base_url:
             return OpenAI(api_key=api_key, base_url=base_url)
         return OpenAI(api_key=api_key)
 
     def _default_base_url(self, kind: str) -> str:
-        if kind == "gemini":
-            return GEMINI_OPENAI_BASE_URL
-        if kind == "anthropic":
-            return ANTHROPIC_OPENAI_BASE_URL
-        return ""
+        base_url, _, _ = apply_provider_defaults(
+            kind=kind,
+            base_url="",
+            model="",
+            default_openai_model=self.settings.model,
+        )
+        return base_url
+
+    def _resolved_base_url(self, integration: IntegrationCredential) -> str:
+        base_url, _, _ = apply_provider_defaults(
+            kind=integration.kind,
+            base_url=integration.base_url,
+            model=integration.model,
+            default_openai_model=self.settings.model,
+        )
+        return base_url
 
     def _resolve_model(self, integration: IntegrationCredential) -> str:
-        if integration.model:
-            return integration.model
-        defaults = {
-            "openai": self.settings.model,
-            "openai_compatible": self.settings.model,
-            "gemini": "gemini-2.5-flash",
-            "anthropic": "claude-sonnet-4-0",
-        }
-        return defaults.get(integration.kind, self.settings.model)
+        _, model, _ = apply_provider_defaults(
+            kind=integration.kind,
+            base_url=integration.base_url,
+            model=integration.model,
+            default_openai_model=self.settings.model,
+        )
+        return model or self.settings.model

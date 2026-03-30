@@ -53,6 +53,7 @@ from .platform_core import (
     suggest_beginner_variable_plan,
     test_integration,
 )
+from .provider_catalog import get_provider_catalog
 from .platform_research import (
     build_named_public_summary,
     build_public_briefing_summary,
@@ -402,17 +403,23 @@ def create_app() -> FastAPI:
 
     @app.get("/api/bootstrap")
     def bootstrap() -> dict[str, Any]:
+        provider_catalog = get_provider_catalog(settings.model)
         return {
             "app_name": settings.app_name,
             "public_base_url": settings.public_base_url,
             "default_timezone": "Asia/Shanghai",
             "asset_storage_backend": settings.asset_storage_backend,
-            "supported_llm_kinds": ["openai", "openai_compatible", "gemini", "anthropic"],
-            "supported_data_kinds": ["fred"],
+            "supported_llm_kinds": [item["kind"] for item in provider_catalog["llm"]],
+            "supported_data_kinds": [item["kind"] for item in provider_catalog["data_source"]],
+            "provider_catalog": provider_catalog,
             "public_digest_enabled": settings.public_digest_enabled,
             "public_digest_timezone": settings.public_digest_timezone,
             "public_digest_local_time": settings.public_digest_local_time,
         }
+
+    @app.get("/api/providers")
+    def providers() -> dict[str, Any]:
+        return {"providers": get_provider_catalog(settings.model)}
 
     @app.get("/api/data-lab/catalog")
     def data_lab_catalog() -> dict[str, Any]:

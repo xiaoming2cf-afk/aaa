@@ -29,6 +29,7 @@ from sqlalchemy.orm import Session
 from .asset_storage import load_asset_bytes, store_asset_content
 from .config import Settings
 from .entities import DataAsset, IntegrationCredential, KnowledgeRecord, User, UserSession, Workspace
+from .provider_catalog import apply_provider_defaults, get_provider_spec
 from .provider_gateway import ProviderGateway
 from .security import (
     build_session_expiry,
@@ -488,11 +489,16 @@ def serialize_workspace(workspace: Workspace) -> dict[str, Any]:
 
 
 def serialize_integration(integration: IntegrationCredential) -> dict[str, Any]:
+    provider = get_provider_spec(integration.kind, "gpt-5-mini") or {}
+    provider_name = integration.config_json.get("provider_name") or provider.get("label", integration.kind)
+    docs_url = integration.config_json.get("docs_url") or provider.get("docs_url", "")
     return {
         "id": integration.id,
         "label": integration.label,
         "category": integration.category,
         "kind": integration.kind,
+        "provider_name": provider_name,
+        "docs_url": docs_url,
         "base_url": integration.base_url,
         "model": integration.model,
         "is_default": integration.is_default,
@@ -643,27 +649,42 @@ def create_integration(
 ) -> IntegrationCredential:
     if not api_key.strip():
         raise ValueError("API key is required.")
+    normalized_category = category.strip()
+    normalized_kind = kind.strip()
+    resolved_base_url, resolved_model, provider = apply_provider_defaults(
+        kind=normalized_kind,
+        base_url=base_url,
+        model=model,
+        default_openai_model=settings.model,
+    )
+    if provider and provider.get("category"):
+        normalized_category = provider["category"]
     if is_default:
         for current in db.scalars(
             select(IntegrationCredential).where(
                 and_(
                     IntegrationCredential.owner_user_id == user.id,
-                    IntegrationCredential.category == category.strip(),
+                    IntegrationCredential.category == normalized_category,
                     IntegrationCredential.is_default.is_(True),
                 )
             )
         ):
             current.is_default = False
+    config_json = dict(config or {})
+    if provider:
+        config_json.setdefault("provider_name", provider.get("label", normalized_kind))
+        config_json.setdefault("docs_url", provider.get("docs_url", ""))
+        config_json.setdefault("provider_family", provider.get("family", ""))
     integration = IntegrationCredential(
         owner_user_id=user.id,
         label=label.strip(),
-        category=category.strip(),
-        kind=kind.strip(),
+        category=normalized_category,
+        kind=normalized_kind,
         api_key_encrypted=encrypt_secret(settings, api_key.strip()),
-        base_url=base_url.strip(),
-        model=model.strip(),
+        base_url=resolved_base_url,
+        model=resolved_model,
         is_default=is_default,
-        config_json=config or {},
+        config_json=config_json,
     )
     db.add(integration)
     db.flush()
