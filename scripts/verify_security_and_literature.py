@@ -255,6 +255,38 @@ def main() -> int:
                 expect_status(repeat_knowledge_response, 200)
                 assert repeat_knowledge_response.json()["imported"] is False
 
+                summary_note_response = client.post(
+                    f"/api/workspaces/{workspace_a['id']}/literature/{entry_a['id']}/derive-note",
+                    headers=auth_headers(user_a_token),
+                    json={"mode": "summary"},
+                )
+                expect_status(summary_note_response, 200)
+                assert summary_note_response.json()["record"]["title"].startswith("Paper Summary:")
+
+                annotation_note_response = client.post(
+                    f"/api/workspaces/{workspace_a['id']}/literature/{entry_a['id']}/derive-note",
+                    headers=auth_headers(user_a_token),
+                    json={"mode": "annotation"},
+                )
+                expect_status(annotation_note_response, 200)
+                assert annotation_note_response.json()["record"]["title"].startswith("Paper Annotation Template:")
+
+                question_note_response = client.post(
+                    f"/api/workspaces/{workspace_a['id']}/literature/{entry_a['id']}/derive-note",
+                    headers=auth_headers(user_a_token),
+                    json={"mode": "question_breakdown"},
+                )
+                expect_status(question_note_response, 200)
+                assert question_note_response.json()["record"]["title"].startswith("Paper Question Breakdown:")
+
+                repeat_summary_note_response = client.post(
+                    f"/api/workspaces/{workspace_a['id']}/literature/{entry_a['id']}/derive-note",
+                    headers=auth_headers(user_a_token),
+                    json={"mode": "summary"},
+                )
+                expect_status(repeat_summary_note_response, 200)
+                assert repeat_summary_note_response.json()["imported"] is False
+
                 repeat_import_response = client.post(
                     f"/api/workspaces/{workspace_a['id']}/literature/{entry_a['id']}/import-pdf",
                     headers=auth_headers(user_a_token),
@@ -273,6 +305,13 @@ def main() -> int:
                     headers=auth_headers(user_b_token),
                 )
                 expect_status(forbidden_import_knowledge, 404)
+
+                forbidden_derive_note = client.post(
+                    f"/api/workspaces/{workspace_a['id']}/literature/{entry_a['id']}/derive-note",
+                    headers=auth_headers(user_b_token),
+                    json={"mode": "summary"},
+                )
+                expect_status(forbidden_derive_note, 404)
 
                 assets_a = client.get(
                     f"/api/workspaces/{workspace_a['id']}/assets",
@@ -316,7 +355,7 @@ def main() -> int:
                 )
                 expect_status(knowledge_a, 200)
                 expect_status(knowledge_b, 200)
-                assert len(knowledge_a.json()["items"]) == 1
+                assert len(knowledge_a.json()["items"]) == 4
                 assert len(knowledge_b.json()["items"]) == 0
 
                 large_note_content = "capacity-check-" * 30000
@@ -351,6 +390,9 @@ def main() -> int:
                 assert refreshed_entry["workspace_pdf_asset_id"] == asset_id
                 assert refreshed_entry["workspace_pdf_download_url"].endswith(f"/api/assets/{asset_id}/download")
                 assert refreshed_entry["workspace_knowledge_record_id"] == knowledge_payload["record"]["id"]
+                assert refreshed_entry["workspace_summary_record_id"] == summary_note_response.json()["record"]["id"]
+                assert refreshed_entry["workspace_annotation_record_id"] == annotation_note_response.json()["record"]["id"]
+                assert refreshed_entry["workspace_question_record_id"] == question_note_response.json()["record"]["id"]
                 assert "Monetary Policy Spillovers and Capital Flows" in refreshed_entry["citation_text"]
 
                 report = {
@@ -361,6 +403,7 @@ def main() -> int:
                         "user_b_cannot_open_user_a_workspace": forbidden_literature.status_code == 404,
                         "user_b_cannot_import_user_a_literature_pdf": forbidden_import_pdf.status_code == 404,
                         "user_b_cannot_import_user_a_literature_note": forbidden_import_knowledge.status_code == 404,
+                        "user_b_cannot_create_user_a_followup_note": forbidden_derive_note.status_code == 404,
                         "user_b_cannot_download_user_a_asset": download_b.status_code == 404,
                     },
                     "paper_library": {
@@ -375,6 +418,13 @@ def main() -> int:
                         "knowledge_record_title": knowledge_payload["record"]["title"],
                         "repeat_knowledge_reused_existing_record": repeat_knowledge_response.json()["imported"] is False,
                         "bulk_knowledge_imported_count": bulk_knowledge_response.json()["imported_count"],
+                        "summary_record_id": summary_note_response.json()["record"]["id"],
+                        "summary_record_title": summary_note_response.json()["record"]["title"],
+                        "annotation_record_id": annotation_note_response.json()["record"]["id"],
+                        "annotation_record_title": annotation_note_response.json()["record"]["title"],
+                        "question_record_id": question_note_response.json()["record"]["id"],
+                        "question_record_title": question_note_response.json()["record"]["title"],
+                        "repeat_summary_reused_existing_record": repeat_summary_note_response.json()["imported"] is False,
                         "citation_text": refreshed_entry["citation_text"],
                         "knowledge_capacity_chars_written": len(large_note_content),
                         "knowledge_capacity_chars_read_back": len(capacity_record["content"]),

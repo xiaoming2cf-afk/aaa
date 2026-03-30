@@ -20,6 +20,7 @@ from .entities import (
     EconomicBriefing,
     IntegrationCredential,
     JobRun,
+    KnowledgeRecord,
     LiteratureEntry,
     PublicEconomicBriefing,
     ScheduleJob,
@@ -259,6 +260,27 @@ MACRO_THEME_KEYWORDS = {
     "energy": ["oil", "gas", "energy", "crude", "opec"],
     "markets": ["yield", "bond", "stocks", "equity", "currency", "dollar", "fx"],
 }
+
+LITERATURE_DERIVED_NOTE_SPECS = {
+    "summary": {
+        "id_key": "_workspace_summary_record_id",
+        "title_key": "_workspace_summary_record_title",
+        "title_prefix": "Paper Summary",
+        "tags": ["paper-library", "literature", "summary-note"],
+    },
+    "annotation": {
+        "id_key": "_workspace_annotation_record_id",
+        "title_key": "_workspace_annotation_record_title",
+        "title_prefix": "Paper Annotation Template",
+        "tags": ["paper-library", "literature", "annotation-template"],
+    },
+    "question_breakdown": {
+        "id_key": "_workspace_question_record_id",
+        "title_key": "_workspace_question_record_title",
+        "title_prefix": "Paper Question Breakdown",
+        "tags": ["paper-library", "literature", "question-breakdown"],
+    },
+}
 PUBLIC_NEWS_KEYWORDS = sorted(
     {
         keyword.lower()
@@ -310,6 +332,12 @@ def serialize_literature_entry(entry: LiteratureEntry) -> dict[str, Any]:
     workspace_pdf_asset_title = str((entry.raw_json or {}).get("_workspace_pdf_asset_title") or "").strip()
     workspace_knowledge_record_id = str((entry.raw_json or {}).get("_workspace_knowledge_record_id") or "").strip()
     workspace_knowledge_record_title = str((entry.raw_json or {}).get("_workspace_knowledge_record_title") or "").strip()
+    workspace_summary_record_id = str((entry.raw_json or {}).get("_workspace_summary_record_id") or "").strip()
+    workspace_summary_record_title = str((entry.raw_json or {}).get("_workspace_summary_record_title") or "").strip()
+    workspace_annotation_record_id = str((entry.raw_json or {}).get("_workspace_annotation_record_id") or "").strip()
+    workspace_annotation_record_title = str((entry.raw_json or {}).get("_workspace_annotation_record_title") or "").strip()
+    workspace_question_record_id = str((entry.raw_json or {}).get("_workspace_question_record_id") or "").strip()
+    workspace_question_record_title = str((entry.raw_json or {}).get("_workspace_question_record_title") or "").strip()
     can_import_pdf = bool(str(entry.pdf_url or "").strip() or str(entry.landing_page_url or "").strip())
     return {
         "id": entry.id,
@@ -331,6 +359,12 @@ def serialize_literature_entry(entry: LiteratureEntry) -> dict[str, Any]:
         "workspace_pdf_download_url": f"/api/assets/{workspace_pdf_asset_id}/download" if workspace_pdf_asset_id else "",
         "workspace_knowledge_record_id": workspace_knowledge_record_id,
         "workspace_knowledge_record_title": workspace_knowledge_record_title,
+        "workspace_summary_record_id": workspace_summary_record_id,
+        "workspace_summary_record_title": workspace_summary_record_title,
+        "workspace_annotation_record_id": workspace_annotation_record_id,
+        "workspace_annotation_record_title": workspace_annotation_record_title,
+        "workspace_question_record_id": workspace_question_record_id,
+        "workspace_question_record_title": workspace_question_record_title,
         "citation_text": build_literature_citation(entry),
         "keywords": entry.keywords_json,
         "created_at": entry.created_at.isoformat(),
@@ -1024,6 +1058,203 @@ def build_literature_citation(entry: LiteratureEntry) -> str:
     return " ".join(part for part in parts if part).strip()
 
 
+def _get_literature_note_spec(mode: str) -> dict[str, Any]:
+    spec = LITERATURE_DERIVED_NOTE_SPECS.get(str(mode or "").strip().lower())
+    if not spec:
+        raise ValueError("Unsupported literature note mode.")
+    return spec
+
+
+def _resolve_existing_literature_note(
+    db: Session,
+    *,
+    entry: LiteratureEntry,
+    user: User,
+    workspace: Workspace,
+    mode: str,
+) -> KnowledgeRecord | None:
+    spec = _get_literature_note_spec(mode)
+    record_id = str((entry.raw_json or {}).get(spec["id_key"]) or "").strip()
+    if not record_id:
+        return None
+    record = db.get(KnowledgeRecord, record_id)
+    if not record or record.owner_user_id != user.id or record.workspace_id != workspace.id:
+        return None
+    return record
+
+
+def _store_literature_note_reference(entry: LiteratureEntry, *, mode: str, record: KnowledgeRecord) -> None:
+    spec = _get_literature_note_spec(mode)
+    entry.raw_json = {
+        **(entry.raw_json or {}),
+        spec["id_key"]: record.id,
+        spec["title_key"]: record.title,
+    }
+
+
+def _extract_primary_claims(entry: LiteratureEntry) -> list[str]:
+    candidates = [chunk.strip(" .") for chunk in re.split(r"[.;]", entry.abstract or "") if chunk.strip()]
+    claims = [candidate for candidate in candidates if len(candidate.split()) >= 5][:3]
+    if claims:
+        return claims
+    keywords = [str(keyword).strip() for keyword in entry.keywords_json if str(keyword).strip()]
+    if not keywords:
+        return []
+    return [f"Investigates how {', '.join(keywords[:3])} interact in the paper setting."]
+
+
+def _build_followup_search_terms(entry: LiteratureEntry) -> list[str]:
+    keywords = [str(keyword).strip() for keyword in entry.keywords_json if str(keyword).strip()]
+    title = str(entry.title or "").strip()
+    candidates = []
+    if title:
+        candidates.append(f"{title} identification strategy")
+        candidates.append(f"{title} data appendix")
+    if keywords:
+        joined = " ".join(keywords[:2]).strip()
+        if joined:
+            candidates.append(f"{joined} replication")
+            candidates.append(f"{joined} policy implications")
+    return candidates[:4]
+
+
+def _build_literature_followup_note_content(
+    entry: LiteratureEntry,
+    *,
+    mode: str,
+    base_record: KnowledgeRecord,
+) -> tuple[str, str, list[str], dict[str, Any]]:
+    spec = _get_literature_note_spec(mode)
+    citation_text = build_literature_citation(entry)
+    authors = [str(name).strip() for name in entry.authors_json if str(name).strip()]
+    claims = _extract_primary_claims(entry)
+    keywords = [str(keyword).strip() for keyword in entry.keywords_json if str(keyword).strip()]
+    abstract = entry.abstract or "No abstract available. Review the original paper manually."
+    title = f"{spec['title_prefix']}: {entry.title}"
+
+    if mode == "summary":
+        lines = [
+            f"# {title}",
+            "",
+            "## Paper in one sentence",
+            "",
+            truncate_text(abstract, 320),
+            "",
+            "## Core contribution",
+            "",
+            *([f"- {claim}" for claim in claims] if claims else ["- Verify the paper's core contribution manually from the introduction and conclusion."]),
+            "",
+            "## Evidence to verify manually",
+            "",
+            "- What is the main outcome variable?",
+            "- What is the main explanatory variable or shock?",
+            "- What sample period and sample selection rules does the paper use?",
+            "- What identification strategy or model does the paper rely on?",
+            "",
+            "## Citation",
+            "",
+            citation_text,
+            "",
+            "## Traceability",
+            "",
+            f"- Source note: {base_record.title}",
+            f"- OpenAlex ID: {entry.openalex_id}",
+            f"- DOI: {entry.doi or 'n/a'}",
+        ]
+    elif mode == "annotation":
+        lines = [
+            f"# {title}",
+            "",
+            "## Reading purpose",
+            "",
+            "- Why is this paper relevant to your research question?",
+            "- Which section is worth close reading first?",
+            "",
+            "## Claims to annotate",
+            "",
+            *([f"- {claim}" for claim in claims] if claims else ["- Mark the paper's central claim in the abstract and introduction."]),
+            "",
+            "## Variable and data notes",
+            "",
+            "- Outcome variables:",
+            "- Treatment / shock / exposure variables:",
+            "- Control variables:",
+            "- Sample period and unit of observation:",
+            "",
+            "## Identification and assumptions",
+            "",
+            "- What assumptions make the design credible?",
+            "- What robustness checks are reported?",
+            "- Which threats to identification remain?",
+            "",
+            "## Quotations / page notes",
+            "",
+            "- p.__ :",
+            "- p.__ :",
+            "- p.__ :",
+            "",
+            "## Traceability",
+            "",
+            f"- Source note: {base_record.title}",
+            f"- Citation: {citation_text}",
+        ]
+    else:
+        lines = [
+            f"# {title}",
+            "",
+            "## Central research question",
+            "",
+            f"- {truncate_text(abstract, 260)}",
+            "",
+            "## Sub-questions to inspect",
+            "",
+            "- Which mechanism links the key explanatory variable to the outcome?",
+            "- What empirical margin or sample split matters most?",
+            "- Which alternative explanations must be ruled out?",
+            "",
+            "## Variable checklist",
+            "",
+            "- Outcome variable(s):",
+            "- Treatment / shock / exposure:",
+            "- Control variables:",
+            "- Fixed effects / grouping variables:",
+            "",
+            "## Replication checklist",
+            "",
+            "- Locate the final regression specification in the paper.",
+            "- Confirm the reported sample size and unit of observation.",
+            "- Record the baseline table/figure numbers to reproduce.",
+            "",
+            "## Follow-up searches",
+            "",
+            *([f"- {query}" for query in _build_followup_search_terms(entry)] or ["- Add related follow-up search queries here."]),
+            "",
+            "## Traceability",
+            "",
+            f"- Source note: {base_record.title}",
+            f"- Keywords: {', '.join(keywords) if keywords else 'n/a'}",
+            f"- Authors: {', '.join(authors) if authors else 'n/a'}",
+        ]
+
+    metadata = {
+        "source_type": "paper_library",
+        "derivative_mode": mode,
+        "literature_entry_id": entry.id,
+        "openalex_id": entry.openalex_id,
+        "base_knowledge_record_id": base_record.id,
+        "base_knowledge_record_title": base_record.title,
+        "citation_text": citation_text,
+        "doi": entry.doi,
+        "publication_year": entry.publication_year,
+        "venue": entry.venue,
+        "authors": authors,
+        "pdf_url": entry.pdf_url,
+        "landing_page_url": entry.landing_page_url,
+        "keywords": keywords,
+    }
+    return title, "\n".join(lines).strip(), list(spec["tags"]), metadata
+
+
 def _extract_pdf_urls_from_html(html_text: str, *, base_url: str) -> list[str]:
     candidates: list[str] = []
     patterns = [
@@ -1412,6 +1643,78 @@ def import_literature_knowledge_records(
         "failed_count": len(failed),
         "imported": imported,
         "failed": failed,
+    }
+
+
+def create_literature_followup_note(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    literature_entry_id: str,
+    mode: str,
+) -> dict[str, Any]:
+    normalized_mode = str(mode or "").strip().lower()
+    spec = _get_literature_note_spec(normalized_mode)
+    entry = db.get(LiteratureEntry, literature_entry_id)
+    if not entry or entry.owner_user_id != user.id or entry.workspace_id != workspace.id:
+        raise FileNotFoundError("Literature entry not found.")
+
+    existing_record = _resolve_existing_literature_note(
+        db,
+        entry=entry,
+        user=user,
+        workspace=workspace,
+        mode=normalized_mode,
+    )
+    if existing_record:
+        return {
+            "entry": serialize_literature_entry(entry),
+            "record": {
+                "id": existing_record.id,
+                "title": existing_record.title,
+                "created_at": existing_record.created_at.isoformat(),
+            },
+            "mode": normalized_mode,
+            "imported": False,
+        }
+
+    base_note_payload = import_literature_knowledge_record(
+        db,
+        user=user,
+        workspace=workspace,
+        literature_entry_id=literature_entry_id,
+    )
+    base_record = db.get(KnowledgeRecord, base_note_payload["record"]["id"])
+    if not base_record or base_record.owner_user_id != user.id or base_record.workspace_id != workspace.id:
+        raise FileNotFoundError("Base knowledge record not found.")
+
+    title, content, tags, metadata = _build_literature_followup_note_content(
+        entry,
+        mode=normalized_mode,
+        base_record=base_record,
+    )
+    record = create_knowledge_record(
+        db,
+        user=user,
+        workspace=workspace,
+        title=title,
+        content=content,
+        tags=tags,
+        metadata=metadata,
+    )
+    _store_literature_note_reference(entry, mode=normalized_mode, record=record)
+    db.flush()
+    return {
+        "entry": serialize_literature_entry(entry),
+        "record": {
+            "id": record.id,
+            "title": record.title,
+            "created_at": record.created_at.isoformat(),
+        },
+        "mode": normalized_mode,
+        "mode_label": spec["title_prefix"],
+        "imported": True,
     }
 
 

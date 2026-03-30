@@ -576,6 +576,45 @@ button.secondary,
   background: rgba(255, 255, 255, 0.5);
 }
 
+.literature-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+
+.literature-status-card {
+  border: 1px solid rgba(12, 36, 28, 0.1);
+  border-radius: 0.9rem;
+  padding: 0.85rem;
+  background: rgba(248, 247, 242, 0.88);
+  display: grid;
+  gap: 0.45rem;
+}
+
+.literature-status-card strong {
+  font-size: 0.95rem;
+}
+
+.knowledge-card.is-highlighted {
+  border-color: rgba(11, 95, 69, 0.4);
+  box-shadow: 0 0 0 2px rgba(11, 95, 69, 0.12);
+  background: rgba(236, 247, 242, 0.82);
+}
+
+.markdown-body {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.markdown-body > :first-child {
+  margin-top: 0;
+}
+
+.markdown-body > :last-child {
+  margin-bottom: 0;
+}
+
 .card-preview {
   min-height: 100%;
 }
@@ -1074,6 +1113,10 @@ button.secondary,
   }
 
   .summary-page-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .literature-status-grid {
     grid-template-columns: 1fr;
   }
 

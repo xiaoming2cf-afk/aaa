@@ -57,6 +57,7 @@ from .provider_catalog import get_provider_catalog
 from .platform_research import (
     build_named_public_summary,
     build_public_briefing_summary,
+    create_literature_followup_note,
     create_schedule_job,
     ensure_public_daily_briefing,
     generate_economic_briefing,
@@ -133,6 +134,10 @@ class OpenAlexImportRequest(BaseModel):
 
 class LiteratureBatchRequest(BaseModel):
     entry_ids: list[str] = Field(default_factory=list)
+
+
+class LiteratureDerivedNoteRequest(BaseModel):
+    mode: str = Field(min_length=2, max_length=60)
 
 
 class BriefingCreateRequest(BaseModel):
@@ -1226,6 +1231,29 @@ def create_app() -> FastAPI:
                     user=user,
                     workspace=workspace,
                     literature_entry_ids=request.entry_ids,
+                )
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/literature/{literature_entry_id}/derive-note")
+    def derive_literature_note(
+        workspace_id: str,
+        literature_entry_id: str,
+        request: LiteratureDerivedNoteRequest,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return create_literature_followup_note(
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    literature_entry_id=literature_entry_id,
+                    mode=request.mode,
                 )
         except Exception as exc:
             _raise_http_error(exc)

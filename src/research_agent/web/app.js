@@ -1879,17 +1879,46 @@ function renderLiterature(items) {
           <p>${escapeHtml(item.venue || "Unknown venue")} | ${escapeHtml(item.publication_year || "n/a")}</p>
           <p class="compact-note">${escapeHtml(item.citation_text || "")}</p>
           <p class="compact-note">${escapeHtml(item.abstract_excerpt || item.abstract || "")}</p>
-          <div class="actions">
+          <div class="actions compact-actions">
             ${item.landing_page_url ? `<a class="action-link" href="${escapeHtml(item.landing_page_url)}" target="_blank" rel="noreferrer">Source page</a>` : ""}
             ${item.pdf_url ? `<a class="action-link" href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noreferrer">Open OA PDF</a>` : ""}
             ${item.has_open_access_pdf && !item.workspace_pdf_asset_id ? `<button type="button" class="secondary" data-import-literature-pdf="${item.id}">Import PDF</button>` : ""}
             ${item.workspace_pdf_asset_id ? `<button type="button" class="secondary" data-download-literature-asset="${item.workspace_pdf_asset_id}">Download private copy</button>` : ""}
             ${!item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-import-literature-knowledge="${item.id}">Save to knowledge base</button>` : ""}
           </div>
-          <p class="compact-note muted">
-            ${item.workspace_pdf_asset_id ? `Private workspace copy saved as ${escapeHtml(item.workspace_pdf_asset_title || "paper PDF")}.` : item.has_open_access_pdf ? "Open-access PDF available for private import." : "No direct open-access PDF exposed by this entry."}
-          </p>
-          ${item.workspace_knowledge_record_id ? `<p class="compact-note muted">Knowledge note saved as ${escapeHtml(item.workspace_knowledge_record_title || "paper note")}.</p>` : ""}
+          <div class="literature-status-grid">
+            <article class="literature-status-card">
+              <p class="eyebrow eyebrow-compact">Private PDF</p>
+              <strong>${item.workspace_pdf_asset_id ? "Imported" : item.has_open_access_pdf ? "Available" : "Unavailable"}</strong>
+              <p class="compact-note muted">
+                ${item.workspace_pdf_asset_id ? `Saved as ${escapeHtml(item.workspace_pdf_asset_title || "paper PDF")}.` : item.has_open_access_pdf ? "Open-access source is available for import." : "No downloadable OA source exposed by this entry."}
+              </p>
+            </article>
+            <article class="literature-status-card">
+              <p class="eyebrow eyebrow-compact">Paper Note</p>
+              <strong>${item.workspace_knowledge_record_id ? "Ready" : "Missing"}</strong>
+              <p class="compact-note muted">${item.workspace_knowledge_record_id ? escapeHtml(item.workspace_knowledge_record_title || "Paper note") : "Create the base note before generating follow-up notes."}</p>
+              ${item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${item.workspace_knowledge_record_id}">Open note</button>` : ""}
+            </article>
+            <article class="literature-status-card">
+              <p class="eyebrow eyebrow-compact">Summary</p>
+              <strong>${item.workspace_summary_record_id ? "Ready" : item.workspace_knowledge_record_id ? "Not created" : "Locked"}</strong>
+              <p class="compact-note muted">${item.workspace_summary_record_id ? escapeHtml(item.workspace_summary_record_title || "Summary note") : item.workspace_knowledge_record_id ? "Create a concise private summary note." : "Requires the base paper note first."}</p>
+              ${item.workspace_summary_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${item.workspace_summary_record_id}">Open summary</button>` : item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-derive-literature-note="${item.id}" data-derive-literature-mode="summary">Create summary note</button>` : ""}
+            </article>
+            <article class="literature-status-card">
+              <p class="eyebrow eyebrow-compact">Annotation</p>
+              <strong>${item.workspace_annotation_record_id ? "Ready" : item.workspace_knowledge_record_id ? "Not created" : "Locked"}</strong>
+              <p class="compact-note muted">${item.workspace_annotation_record_id ? escapeHtml(item.workspace_annotation_record_title || "Annotation template") : item.workspace_knowledge_record_id ? "Prepare a reading and margin-note template." : "Requires the base paper note first."}</p>
+              ${item.workspace_annotation_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${item.workspace_annotation_record_id}">Open annotation</button>` : item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-derive-literature-note="${item.id}" data-derive-literature-mode="annotation">Create annotation template</button>` : ""}
+            </article>
+            <article class="literature-status-card">
+              <p class="eyebrow eyebrow-compact">Question Breakdown</p>
+              <strong>${item.workspace_question_record_id ? "Ready" : item.workspace_knowledge_record_id ? "Not created" : "Locked"}</strong>
+              <p class="compact-note muted">${item.workspace_question_record_id ? escapeHtml(item.workspace_question_record_title || "Question breakdown") : item.workspace_knowledge_record_id ? "Split the paper into variables, checks, and follow-up questions." : "Requires the base paper note first."}</p>
+              ${item.workspace_question_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${item.workspace_question_record_id}">Open questions</button>` : item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-derive-literature-note="${item.id}" data-derive-literature-mode="question_breakdown">Create question breakdown</button>` : ""}
+            </article>
+          </div>
         </div>
       `,
     )
@@ -1941,15 +1970,37 @@ function renderKnowledge(items) {
   dom.knowledgeList.innerHTML = items
     .map(
       (item) => `
-        <div class="card">
+        <div class="card knowledge-card" data-knowledge-record-id="${escapeHtml(item.id)}">
           <h4>${escapeHtml(item.title)}</h4>
-          <p>${escapeHtml((item.tags || []).join(", ")) || "No tags"}</p>
-          <p>${escapeHtml(item.content)}</p>
+          <p class="compact-note">${escapeHtml((item.tags || []).join(", ")) || "No tags"}</p>
+          <p class="compact-note muted">${escapeHtml(truncateText(item.content || "", 220)) || "No note body."}</p>
+          <details class="result-json-toggle">
+            <summary>Open note</summary>
+            <div class="markdown-body">${markdownToHtml(item.content || "")}</div>
+          </details>
         </div>
       `,
     )
     .join("");
   renderModelHistory(modelHistoryItems());
+}
+
+function focusKnowledgeRecord(recordId) {
+  if (!recordId || !dom.knowledgeList) {
+    return false;
+  }
+  const selector = `[data-knowledge-record-id="${String(recordId).replaceAll('"', '\\"')}"]`;
+  const target = dom.knowledgeList.querySelector(selector);
+  if (!target) {
+    dom.knowledgeList.scrollIntoView({ behavior: "smooth", block: "start" });
+    return false;
+  }
+  dom.knowledgeList.querySelectorAll(".knowledge-card.is-highlighted").forEach((node) => node.classList.remove("is-highlighted"));
+  target.classList.add("is-highlighted");
+  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  window.clearTimeout(focusKnowledgeRecord.timer);
+  focusKnowledgeRecord.timer = window.setTimeout(() => target.classList.remove("is-highlighted"), 2200);
+  return true;
 }
 
 function renderSchedules(items) {
@@ -3857,7 +3908,7 @@ async function handleAssetActions(event) {
 }
 
 async function handleLiteratureActions(event) {
-  const target = event.target.closest("[data-import-literature-pdf], [data-download-literature-asset], [data-import-literature-knowledge]");
+  const target = event.target.closest("[data-import-literature-pdf], [data-download-literature-asset], [data-import-literature-knowledge], [data-derive-literature-note], [data-open-knowledge-record]");
   if (!target) {
     return;
   }
@@ -3865,6 +3916,14 @@ async function handleLiteratureActions(event) {
   const importId = target.getAttribute("data-import-literature-pdf");
   const downloadId = target.getAttribute("data-download-literature-asset");
   const knowledgeId = target.getAttribute("data-import-literature-knowledge");
+  const deriveId = target.getAttribute("data-derive-literature-note");
+  const deriveMode = target.getAttribute("data-derive-literature-mode");
+  const openKnowledgeId = target.getAttribute("data-open-knowledge-record");
+  if (openKnowledgeId) {
+    const found = focusKnowledgeRecord(openKnowledgeId);
+    showToast(found ? "Scrolled to the private note." : "Private note list is loaded below.");
+    return;
+  }
   if (importId) {
     const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/literature/${importId}/import-pdf`, {
       method: "POST",
@@ -3886,6 +3945,18 @@ async function handleLiteratureActions(event) {
     await refreshWorkspaceData();
     const recordTitle = response.record?.title || response.entry?.workspace_knowledge_record_title || "paper note";
     showToast(`${response.imported === false ? "Knowledge note already exists" : "Saved to knowledge base"}: ${recordTitle}`);
+    return;
+  }
+  if (deriveId && deriveMode) {
+    const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/literature/${deriveId}/derive-note`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: deriveMode }),
+    });
+    await refreshWorkspaceData();
+    const recordTitle = response.record?.title || "derived note";
+    showToast(`${response.imported === false ? "Follow-up note already exists" : "Follow-up note created"}: ${recordTitle}`);
+    focusKnowledgeRecord(response.record?.id || "");
   }
 }
 
