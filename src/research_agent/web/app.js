@@ -17,8 +17,10 @@ const state = {
   knowledgeDetails: {},
   selectedKnowledgeRecordId: "",
   knowledgeSearchQuery: "",
+  knowledgeStatusFilter: "active",
   knowledgeTypeFilter: "all",
   knowledgeTagFilter: "all",
+  editingKnowledgeRecordId: "",
   assetProfiles: {},
   selectedAnalysisAssetId: "",
   currentPlotAssetId: "",
@@ -259,6 +261,7 @@ const dom = {
   cockpitStepGrid: document.getElementById("cockpit-step-grid"),
   cockpitActionList: document.getElementById("cockpit-action-list"),
   cockpitActivityList: document.getElementById("cockpit-activity-list"),
+  cockpitFlowList: document.getElementById("cockpit-flow-list"),
   integrationList: document.getElementById("integration-list"),
   integrationProviderHint: document.getElementById("integration-provider-hint"),
   integrationProviderDocs: document.getElementById("integration-provider-docs"),
@@ -270,10 +273,15 @@ const dom = {
   knowledgeSummaryGrid: document.getElementById("knowledge-summary-grid"),
   knowledgeSearchForm: document.getElementById("knowledge-search-form"),
   knowledgeSearchInput: document.getElementById("knowledge-search-input"),
+  knowledgeStatusFilter: document.getElementById("knowledge-status-filter"),
   knowledgeTypeFilter: document.getElementById("knowledge-type-filter"),
   knowledgeTagFilter: document.getElementById("knowledge-tag-filter"),
   knowledgeResetButton: document.getElementById("knowledge-reset-button"),
   knowledgePreview: document.getElementById("knowledge-preview"),
+  knowledgeFormTitle: document.getElementById("knowledge-form-title"),
+  knowledgeFormStatus: document.getElementById("knowledge-form-status"),
+  knowledgeSubmitButton: document.getElementById("knowledge-submit-button"),
+  knowledgeCancelButton: document.getElementById("knowledge-cancel-button"),
   scheduleList: document.getElementById("schedule-list"),
   analysisAssetSelect: document.getElementById("analysis-asset-select"),
   refreshAssetProfileButton: document.getElementById("refresh-asset-profile"),
@@ -1184,6 +1192,13 @@ function buildKnowledgeTypeOptions(items) {
 function filteredKnowledgeItems(items = state.workspaceKnowledge) {
   const query = String(state.knowledgeSearchQuery || "").trim().toLowerCase();
   return [...(items || [])].filter((item) => {
+    const archived = isKnowledgeArchived(item);
+    if (state.knowledgeStatusFilter === "active" && archived) {
+      return false;
+    }
+    if (state.knowledgeStatusFilter === "archived" && !archived) {
+      return false;
+    }
     const typeSpec = knowledgeTypeSpec(item);
     if (state.knowledgeTypeFilter !== "all" && typeSpec.key !== state.knowledgeTypeFilter) {
       return false;
@@ -1215,7 +1230,80 @@ function mergeKnowledgeRecord(recordId) {
   };
 }
 
+function isKnowledgeArchived(item) {
+  return Boolean(item?.is_archived);
+}
+
+function resetKnowledgeComposer() {
+  const knowledgeForm = document.getElementById("knowledge-form");
+  if (!knowledgeForm) {
+    return;
+  }
+  knowledgeForm.reset();
+  delete knowledgeForm.dataset.template;
+  state.editingKnowledgeRecordId = "";
+  const recordIdField = knowledgeForm.elements.namedItem("record_id");
+  if (recordIdField) {
+    recordIdField.value = "";
+  }
+  if (dom.knowledgeFormTitle) {
+    dom.knowledgeFormTitle.textContent = "Create note";
+  }
+  if (dom.knowledgeFormStatus) {
+    dom.knowledgeFormStatus.textContent = "Save a new private workspace note or use a template as a starting point.";
+  }
+  if (dom.knowledgeSubmitButton) {
+    dom.knowledgeSubmitButton.textContent = "Save note";
+  }
+  toggleHidden(dom.knowledgeCancelButton, true);
+}
+
+async function startKnowledgeEdit(recordId) {
+  const knowledgeForm = document.getElementById("knowledge-form");
+  if (!knowledgeForm || !recordId) {
+    return false;
+  }
+  const record = mergeKnowledgeRecord(recordId)?.content ? mergeKnowledgeRecord(recordId) : await loadKnowledgeDetail(recordId);
+  if (!record) {
+    return false;
+  }
+  state.editingKnowledgeRecordId = recordId;
+  const recordIdField = knowledgeForm.elements.namedItem("record_id");
+  const titleField = knowledgeForm.elements.namedItem("title");
+  const tagsField = knowledgeForm.elements.namedItem("tags");
+  const contentField = knowledgeForm.elements.namedItem("content");
+  if (recordIdField) {
+    recordIdField.value = record.id;
+  }
+  if (titleField) {
+    titleField.value = record.title || "";
+  }
+  if (tagsField) {
+    tagsField.value = (record.tags || []).join(", ");
+  }
+  if (contentField) {
+    contentField.value = record.content || "";
+  }
+  if (dom.knowledgeFormTitle) {
+    dom.knowledgeFormTitle.textContent = "Edit note";
+  }
+  if (dom.knowledgeFormStatus) {
+    dom.knowledgeFormStatus.textContent = isKnowledgeArchived(record)
+      ? "This archived note is loaded for editing. Restore it if you want it back in the default active view."
+      : "Update the selected private note. Metadata and related links are preserved unless you explicitly change them.";
+  }
+  if (dom.knowledgeSubmitButton) {
+    dom.knowledgeSubmitButton.textContent = "Update note";
+  }
+  toggleHidden(dom.knowledgeCancelButton, false);
+  focusKnowledgeRecord(recordId);
+  return true;
+}
+
 function renderKnowledgeFilterOptions(items) {
+  if (dom.knowledgeStatusFilter) {
+    dom.knowledgeStatusFilter.value = state.knowledgeStatusFilter;
+  }
   const typeOptions = buildKnowledgeTypeOptions(items);
   if (!typeOptions.some((option) => option.value === state.knowledgeTypeFilter)) {
     state.knowledgeTypeFilter = "all";
@@ -1259,6 +1347,7 @@ function renderKnowledgeSummary(items, filteredItems) {
     const spec = knowledgeTypeSpec(item);
     typeCounts.set(spec.label, (typeCounts.get(spec.label) || 0) + 1);
   });
+  const archivedCount = items.filter((item) => isKnowledgeArchived(item)).length;
   const topTags = collectKnowledgeTags(items).slice(0, 4);
   const latestItem = [...items].sort((left, right) => new Date(right.updated_at || right.created_at || 0) - new Date(left.updated_at || left.created_at || 0))[0];
   dom.knowledgeSummaryGrid.innerHTML = `
@@ -1271,6 +1360,11 @@ function renderKnowledgeSummary(items, filteredItems) {
       <span>Visible after filters</span>
       <strong>${escapeHtml(filteredItems.length)}</strong>
       <p class="muted">Current search and filter output for this workspace.</p>
+    </article>
+    <article class="knowledge-summary-card">
+      <span>Archived notes</span>
+      <strong>${escapeHtml(archivedCount)}</strong>
+      <p class="muted">Hidden from the default active view until restored.</p>
     </article>
     <article class="knowledge-summary-card">
       <span>Top note types</span>
@@ -1296,6 +1390,7 @@ function renderKnowledgePreview(record, { loading = false } = {}) {
   const typeSpec = knowledgeTypeSpec(record);
   const metadata = record.metadata || {};
   const tags = (record.tags || []).filter(Boolean);
+  const archived = isKnowledgeArchived(record);
   const relatedLinks = [];
   if (typeSpec.relatedPath) {
     relatedLinks.push(`<a href="${escapeHtml(typeSpec.relatedPath)}" class="button-link secondary-link">Open related detail</a>`);
@@ -1310,13 +1405,16 @@ function renderKnowledgePreview(record, { loading = false } = {}) {
     relatedLinks.push(`<button type="button" class="secondary" data-scroll-target="private-briefing-panel">Jump to briefings</button>`);
   }
   dom.knowledgePreview.innerHTML = `
-    <article class="card knowledge-preview-card">
+    <article class="card knowledge-preview-card${archived ? " is-archived" : ""}">
       <div class="panel-head panel-head-wrap">
         <div>
           <p class="eyebrow eyebrow-compact">${escapeHtml(typeSpec.label)}</p>
           <h3>${escapeHtml(record.title || "Untitled note")}</h3>
         </div>
-        <span class="pill">${escapeHtml(prettyDate(record.updated_at || record.created_at))}</span>
+        <div class="chip-row chip-row-compact">
+          ${archived ? `<span class="pill pill-archived">Archived</span>` : ""}
+          <span class="pill">${escapeHtml(prettyDate(record.updated_at || record.created_at))}</span>
+        </div>
       </div>
       <p class="muted">${escapeHtml(typeSpec.description || "Private knowledge record")}</p>
       <div class="chip-row chip-row-compact">
@@ -1324,10 +1422,18 @@ function renderKnowledgePreview(record, { loading = false } = {}) {
         ${(tags || []).slice(0, 6).map((tag) => `<span class="topic-chip">${escapeHtml(tag)}</span>`).join("")}
       </div>
       <div class="actions compact-actions">
+        <button type="button" class="secondary" data-edit-knowledge="${escapeHtml(record.id)}">Edit</button>
+        <button type="button" class="secondary" data-${archived ? "restore" : "archive"}-knowledge="${escapeHtml(record.id)}">${archived ? "Restore" : "Archive"}</button>
+        <button type="button" class="secondary danger" data-delete-knowledge="${escapeHtml(record.id)}">Delete</button>
         <button type="button" class="secondary" data-copy-knowledge-markdown="${escapeHtml(record.id)}">Copy markdown</button>
         <button type="button" class="secondary" data-download-knowledge-markdown="${escapeHtml(record.id)}">Download .md</button>
         ${relatedLinks.join("")}
       </div>
+      ${
+        archived
+          ? `<p class="compact-note muted">Archived ${escapeHtml(prettyDate(record.archived_at || record.updated_at))}${record.archived_reason ? ` | ${escapeHtml(record.archived_reason)}` : ""}</p>`
+          : ""
+      }
       ${
         loading
           ? `<p class="muted">Loading full note body...</p>`
@@ -1342,7 +1448,7 @@ function renderKnowledgePreview(record, { loading = false } = {}) {
 }
 
 function renderWorkspaceCockpit() {
-  if (!dom.cockpitWorkspaceName || !dom.cockpitStatGrid || !dom.cockpitStepGrid || !dom.cockpitActionList || !dom.cockpitActivityList) {
+  if (!dom.cockpitWorkspaceName || !dom.cockpitStatGrid || !dom.cockpitStepGrid || !dom.cockpitActionList || !dom.cockpitActivityList || !dom.cockpitFlowList) {
     return;
   }
   const workspace = currentWorkspace();
@@ -1402,6 +1508,7 @@ function renderWorkspaceCockpit() {
       <a href="/data-lab" class="button-link secondary-link">Open standalone Data Lab</a>
     `;
     dom.cockpitActivityList.innerHTML = emptyCard("No private workspace activity yet.");
+    dom.cockpitFlowList.innerHTML = emptyCard("Sign in and select a workspace to unlock guided cross-module flows.");
     return;
   }
   const nextAction = !stats.providers
@@ -1554,6 +1661,82 @@ function renderWorkspaceCockpit() {
         )
         .join("")
     : emptyCard("Generate a briefing, import papers, or create notes to populate the cockpit activity rail.");
+
+  const latestBriefing = state.privateBriefings[0] || null;
+  const latestPaper = state.literatureEntries[0] || null;
+  const latestDataset = state.workspaceAssets.find((item) => String(item.kind || "").startsWith("dataset")) || null;
+  const latestModelNote = modelHistoryItems()[0] || null;
+  const flowCards = [
+    latestBriefing
+      ? {
+          title: "Briefing -> Knowledge",
+          copy: latestBriefing.workspace_knowledge_record_id
+            ? "The latest private briefing is already reusable as a knowledge note."
+            : "Capture the latest private briefing into the knowledge base for later synthesis and citation.",
+          actions: latestBriefing.workspace_knowledge_record_id
+            ? [
+                `<button type="button" class="button-link secondary-link" data-open-knowledge-record="${escapeHtml(latestBriefing.workspace_knowledge_record_id)}">Open briefing note</button>`,
+                `<button type="button" class="button-link secondary-link" data-scroll-target="private-briefing-panel">Open briefing module</button>`,
+              ]
+            : [
+                `<button type="button" class="button-link" data-import-briefing-knowledge="${escapeHtml(latestBriefing.id)}">Save briefing note</button>`,
+                `<button type="button" class="button-link secondary-link" data-scroll-target="private-briefing-panel">Open briefing module</button>`,
+              ],
+        }
+      : null,
+    latestPaper
+      ? {
+          title: "Paper Library -> Knowledge",
+          copy: latestPaper.workspace_knowledge_record_id
+            ? "The latest imported paper already has a base note and can branch into summary or annotation notes."
+            : "Turn the latest paper into a private knowledge note before generating annotations or question lists.",
+          actions: latestPaper.workspace_knowledge_record_id
+            ? [
+                `<button type="button" class="button-link secondary-link" data-open-knowledge-record="${escapeHtml(latestPaper.workspace_knowledge_record_id)}">Open paper note</button>`,
+                `<button type="button" class="button-link secondary-link" data-scroll-target="paper-library-panel">Open paper library</button>`,
+              ]
+            : [
+                `<button type="button" class="button-link" data-import-literature-knowledge="${escapeHtml(latestPaper.id)}">Create paper note</button>`,
+                `<button type="button" class="button-link secondary-link" data-scroll-target="paper-library-panel">Open paper library</button>`,
+              ],
+        }
+      : null,
+    latestDataset
+      ? {
+          title: "Dataset -> Data Lab",
+          copy: `Latest dataset: ${latestDataset.title}. Move into the standalone Data Lab for profiling, processing, and model runs.`,
+          actions: [
+            `<a href="/data-lab" class="button-link">Open Data Lab</a>`,
+            `<button type="button" class="button-link secondary-link" data-scroll-target="data-lab-entry-panel">Review Data Lab entry</button>`,
+          ],
+        }
+      : null,
+    latestModelNote
+      ? {
+          title: "Model Result -> Verification",
+          copy: "The latest model output already lives in the knowledge base. Open the linked result page or inspect the note.",
+          actions: [
+            latestModelNote.metadata?.result_detail_path
+              ? `<a href="${escapeHtml(latestModelNote.metadata.result_detail_path)}" class="button-link">Open result detail</a>`
+              : `<button type="button" class="button-link secondary-link" data-scroll-target="knowledge-base-panel">Open knowledge base</button>`,
+            `<button type="button" class="button-link secondary-link" data-open-knowledge-record="${escapeHtml(latestModelNote.id)}">Open model note</button>`,
+          ],
+        }
+      : null,
+  ].filter(Boolean);
+  dom.cockpitFlowList.innerHTML = flowCards.length
+    ? flowCards
+        .map(
+          (item) => `
+            <article class="card cockpit-flow-card">
+              <h4>${escapeHtml(item.title)}</h4>
+              <p class="compact-note muted">${escapeHtml(item.copy)}</p>
+              <div class="actions compact-actions">${item.actions.join("")}</div>
+            </article>
+          `,
+        )
+        .join("")
+    : emptyCard("Import at least one briefing, paper, or dataset to unlock guided cross-module flows.");
 }
 
 function setWorkflowStep(card, textNode, stateName, copy) {
@@ -2189,8 +2372,11 @@ function clearPrivateLists() {
   state.knowledgeDetails = {};
   state.selectedKnowledgeRecordId = "";
   state.knowledgeSearchQuery = "";
+  state.knowledgeStatusFilter = "active";
   state.knowledgeTypeFilter = "all";
   state.knowledgeTagFilter = "all";
+  state.editingKnowledgeRecordId = "";
+  resetKnowledgeComposer();
   if (dom.integrationList) {
     dom.integrationList.innerHTML = emptyCard("Log in to view saved provider connections.");
   }
@@ -2433,6 +2619,14 @@ function renderBriefings(items) {
           <h4>${escapeHtml(item.title)}</h4>
           <p>${escapeHtml(prettyDate(item.created_at))}</p>
           <pre>${escapeHtml(item.summary_markdown)}</pre>
+          <div class="literature-status-grid">
+            <article class="literature-status-card">
+              <p class="eyebrow eyebrow-compact">Knowledge Link</p>
+              <strong>${item.workspace_knowledge_record_id ? "Ready" : "Missing"}</strong>
+              <p class="compact-note muted">${item.workspace_knowledge_record_id ? escapeHtml(item.workspace_knowledge_record_title || "Briefing note") : "Capture this briefing in the private knowledge base to reuse it elsewhere."}</p>
+              ${item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${item.workspace_knowledge_record_id}">Open note</button>` : `<button type="button" class="secondary" data-import-briefing-knowledge="${item.id}">Save to knowledge base</button>`}
+            </article>
+          </div>
         </div>
       `,
     )
@@ -2585,14 +2779,18 @@ function renderKnowledge(items) {
         const typeSpec = knowledgeTypeSpec(item);
         const selected = item.id === state.selectedKnowledgeRecordId;
         const relatedPath = typeSpec.relatedPath || "";
+        const archived = isKnowledgeArchived(item);
         return `
-          <article class="card knowledge-card${selected ? " is-selected" : ""}" data-knowledge-record-id="${escapeHtml(item.id)}">
+          <article class="card knowledge-card${selected ? " is-selected" : ""}${archived ? " is-archived" : ""}" data-knowledge-record-id="${escapeHtml(item.id)}">
             <div class="panel-head panel-head-wrap">
               <div>
                 <h4>${escapeHtml(item.title)}</h4>
                 <p class="compact-note">${escapeHtml(typeSpec.label)} | ${escapeHtml(prettyDate(item.updated_at || item.created_at))}</p>
               </div>
-              <span class="pill">${escapeHtml(item.content_length || 0)} chars</span>
+              <div class="chip-row chip-row-compact">
+                ${archived ? `<span class="pill pill-archived">Archived</span>` : ""}
+                <span class="pill">${escapeHtml(item.content_length || 0)} chars</span>
+              </div>
             </div>
             <div class="chip-row chip-row-compact">
               ${(item.tags || []).slice(0, 5).map((tag) => `<span class="topic-chip">${escapeHtml(tag)}</span>`).join("") || `<span class="muted">No tags</span>`}
@@ -2600,8 +2798,9 @@ function renderKnowledge(items) {
             <p class="compact-note muted">${escapeHtml(item.content_excerpt || "No note body.")}</p>
             <div class="actions compact-actions">
               <button type="button" class="secondary" data-select-knowledge="${escapeHtml(item.id)}">Preview</button>
-              <button type="button" class="secondary" data-copy-knowledge-markdown="${escapeHtml(item.id)}">Copy</button>
-              <button type="button" class="secondary" data-download-knowledge-markdown="${escapeHtml(item.id)}">Download</button>
+              <button type="button" class="secondary" data-edit-knowledge="${escapeHtml(item.id)}">Edit</button>
+              <button type="button" class="secondary" data-${archived ? "restore" : "archive"}-knowledge="${escapeHtml(item.id)}">${archived ? "Restore" : "Archive"}</button>
+              <button type="button" class="secondary danger" data-delete-knowledge="${escapeHtml(item.id)}">Delete</button>
               ${relatedPath ? `<a href="${escapeHtml(relatedPath)}" class="action-link">Open related detail</a>` : ""}
             </div>
           </article>
@@ -2645,6 +2844,7 @@ function focusKnowledgeRecord(recordId) {
   }
   if (!filteredKnowledgeItems(state.workspaceKnowledge).some((item) => item.id === recordId)) {
     state.knowledgeSearchQuery = "";
+    state.knowledgeStatusFilter = "all";
     state.knowledgeTypeFilter = "all";
     state.knowledgeTagFilter = "all";
   }
@@ -3928,7 +4128,7 @@ async function refreshWorkspaceData() {
     api(`/api/workspaces/${workspaceId}/briefings`),
     api(`/api/workspaces/${workspaceId}/literature`),
     api(`/api/workspaces/${workspaceId}/assets`),
-    api(`/api/workspaces/${workspaceId}/knowledge?view=summary`),
+    api(`/api/workspaces/${workspaceId}/knowledge?view=summary&status=all`),
     api(`/api/workspaces/${workspaceId}/schedules`),
   ]);
   state.knowledgeDetails = Object.fromEntries(
@@ -4102,12 +4302,17 @@ async function handleKnowledge(event) {
   ensureWorkspace();
   const formData = new FormData(event.currentTarget);
   const payload = Object.fromEntries(formData.entries());
+  const recordId = String(payload.record_id || "").trim();
+  delete payload.record_id;
   payload.tags = payload.tags ? payload.tags.split(",").map((item) => item.trim()).filter(Boolean) : [];
   const templateKey = event.currentTarget.dataset.template || "";
-  const template = KNOWLEDGE_TEMPLATES[templateKey] || null;
-  payload.metadata = templateKey ? { source_type: "manual_workspace", note_template: templateKey } : { source_type: "manual_workspace" };
-  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/knowledge`, {
-    method: "POST",
+  if (!recordId) {
+    payload.metadata = templateKey ? { source_type: "manual_workspace", note_template: templateKey } : { source_type: "manual_workspace" };
+  } else {
+    delete payload.metadata;
+  }
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/knowledge${recordId ? `/${recordId}` : ""}`, {
+    method: recordId ? "PATCH" : "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
@@ -4116,13 +4321,13 @@ async function handleKnowledge(event) {
   if (response.record?.id) {
     await loadKnowledgeDetail(response.record.id);
   }
-  event.currentTarget.reset();
-  delete event.currentTarget.dataset.template;
-  showToast("Private note saved.");
+  resetKnowledgeComposer();
+  showToast(recordId ? "Private note updated." : "Private note saved.");
 }
 
 function applyKnowledgeFiltersFromDom() {
   state.knowledgeSearchQuery = dom.knowledgeSearchInput?.value || "";
+  state.knowledgeStatusFilter = dom.knowledgeStatusFilter?.value || "active";
   state.knowledgeTypeFilter = dom.knowledgeTypeFilter?.value || "all";
   state.knowledgeTagFilter = dom.knowledgeTagFilter?.value || "all";
   renderKnowledge(state.workspaceKnowledge);
@@ -4130,6 +4335,7 @@ function applyKnowledgeFiltersFromDom() {
 
 function resetKnowledgeFilters() {
   state.knowledgeSearchQuery = "";
+  state.knowledgeStatusFilter = "active";
   state.knowledgeTypeFilter = "all";
   state.knowledgeTagFilter = "all";
   renderKnowledge(state.workspaceKnowledge);
@@ -4637,22 +4843,15 @@ async function handleAssetActions(event) {
 }
 
 async function handleLiteratureActions(event) {
-  const target = event.target.closest("[data-import-literature-pdf], [data-download-literature-asset], [data-import-literature-knowledge], [data-derive-literature-note], [data-open-knowledge-record]");
+  const target = event.target.closest("[data-import-literature-pdf], [data-download-literature-asset], [data-derive-literature-note]");
   if (!target) {
     return;
   }
   ensureWorkspace();
   const importId = target.getAttribute("data-import-literature-pdf");
   const downloadId = target.getAttribute("data-download-literature-asset");
-  const knowledgeId = target.getAttribute("data-import-literature-knowledge");
   const deriveId = target.getAttribute("data-derive-literature-note");
   const deriveMode = target.getAttribute("data-derive-literature-mode");
-  const openKnowledgeId = target.getAttribute("data-open-knowledge-record");
-  if (openKnowledgeId) {
-    const found = focusKnowledgeRecord(openKnowledgeId);
-    showToast(found ? "Scrolled to the private note." : "Private note list is loaded below.");
-    return;
-  }
   if (importId) {
     const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/literature/${importId}/import-pdf`, {
       method: "POST",
@@ -4665,15 +4864,6 @@ async function handleLiteratureActions(event) {
   if (downloadId) {
     await downloadAsset(downloadId);
     showToast("Private paper download started.");
-    return;
-  }
-  if (knowledgeId) {
-    const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/literature/${knowledgeId}/import-knowledge`, {
-      method: "POST",
-    });
-    await refreshWorkspaceData();
-    const recordTitle = response.record?.title || response.entry?.workspace_knowledge_record_title || "paper note";
-    showToast(`${response.imported === false ? "Knowledge note already exists" : "Saved to knowledge base"}: ${recordTitle}`);
     return;
   }
   if (deriveId && deriveMode) {
@@ -4695,6 +4885,9 @@ function applyKnowledgeTemplate(templateKey) {
   if (!template || !knowledgeForm) {
     return;
   }
+  if (state.editingKnowledgeRecordId) {
+    resetKnowledgeComposer();
+  }
   const titleField = knowledgeForm.elements.namedItem("title");
   const tagsField = knowledgeForm.elements.namedItem("tags");
   const contentField = knowledgeForm.elements.namedItem("content");
@@ -4711,7 +4904,7 @@ function applyKnowledgeTemplate(templateKey) {
 }
 
 async function handleWorkbenchActions(event) {
-  const target = event.target.closest("[data-scroll-target], [data-knowledge-template], [data-select-knowledge], [data-copy-knowledge-markdown], [data-download-knowledge-markdown]");
+  const target = event.target.closest("[data-scroll-target], [data-knowledge-template], [data-select-knowledge], [data-open-knowledge-record], [data-copy-knowledge-markdown], [data-download-knowledge-markdown], [data-edit-knowledge], [data-archive-knowledge], [data-restore-knowledge], [data-delete-knowledge], [data-import-briefing-knowledge], [data-import-literature-knowledge]");
   if (!target) {
     return;
   }
@@ -4736,6 +4929,94 @@ async function handleWorkbenchActions(event) {
   const recordId = target.getAttribute("data-select-knowledge");
   if (recordId) {
     focusKnowledgeRecord(recordId);
+    return;
+  }
+  const openKnowledgeId = target.getAttribute("data-open-knowledge-record");
+  if (openKnowledgeId) {
+    const found = focusKnowledgeRecord(openKnowledgeId);
+    if (found) {
+      scrollToTarget("knowledge-base-panel");
+    }
+    showToast(found ? "Scrolled to the private note." : "Private note is not available in the current filter view.");
+    return;
+  }
+  const editKnowledgeId = target.getAttribute("data-edit-knowledge");
+  if (editKnowledgeId) {
+    const loaded = await startKnowledgeEdit(editKnowledgeId);
+    if (!loaded) {
+      throw new Error("Knowledge note could not be loaded for editing.");
+    }
+    scrollToTarget("knowledge-base-panel");
+    document.querySelector('#knowledge-form input[name="title"]')?.focus();
+    showToast("Knowledge note loaded into the editor.");
+    return;
+  }
+  const archiveKnowledgeId = target.getAttribute("data-archive-knowledge");
+  if (archiveKnowledgeId) {
+    ensureWorkspace();
+    const archiveReason = window.prompt("Archive reason (optional)", "") ?? null;
+    if (archiveReason === null) {
+      return;
+    }
+    await api(`/api/workspaces/${state.selectedWorkspaceId}/knowledge/${archiveKnowledgeId}/archive`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: archiveReason }),
+    });
+    if (state.editingKnowledgeRecordId === archiveKnowledgeId) {
+      resetKnowledgeComposer();
+    }
+    await refreshWorkspaceData();
+    showToast("Knowledge note archived.");
+    return;
+  }
+  const restoreKnowledgeId = target.getAttribute("data-restore-knowledge");
+  if (restoreKnowledgeId) {
+    ensureWorkspace();
+    await api(`/api/workspaces/${state.selectedWorkspaceId}/knowledge/${restoreKnowledgeId}/restore`, {
+      method: "POST",
+    });
+    await refreshWorkspaceData();
+    focusKnowledgeRecord(restoreKnowledgeId);
+    showToast("Knowledge note restored.");
+    return;
+  }
+  const deleteKnowledgeId = target.getAttribute("data-delete-knowledge");
+  if (deleteKnowledgeId) {
+    ensureWorkspace();
+    if (!window.confirm("Delete this knowledge note permanently?")) {
+      return;
+    }
+    await api(`/api/workspaces/${state.selectedWorkspaceId}/knowledge/${deleteKnowledgeId}`, {
+      method: "DELETE",
+    });
+    if (state.editingKnowledgeRecordId === deleteKnowledgeId) {
+      resetKnowledgeComposer();
+    }
+    await refreshWorkspaceData();
+    showToast("Knowledge note deleted.");
+    return;
+  }
+  const briefingKnowledgeId = target.getAttribute("data-import-briefing-knowledge");
+  if (briefingKnowledgeId) {
+    ensureWorkspace();
+    const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/briefings/${briefingKnowledgeId}/import-knowledge`, {
+      method: "POST",
+    });
+    await refreshWorkspaceData();
+    focusKnowledgeRecord(response.record?.id || "");
+    showToast(`${response.imported === false ? "Briefing note already exists" : "Briefing captured in the knowledge base"}: ${response.record?.title || "briefing note"}`);
+    return;
+  }
+  const literatureKnowledgeId = target.getAttribute("data-import-literature-knowledge");
+  if (literatureKnowledgeId) {
+    ensureWorkspace();
+    const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/literature/${literatureKnowledgeId}/import-knowledge`, {
+      method: "POST",
+    });
+    await refreshWorkspaceData();
+    focusKnowledgeRecord(response.record?.id || "");
+    showToast(`${response.imported === false ? "Knowledge note already exists" : "Saved to knowledge base"}: ${response.record?.title || "paper note"}`);
     return;
   }
   const copyRecordId = target.getAttribute("data-copy-knowledge-markdown");
@@ -4847,9 +5128,11 @@ function bind() {
     applyKnowledgeFiltersFromDom();
   }));
   dom.knowledgeSearchInput?.addEventListener("input", applyKnowledgeFiltersFromDom);
+  dom.knowledgeStatusFilter?.addEventListener("change", applyKnowledgeFiltersFromDom);
   dom.knowledgeTypeFilter?.addEventListener("change", applyKnowledgeFiltersFromDom);
   dom.knowledgeTagFilter?.addEventListener("change", applyKnowledgeFiltersFromDom);
   dom.knowledgeResetButton?.addEventListener("click", () => resetKnowledgeFilters());
+  dom.knowledgeCancelButton?.addEventListener("click", () => resetKnowledgeComposer());
   scheduleForm?.addEventListener("submit", wrap(handleSchedule));
   variableGuideForm?.addEventListener("submit", wrap(handleVariableGuide));
   prepareForm?.addEventListener("submit", wrap(handlePrepareSample));

@@ -171,6 +171,16 @@
             </div>
             <div id="cockpit-activity-list" class="card-list card-list-inline"></div>
           </article>
+
+          <article class="card">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h3>Research Flow Lane</h3>
+                <p class="muted">Move the latest private briefing, paper, note, and dataset through the next useful step.</p>
+              </div>
+            </div>
+            <div id="cockpit-flow-list" class="card-list card-list-inline"></div>
+          </article>
         </div>
       </section>
 
@@ -273,6 +283,11 @@
           <div class="knowledge-toolbar">
             <form id="knowledge-search-form" class="knowledge-search-form">
               <input id="knowledge-search-input" name="q" type="text" placeholder="Search title, body, citation, or tags" />
+              <select id="knowledge-status-filter" name="status">
+                <option value="active">Active only</option>
+                <option value="archived">Archived only</option>
+                <option value="all">All notes</option>
+              </select>
               <select id="knowledge-type-filter" name="type"></select>
               <select id="knowledge-tag-filter" name="tag"></select>
               <button type="submit" class="secondary">Apply filters</button>
@@ -289,10 +304,20 @@
           <div class="knowledge-layout">
             <div class="knowledge-column">
               <form id="knowledge-form" class="stack">
+                <div class="panel-head panel-head-wrap panel-head-inline">
+                  <div>
+                    <h3 id="knowledge-form-title">Create note</h3>
+                    <p class="muted" id="knowledge-form-status">Save a new private workspace note or use a template as a starting point.</p>
+                  </div>
+                </div>
+                <input name="record_id" type="hidden" />
                 <input name="title" type="text" placeholder="Record title" required />
                 <input name="tags" type="text" placeholder="Tags, comma separated" />
                 <textarea name="content" rows="5" placeholder="Write your research note or internal summary" required></textarea>
-                <button type="submit">Save note</button>
+                <div class="actions compact-actions">
+                  <button id="knowledge-submit-button" type="submit">Save note</button>
+                  <button id="knowledge-cancel-button" type="button" class="secondary hidden">Cancel edit</button>
+                </div>
               </form>
               <div id="knowledge-list" class="card-list tall"></div>
             </div>

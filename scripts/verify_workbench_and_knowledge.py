@@ -35,6 +35,8 @@ def main() -> None:
     os.environ["PUBLIC_BASE_URL"] = "http://testserver"
     os.environ["PYTHON_DOTENV_DISABLED"] = "1"
 
+    from research_agent.db import session_scope
+    from research_agent.entities import EconomicBriefing
     from research_agent.webapp import create_app
 
     app = create_app()
@@ -44,16 +46,22 @@ def main() -> None:
         expect_status(index_response, 200)
         html = index_response.text
         assert "Workspace Cockpit" in html
-        assert 'id="cockpit-stat-grid"' in html
+        assert "Research Flow Lane" in html
+        assert 'id="cockpit-flow-list"' in html
         assert 'id="knowledge-search-form"' in html
+        assert 'id="knowledge-status-filter"' in html
         assert 'id="knowledge-preview"' in html
+        assert 'id="knowledge-form-title"' in html
+        assert 'id="knowledge-cancel-button"' in html
 
         register_response = client.post(
             "/api/auth/register",
             json={"email": "workbench@example.com", "password": "test-pass-123", "full_name": "Workbench User"},
         )
         expect_status(register_response, 200)
-        token = register_response.json()["session_token"]
+        register_payload = register_response.json()
+        token = register_payload["session_token"]
+        user_id = register_payload["user"]["id"]
 
         workspace_response = client.post(
             "/api/workspaces",
@@ -91,7 +99,7 @@ def main() -> None:
         large_record_id = large_note_response.json()["record"]["id"]
 
         summary_list = client.get(
-            f"/api/workspaces/{workspace_id}/knowledge?view=summary",
+            f"/api/workspaces/{workspace_id}/knowledge?view=summary&status=all",
             headers=auth_headers(token),
         )
         expect_status(summary_list, 200)
@@ -104,16 +112,86 @@ def main() -> None:
         assert large_summary["content"] == ""
         assert large_summary["content_length"] == len(large_content)
 
+        update_response = client.patch(
+            f"/api/workspaces/{workspace_id}/knowledge/{record_id}",
+            headers=auth_headers(token),
+            json={
+                "title": "Research Memo: FX Spillovers Revised",
+                "content": "## Updated question\n\nHow do rate shocks transmit into Asian FX and bond markets?\n\n## Manual checks\n\n- Rebuild the baseline VAR.\n- Compare pre/post subsamples.",
+                "tags": ["memo", "fx", "spillover", "revised"],
+                "metadata": {"editor": "qa-script"},
+            },
+        )
+        expect_status(update_response, 200)
+        updated_record = update_response.json()["record"]
+        assert updated_record["title"] == "Research Memo: FX Spillovers Revised"
+        assert "bond markets" in updated_record["content"]
+        assert "revised" in updated_record["tags"]
+        assert updated_record["metadata"]["editor"] == "qa-script"
+
         detail_response = client.get(
-            f"/api/workspaces/{workspace_id}/knowledge/{large_record_id}",
+            f"/api/workspaces/{workspace_id}/knowledge/{record_id}",
             headers=auth_headers(token),
         )
         expect_status(detail_response, 200)
         detail_record = detail_response.json()["record"]
-        assert len(detail_record["content"]) == len(large_content)
+        assert detail_record["title"] == "Research Memo: FX Spillovers Revised"
+        assert "bond markets" in detail_record["content"]
+
+        large_detail_response = client.get(
+            f"/api/workspaces/{workspace_id}/knowledge/{large_record_id}",
+            headers=auth_headers(token),
+        )
+        expect_status(large_detail_response, 200)
+        large_detail = large_detail_response.json()["record"]
+        assert len(large_detail["content"]) == len(large_content)
+
+        archive_response = client.post(
+            f"/api/workspaces/{workspace_id}/knowledge/{record_id}/archive",
+            headers=auth_headers(token),
+            json={"reason": "Covered by a later synthesis note."},
+        )
+        expect_status(archive_response, 200)
+        archived_record = archive_response.json()["record"]
+        assert archived_record["is_archived"] is True
+        assert archived_record["archived_reason"] == "Covered by a later synthesis note."
+
+        active_list_response = client.get(
+            f"/api/workspaces/{workspace_id}/knowledge?view=summary&status=active",
+            headers=auth_headers(token),
+        )
+        expect_status(active_list_response, 200)
+        active_items = active_list_response.json()["items"]
+        assert {item["id"] for item in active_items} == {large_record_id}
+
+        archived_list_response = client.get(
+            f"/api/workspaces/{workspace_id}/knowledge?view=summary&status=archived",
+            headers=auth_headers(token),
+        )
+        expect_status(archived_list_response, 200)
+        archived_items = archived_list_response.json()["items"]
+        assert len(archived_items) == 1
+        assert archived_items[0]["id"] == record_id
+        assert archived_items[0]["is_archived"] is True
+
+        restore_response = client.post(
+            f"/api/workspaces/{workspace_id}/knowledge/{record_id}/restore",
+            headers=auth_headers(token),
+        )
+        expect_status(restore_response, 200)
+        restored_record = restore_response.json()["record"]
+        assert restored_record["is_archived"] is False
+
+        restored_active_list = client.get(
+            f"/api/workspaces/{workspace_id}/knowledge?view=summary&status=active",
+            headers=auth_headers(token),
+        )
+        expect_status(restored_active_list, 200)
+        restored_active_items = restored_active_list.json()["items"]
+        assert {item["id"] for item in restored_active_items} == {record_id, large_record_id}
 
         search_response = client.get(
-            f"/api/workspaces/{workspace_id}/knowledge?q=spillovers&view=summary",
+            f"/api/workspaces/{workspace_id}/knowledge?q=bond markets&view=summary&status=all",
             headers=auth_headers(token),
         )
         expect_status(search_response, 200)
@@ -121,32 +199,121 @@ def main() -> None:
         assert len(search_items) == 1
         assert search_items[0]["id"] == record_id
 
+        with session_scope() as db:
+            briefing = EconomicBriefing(
+                workspace_id=workspace_id,
+                owner_user_id=user_id,
+                integration_id=None,
+                title="QA Briefing",
+                summary_markdown="## Overnight signal\n\nTreasury yields rose while Asia FX softened.\n\n## Checks\n\n- Review policy headlines.\n- Compare with the previous close.",
+                query_text="treasury yields asia fx",
+                headline_count=2,
+                items_json=[
+                    {"title": "Fed signal firms yields", "url": "https://example.com/fed", "domain": "example.com"},
+                    {"title": "Asia FX softens overnight", "url": "https://example.com/fx", "domain": "example.com"},
+                ],
+                raw_json={},
+            )
+            db.add(briefing)
+            db.flush()
+            briefing_id = briefing.id
+
+        import_briefing_response = client.post(
+            f"/api/workspaces/{workspace_id}/briefings/{briefing_id}/import-knowledge",
+            headers=auth_headers(token),
+        )
+        expect_status(import_briefing_response, 200)
+        briefing_import_payload = import_briefing_response.json()
+        briefing_record_id = briefing_import_payload["record"]["id"]
+        assert briefing_import_payload["briefing"]["workspace_knowledge_record_id"] == briefing_record_id
+
+        briefing_list_response = client.get(
+            f"/api/workspaces/{workspace_id}/briefings",
+            headers=auth_headers(token),
+        )
+        expect_status(briefing_list_response, 200)
+        briefing_item = next(item for item in briefing_list_response.json()["items"] if item["id"] == briefing_id)
+        assert briefing_item["workspace_knowledge_record_id"] == briefing_record_id
+        assert briefing_item["workspace_knowledge_record_title"] == briefing_import_payload["record"]["title"]
+
+        delete_briefing_record_response = client.delete(
+            f"/api/workspaces/{workspace_id}/knowledge/{briefing_record_id}",
+            headers=auth_headers(token),
+        )
+        expect_status(delete_briefing_record_response, 200)
+        detach_payload = delete_briefing_record_response.json()
+        assert detach_payload["status"] == "deleted"
+        assert detach_payload["detached_references"]["briefings"] == 1
+
+        briefing_list_after_delete = client.get(
+            f"/api/workspaces/{workspace_id}/briefings",
+            headers=auth_headers(token),
+        )
+        expect_status(briefing_list_after_delete, 200)
+        detached_briefing = next(item for item in briefing_list_after_delete.json()["items"] if item["id"] == briefing_id)
+        assert detached_briefing["workspace_knowledge_record_id"] == ""
+
+        delete_large_note_response = client.delete(
+            f"/api/workspaces/{workspace_id}/knowledge/{large_record_id}",
+            headers=auth_headers(token),
+        )
+        expect_status(delete_large_note_response, 200)
+
+        all_after_delete = client.get(
+            f"/api/workspaces/{workspace_id}/knowledge?view=summary&status=all",
+            headers=auth_headers(token),
+        )
+        expect_status(all_after_delete, 200)
+        remaining_items = all_after_delete.json()["items"]
+        assert len(remaining_items) == 1
+        assert remaining_items[0]["id"] == record_id
+
+        deleted_detail_response = client.get(
+            f"/api/workspaces/{workspace_id}/knowledge/{large_record_id}",
+            headers=auth_headers(token),
+        )
+        assert deleted_detail_response.status_code == 404
+
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
+    report_payload = {
+        "homepage": {
+            "contains_workspace_cockpit": True,
+            "contains_research_flow_lane": True,
+            "contains_knowledge_status_filter": True,
+            "contains_knowledge_preview": True,
+            "contains_editable_knowledge_form": True,
+        },
+        "knowledge_summary_view": {
+            "record_count_before_delete": 2,
+            "summary_omits_full_content": memo_summary["content"] == "",
+            "large_note_content_length": large_summary["content_length"],
+        },
+        "knowledge_detail_view": {
+            "updated_record_title": detail_record["title"],
+            "large_note_chars_read_back": len(large_detail["content"]),
+        },
+        "knowledge_lifecycle": {
+            "archive_reason": archived_record["archived_reason"],
+            "active_after_archive": [item["id"] for item in active_items],
+            "archived_after_archive": [item["id"] for item in archived_items],
+            "active_after_restore": [item["id"] for item in restored_active_items],
+            "remaining_after_delete": [item["id"] for item in remaining_items],
+        },
+        "knowledge_search": {
+            "query": "bond markets",
+            "match_count": len(search_items),
+            "matched_record_id": search_items[0]["id"],
+        },
+        "briefing_to_knowledge_flow": {
+            "briefing_id": briefing_id,
+            "imported_record_id": briefing_record_id,
+            "linked_before_delete": briefing_item["workspace_knowledge_record_id"],
+            "linked_after_delete": detached_briefing["workspace_knowledge_record_id"],
+            "detached_references": detach_payload["detached_references"],
+        },
+    }
     (REPORT_DIR / "verification_report.json").write_text(
-        json.dumps(
-            {
-                "homepage": {
-                    "contains_workspace_cockpit": True,
-                    "contains_knowledge_search_form": True,
-                    "contains_knowledge_preview": True,
-                },
-                "knowledge_summary_view": {
-                    "record_count": 2,
-                    "summary_omits_full_content": memo_summary["content"] == "",
-                    "large_note_content_length": large_summary["content_length"],
-                },
-                "knowledge_detail_view": {
-                    "large_note_chars_read_back": len(detail_record["content"]),
-                },
-                "knowledge_search": {
-                    "query": "spillovers",
-                    "match_count": len(search_items),
-                    "matched_record_id": search_items[0]["id"],
-                },
-            },
-            indent=2,
-            ensure_ascii=False,
-        ),
+        json.dumps(report_payload, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
 

@@ -373,6 +373,9 @@ def serialize_literature_entry(entry: LiteratureEntry) -> dict[str, Any]:
 
 
 def serialize_briefing(briefing: EconomicBriefing) -> dict[str, Any]:
+    raw_json = briefing.raw_json if isinstance(briefing.raw_json, dict) else {}
+    workspace_knowledge_record_id = str(raw_json.get("_workspace_knowledge_record_id") or "").strip()
+    workspace_knowledge_record_title = str(raw_json.get("_workspace_knowledge_record_title") or "").strip()
     return {
         "id": briefing.id,
         "title": briefing.title,
@@ -380,7 +383,145 @@ def serialize_briefing(briefing: EconomicBriefing) -> dict[str, Any]:
         "query_text": briefing.query_text,
         "headline_count": briefing.headline_count,
         "items": briefing.items_json,
+        "workspace_knowledge_record_id": workspace_knowledge_record_id,
+        "workspace_knowledge_record_title": workspace_knowledge_record_title,
         "created_at": briefing.created_at.isoformat(),
+    }
+
+
+def import_briefing_knowledge_record(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    briefing_id: str,
+) -> dict[str, Any]:
+    briefing = db.get(EconomicBriefing, briefing_id)
+    if not briefing or briefing.owner_user_id != user.id or briefing.workspace_id != workspace.id:
+        raise FileNotFoundError("Briefing not found.")
+
+    raw_json = dict(briefing.raw_json or {}) if isinstance(briefing.raw_json, dict) else {}
+    existing_record_id = str(raw_json.get("_workspace_knowledge_record_id") or "").strip()
+    if existing_record_id:
+        existing_record = db.get(KnowledgeRecord, existing_record_id)
+        if existing_record and existing_record.owner_user_id == user.id and existing_record.workspace_id == workspace.id:
+            return {
+                "briefing": serialize_briefing(briefing),
+                "record": {
+                    "id": existing_record.id,
+                    "title": existing_record.title,
+                    "created_at": existing_record.created_at.isoformat(),
+                },
+                "imported": False,
+            }
+
+    existing_rows = list(
+        db.scalars(
+            select(KnowledgeRecord).where(
+                and_(
+                    KnowledgeRecord.owner_user_id == user.id,
+                    KnowledgeRecord.workspace_id == workspace.id,
+                )
+            )
+        )
+    )
+    for existing_record in existing_rows:
+        if not isinstance(existing_record.metadata_json, dict):
+            continue
+        if str(existing_record.metadata_json.get("briefing_id") or "").strip() != briefing.id:
+            continue
+        raw_json["_workspace_knowledge_record_id"] = existing_record.id
+        raw_json["_workspace_knowledge_record_title"] = existing_record.title
+        briefing.raw_json = raw_json
+        db.flush()
+        return {
+            "briefing": serialize_briefing(briefing),
+            "record": {
+                "id": existing_record.id,
+                "title": existing_record.title,
+                "created_at": existing_record.created_at.isoformat(),
+            },
+            "imported": False,
+        }
+
+    record = create_knowledge_record(
+        db,
+        user=user,
+        workspace=workspace,
+        title=f"Briefing Note: {briefing.title}",
+        content=briefing.summary_markdown,
+        tags=["economic-briefing", "macro", "daily", "workspace-briefing"],
+        metadata={
+            "source_type": "private_briefing",
+            "briefing_id": briefing.id,
+            "headline_count": briefing.headline_count,
+            "query_text": briefing.query_text,
+        },
+    )
+    raw_json["_workspace_knowledge_record_id"] = record.id
+    raw_json["_workspace_knowledge_record_title"] = record.title
+    briefing.raw_json = raw_json
+    db.flush()
+    return {
+        "briefing": serialize_briefing(briefing),
+        "record": {
+            "id": record.id,
+            "title": record.title,
+            "created_at": record.created_at.isoformat(),
+        },
+        "imported": True,
+    }
+
+
+def detach_knowledge_record_references(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    record_id: str,
+) -> dict[str, int]:
+    cleaned_literature = 0
+    cleaned_briefings = 0
+    for entry in list_literature_entries(db, user=user, workspace=workspace):
+        raw_json = dict(entry.raw_json or {}) if isinstance(entry.raw_json, dict) else {}
+        updated = False
+        paired_keys = [
+            ("_workspace_knowledge_record_id", "_workspace_knowledge_record_title"),
+            ("_workspace_summary_record_id", "_workspace_summary_record_title"),
+            ("_workspace_annotation_record_id", "_workspace_annotation_record_title"),
+            ("_workspace_question_record_id", "_workspace_question_record_title"),
+        ]
+        for id_key, title_key in paired_keys:
+            if str(raw_json.get(id_key) or "").strip() == record_id:
+                raw_json.pop(id_key, None)
+                raw_json.pop(title_key, None)
+                updated = True
+        if updated:
+            entry.raw_json = raw_json
+            cleaned_literature += 1
+
+    briefings = list(
+        db.scalars(
+            select(EconomicBriefing).where(
+                and_(
+                    EconomicBriefing.owner_user_id == user.id,
+                    EconomicBriefing.workspace_id == workspace.id,
+                )
+            )
+        )
+    )
+    for briefing in briefings:
+        raw_json = dict(briefing.raw_json or {}) if isinstance(briefing.raw_json, dict) else {}
+        if str(raw_json.get("_workspace_knowledge_record_id") or "").strip() != record_id:
+            continue
+        raw_json.pop("_workspace_knowledge_record_id", None)
+        raw_json.pop("_workspace_knowledge_record_title", None)
+        briefing.raw_json = raw_json
+        cleaned_briefings += 1
+
+    return {
+        "literature_entries": cleaned_literature,
+        "briefings": cleaned_briefings,
     }
 
 
@@ -2702,7 +2843,7 @@ def generate_economic_briefing(
     )
     db.add(briefing)
     db.flush()
-    create_knowledge_record(
+    record = create_knowledge_record(
         db,
         user=user,
         workspace=workspace,
@@ -2711,6 +2852,12 @@ def generate_economic_briefing(
         tags=["economic-briefing", "macro", "daily"],
         metadata={"briefing_id": briefing.id, "headline_count": briefing.headline_count},
     )
+    briefing.raw_json = {
+        **(briefing.raw_json if isinstance(briefing.raw_json, dict) else {}),
+        "_workspace_knowledge_record_id": record.id,
+        "_workspace_knowledge_record_title": record.title,
+    }
+    db.flush()
     return briefing
 
 

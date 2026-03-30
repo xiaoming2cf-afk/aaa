@@ -21,6 +21,7 @@ from .data_lab_catalog import (
 from .db import init_database, session_scope
 from .entities import DataAsset
 from .platform_core import (
+    archive_knowledge_record,
     build_model_result_detail,
     build_processing_result_detail,
     create_plot_asset,
@@ -28,10 +29,12 @@ from .platform_core import (
     create_integration,
     create_knowledge_record,
     create_workspace,
+    delete_knowledge_record,
     delete_integration,
     get_current_user,
     get_owned_knowledge_record,
     get_workspace_for_user,
+    is_knowledge_record_archived,
     list_assets,
     list_integrations,
     list_knowledge_records,
@@ -53,6 +56,8 @@ from .platform_core import (
     serialize_workspace,
     suggest_beginner_variable_plan,
     test_integration,
+    restore_knowledge_record,
+    update_knowledge_record,
 )
 from .provider_catalog import get_provider_catalog
 from .platform_research import (
@@ -60,11 +65,13 @@ from .platform_research import (
     build_public_briefing_summary,
     create_literature_followup_note,
     create_schedule_job,
+    detach_knowledge_record_references,
     ensure_public_daily_briefing,
     generate_economic_briefing,
     get_or_build_latest_public_briefing,
     get_latest_public_briefing,
     get_public_briefing_by_slug,
+    import_briefing_knowledge_record,
     import_literature_knowledge_record,
     import_literature_knowledge_records,
     import_literature_pdf_asset,
@@ -127,6 +134,17 @@ class KnowledgeCreateRequest(BaseModel):
     content: str = Field(min_length=2)
     tags: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class KnowledgeUpdateRequest(BaseModel):
+    title: str | None = Field(default=None, min_length=2, max_length=240)
+    content: str | None = Field(default=None, min_length=2)
+    tags: list[str] | None = Field(default=None)
+    metadata: dict[str, Any] | None = Field(default=None)
+
+
+class KnowledgeArchiveRequest(BaseModel):
+    reason: str = Field(default="", max_length=280)
 
 
 class OpenAlexImportRequest(BaseModel):
@@ -707,6 +725,7 @@ def create_app() -> FastAPI:
         workspace_id: str,
         q: str = "",
         view: str = "full",
+        status: str = "active",
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> dict[str, Any]:
@@ -715,7 +734,15 @@ def create_app() -> FastAPI:
             with session_scope() as db:
                 user = get_current_user(db, token)
                 workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
-                rows = search_knowledge_records(db, user=user, workspace=workspace, query=q) if q.strip() else list_knowledge_records(db, user=user, workspace=workspace)
+                normalized_status = status.strip().lower() or "active"
+                include_archived = normalized_status in {"all", "archived"}
+                rows = (
+                    search_knowledge_records(db, user=user, workspace=workspace, query=q, include_archived=include_archived)
+                    if q.strip()
+                    else list_knowledge_records(db, user=user, workspace=workspace, include_archived=include_archived)
+                )
+                if normalized_status == "archived":
+                    rows = [item for item in rows if is_knowledge_record_archived(item)]
                 include_content = view.strip().lower() != "summary"
                 return {"items": [serialize_knowledge_record(item, include_content=include_content) for item in rows]}
         except Exception as exc:
@@ -762,6 +789,97 @@ def create_app() -> FastAPI:
                     metadata=request.metadata,
                 )
                 return {"record": serialize_knowledge_record(record)}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.patch("/api/workspaces/{workspace_id}/knowledge/{record_id}")
+    def update_workspace_knowledge(
+        workspace_id: str,
+        record_id: str,
+        request: KnowledgeUpdateRequest,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                record = get_owned_knowledge_record(db, user=user, record_id=record_id)
+                if record.workspace_id != workspace.id:
+                    raise FileNotFoundError("Knowledge record not found.")
+                updated = update_knowledge_record(
+                    db,
+                    user=user,
+                    record_id=record_id,
+                    title=request.title,
+                    content=request.content,
+                    tags=request.tags,
+                    metadata=request.metadata,
+                )
+                return {"record": serialize_knowledge_record(updated)}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/knowledge/{record_id}/archive")
+    def archive_workspace_knowledge(
+        workspace_id: str,
+        record_id: str,
+        request: KnowledgeArchiveRequest,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                record = get_owned_knowledge_record(db, user=user, record_id=record_id)
+                if record.workspace_id != workspace.id:
+                    raise FileNotFoundError("Knowledge record not found.")
+                archived = archive_knowledge_record(db, user=user, record_id=record_id, reason=request.reason)
+                return {"record": serialize_knowledge_record(archived)}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/knowledge/{record_id}/restore")
+    def restore_workspace_knowledge(
+        workspace_id: str,
+        record_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                record = get_owned_knowledge_record(db, user=user, record_id=record_id)
+                if record.workspace_id != workspace.id:
+                    raise FileNotFoundError("Knowledge record not found.")
+                restored = restore_knowledge_record(db, user=user, record_id=record_id)
+                return {"record": serialize_knowledge_record(restored)}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.delete("/api/workspaces/{workspace_id}/knowledge/{record_id}")
+    def delete_workspace_knowledge(
+        workspace_id: str,
+        record_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                record = get_owned_knowledge_record(db, user=user, record_id=record_id)
+                if record.workspace_id != workspace.id:
+                    raise FileNotFoundError("Knowledge record not found.")
+                detached = detach_knowledge_record_references(db, user=user, workspace=workspace, record_id=record_id)
+                delete_knowledge_record(db, user=user, record_id=record_id)
+                return {"status": "deleted", "detached_references": detached}
         except Exception as exc:
             _raise_http_error(exc)
 
@@ -1292,6 +1410,22 @@ def create_app() -> FastAPI:
                 user = get_current_user(db, token)
                 workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
                 return {"items": [serialize_briefing(item) for item in list_briefings(db, user=user, workspace=workspace)]}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/briefings/{briefing_id}/import-knowledge")
+    def import_briefing_knowledge(
+        workspace_id: str,
+        briefing_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return import_briefing_knowledge_record(db, user=user, workspace=workspace, briefing_id=briefing_id)
         except Exception as exc:
             _raise_http_error(exc)
 

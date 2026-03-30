@@ -509,6 +509,11 @@ def serialize_integration(integration: IntegrationCredential) -> dict[str, Any]:
 
 def serialize_knowledge_record(record: KnowledgeRecord, *, include_content: bool = True) -> dict[str, Any]:
     content = record.content or ""
+    metadata = record.metadata_json if isinstance(record.metadata_json, dict) else {}
+    archive_meta = metadata.get("archive", {}) if isinstance(metadata.get("archive"), dict) else {}
+    archived_at = str(metadata.get("archived_at") or archive_meta.get("at") or "").strip()
+    archived_reason = str(metadata.get("archived_reason") or archive_meta.get("reason") or "").strip()
+    is_archived = bool(metadata.get("is_archived") or archive_meta.get("is_archived") or archived_at)
     return {
         "id": record.id,
         "title": record.title,
@@ -516,7 +521,10 @@ def serialize_knowledge_record(record: KnowledgeRecord, *, include_content: bool
         "content_excerpt": truncate_text(content, 220),
         "content_length": len(content),
         "tags": record.tags_json,
-        "metadata": record.metadata_json,
+        "metadata": metadata,
+        "is_archived": is_archived,
+        "archived_at": archived_at,
+        "archived_reason": archived_reason,
         "created_at": record.created_at.isoformat(),
         "updated_at": record.updated_at.isoformat(),
     }
@@ -769,27 +777,40 @@ def create_knowledge_record(
     tags: list[str] | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> KnowledgeRecord:
+    metadata_payload = dict(metadata or {}) if isinstance(metadata, dict) else {}
     record = KnowledgeRecord(
         workspace_id=workspace.id,
         owner_user_id=user.id,
         title=title.strip(),
         content=content.strip(),
-        tags_json=[tag.strip() for tag in (tags or []) if tag.strip()],
-        metadata_json=metadata or {},
+        tags_json=list(dict.fromkeys(tag.strip() for tag in (tags or []) if tag.strip())),
+        metadata_json=metadata_payload,
     )
     db.add(record)
     db.flush()
-    if isinstance(metadata, dict) and (metadata.get("workflow_type") == "model" or metadata.get("model_type")):
-        metadata.setdefault("workflow_type", "model")
-        metadata.setdefault("result_record_id", record.id)
-        metadata.setdefault("result_detail_path", f"/data-lab/results/models/{record.id}")
-        record.metadata_json = metadata
+    if metadata_payload.get("workflow_type") == "model" or metadata_payload.get("model_type"):
+        metadata_payload.setdefault("workflow_type", "model")
+        metadata_payload.setdefault("result_record_id", record.id)
+        metadata_payload.setdefault("result_detail_path", f"/data-lab/results/models/{record.id}")
+        record.metadata_json = metadata_payload
         db.flush()
     return record
 
 
-def list_knowledge_records(db: Session, *, user: User, workspace: Workspace) -> list[KnowledgeRecord]:
-    return list(
+def is_knowledge_record_archived(record: KnowledgeRecord) -> bool:
+    metadata = record.metadata_json if isinstance(record.metadata_json, dict) else {}
+    archive_meta = metadata.get("archive", {}) if isinstance(metadata.get("archive"), dict) else {}
+    return bool(metadata.get("is_archived") or archive_meta.get("is_archived") or metadata.get("archived_at") or archive_meta.get("at"))
+
+
+def list_knowledge_records(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    include_archived: bool = False,
+) -> list[KnowledgeRecord]:
+    rows = list(
         db.scalars(
             select(KnowledgeRecord)
             .where(
@@ -801,6 +822,9 @@ def list_knowledge_records(db: Session, *, user: User, workspace: Workspace) -> 
             .order_by(KnowledgeRecord.updated_at.desc())
         )
     )
+    if include_archived:
+        return rows
+    return [row for row in rows if not is_knowledge_record_archived(row)]
 
 
 def get_owned_knowledge_record(db: Session, *, user: User, record_id: str) -> KnowledgeRecord:
@@ -1196,9 +1220,10 @@ def search_knowledge_records(
     user: User,
     workspace: Workspace,
     query: str,
+    include_archived: bool = False,
 ) -> list[KnowledgeRecord]:
     search_value = f"%{query.strip()}%"
-    return list(
+    rows = list(
         db.scalars(
             select(KnowledgeRecord)
             .where(
@@ -1214,6 +1239,94 @@ def search_knowledge_records(
             .order_by(KnowledgeRecord.updated_at.desc())
         )
     )
+    if include_archived:
+        return rows
+    return [row for row in rows if not is_knowledge_record_archived(row)]
+
+
+def update_knowledge_record(
+    db: Session,
+    *,
+    user: User,
+    record_id: str,
+    title: str | None = None,
+    content: str | None = None,
+    tags: list[str] | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> KnowledgeRecord:
+    record = get_owned_knowledge_record(db, user=user, record_id=record_id)
+    if title is not None:
+        normalized_title = title.strip()
+        if len(normalized_title) < 2:
+            raise ValueError("Title must be at least 2 characters.")
+        record.title = normalized_title
+    if content is not None:
+        normalized_content = content.strip()
+        if len(normalized_content) < 2:
+            raise ValueError("Content must be at least 2 characters.")
+        record.content = normalized_content
+    if tags is not None:
+        record.tags_json = list(dict.fromkeys(tag.strip() for tag in tags if tag and tag.strip()))
+    if metadata is not None:
+        merged_metadata = {
+            **(record.metadata_json if isinstance(record.metadata_json, dict) else {}),
+            **(metadata if isinstance(metadata, dict) else {}),
+        }
+        record.metadata_json = merged_metadata
+    db.flush()
+    return record
+
+
+def archive_knowledge_record(
+    db: Session,
+    *,
+    user: User,
+    record_id: str,
+    reason: str = "",
+) -> KnowledgeRecord:
+    record = get_owned_knowledge_record(db, user=user, record_id=record_id)
+    archived_at = datetime.now(timezone.utc).isoformat()
+    metadata = dict(record.metadata_json or {}) if isinstance(record.metadata_json, dict) else {}
+    metadata["is_archived"] = True
+    metadata["archived_at"] = archived_at
+    metadata["archived_reason"] = reason.strip()
+    metadata["archive"] = {
+        "is_archived": True,
+        "at": archived_at,
+        "reason": reason.strip(),
+    }
+    record.metadata_json = metadata
+    db.flush()
+    return record
+
+
+def restore_knowledge_record(
+    db: Session,
+    *,
+    user: User,
+    record_id: str,
+) -> KnowledgeRecord:
+    record = get_owned_knowledge_record(db, user=user, record_id=record_id)
+    metadata = dict(record.metadata_json or {}) if isinstance(record.metadata_json, dict) else {}
+    metadata.pop("is_archived", None)
+    metadata.pop("archived_at", None)
+    metadata.pop("archived_reason", None)
+    metadata.pop("archive", None)
+    record.metadata_json = metadata
+    db.flush()
+    return record
+
+
+def delete_knowledge_record(
+    db: Session,
+    *,
+    user: User,
+    record_id: str,
+) -> KnowledgeRecord:
+    record = get_owned_knowledge_record(db, user=user, record_id=record_id)
+    db.delete(record)
+    db.flush()
+    return record
 
 
 def build_model_result_detail(db: Session, *, user: User, record_id: str) -> dict[str, Any]:

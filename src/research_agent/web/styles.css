@@ -494,6 +494,10 @@ h1 {
   flex: 0 0 auto;
 }
 
+.cockpit-flow-card {
+  min-height: 100%;
+}
+
 .muted {
   color: var(--muted);
 }
@@ -518,6 +522,14 @@ h1 {
 
 .panel-head-wrap {
   align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.panel-head-inline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
   flex-wrap: wrap;
 }
 
@@ -573,6 +585,13 @@ button.secondary,
 .button-link.secondary-link {
   background: transparent;
   color: var(--accent);
+}
+
+button.secondary.danger,
+.button-link.secondary-link.danger {
+  color: var(--danger);
+  border-color: rgba(127, 29, 29, 0.18);
+  background: rgba(127, 29, 29, 0.04);
 }
 
 .actions button,
@@ -690,6 +709,12 @@ button.secondary,
   background: rgba(242, 249, 245, 0.82);
 }
 
+.knowledge-card.is-archived,
+.knowledge-preview-card.is-archived {
+  border-style: dashed;
+  background: rgba(248, 244, 239, 0.86);
+}
+
 .knowledge-toolbar {
   display: grid;
   gap: 0.9rem;
@@ -697,7 +722,7 @@ button.secondary,
 }
 
 .knowledge-search-form {
-  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 0.8fr)) auto auto;
+  grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 0.78fr)) auto auto;
   align-items: end;
 }
 
@@ -726,6 +751,11 @@ button.secondary,
 .knowledge-preview-card {
   display: grid;
   gap: 0.9rem;
+}
+
+.knowledge-form-status {
+  margin: 0.35rem 0 0;
+  max-width: 60ch;
 }
 
 .knowledge-preview pre {
@@ -1057,6 +1087,11 @@ button.secondary,
   color: var(--accent);
   font-size: 0.82rem;
   font-weight: 700;
+}
+
+.pill-archived {
+  background: rgba(127, 29, 29, 0.08);
+  color: var(--danger);
 }
 
 .console-box {
