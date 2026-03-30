@@ -119,8 +119,63 @@
         </div>
       </section>
 
+      <section class="panel cockpit-panel" id="workspace-cockpit-panel">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h2>Workspace Cockpit</h2>
+            <p class="muted">
+              A single control surface for the current workspace: status, next steps, quick actions, and the latest private outputs.
+            </p>
+          </div>
+          <div class="actions compact-actions" id="cockpit-header-actions">
+            <button type="button" class="secondary" data-scroll-target="provider-center-panel">Connect provider</button>
+            <button type="button" class="secondary" data-scroll-target="paper-library-panel">Import papers</button>
+            <button type="button" class="secondary" data-scroll-target="knowledge-base-panel">Open knowledge base</button>
+            <a href="/data-lab" class="button-link secondary-link">Open Data Lab</a>
+          </div>
+        </div>
+
+        <div class="cockpit-meta-grid">
+          <article class="meta-card cockpit-meta-card">
+            <span>Current workspace</span>
+            <strong id="cockpit-workspace-name">Sign in to begin</strong>
+            <p class="muted" id="cockpit-workspace-meta">Private workspace controls will appear after login.</p>
+          </article>
+          <article class="meta-card cockpit-meta-card">
+            <span>Recommended next action</span>
+            <strong id="cockpit-next-action-title">Create or select a workspace</strong>
+            <p class="muted" id="cockpit-next-action-copy">The cockpit will guide you from provider setup to research outputs.</p>
+          </article>
+        </div>
+
+        <div id="cockpit-stat-grid" class="cockpit-stat-grid"></div>
+        <div id="cockpit-step-grid" class="cockpit-step-grid"></div>
+
+        <div class="cockpit-layout">
+          <article class="card">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h3>Quick Actions</h3>
+                <p class="muted">Jump directly into the next module instead of scanning the whole homepage.</p>
+              </div>
+            </div>
+            <div id="cockpit-action-list" class="cockpit-action-list"></div>
+          </article>
+
+          <article class="card">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h3>Recent Workspace Activity</h3>
+                <p class="muted">The most recent private outputs from your current workspace.</p>
+              </div>
+            </div>
+            <div id="cockpit-activity-list" class="card-list card-list-inline"></div>
+          </article>
+        </div>
+      </section>
+
       <section class="dashboard-grid">
-        <section class="panel">
+        <section class="panel" id="provider-center-panel">
           <div class="panel-head">
             <h2>Provider Center</h2>
             <span class="muted">OpenAI, DeepSeek, Gemini, Anthropic, Kimi, OpenAI-compatible, and FRED</span>
@@ -153,7 +208,7 @@
           <div id="integration-list" class="card-list"></div>
         </section>
 
-        <section class="panel">
+        <section class="panel" id="private-briefing-panel">
           <div class="panel-head">
             <h2>Private Daily Briefing</h2>
             <span class="muted">Generate private macro notes inside your workspace</span>
@@ -166,7 +221,7 @@
           <div id="briefing-list" class="card-list tall"></div>
         </section>
 
-        <section class="panel">
+        <section class="panel" id="paper-library-panel">
           <div class="panel-head">
             <h2>Paper Library</h2>
             <span class="muted">OpenAlex search and import</span>
@@ -184,7 +239,7 @@
           <div id="openalex-results" class="card-list"></div>
           <div id="literature-list" class="card-list"></div>
         </section>
-        <section class="panel">
+        <section class="panel" id="data-lab-entry-panel">
           <div class="panel-head panel-head-wrap">
             <div>
               <h2>Data Lab</h2>
@@ -209,21 +264,43 @@
             </article>
           </div>
         </section>
-<section class="panel">
-          <div class="panel-head">
+<section class="panel panel-span-full" id="knowledge-base-panel">
+          <div class="panel-head panel-head-wrap">
             <h2>Private Knowledge Base</h2>
-            <span class="muted">Store notes, takeaways, and internal summaries</span>
+            <span class="muted">Search, filter, preview, export, and trace private notes without leaving the workspace.</span>
           </div>
-          <form id="knowledge-form" class="stack">
-            <input name="title" type="text" placeholder="Record title" required />
-            <input name="tags" type="text" placeholder="Tags, comma separated" />
-            <textarea name="content" rows="5" placeholder="Write your research note or internal summary" required></textarea>
-            <button type="submit">Save note</button>
-          </form>
-          <div id="knowledge-list" class="card-list"></div>
+          <div id="knowledge-summary-grid" class="knowledge-summary-grid"></div>
+          <div class="knowledge-toolbar">
+            <form id="knowledge-search-form" class="knowledge-search-form">
+              <input id="knowledge-search-input" name="q" type="text" placeholder="Search title, body, citation, or tags" />
+              <select id="knowledge-type-filter" name="type"></select>
+              <select id="knowledge-tag-filter" name="tag"></select>
+              <button type="submit" class="secondary">Apply filters</button>
+              <button type="button" id="knowledge-reset-button" class="secondary">Reset</button>
+            </form>
+            <div class="knowledge-template-bar">
+              <span class="muted">Templates:</span>
+              <button type="button" class="secondary" data-knowledge-template="research_memo">Research memo</button>
+              <button type="button" class="secondary" data-knowledge-template="reading_note">Reading note</button>
+              <button type="button" class="secondary" data-knowledge-template="hypothesis_log">Hypothesis log</button>
+              <button type="button" class="secondary" data-knowledge-template="meeting_takeaway">Meeting takeaway</button>
+            </div>
+          </div>
+          <div class="knowledge-layout">
+            <div class="knowledge-column">
+              <form id="knowledge-form" class="stack">
+                <input name="title" type="text" placeholder="Record title" required />
+                <input name="tags" type="text" placeholder="Tags, comma separated" />
+                <textarea name="content" rows="5" placeholder="Write your research note or internal summary" required></textarea>
+                <button type="submit">Save note</button>
+              </form>
+              <div id="knowledge-list" class="card-list tall"></div>
+            </div>
+            <aside id="knowledge-preview" class="knowledge-preview"></aside>
+          </div>
         </section>
 
-        <section class="panel">
+        <section class="panel" id="schedule-panel">
           <div class="panel-head">
             <h2>Schedules</h2>
             <span class="muted">Create private recurring briefing jobs in your workspace</span>

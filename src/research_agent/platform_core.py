@@ -507,11 +507,14 @@ def serialize_integration(integration: IntegrationCredential) -> dict[str, Any]:
     }
 
 
-def serialize_knowledge_record(record: KnowledgeRecord) -> dict[str, Any]:
+def serialize_knowledge_record(record: KnowledgeRecord, *, include_content: bool = True) -> dict[str, Any]:
+    content = record.content or ""
     return {
         "id": record.id,
         "title": record.title,
-        "content": record.content,
+        "content": content if include_content else "",
+        "content_excerpt": truncate_text(content, 220),
+        "content_length": len(content),
         "tags": record.tags_json,
         "metadata": record.metadata_json,
         "created_at": record.created_at.isoformat(),

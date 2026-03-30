@@ -158,6 +158,83 @@ h1 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.cockpit-panel {
+  max-width: 1400px;
+  margin: 0 auto 1.4rem;
+}
+
+.panel-span-full {
+  grid-column: 1 / -1;
+}
+
+.cockpit-meta-grid,
+.cockpit-stat-grid,
+.cockpit-step-grid,
+.cockpit-layout,
+.knowledge-summary-grid,
+.knowledge-layout,
+.knowledge-search-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.cockpit-meta-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+
+.cockpit-meta-card p {
+  margin: 0.5rem 0 0;
+}
+
+.cockpit-stat-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+
+.cockpit-step-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+
+.cockpit-layout {
+  grid-template-columns: 0.92fr 1.08fr;
+  margin-top: 1rem;
+}
+
+.cockpit-stat-card,
+.knowledge-summary-card {
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.55);
+  display: grid;
+  gap: 0.35rem;
+}
+
+.cockpit-stat-card span,
+.knowledge-summary-card span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.cockpit-stat-card strong,
+.knowledge-summary-card strong {
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.cockpit-stat-card p,
+.knowledge-summary-card p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cockpit-action-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
 .public-grid {
   grid-template-columns: 1.3fr 0.9fr;
   margin: 1rem 0 1.2rem;
@@ -576,6 +653,11 @@ button.secondary,
   background: rgba(255, 255, 255, 0.5);
 }
 
+.panel.is-spotlit {
+  border-color: rgba(11, 95, 69, 0.4);
+  box-shadow: 0 0 0 2px rgba(11, 95, 69, 0.1), var(--shadow);
+}
+
 .literature-status-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -600,6 +682,56 @@ button.secondary,
   border-color: rgba(11, 95, 69, 0.4);
   box-shadow: 0 0 0 2px rgba(11, 95, 69, 0.12);
   background: rgba(236, 247, 242, 0.82);
+}
+
+.knowledge-card.is-selected {
+  border-color: rgba(11, 95, 69, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(11, 95, 69, 0.08);
+  background: rgba(242, 249, 245, 0.82);
+}
+
+.knowledge-toolbar {
+  display: grid;
+  gap: 0.9rem;
+  margin: 1rem 0;
+}
+
+.knowledge-search-form {
+  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 0.8fr)) auto auto;
+  align-items: end;
+}
+
+.knowledge-template-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.knowledge-layout {
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  align-items: start;
+}
+
+.knowledge-column {
+  display: grid;
+  gap: 1rem;
+}
+
+.knowledge-preview {
+  position: sticky;
+  top: 1rem;
+}
+
+.knowledge-preview-card {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.knowledge-preview pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .markdown-body {
@@ -1081,9 +1213,16 @@ button.secondary,
   .hero,
   .auth-grid,
   .dashboard-grid,
+  .cockpit-meta-grid,
+  .cockpit-stat-grid,
+  .cockpit-step-grid,
+  .cockpit-layout,
   .public-grid,
   .public-preview-grid,
   .public-entry-grid,
+  .knowledge-summary-grid,
+  .knowledge-layout,
+  .knowledge-search-form,
   .data-lab-grid,
   .column-profile-grid,
   .public-toolbar-grid,
@@ -1118,6 +1257,10 @@ button.secondary,
 
   .literature-status-grid {
     grid-template-columns: 1fr;
+  }
+
+  .knowledge-preview {
+    position: static;
   }
 
   .public-summary-rail,

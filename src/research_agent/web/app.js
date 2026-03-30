@@ -8,8 +8,17 @@ const state = {
   user: null,
   workspaces: [],
   selectedWorkspaceId: localStorage.getItem(storageKeys.workspaceId) || "",
+  integrations: [],
+  privateBriefings: [],
+  literatureEntries: [],
   workspaceAssets: [],
   workspaceKnowledge: [],
+  workspaceSchedules: [],
+  knowledgeDetails: {},
+  selectedKnowledgeRecordId: "",
+  knowledgeSearchQuery: "",
+  knowledgeTypeFilter: "all",
+  knowledgeTagFilter: "all",
   assetProfiles: {},
   selectedAnalysisAssetId: "",
   currentPlotAssetId: "",
@@ -118,6 +127,98 @@ const MODEL_CONFIG = {
   fama_french_3: { dependentKind: "numeric", assetPricing: true, ff3: true, robust: true, dependentLabel: "Asset return series" },
 };
 
+const KNOWLEDGE_TEMPLATES = {
+  research_memo: {
+    label: "Research Memo",
+    title: "Research Memo:",
+    tags: ["memo", "workspace", "research"],
+    content: `## Research question
+
+- What question am I trying to answer?
+
+## Why it matters
+
+- Why does this matter for the project or workspace?
+
+## Variables and evidence
+
+- Outcome:
+- Key explanatory variables:
+- Data source:
+
+## Next checks
+
+-`,
+  },
+  reading_note: {
+    label: "Reading Note",
+    title: "Reading Note:",
+    tags: ["reading-note", "literature", "review"],
+    content: `## Citation
+
+-
+
+## Main contribution
+
+-
+
+## Variables and design
+
+- Outcome:
+- Treatment / shock:
+- Controls:
+- Identification:
+
+## Follow-up questions
+
+-`,
+  },
+  hypothesis_log: {
+    label: "Hypothesis Log",
+    title: "Hypothesis Log:",
+    tags: ["hypothesis", "research-design"],
+    content: `## Hypothesis
+
+-
+
+## Expected sign or effect
+
+-
+
+## Mechanism
+
+-
+
+## Risks to identification
+
+-
+
+## Next validation step
+
+-`,
+  },
+  meeting_takeaway: {
+    label: "Meeting Takeaway",
+    title: "Meeting Takeaway:",
+    tags: ["meeting", "internal-summary"],
+    content: `## Decisions
+
+-
+
+## Open questions
+
+-
+
+## Assigned follow-ups
+
+-
+
+## Deadline or next review point
+
+-`,
+  },
+};
+
 const dom = {
   publicPanel: document.getElementById("public-panel"),
   toast: document.getElementById("toast"),
@@ -150,6 +251,14 @@ const dom = {
   sessionIndicator: document.getElementById("session-indicator"),
   userSummary: document.getElementById("user-summary"),
   workspaceSelect: document.getElementById("workspace-select"),
+  cockpitWorkspaceName: document.getElementById("cockpit-workspace-name"),
+  cockpitWorkspaceMeta: document.getElementById("cockpit-workspace-meta"),
+  cockpitNextActionTitle: document.getElementById("cockpit-next-action-title"),
+  cockpitNextActionCopy: document.getElementById("cockpit-next-action-copy"),
+  cockpitStatGrid: document.getElementById("cockpit-stat-grid"),
+  cockpitStepGrid: document.getElementById("cockpit-step-grid"),
+  cockpitActionList: document.getElementById("cockpit-action-list"),
+  cockpitActivityList: document.getElementById("cockpit-activity-list"),
   integrationList: document.getElementById("integration-list"),
   integrationProviderHint: document.getElementById("integration-provider-hint"),
   integrationProviderDocs: document.getElementById("integration-provider-docs"),
@@ -158,6 +267,13 @@ const dom = {
   literatureList: document.getElementById("literature-list"),
   assetList: document.getElementById("asset-list"),
   knowledgeList: document.getElementById("knowledge-list"),
+  knowledgeSummaryGrid: document.getElementById("knowledge-summary-grid"),
+  knowledgeSearchForm: document.getElementById("knowledge-search-form"),
+  knowledgeSearchInput: document.getElementById("knowledge-search-input"),
+  knowledgeTypeFilter: document.getElementById("knowledge-type-filter"),
+  knowledgeTagFilter: document.getElementById("knowledge-tag-filter"),
+  knowledgeResetButton: document.getElementById("knowledge-reset-button"),
+  knowledgePreview: document.getElementById("knowledge-preview"),
   scheduleList: document.getElementById("schedule-list"),
   analysisAssetSelect: document.getElementById("analysis-asset-select"),
   refreshAssetProfileButton: document.getElementById("refresh-asset-profile"),
@@ -977,6 +1093,469 @@ function truncateText(value, maxLength = 160) {
   return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
 }
 
+function currentWorkspace() {
+  return state.workspaces.find((item) => item.id === state.selectedWorkspaceId) || null;
+}
+
+function knowledgeTypeSpec(item) {
+  const metadata = item?.metadata || {};
+  const derivativeMode = String(metadata.derivative_mode || "").trim();
+  const noteTemplate = String(metadata.note_template || "").trim();
+  if (metadata.model_type || metadata.workflow_type === "model") {
+    return {
+      key: "model_result",
+      label: "Model Result",
+      description: metadata.model_label || metadata.model_type || "Saved model output",
+      relatedPath: metadata.result_detail_path || `/data-lab/results/models/${item.id}`,
+    };
+  }
+  if (metadata.source_type === "paper_library") {
+    if (derivativeMode === "summary") {
+      return { key: "paper_summary", label: "Paper Summary", description: "Condensed literature takeaway" };
+    }
+    if (derivativeMode === "annotation") {
+      return { key: "paper_annotation", label: "Paper Annotation", description: "Structured reading template" };
+    }
+    if (derivativeMode === "question_breakdown") {
+      return { key: "paper_questions", label: "Question Breakdown", description: "Variables and follow-up checklist" };
+    }
+    return { key: "paper_note", label: "Paper Note", description: "Imported literature note" };
+  }
+  if (metadata.briefing_id) {
+    return { key: "briefing_note", label: "Briefing Note", description: "Generated from a private daily briefing" };
+  }
+  if (noteTemplate && KNOWLEDGE_TEMPLATES[noteTemplate]) {
+    return {
+      key: `template_${noteTemplate}`,
+      label: KNOWLEDGE_TEMPLATES[noteTemplate].label,
+      description: "Manual note created from a workspace template",
+    };
+  }
+  return { key: "manual_note", label: "Manual Note", description: "Workspace-authored note or memo" };
+}
+
+function knowledgeSearchableText(item) {
+  const metadata = item?.metadata || {};
+  const tags = Array.isArray(item?.tags) ? item.tags.join(" ") : "";
+  return [
+    item?.title,
+    item?.content_excerpt,
+    item?.content,
+    tags,
+    metadata.citation_text,
+    metadata.model_type,
+    metadata.model_label,
+    metadata.derivative_mode,
+    metadata.note_template,
+    metadata.venue,
+    metadata.doi,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function collectKnowledgeTags(items) {
+  const tags = new Set();
+  (items || []).forEach((item) => {
+    (item.tags || []).forEach((tag) => {
+      const normalized = String(tag || "").trim();
+      if (normalized) {
+        tags.add(normalized);
+      }
+    });
+  });
+  return [...tags].sort((left, right) => left.localeCompare(right));
+}
+
+function buildKnowledgeTypeOptions(items) {
+  const options = [{ value: "all", label: "All note types" }];
+  const seen = new Set(["all"]);
+  (items || []).forEach((item) => {
+    const spec = knowledgeTypeSpec(item);
+    if (!seen.has(spec.key)) {
+      seen.add(spec.key);
+      options.push({ value: spec.key, label: spec.label });
+    }
+  });
+  return options;
+}
+
+function filteredKnowledgeItems(items = state.workspaceKnowledge) {
+  const query = String(state.knowledgeSearchQuery || "").trim().toLowerCase();
+  return [...(items || [])].filter((item) => {
+    const typeSpec = knowledgeTypeSpec(item);
+    if (state.knowledgeTypeFilter !== "all" && typeSpec.key !== state.knowledgeTypeFilter) {
+      return false;
+    }
+    if (state.knowledgeTagFilter !== "all" && !(item.tags || []).includes(state.knowledgeTagFilter)) {
+      return false;
+    }
+    if (query && !knowledgeSearchableText(item).includes(query)) {
+      return false;
+    }
+    return true;
+  });
+}
+
+function mergeKnowledgeRecord(recordId) {
+  const summaryRecord = (state.workspaceKnowledge || []).find((item) => item.id === recordId) || null;
+  const detailRecord = state.knowledgeDetails[recordId] || null;
+  if (!summaryRecord && !detailRecord) {
+    return null;
+  }
+  return {
+    ...(summaryRecord || {}),
+    ...(detailRecord || {}),
+    metadata: {
+      ...(summaryRecord?.metadata || {}),
+      ...(detailRecord?.metadata || {}),
+    },
+    tags: detailRecord?.tags || summaryRecord?.tags || [],
+  };
+}
+
+function renderKnowledgeFilterOptions(items) {
+  const typeOptions = buildKnowledgeTypeOptions(items);
+  if (!typeOptions.some((option) => option.value === state.knowledgeTypeFilter)) {
+    state.knowledgeTypeFilter = "all";
+  }
+  if (dom.knowledgeTypeFilter) {
+    dom.knowledgeTypeFilter.innerHTML = typeOptions
+      .map(
+        (option) =>
+          `<option value="${escapeHtml(option.value)}"${option.value === state.knowledgeTypeFilter ? " selected" : ""}>${escapeHtml(option.label)}</option>`,
+      )
+      .join("");
+  }
+  const tags = collectKnowledgeTags(items);
+  if (state.knowledgeTagFilter !== "all" && !tags.includes(state.knowledgeTagFilter)) {
+    state.knowledgeTagFilter = "all";
+  }
+  if (dom.knowledgeTagFilter) {
+    dom.knowledgeTagFilter.innerHTML = [
+      `<option value="all"${state.knowledgeTagFilter === "all" ? " selected" : ""}>All tags</option>`,
+      ...tags.map(
+        (tag) =>
+          `<option value="${escapeHtml(tag)}"${tag === state.knowledgeTagFilter ? " selected" : ""}>${escapeHtml(tag)}</option>`,
+      ),
+    ].join("");
+  }
+  if (dom.knowledgeSearchInput) {
+    dom.knowledgeSearchInput.value = state.knowledgeSearchQuery;
+  }
+}
+
+function renderKnowledgeSummary(items, filteredItems) {
+  if (!dom.knowledgeSummaryGrid) {
+    return;
+  }
+  if (!items.length) {
+    dom.knowledgeSummaryGrid.innerHTML = "";
+    return;
+  }
+  const typeCounts = new Map();
+  items.forEach((item) => {
+    const spec = knowledgeTypeSpec(item);
+    typeCounts.set(spec.label, (typeCounts.get(spec.label) || 0) + 1);
+  });
+  const topTags = collectKnowledgeTags(items).slice(0, 4);
+  const latestItem = [...items].sort((left, right) => new Date(right.updated_at || right.created_at || 0) - new Date(left.updated_at || left.created_at || 0))[0];
+  dom.knowledgeSummaryGrid.innerHTML = `
+    <article class="knowledge-summary-card">
+      <span>Total notes</span>
+      <strong>${escapeHtml(items.length)}</strong>
+      <p class="muted">All private notes currently stored in this workspace.</p>
+    </article>
+    <article class="knowledge-summary-card">
+      <span>Visible after filters</span>
+      <strong>${escapeHtml(filteredItems.length)}</strong>
+      <p class="muted">Current search and filter output for this workspace.</p>
+    </article>
+    <article class="knowledge-summary-card">
+      <span>Top note types</span>
+      <strong>${escapeHtml([...typeCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([label]) => label).join(" / ") || "n/a")}</strong>
+      <p class="muted">${escapeHtml([...typeCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([label, count]) => `${label}: ${count}`).join(" | ") || "No typed notes yet.")}</p>
+    </article>
+    <article class="knowledge-summary-card">
+      <span>Top tags</span>
+      <strong>${escapeHtml(topTags.join(", ") || "No tags")}</strong>
+      <p class="muted">${escapeHtml(latestItem ? `Latest update: ${prettyDate(latestItem.updated_at || latestItem.created_at)}` : "No update history yet.")}</p>
+    </article>
+  `;
+}
+
+function renderKnowledgePreview(record, { loading = false } = {}) {
+  if (!dom.knowledgePreview) {
+    return;
+  }
+  if (!record) {
+    dom.knowledgePreview.innerHTML = emptyCard("Select a note to inspect its full content, metadata, and source links.");
+    return;
+  }
+  const typeSpec = knowledgeTypeSpec(record);
+  const metadata = record.metadata || {};
+  const tags = (record.tags || []).filter(Boolean);
+  const relatedLinks = [];
+  if (typeSpec.relatedPath) {
+    relatedLinks.push(`<a href="${escapeHtml(typeSpec.relatedPath)}" class="button-link secondary-link">Open related detail</a>`);
+  }
+  if (metadata.landing_page_url) {
+    relatedLinks.push(`<a href="${escapeHtml(metadata.landing_page_url)}" target="_blank" rel="noreferrer" class="button-link secondary-link">Open source page</a>`);
+  }
+  if (metadata.pdf_url) {
+    relatedLinks.push(`<a href="${escapeHtml(metadata.pdf_url)}" target="_blank" rel="noreferrer" class="button-link secondary-link">Open source PDF</a>`);
+  }
+  if (metadata.briefing_id) {
+    relatedLinks.push(`<button type="button" class="secondary" data-scroll-target="private-briefing-panel">Jump to briefings</button>`);
+  }
+  dom.knowledgePreview.innerHTML = `
+    <article class="card knowledge-preview-card">
+      <div class="panel-head panel-head-wrap">
+        <div>
+          <p class="eyebrow eyebrow-compact">${escapeHtml(typeSpec.label)}</p>
+          <h3>${escapeHtml(record.title || "Untitled note")}</h3>
+        </div>
+        <span class="pill">${escapeHtml(prettyDate(record.updated_at || record.created_at))}</span>
+      </div>
+      <p class="muted">${escapeHtml(typeSpec.description || "Private knowledge record")}</p>
+      <div class="chip-row chip-row-compact">
+        <span class="topic-chip">Chars <strong>${escapeHtml(record.content_length || 0)}</strong></span>
+        ${(tags || []).slice(0, 6).map((tag) => `<span class="topic-chip">${escapeHtml(tag)}</span>`).join("")}
+      </div>
+      <div class="actions compact-actions">
+        <button type="button" class="secondary" data-copy-knowledge-markdown="${escapeHtml(record.id)}">Copy markdown</button>
+        <button type="button" class="secondary" data-download-knowledge-markdown="${escapeHtml(record.id)}">Download .md</button>
+        ${relatedLinks.join("")}
+      </div>
+      ${
+        loading
+          ? `<p class="muted">Loading full note body...</p>`
+          : `<div class="markdown-body">${markdownToHtml(record.content || record.content_excerpt || "No note body.")}</div>`
+      }
+      <details class="result-json-toggle">
+        <summary>Open metadata</summary>
+        <pre>${escapeHtml(JSON.stringify(metadata, null, 2))}</pre>
+      </details>
+    </article>
+  `;
+}
+
+function renderWorkspaceCockpit() {
+  if (!dom.cockpitWorkspaceName || !dom.cockpitStatGrid || !dom.cockpitStepGrid || !dom.cockpitActionList || !dom.cockpitActivityList) {
+    return;
+  }
+  const workspace = currentWorkspace();
+  const hasAccess = Boolean(state.user && workspace);
+  const stats = {
+    providers: state.integrations.length,
+    briefings: state.privateBriefings.length,
+    literature: state.literatureEntries.length,
+    assets: state.workspaceAssets.length,
+    notes: state.workspaceKnowledge.length,
+    schedules: state.workspaceSchedules.length,
+  };
+  if (!hasAccess) {
+    dom.cockpitWorkspaceName.textContent = state.user ? "Create or select a workspace" : "Sign in to begin";
+    dom.cockpitWorkspaceMeta.textContent = state.user
+      ? "Choose a workspace to unlock private providers, literature, notes, and recurring jobs."
+      : "Private cockpit data appears after authentication.";
+    dom.cockpitNextActionTitle.textContent = state.user ? "Select a workspace" : "Sign in";
+    dom.cockpitNextActionCopy.textContent = state.user
+      ? "Once a workspace is active, the cockpit will map providers, materials, and outputs."
+      : "Register or log in first, then create a workspace and connect a provider.";
+    dom.cockpitStatGrid.innerHTML = [
+      ["Providers", 0, "No private connections loaded yet."],
+      ["Papers", 0, "Private literature appears here after import."],
+      ["Notes", 0, "Knowledge records will accumulate here."],
+      ["Schedules", 0, "Recurring jobs appear after setup."],
+    ]
+      .map(
+        ([label, value, copy]) => `
+          <article class="cockpit-stat-card">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value)}</strong>
+            <p class="muted">${escapeHtml(copy)}</p>
+          </article>
+        `,
+      )
+      .join("");
+    dom.cockpitStepGrid.innerHTML = [
+      ["1. Access", "Authenticate and choose a workspace.", "active"],
+      ["2. Connect", "Save at least one provider or data source.", "pending"],
+      ["3. Collect", "Import papers or create notes.", "pending"],
+      ["4. Reuse", "Schedule work or review outputs.", "pending"],
+    ]
+      .map(
+        ([title, copy, stateName]) => `
+          <article class="workflow-step-card${stateName === "active" ? " is-active" : ""}">
+            <h4>${escapeHtml(title)}</h4>
+            <p>${escapeHtml(copy)}</p>
+          </article>
+        `,
+      )
+      .join("");
+    dom.cockpitActionList.innerHTML = `
+      <button type="button" class="button-link" data-scroll-target="provider-center-panel">Open Provider Center</button>
+      <button type="button" class="button-link secondary-link" data-scroll-target="knowledge-base-panel">Open Knowledge Base</button>
+      <a href="/public-monitor" class="button-link secondary-link">Browse Public Daily Monitor</a>
+      <a href="/data-lab" class="button-link secondary-link">Open standalone Data Lab</a>
+    `;
+    dom.cockpitActivityList.innerHTML = emptyCard("No private workspace activity yet.");
+    return;
+  }
+  const nextAction = !stats.providers
+    ? {
+        title: "Connect your first provider",
+        copy: "Save an LLM or data-source connection so research generation and diagnostics can run inside this workspace.",
+      }
+    : !stats.literature && !stats.assets
+      ? {
+          title: "Collect private research materials",
+          copy: "Search OpenAlex, import papers, or switch to Data Lab to work with datasets.",
+        }
+      : !stats.notes
+        ? {
+            title: "Create reusable notes",
+            copy: "Convert papers and private outputs into searchable knowledge records inside the workspace.",
+          }
+        : !stats.schedules
+          ? {
+              title: "Automate a recurring task",
+              copy: "Add a daily job so the workspace continues to collect briefings without manual intervention.",
+            }
+          : {
+              title: "Review and extend the workspace",
+              copy: "Use the cockpit to jump to the most recent outputs and continue from the last completed step.",
+            };
+  dom.cockpitWorkspaceName.textContent = workspace.name;
+  dom.cockpitWorkspaceMeta.textContent = workspace.description
+    ? `${workspace.description} | ${stats.providers} providers | ${stats.notes} notes | ${stats.schedules} schedules`
+    : `${stats.providers} providers | ${stats.literature} papers | ${stats.assets} assets | ${stats.notes} notes`;
+  dom.cockpitNextActionTitle.textContent = nextAction.title;
+  dom.cockpitNextActionCopy.textContent = nextAction.copy;
+  dom.cockpitStatGrid.innerHTML = [
+    ["Providers", stats.providers, "Saved model and data-source connections."],
+    ["Briefings", stats.briefings, "Private macro briefings stored in this workspace."],
+    ["Paper Library", stats.literature, "Imported OpenAlex entries and follow-up notes."],
+    ["Assets", stats.assets, "Datasets, PDFs, charts, and processed outputs."],
+    ["Knowledge", stats.notes, "Manual notes, paper notes, and model outputs."],
+    ["Schedules", stats.schedules, "Recurring private jobs waiting to run."],
+  ]
+    .map(
+      ([label, value, copy]) => `
+        <article class="cockpit-stat-card">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+          <p class="muted">${escapeHtml(copy)}</p>
+        </article>
+      `,
+    )
+    .join("");
+  const stepCards = [
+    {
+      title: "1. Workspace access",
+      copy: `Signed in as ${state.user.full_name || state.user.email} with ${workspace.name} selected.`,
+      complete: true,
+    },
+    {
+      title: "2. Provider setup",
+      copy: stats.providers ? `${stats.providers} provider connection(s) saved.` : "No provider yet. Start from Provider Center.",
+      active: !stats.providers,
+      complete: Boolean(stats.providers),
+    },
+    {
+      title: "3. Research materials",
+      copy: stats.literature || stats.assets
+        ? `${stats.literature} papers and ${stats.assets} assets currently available.`
+        : "Import literature or move to Data Lab for datasets.",
+      active: stats.providers && !(stats.literature || stats.assets),
+      complete: Boolean(stats.literature || stats.assets),
+    },
+    {
+      title: "4. Reusable outputs",
+      copy: stats.notes || stats.briefings || stats.schedules
+        ? `${stats.notes} notes, ${stats.briefings} briefings, ${stats.schedules} schedules.`
+        : "Create notes, generate a briefing, or add a recurring job.",
+      active: (stats.literature || stats.assets) && !(stats.notes || stats.briefings || stats.schedules),
+      complete: Boolean(stats.notes || stats.briefings || stats.schedules),
+    },
+  ];
+  dom.cockpitStepGrid.innerHTML = stepCards
+    .map(
+      (step) => `
+        <article class="workflow-step-card${step.complete ? " is-complete" : step.active ? " is-active" : ""}">
+          <h4>${escapeHtml(step.title)}</h4>
+          <p>${escapeHtml(step.copy)}</p>
+        </article>
+      `,
+    )
+    .join("");
+  dom.cockpitActionList.innerHTML = [
+    { label: "Connect provider", target: "provider-center-panel" },
+    { label: "Generate briefing", target: "private-briefing-panel" },
+    { label: "Search papers", target: "paper-library-panel" },
+    { label: "Open knowledge base", target: "knowledge-base-panel" },
+    { label: "Create schedule", target: "schedule-panel" },
+  ]
+    .map(
+      (action) =>
+        `<button type="button" class="button-link secondary-link" data-scroll-target="${escapeHtml(action.target)}">${escapeHtml(action.label)}</button>`,
+    )
+    .join("") +
+    `<a href="/data-lab" class="button-link">Open standalone Data Lab</a>`;
+  const activityItems = [
+    state.privateBriefings[0]
+      ? {
+          title: state.privateBriefings[0].title,
+          meta: `Briefing | ${prettyDate(state.privateBriefings[0].created_at)}`,
+          copy: truncateText(state.privateBriefings[0].summary_markdown, 150),
+          target: "private-briefing-panel",
+        }
+      : null,
+    state.literatureEntries[0]
+      ? {
+          title: state.literatureEntries[0].title,
+          meta: `Paper | ${state.literatureEntries[0].publication_year || "n/a"} | ${state.literatureEntries[0].venue || "Unknown venue"}`,
+          copy: truncateText(state.literatureEntries[0].citation_text || state.literatureEntries[0].abstract_excerpt || "", 150),
+          target: "paper-library-panel",
+        }
+      : null,
+    state.workspaceKnowledge[0]
+      ? {
+          title: state.workspaceKnowledge[0].title,
+          meta: `${knowledgeTypeSpec(state.workspaceKnowledge[0]).label} | ${prettyDate(state.workspaceKnowledge[0].updated_at || state.workspaceKnowledge[0].created_at)}`,
+          copy: truncateText(state.workspaceKnowledge[0].content_excerpt || "", 150),
+          target: "knowledge-base-panel",
+        }
+      : null,
+    state.workspaceSchedules[0]
+      ? {
+          title: state.workspaceSchedules[0].name,
+          meta: `Schedule | next ${prettyDate(state.workspaceSchedules[0].next_run_at)}`,
+          copy: truncateText(state.workspaceSchedules[0].job_type || "Recurring private job", 150),
+          target: "schedule-panel",
+        }
+      : null,
+  ].filter(Boolean);
+  dom.cockpitActivityList.innerHTML = activityItems.length
+    ? activityItems
+        .map(
+          (item) => `
+            <article class="card">
+              <h4>${escapeHtml(item.title)}</h4>
+              <p class="compact-note">${escapeHtml(item.meta)}</p>
+              <p class="compact-note muted">${escapeHtml(item.copy)}</p>
+              <div class="actions compact-actions">
+                <button type="button" class="secondary" data-scroll-target="${escapeHtml(item.target)}">Open module</button>
+              </div>
+            </article>
+          `,
+        )
+        .join("")
+    : emptyCard("Generate a briefing, import papers, or create notes to populate the cockpit activity rail.");
+}
+
 function setWorkflowStep(card, textNode, stateName, copy) {
   if (!card || !textNode) {
     return;
@@ -1601,8 +2180,17 @@ function clearPrivateLists() {
   if (!hasPrivateWorkspaceUI()) {
     return;
   }
+  state.integrations = [];
+  state.privateBriefings = [];
+  state.literatureEntries = [];
   state.workspaceAssets = [];
   state.workspaceKnowledge = [];
+  state.workspaceSchedules = [];
+  state.knowledgeDetails = {};
+  state.selectedKnowledgeRecordId = "";
+  state.knowledgeSearchQuery = "";
+  state.knowledgeTypeFilter = "all";
+  state.knowledgeTagFilter = "all";
   if (dom.integrationList) {
     dom.integrationList.innerHTML = emptyCard("Log in to view saved provider connections.");
   }
@@ -1621,6 +2209,12 @@ function clearPrivateLists() {
   if (dom.knowledgeList) {
     dom.knowledgeList.innerHTML = emptyCard("Your private notes will appear here.");
   }
+  if (dom.knowledgeSummaryGrid) {
+    dom.knowledgeSummaryGrid.innerHTML = "";
+  }
+  if (dom.knowledgePreview) {
+    dom.knowledgePreview.innerHTML = emptyCard("Select a note to inspect its full content, metadata, and source links.");
+  }
   if (dom.scheduleList) {
     dom.scheduleList.innerHTML = emptyCard("Your scheduled jobs will appear here.");
   }
@@ -1633,6 +2227,7 @@ function clearPrivateLists() {
   renderDataLabPlaceholders();
   renderProcessingHistory([]);
   renderModelHistory([]);
+  renderWorkspaceCockpit();
 }
 
 function ensureSignedIn() {
@@ -1655,6 +2250,8 @@ function clearSession() {
   state.selectedWorkspaceId = "";
   state.assetProfiles = {};
   state.selectedAnalysisAssetId = "";
+  state.knowledgeDetails = {};
+  state.selectedKnowledgeRecordId = "";
   localStorage.removeItem(storageKeys.token);
   localStorage.removeItem(storageKeys.workspaceId);
   revokeResultPreviewUrls();
@@ -1670,6 +2267,8 @@ function setSession(payload) {
   state.user = payload.user;
   state.workspaces = payload.workspaces || [];
   state.selectedWorkspaceId = state.selectedWorkspaceId || state.workspaces[0]?.id || "";
+  state.knowledgeDetails = {};
+  state.selectedKnowledgeRecordId = "";
   localStorage.setItem(storageKeys.token, state.token);
   if (state.selectedWorkspaceId) {
     localStorage.setItem(storageKeys.workspaceId, state.selectedWorkspaceId);
@@ -1688,11 +2287,13 @@ function renderSession() {
     dom.sessionIndicator.textContent = "Signed out";
     dom.userSummary.textContent = "Register or log in to access your private workspace.";
     renderLabContext();
+    renderWorkspaceCockpit();
     return;
   }
   dom.sessionIndicator.textContent = "Signed in";
   dom.userSummary.textContent = `${state.user.full_name} | ${state.user.email}`;
   renderLabContext();
+  renderWorkspaceCockpit();
 }
 
 function renderWorkspaceOptions() {
@@ -1713,6 +2314,7 @@ function renderWorkspaceOptions() {
     dom.workspaceSelect.appendChild(option);
   }
   renderLabContext();
+  renderWorkspaceCockpit();
 }
 
 function getProviderCatalog() {
@@ -1788,6 +2390,7 @@ function applyIntegrationProviderPreset(kind) {
 }
 
 function renderIntegrations(items) {
+  state.integrations = items || [];
   if (!dom.integrationList) {
     return;
   }
@@ -1815,6 +2418,7 @@ function renderIntegrations(items) {
 }
 
 function renderBriefings(items) {
+  state.privateBriefings = items || [];
   if (!dom.briefingList) {
     return;
   }
@@ -1863,6 +2467,7 @@ function renderOpenAlexResults(items) {
 }
 
 function renderLiterature(items) {
+  state.literatureEntries = items || [];
   if (!dom.literatureList) {
     return;
   }
@@ -1958,41 +2563,98 @@ function renderAssets(items) {
 
 function renderKnowledge(items) {
   state.workspaceKnowledge = items || [];
-  if (!dom.knowledgeList) {
+  renderKnowledgeFilterOptions(state.workspaceKnowledge);
+  const filteredItems = filteredKnowledgeItems(state.workspaceKnowledge);
+  renderKnowledgeSummary(state.workspaceKnowledge, filteredItems);
+  if (!filteredItems.length) {
+    state.selectedKnowledgeRecordId = "";
+    if (dom.knowledgeList) {
+      dom.knowledgeList.innerHTML = emptyCard("No notes match the current knowledge filters.");
+    }
+    renderKnowledgePreview(null);
     renderModelHistory(modelHistoryItems());
+    renderWorkspaceCockpit();
     return;
   }
-  if (!items.length) {
-    dom.knowledgeList.innerHTML = emptyCard("No private notes yet.");
-    renderModelHistory([]);
-    return;
+  if (!filteredItems.some((item) => item.id === state.selectedKnowledgeRecordId)) {
+    state.selectedKnowledgeRecordId = filteredItems[0].id;
   }
-  dom.knowledgeList.innerHTML = items
-    .map(
-      (item) => `
-        <div class="card knowledge-card" data-knowledge-record-id="${escapeHtml(item.id)}">
-          <h4>${escapeHtml(item.title)}</h4>
-          <p class="compact-note">${escapeHtml((item.tags || []).join(", ")) || "No tags"}</p>
-          <p class="compact-note muted">${escapeHtml(truncateText(item.content || "", 220)) || "No note body."}</p>
-          <details class="result-json-toggle">
-            <summary>Open note</summary>
-            <div class="markdown-body">${markdownToHtml(item.content || "")}</div>
-          </details>
-        </div>
-      `,
-    )
-    .join("");
+  if (dom.knowledgeList) {
+    dom.knowledgeList.innerHTML = filteredItems
+      .map((item) => {
+        const typeSpec = knowledgeTypeSpec(item);
+        const selected = item.id === state.selectedKnowledgeRecordId;
+        const relatedPath = typeSpec.relatedPath || "";
+        return `
+          <article class="card knowledge-card${selected ? " is-selected" : ""}" data-knowledge-record-id="${escapeHtml(item.id)}">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h4>${escapeHtml(item.title)}</h4>
+                <p class="compact-note">${escapeHtml(typeSpec.label)} | ${escapeHtml(prettyDate(item.updated_at || item.created_at))}</p>
+              </div>
+              <span class="pill">${escapeHtml(item.content_length || 0)} chars</span>
+            </div>
+            <div class="chip-row chip-row-compact">
+              ${(item.tags || []).slice(0, 5).map((tag) => `<span class="topic-chip">${escapeHtml(tag)}</span>`).join("") || `<span class="muted">No tags</span>`}
+            </div>
+            <p class="compact-note muted">${escapeHtml(item.content_excerpt || "No note body.")}</p>
+            <div class="actions compact-actions">
+              <button type="button" class="secondary" data-select-knowledge="${escapeHtml(item.id)}">Preview</button>
+              <button type="button" class="secondary" data-copy-knowledge-markdown="${escapeHtml(item.id)}">Copy</button>
+              <button type="button" class="secondary" data-download-knowledge-markdown="${escapeHtml(item.id)}">Download</button>
+              ${relatedPath ? `<a href="${escapeHtml(relatedPath)}" class="action-link">Open related detail</a>` : ""}
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+  }
+  const selectedRecord = mergeKnowledgeRecord(state.selectedKnowledgeRecordId);
+  const loading = !selectedRecord?.content && Boolean(state.selectedWorkspaceId && state.user);
+  renderKnowledgePreview(selectedRecord, { loading });
+  if (loading) {
+    void loadKnowledgeDetail(state.selectedKnowledgeRecordId).catch((error) => {
+      showToast(error.message || "Failed to load the full knowledge note.", true);
+    });
+  }
   renderModelHistory(modelHistoryItems());
+  renderWorkspaceCockpit();
+}
+
+async function loadKnowledgeDetail(recordId, force = false) {
+  if (!recordId || !state.selectedWorkspaceId || !state.user) {
+    return null;
+  }
+  if (!force && state.knowledgeDetails[recordId]?.content) {
+    return state.knowledgeDetails[recordId];
+  }
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/knowledge/${recordId}`);
+  state.knowledgeDetails[recordId] = response.record;
+  if (state.selectedKnowledgeRecordId === recordId) {
+    renderKnowledge(state.workspaceKnowledge);
+  }
+  return response.record;
 }
 
 function focusKnowledgeRecord(recordId) {
   if (!recordId || !dom.knowledgeList) {
     return false;
   }
+  if (!(state.workspaceKnowledge || []).some((item) => item.id === recordId)) {
+    return false;
+  }
+  if (!filteredKnowledgeItems(state.workspaceKnowledge).some((item) => item.id === recordId)) {
+    state.knowledgeSearchQuery = "";
+    state.knowledgeTypeFilter = "all";
+    state.knowledgeTagFilter = "all";
+  }
+  state.selectedKnowledgeRecordId = recordId;
+  renderKnowledge(state.workspaceKnowledge);
   const selector = `[data-knowledge-record-id="${String(recordId).replaceAll('"', '\\"')}"]`;
   const target = dom.knowledgeList.querySelector(selector);
   if (!target) {
     dom.knowledgeList.scrollIntoView({ behavior: "smooth", block: "start" });
+    void loadKnowledgeDetail(recordId);
     return false;
   }
   dom.knowledgeList.querySelectorAll(".knowledge-card.is-highlighted").forEach((node) => node.classList.remove("is-highlighted"));
@@ -2000,10 +2662,12 @@ function focusKnowledgeRecord(recordId) {
   target.scrollIntoView({ behavior: "smooth", block: "center" });
   window.clearTimeout(focusKnowledgeRecord.timer);
   focusKnowledgeRecord.timer = window.setTimeout(() => target.classList.remove("is-highlighted"), 2200);
+  void loadKnowledgeDetail(recordId);
   return true;
 }
 
 function renderSchedules(items) {
+  state.workspaceSchedules = items || [];
   if (!dom.scheduleList) {
     return;
   }
@@ -3264,9 +3928,12 @@ async function refreshWorkspaceData() {
     api(`/api/workspaces/${workspaceId}/briefings`),
     api(`/api/workspaces/${workspaceId}/literature`),
     api(`/api/workspaces/${workspaceId}/assets`),
-    api(`/api/workspaces/${workspaceId}/knowledge`),
+    api(`/api/workspaces/${workspaceId}/knowledge?view=summary`),
     api(`/api/workspaces/${workspaceId}/schedules`),
   ]);
+  state.knowledgeDetails = Object.fromEntries(
+    Object.entries(state.knowledgeDetails || {}).filter(([recordId]) => (knowledge.items || []).some((item) => item.id === recordId)),
+  );
   renderIntegrations(integrations.items || []);
   renderBriefings(briefings.items || []);
   renderLiterature(literature.items || []);
@@ -3280,6 +3947,7 @@ async function refreshWorkspaceData() {
       showToast(error.message || "Failed to load dataset profile.", true);
     }
   }
+  renderWorkspaceCockpit();
 }
 
 async function handleRegister(event) {
@@ -3435,15 +4103,36 @@ async function handleKnowledge(event) {
   const formData = new FormData(event.currentTarget);
   const payload = Object.fromEntries(formData.entries());
   payload.tags = payload.tags ? payload.tags.split(",").map((item) => item.trim()).filter(Boolean) : [];
-  payload.metadata = {};
-  await api(`/api/workspaces/${state.selectedWorkspaceId}/knowledge`, {
+  const templateKey = event.currentTarget.dataset.template || "";
+  const template = KNOWLEDGE_TEMPLATES[templateKey] || null;
+  payload.metadata = templateKey ? { source_type: "manual_workspace", note_template: templateKey } : { source_type: "manual_workspace" };
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/knowledge`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+  state.selectedKnowledgeRecordId = response.record?.id || state.selectedKnowledgeRecordId;
   await refreshWorkspaceData();
+  if (response.record?.id) {
+    await loadKnowledgeDetail(response.record.id);
+  }
   event.currentTarget.reset();
+  delete event.currentTarget.dataset.template;
   showToast("Private note saved.");
+}
+
+function applyKnowledgeFiltersFromDom() {
+  state.knowledgeSearchQuery = dom.knowledgeSearchInput?.value || "";
+  state.knowledgeTypeFilter = dom.knowledgeTypeFilter?.value || "all";
+  state.knowledgeTagFilter = dom.knowledgeTagFilter?.value || "all";
+  renderKnowledge(state.workspaceKnowledge);
+}
+
+function resetKnowledgeFilters() {
+  state.knowledgeSearchQuery = "";
+  state.knowledgeTypeFilter = "all";
+  state.knowledgeTagFilter = "all";
+  renderKnowledge(state.workspaceKnowledge);
 }
 
 async function handleSchedule(event) {
@@ -3862,11 +4551,51 @@ async function downloadAsset(assetId) {
   URL.revokeObjectURL(url);
 }
 
+async function copyPlainTextToClipboard(text) {
+  if (!text) {
+    throw new Error("Nothing to copy.");
+  }
+  await navigator.clipboard.writeText(text);
+}
+
+function downloadTextFile(filename, content) {
+  const blob = new Blob([content || ""], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function sanitizeFilenameBase(value) {
+  return String(value || "knowledge-note")
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fff]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "knowledge-note";
+}
+
 async function copyToClipboard(text) {
   if (!text) {
     throw new Error("Nothing to copy.");
   }
   await navigator.clipboard.writeText(absolutePublicUrl(text));
+}
+
+function scrollToTarget(targetId) {
+  if (!targetId) {
+    return false;
+  }
+  const target = document.getElementById(targetId);
+  if (!target) {
+    return false;
+  }
+  document.querySelectorAll(".panel.is-spotlit").forEach((node) => node.classList.remove("is-spotlit"));
+  target.classList.add("is-spotlit");
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+  window.clearTimeout(scrollToTarget.timer);
+  scrollToTarget.timer = window.setTimeout(() => target.classList.remove("is-spotlit"), 2200);
+  return true;
 }
 
 function currentPublicShareTarget() {
@@ -3960,6 +4689,72 @@ async function handleLiteratureActions(event) {
   }
 }
 
+function applyKnowledgeTemplate(templateKey) {
+  const template = KNOWLEDGE_TEMPLATES[templateKey];
+  const knowledgeForm = document.getElementById("knowledge-form");
+  if (!template || !knowledgeForm) {
+    return;
+  }
+  const titleField = knowledgeForm.elements.namedItem("title");
+  const tagsField = knowledgeForm.elements.namedItem("tags");
+  const contentField = knowledgeForm.elements.namedItem("content");
+  if (titleField) {
+    titleField.value = template.title;
+  }
+  if (tagsField) {
+    tagsField.value = template.tags.join(", ");
+  }
+  if (contentField) {
+    contentField.value = template.content;
+  }
+  knowledgeForm.dataset.template = templateKey;
+}
+
+async function handleWorkbenchActions(event) {
+  const target = event.target.closest("[data-scroll-target], [data-knowledge-template], [data-select-knowledge], [data-copy-knowledge-markdown], [data-download-knowledge-markdown]");
+  if (!target) {
+    return;
+  }
+  const scrollTarget = target.getAttribute("data-scroll-target");
+  if (scrollTarget) {
+    if (!scrollToTarget(scrollTarget)) {
+      throw new Error("Target panel not found.");
+    }
+    return;
+  }
+  const templateKey = target.getAttribute("data-knowledge-template");
+  if (templateKey) {
+    applyKnowledgeTemplate(templateKey);
+    const knowledgePanelFound = scrollToTarget("knowledge-base-panel");
+    if (knowledgePanelFound) {
+      const titleField = document.querySelector('#knowledge-form input[name="title"]');
+      titleField?.focus();
+    }
+    showToast(`Template loaded: ${KNOWLEDGE_TEMPLATES[templateKey]?.label || "Note template"}`);
+    return;
+  }
+  const recordId = target.getAttribute("data-select-knowledge");
+  if (recordId) {
+    focusKnowledgeRecord(recordId);
+    return;
+  }
+  const copyRecordId = target.getAttribute("data-copy-knowledge-markdown");
+  if (copyRecordId) {
+    const previewRecord = mergeKnowledgeRecord(copyRecordId);
+    const record = previewRecord?.content ? previewRecord : (await loadKnowledgeDetail(copyRecordId)) || previewRecord;
+    await copyPlainTextToClipboard(record?.content || record?.content_excerpt || "");
+    showToast("Knowledge note copied.");
+    return;
+  }
+  const downloadRecordId = target.getAttribute("data-download-knowledge-markdown");
+  if (downloadRecordId) {
+    const previewRecord = mergeKnowledgeRecord(downloadRecordId);
+    const record = previewRecord?.content ? previewRecord : (await loadKnowledgeDetail(downloadRecordId)) || previewRecord;
+    downloadTextFile(`${sanitizeFilenameBase(record?.title || "knowledge-note")}.md`, record?.content || record?.content_excerpt || "");
+    showToast("Knowledge note download started.");
+  }
+}
+
 async function handlePublicActions(event) {
   const target = event.target.closest("[data-public-slug], [data-copy-public-url], [data-public-moderation]");
   if (!target) {
@@ -4026,6 +4821,7 @@ function bind() {
   const importLiteratureKnowledgeButton = document.getElementById("import-literature-knowledge");
   const uploadForm = document.getElementById("upload-form");
   const knowledgeForm = document.getElementById("knowledge-form");
+  const knowledgeSearchForm = document.getElementById("knowledge-search-form");
   const scheduleForm = document.getElementById("schedule-form");
   const variableGuideForm = document.getElementById("variable-guide-form");
   const prepareForm = document.getElementById("prepare-form");
@@ -4046,6 +4842,14 @@ function bind() {
   importLiteratureKnowledgeButton?.addEventListener("click", wrap(handleBulkLiteratureKnowledgeImport));
   uploadForm?.addEventListener("submit", wrap(handleUpload));
   knowledgeForm?.addEventListener("submit", wrap(handleKnowledge));
+  knowledgeSearchForm?.addEventListener("submit", wrap(async (event) => {
+    event.preventDefault();
+    applyKnowledgeFiltersFromDom();
+  }));
+  dom.knowledgeSearchInput?.addEventListener("input", applyKnowledgeFiltersFromDom);
+  dom.knowledgeTypeFilter?.addEventListener("change", applyKnowledgeFiltersFromDom);
+  dom.knowledgeTagFilter?.addEventListener("change", applyKnowledgeFiltersFromDom);
+  dom.knowledgeResetButton?.addEventListener("click", () => resetKnowledgeFilters());
   scheduleForm?.addEventListener("submit", wrap(handleSchedule));
   variableGuideForm?.addEventListener("submit", wrap(handleVariableGuide));
   prepareForm?.addEventListener("submit", wrap(handlePrepareSample));
@@ -4119,6 +4923,11 @@ function bind() {
       localStorage.setItem(storageKeys.workspaceId, state.selectedWorkspaceId);
       state.assetProfiles = {};
       state.selectedAnalysisAssetId = "";
+      state.knowledgeDetails = {};
+      state.selectedKnowledgeRecordId = "";
+      state.knowledgeSearchQuery = "";
+      state.knowledgeTypeFilter = "all";
+      state.knowledgeTagFilter = "all";
       await refreshWorkspaceData();
     }),
   );
@@ -4146,6 +4955,7 @@ function bind() {
   }));
   dom.integrationList?.addEventListener("click", wrap(handleIntegrationActions));
   document.body?.addEventListener("click", wrap(handleAssetActions));
+  document.body?.addEventListener("click", wrap(handleWorkbenchActions));
   dom.literatureList?.addEventListener("click", wrap(handleLiteratureActions));
   dom.publicDateSwitcher?.addEventListener("click", wrap(handlePublicActions));
   dom.publicBriefingList?.addEventListener("click", wrap(handlePublicActions));

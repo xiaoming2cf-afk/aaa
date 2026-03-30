@@ -30,6 +30,7 @@ from .platform_core import (
     create_workspace,
     delete_integration,
     get_current_user,
+    get_owned_knowledge_record,
     get_workspace_for_user,
     list_assets,
     list_integrations,
@@ -705,6 +706,7 @@ def create_app() -> FastAPI:
     def knowledge(
         workspace_id: str,
         q: str = "",
+        view: str = "full",
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> dict[str, Any]:
@@ -714,7 +716,27 @@ def create_app() -> FastAPI:
                 user = get_current_user(db, token)
                 workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
                 rows = search_knowledge_records(db, user=user, workspace=workspace, query=q) if q.strip() else list_knowledge_records(db, user=user, workspace=workspace)
-                return {"items": [serialize_knowledge_record(item) for item in rows]}
+                include_content = view.strip().lower() != "summary"
+                return {"items": [serialize_knowledge_record(item, include_content=include_content) for item in rows]}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/workspaces/{workspace_id}/knowledge/{record_id}")
+    def knowledge_detail(
+        workspace_id: str,
+        record_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                record = get_owned_knowledge_record(db, user=user, record_id=record_id)
+                if record.workspace_id != workspace.id:
+                    raise FileNotFoundError("Knowledge record not found.")
+                return {"record": serialize_knowledge_record(record)}
         except Exception as exc:
             _raise_http_error(exc)
 
