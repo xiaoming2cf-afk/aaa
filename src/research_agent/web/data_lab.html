@@ -137,8 +137,16 @@
               <p><strong>Family:</strong> <span id="lab-context-family">Sample Preparation</span></p>
               <p><strong>Model:</strong> <span id="lab-context-model">No model selected</span></p>
             </div>
+            <div class="stack compact">
+              <label for="lab-case-select">Active case</label>
+              <select id="lab-case-select">
+                <option value="">No active case</option>
+              </select>
+              <p class="muted" id="lab-case-meta">Choose a case if you want to route Data Lab outputs into a private workspace case file.</p>
+            </div>
             <div class="actions">
               <span class="muted" id="lab-context-next-action">Next action: sign in or create a workspace.</span>
+              <a id="lab-case-home-link" href="/#knowledge-base-panel" class="button-link secondary-link">Open case workspace on homepage</a>
               <a id="lab-context-detail-link" href="/data-lab/processing/sample_preparation" class="button-link secondary-link">Open family detail</a>
             </div>
           </article>

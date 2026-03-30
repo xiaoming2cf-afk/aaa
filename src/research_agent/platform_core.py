@@ -28,7 +28,18 @@ from sqlalchemy.orm import Session
 
 from .asset_storage import load_asset_bytes, store_asset_content
 from .config import Settings
-from .entities import DataAsset, EconomicBriefing, IntegrationCredential, KnowledgeRecord, LiteratureEntry, User, UserSession, Workspace
+from .entities import (
+    DataAsset,
+    EconomicBriefing,
+    IntegrationCredential,
+    KnowledgeCase,
+    KnowledgeCaseItem,
+    KnowledgeRecord,
+    LiteratureEntry,
+    User,
+    UserSession,
+    Workspace,
+)
 from .provider_catalog import apply_provider_defaults, get_provider_spec
 from .provider_gateway import ProviderGateway
 from .security import (
@@ -530,6 +541,57 @@ def serialize_knowledge_record(record: KnowledgeRecord, *, include_content: bool
     }
 
 
+def serialize_knowledge_case(
+    case: KnowledgeCase,
+    *,
+    item_count: int = 0,
+    latest_item_at: str = "",
+    item_types: list[str] | None = None,
+) -> dict[str, Any]:
+    return {
+        "id": case.id,
+        "title": case.title,
+        "description": case.description,
+        "tags": case.tags_json,
+        "metadata": case.metadata_json,
+        "item_count": item_count,
+        "latest_item_at": latest_item_at,
+        "item_types": item_types or [],
+        "created_at": case.created_at.isoformat(),
+        "updated_at": case.updated_at.isoformat(),
+    }
+
+
+def serialize_knowledge_case_item(
+    item: KnowledgeCaseItem,
+    *,
+    resolved_title: str = "",
+    resolved_summary: str = "",
+    resolved_detail_path: str = "",
+    resolved_download_path: str = "",
+    resolved_source_url: str = "",
+    resolved_exists: bool = True,
+) -> dict[str, Any]:
+    metadata = item.metadata_json if isinstance(item.metadata_json, dict) else {}
+    return {
+        "id": item.id,
+        "case_id": item.case_id,
+        "item_type": item.item_type,
+        "ref_id": item.ref_id,
+        "title": resolved_title or item.title_snapshot,
+        "summary": resolved_summary or item.summary_snapshot,
+        "title_snapshot": item.title_snapshot,
+        "summary_snapshot": item.summary_snapshot,
+        "metadata": metadata,
+        "detail_path": resolved_detail_path,
+        "download_path": resolved_download_path,
+        "source_url": resolved_source_url,
+        "exists": resolved_exists,
+        "created_at": item.created_at.isoformat(),
+        "updated_at": item.updated_at.isoformat(),
+    }
+
+
 def serialize_asset(asset: DataAsset) -> dict[str, Any]:
     return {
         "id": asset.id,
@@ -789,10 +851,11 @@ def create_knowledge_record(
     db.add(record)
     db.flush()
     if metadata_payload.get("workflow_type") == "model" or metadata_payload.get("model_type"):
-        metadata_payload.setdefault("workflow_type", "model")
-        metadata_payload.setdefault("result_record_id", record.id)
-        metadata_payload.setdefault("result_detail_path", f"/data-lab/results/models/{record.id}")
-        record.metadata_json = metadata_payload
+        enriched_metadata = dict(metadata_payload)
+        enriched_metadata.setdefault("workflow_type", "model")
+        enriched_metadata.setdefault("result_record_id", record.id)
+        enriched_metadata.setdefault("result_detail_path", f"/data-lab/results/models/{record.id}")
+        record.metadata_json = enriched_metadata
         db.flush()
     return record
 
@@ -840,6 +903,324 @@ def get_owned_asset(db: Session, *, user: User, asset_id: str) -> DataAsset:
         raise FileNotFoundError("Asset not found.")
     return asset
 
+
+def _normalize_tag_list(tags: list[str] | None) -> list[str]:
+    return list(dict.fromkeys(tag.strip() for tag in (tags or []) if str(tag).strip()))
+
+
+def create_knowledge_case(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    title: str,
+    description: str = "",
+    tags: list[str] | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> KnowledgeCase:
+    case = KnowledgeCase(
+        workspace_id=workspace.id,
+        owner_user_id=user.id,
+        title=title.strip(),
+        description=description.strip(),
+        tags_json=_normalize_tag_list(tags),
+        metadata_json=dict(metadata or {}) if isinstance(metadata, dict) else {},
+    )
+    db.add(case)
+    db.flush()
+    return case
+
+
+def list_knowledge_cases(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+) -> list[KnowledgeCase]:
+    return list(
+        db.scalars(
+            select(KnowledgeCase)
+            .where(
+                and_(
+                    KnowledgeCase.owner_user_id == user.id,
+                    KnowledgeCase.workspace_id == workspace.id,
+                )
+            )
+            .order_by(KnowledgeCase.updated_at.desc(), KnowledgeCase.created_at.desc())
+        )
+    )
+
+
+def get_owned_knowledge_case(db: Session, *, user: User, case_id: str) -> KnowledgeCase:
+    case = db.get(KnowledgeCase, case_id)
+    if not case or case.owner_user_id != user.id:
+        raise FileNotFoundError("Knowledge case not found.")
+    return case
+
+
+def update_knowledge_case(
+    db: Session,
+    *,
+    user: User,
+    case_id: str,
+    title: str | None = None,
+    description: str | None = None,
+    tags: list[str] | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> KnowledgeCase:
+    case = get_owned_knowledge_case(db, user=user, case_id=case_id)
+    if title is not None:
+        case.title = title.strip()
+    if description is not None:
+        case.description = description.strip()
+    if tags is not None:
+        case.tags_json = _normalize_tag_list(tags)
+    if metadata is not None and isinstance(metadata, dict):
+        case.metadata_json = dict(metadata)
+    case.updated_at = datetime.now(timezone.utc)
+    db.flush()
+    return case
+
+
+def delete_knowledge_case(db: Session, *, user: User, case_id: str) -> None:
+    case = get_owned_knowledge_case(db, user=user, case_id=case_id)
+    db.delete(case)
+
+
+def list_knowledge_case_items(
+    db: Session,
+    *,
+    user: User,
+    case: KnowledgeCase,
+) -> list[KnowledgeCaseItem]:
+    return list(
+        db.scalars(
+            select(KnowledgeCaseItem)
+            .where(
+                and_(
+                    KnowledgeCaseItem.owner_user_id == user.id,
+                    KnowledgeCaseItem.workspace_id == case.workspace_id,
+                    KnowledgeCaseItem.case_id == case.id,
+                )
+            )
+            .order_by(KnowledgeCaseItem.created_at.desc(), KnowledgeCaseItem.updated_at.desc())
+        )
+    )
+
+
+def get_owned_knowledge_case_item(
+    db: Session,
+    *,
+    user: User,
+    case: KnowledgeCase,
+    item_id: str,
+) -> KnowledgeCaseItem:
+    item = db.get(KnowledgeCaseItem, item_id)
+    if not item or item.owner_user_id != user.id or item.case_id != case.id or item.workspace_id != case.workspace_id:
+        raise FileNotFoundError("Knowledge case item not found.")
+    return item
+
+
+def _resolve_case_reference(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    item_type: str,
+    ref_id: str,
+) -> dict[str, Any]:
+    normalized_type = item_type.strip().lower()
+    if normalized_type == "knowledge_record":
+        record = get_owned_knowledge_record(db, user=user, record_id=ref_id)
+        if record.workspace_id != workspace.id:
+            raise FileNotFoundError("Knowledge record not found.")
+        metadata = dict(record.metadata_json or {})
+        detail_path = str(metadata.get("result_detail_path") or "").strip()
+        if not detail_path and (metadata.get("workflow_type") == "model" or metadata.get("model_type")):
+            detail_path = f"/data-lab/results/models/{record.id}"
+        return {
+            "title": record.title,
+            "summary": truncate_text(record.content or "", 240),
+            "metadata": {
+                "source_kind": "knowledge_record",
+                "knowledge_record_id": record.id,
+                "workflow_type": metadata.get("workflow_type", ""),
+                "model_type": metadata.get("model_type", ""),
+                "note_template": metadata.get("note_template", ""),
+            },
+            "detail_path": detail_path,
+            "download_path": "",
+            "source_url": str(metadata.get("landing_page_url") or metadata.get("source_url") or "").strip(),
+        }
+    if normalized_type == "data_asset":
+        asset = get_owned_asset(db, user=user, asset_id=ref_id)
+        if asset.workspace_id != workspace.id:
+            raise FileNotFoundError("Asset not found.")
+        asset_metadata = dict(asset.metadata_json or {})
+        processing = asset_metadata.get("processing_result") if isinstance(asset_metadata.get("processing_result"), dict) else {}
+        detail_path = str(processing.get("result_detail_path") or "").strip()
+        summary = str(asset.description or "").strip() or str(asset_metadata.get("summary") or "").strip()
+        if not summary and processing:
+            processing_summary = processing.get("summary") if isinstance(processing.get("summary"), dict) else {}
+            rows_after_prepare = processing_summary.get("rows_after_prepare")
+            if rows_after_prepare is not None:
+                summary = f"Prepared rows: {rows_after_prepare}"
+        return {
+            "title": asset.title,
+            "summary": truncate_text(summary or f"{asset.kind} saved in the private workspace.", 240),
+            "metadata": {
+                "source_kind": "data_asset",
+                "asset_id": asset.id,
+                "asset_kind": asset.kind,
+                "analysis_kind": asset_metadata.get("analysis_kind", ""),
+                "processing_family": processing.get("processing_family", ""),
+            },
+            "detail_path": detail_path,
+            "download_path": f"/api/assets/{asset.id}/download",
+            "source_url": asset.source_url,
+        }
+    if normalized_type == "briefing":
+        briefing = db.get(EconomicBriefing, ref_id)
+        if not briefing or briefing.owner_user_id != user.id or briefing.workspace_id != workspace.id:
+            raise FileNotFoundError("Briefing not found.")
+        return {
+            "title": briefing.title,
+            "summary": truncate_text(briefing.summary_markdown or "", 240),
+            "metadata": {
+                "source_kind": "briefing",
+                "briefing_id": briefing.id,
+                "headline_count": briefing.headline_count,
+            },
+            "detail_path": "",
+            "download_path": "",
+            "source_url": "",
+        }
+    if normalized_type == "literature_entry":
+        entry = db.get(LiteratureEntry, ref_id)
+        if not entry or entry.owner_user_id != user.id or entry.workspace_id != workspace.id:
+            raise FileNotFoundError("Literature entry not found.")
+        return {
+            "title": entry.title,
+            "summary": truncate_text(entry.abstract or entry.venue or "", 240),
+            "metadata": {
+                "source_kind": "literature_entry",
+                "literature_entry_id": entry.id,
+                "openalex_id": entry.openalex_id,
+                "doi": entry.doi,
+                "publication_year": entry.publication_year,
+            },
+            "detail_path": "",
+            "download_path": "",
+            "source_url": entry.landing_page_url or entry.pdf_url or "",
+        }
+    raise ValueError("Unsupported case item type.")
+
+
+def add_item_to_knowledge_case(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    case_id: str,
+    item_type: str,
+    ref_id: str,
+    metadata: dict[str, Any] | None = None,
+) -> tuple[KnowledgeCaseItem, bool]:
+    case = get_owned_knowledge_case(db, user=user, case_id=case_id)
+    if case.workspace_id != workspace.id:
+        raise FileNotFoundError("Knowledge case not found.")
+    existing = db.scalar(
+        select(KnowledgeCaseItem).where(
+            and_(
+                KnowledgeCaseItem.case_id == case.id,
+                KnowledgeCaseItem.item_type == item_type.strip().lower(),
+                KnowledgeCaseItem.ref_id == ref_id,
+            )
+        )
+    )
+    if existing:
+        return existing, False
+    resolved = _resolve_case_reference(db, user=user, workspace=workspace, item_type=item_type, ref_id=ref_id)
+    payload = dict(metadata or {}) if isinstance(metadata, dict) else {}
+    payload.update(resolved.get("metadata") or {})
+    item = KnowledgeCaseItem(
+        case_id=case.id,
+        workspace_id=workspace.id,
+        owner_user_id=user.id,
+        item_type=item_type.strip().lower(),
+        ref_id=ref_id,
+        title_snapshot=str(resolved.get("title") or "").strip(),
+        summary_snapshot=str(resolved.get("summary") or "").strip(),
+        metadata_json=payload,
+    )
+    db.add(item)
+    case.updated_at = datetime.now(timezone.utc)
+    db.flush()
+    return item, True
+
+
+def remove_item_from_knowledge_case(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    case_id: str,
+    item_id: str,
+) -> None:
+    case = get_owned_knowledge_case(db, user=user, case_id=case_id)
+    if case.workspace_id != workspace.id:
+        raise FileNotFoundError("Knowledge case not found.")
+    item = get_owned_knowledge_case_item(db, user=user, case=case, item_id=item_id)
+    db.delete(item)
+    case.updated_at = datetime.now(timezone.utc)
+    db.flush()
+
+
+def _build_case_item_payload(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    item: KnowledgeCaseItem,
+) -> dict[str, Any]:
+    try:
+        resolved = _resolve_case_reference(db, user=user, workspace=workspace, item_type=item.item_type, ref_id=item.ref_id)
+        return serialize_knowledge_case_item(
+            item,
+            resolved_title=str(resolved.get("title") or ""),
+            resolved_summary=str(resolved.get("summary") or ""),
+            resolved_detail_path=str(resolved.get("detail_path") or ""),
+            resolved_download_path=str(resolved.get("download_path") or ""),
+            resolved_source_url=str(resolved.get("source_url") or ""),
+            resolved_exists=True,
+        )
+    except FileNotFoundError:
+        return serialize_knowledge_case_item(item, resolved_exists=False)
+
+
+def build_knowledge_case_detail(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    case_id: str,
+) -> dict[str, Any]:
+    case = get_owned_knowledge_case(db, user=user, case_id=case_id)
+    if case.workspace_id != workspace.id:
+        raise FileNotFoundError("Knowledge case not found.")
+    items = list_knowledge_case_items(db, user=user, case=case)
+    item_payloads = [_build_case_item_payload(db, user=user, workspace=workspace, item=item) for item in items]
+    latest_item_at = items[0].created_at.isoformat() if items else ""
+    item_types = sorted({payload["item_type"] for payload in item_payloads})
+    return {
+        "case": serialize_knowledge_case(
+            case,
+            item_count=len(item_payloads),
+            latest_item_at=latest_item_at,
+            item_types=item_types,
+        ),
+        "items": item_payloads,
+    }
 
 def _significance_stars(p_value: Any) -> str:
     numeric = _safe_float(p_value)

@@ -274,10 +274,45 @@
             </article>
           </div>
         </section>
-<section class="panel panel-span-full" id="knowledge-base-panel">
+        <section class="panel panel-span-full" id="knowledge-base-panel">
           <div class="panel-head panel-head-wrap">
             <h2>Private Knowledge Base</h2>
-            <span class="muted">Search, filter, preview, export, and trace private notes without leaving the workspace.</span>
+            <span class="muted">Manage case workspaces, store reusable notes, and connect outputs from Data Lab, Paper Library, and private briefings.</span>
+          </div>
+          <div class="panel-head panel-head-wrap panel-head-inline">
+            <div>
+              <h3>Case Workspace</h3>
+              <p class="muted">Create user-owned case files that group notes, papers, briefings, datasets, and Data Lab outputs inside the current workspace.</p>
+            </div>
+            <div class="actions compact-actions">
+              <label class="muted" for="active-case-select">Active case</label>
+              <select id="active-case-select">
+                <option value="">No active case</option>
+              </select>
+            </div>
+          </div>
+          <div id="knowledge-case-summary-grid" class="knowledge-summary-grid"></div>
+          <div class="knowledge-layout">
+            <div class="knowledge-column">
+              <form id="knowledge-case-form" class="stack">
+                <div class="panel-head panel-head-wrap panel-head-inline">
+                  <div>
+                    <h3 id="knowledge-case-form-title">Create case</h3>
+                    <p class="muted" id="knowledge-case-form-status">Create a private case file to group notes, papers, briefings, datasets, and Data Lab outputs.</p>
+                  </div>
+                </div>
+                <input name="case_id" type="hidden" />
+                <input name="title" type="text" placeholder="Case title" required />
+                <input name="tags" type="text" placeholder="Tags, comma separated" />
+                <textarea name="description" rows="4" placeholder="Describe the case scope, research question, and intended linked materials"></textarea>
+                <div class="actions compact-actions">
+                  <button id="knowledge-case-submit-button" type="submit">Save case</button>
+                  <button id="knowledge-case-cancel-button" type="button" class="secondary hidden">Cancel edit</button>
+                </div>
+              </form>
+              <div id="knowledge-case-list" class="card-list tall"></div>
+            </div>
+            <aside id="knowledge-case-preview" class="knowledge-preview"></aside>
           </div>
           <div id="knowledge-summary-grid" class="knowledge-summary-grid"></div>
           <div class="knowledge-toolbar">

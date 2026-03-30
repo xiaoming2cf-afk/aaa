@@ -1,6 +1,7 @@
 const storageKeys = {
   token: "erp.session.token",
   workspaceId: "erp.workspace.id",
+  caseId: "erp.knowledge.caseId",
 };
 
 const state = {
@@ -13,15 +14,19 @@ const state = {
   literatureEntries: [],
   workspaceAssets: [],
   workspaceKnowledge: [],
+  workspaceCases: [],
   workspaceSchedules: [],
   knowledgeDetails: {},
   knowledgeRelated: {},
+  caseDetails: {},
+  selectedKnowledgeCaseId: localStorage.getItem(storageKeys.caseId) || "",
   selectedKnowledgeRecordId: "",
   knowledgeSearchQuery: "",
   knowledgeStatusFilter: "active",
   knowledgeTypeFilter: "all",
   knowledgeTagFilter: "all",
   editingKnowledgeRecordId: "",
+  editingKnowledgeCaseId: "",
   assetProfiles: {},
   selectedAnalysisAssetId: "",
   currentPlotAssetId: "",
@@ -270,6 +275,14 @@ const dom = {
   openalexResults: document.getElementById("openalex-results"),
   literatureList: document.getElementById("literature-list"),
   assetList: document.getElementById("asset-list"),
+  knowledgeCaseSummaryGrid: document.getElementById("knowledge-case-summary-grid"),
+  knowledgeCaseList: document.getElementById("knowledge-case-list"),
+  knowledgeCasePreview: document.getElementById("knowledge-case-preview"),
+  knowledgeCaseFormTitle: document.getElementById("knowledge-case-form-title"),
+  knowledgeCaseFormStatus: document.getElementById("knowledge-case-form-status"),
+  knowledgeCaseSubmitButton: document.getElementById("knowledge-case-submit-button"),
+  knowledgeCaseCancelButton: document.getElementById("knowledge-case-cancel-button"),
+  knowledgeCaseActiveSelect: document.getElementById("active-case-select"),
   knowledgeList: document.getElementById("knowledge-list"),
   knowledgeSummaryGrid: document.getElementById("knowledge-summary-grid"),
   knowledgeSearchForm: document.getElementById("knowledge-search-form"),
@@ -308,6 +321,9 @@ const dom = {
   labContextWorkflow: document.getElementById("lab-context-workflow"),
   labContextFamily: document.getElementById("lab-context-family"),
   labContextModel: document.getElementById("lab-context-model"),
+  labCaseSelect: document.getElementById("lab-case-select"),
+  labCaseMeta: document.getElementById("lab-case-meta"),
+  labCaseHomeLink: document.getElementById("lab-case-home-link"),
   labContextNextAction: document.getElementById("lab-context-next-action"),
   labContextDetailLink: document.getElementById("lab-context-detail-link"),
   labActiveFamilyEyebrow: document.getElementById("lab-active-family-eyebrow"),
@@ -1106,6 +1122,10 @@ function currentWorkspace() {
   return state.workspaces.find((item) => item.id === state.selectedWorkspaceId) || null;
 }
 
+function currentKnowledgeCase() {
+  return state.workspaceCases.find((item) => item.id === state.selectedKnowledgeCaseId) || null;
+}
+
 function knowledgeTypeSpec(item) {
   const metadata = item?.metadata || {};
   const derivativeMode = String(metadata.derivative_mode || "").trim();
@@ -1416,6 +1436,255 @@ function renderKnowledgeSummary(items, filteredItems) {
   `;
 }
 
+function resetKnowledgeCaseComposer() {
+  const caseForm = document.getElementById("knowledge-case-form");
+  if (!caseForm) {
+    return;
+  }
+  caseForm.reset();
+  const caseIdField = caseForm.elements.namedItem("case_id");
+  if (caseIdField) {
+    caseIdField.value = "";
+  }
+  state.editingKnowledgeCaseId = "";
+  if (dom.knowledgeCaseFormTitle) {
+    dom.knowledgeCaseFormTitle.textContent = "Create case";
+  }
+  if (dom.knowledgeCaseFormStatus) {
+    dom.knowledgeCaseFormStatus.textContent = "Create a private case file to group notes, papers, briefings, datasets, and Data Lab outputs.";
+  }
+  if (dom.knowledgeCaseSubmitButton) {
+    dom.knowledgeCaseSubmitButton.textContent = "Save case";
+  }
+  dom.knowledgeCaseCancelButton?.classList.add("hidden");
+}
+
+function renderKnowledgeCaseSummary(cases) {
+  if (!dom.knowledgeCaseSummaryGrid) {
+    return;
+  }
+  const totalItems = (cases || []).reduce((sum, item) => sum + Number(item.item_count || 0), 0);
+  const activeCase = currentKnowledgeCase();
+  dom.knowledgeCaseSummaryGrid.innerHTML = `
+    <article class="knowledge-summary-card">
+      <span>Cases</span>
+      <strong>${escapeHtml((cases || []).length)}</strong>
+      <p class="muted">User-built private case files inside the current workspace.</p>
+    </article>
+    <article class="knowledge-summary-card">
+      <span>Stored items</span>
+      <strong>${escapeHtml(totalItems)}</strong>
+      <p class="muted">Notes, papers, briefings, and Data Lab outputs linked into cases.</p>
+    </article>
+    <article class="knowledge-summary-card">
+      <span>Active case</span>
+      <strong>${escapeHtml(activeCase?.title || "No active case")}</strong>
+      <p class="muted">${escapeHtml(activeCase ? `${activeCase.item_count || 0} linked items` : "Select a case to receive Data Lab results.")}</p>
+    </article>
+  `;
+}
+
+function syncKnowledgeCaseOptions() {
+  const options = [`<option value="">No active case</option>`]
+    .concat(
+      (state.workspaceCases || []).map(
+        (item) => `<option value="${escapeHtml(item.id)}"${item.id === state.selectedKnowledgeCaseId ? " selected" : ""}>${escapeHtml(item.title)}</option>`,
+      ),
+    )
+    .join("");
+  if (dom.knowledgeCaseActiveSelect) {
+    dom.knowledgeCaseActiveSelect.innerHTML = options;
+  }
+  if (dom.labCaseSelect) {
+    dom.labCaseSelect.innerHTML = options;
+  }
+  if (dom.labCaseMeta) {
+    const currentCase = currentKnowledgeCase();
+    dom.labCaseMeta.textContent = currentCase
+      ? `${currentCase.item_count || 0} items currently linked. Processing and model outputs can be sent into this case from the cards below.`
+      : "Choose a case to send processing results, model outputs, and datasets into the private workspace case file.";
+  }
+}
+
+async function loadKnowledgeCaseDetail(caseId, force = false) {
+  if (!caseId || !state.selectedWorkspaceId || !state.user) {
+    return null;
+  }
+  if (!force && state.caseDetails[caseId]) {
+    return state.caseDetails[caseId];
+  }
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/knowledge-cases/${caseId}`);
+  state.caseDetails[caseId] = response;
+  if (state.selectedKnowledgeCaseId === caseId) {
+    renderKnowledgeCasePreview(response);
+  }
+  return response;
+}
+
+function startKnowledgeCaseEdit(caseId) {
+  const caseForm = document.getElementById("knowledge-case-form");
+  if (!caseForm) {
+    return false;
+  }
+  const record = currentKnowledgeCase()?.id === caseId ? currentKnowledgeCase() : (state.workspaceCases || []).find((item) => item.id === caseId);
+  if (!record) {
+    return false;
+  }
+  state.editingKnowledgeCaseId = caseId;
+  const caseIdField = caseForm.elements.namedItem("case_id");
+  const titleField = caseForm.elements.namedItem("title");
+  const tagsField = caseForm.elements.namedItem("tags");
+  const descriptionField = caseForm.elements.namedItem("description");
+  if (caseIdField) {
+    caseIdField.value = record.id;
+  }
+  if (titleField) {
+    titleField.value = record.title || "";
+  }
+  if (tagsField) {
+    tagsField.value = (record.tags || []).join(", ");
+  }
+  if (descriptionField) {
+    descriptionField.value = record.description || "";
+  }
+  if (dom.knowledgeCaseFormTitle) {
+    dom.knowledgeCaseFormTitle.textContent = "Edit case";
+  }
+  if (dom.knowledgeCaseFormStatus) {
+    dom.knowledgeCaseFormStatus.textContent = "Update the case title, scope, or labels before linking more workspace outputs.";
+  }
+  if (dom.knowledgeCaseSubmitButton) {
+    dom.knowledgeCaseSubmitButton.textContent = "Update case";
+  }
+  dom.knowledgeCaseCancelButton?.classList.remove("hidden");
+  return true;
+}
+
+function renderKnowledgeCasePreview(detail) {
+  if (!dom.knowledgeCasePreview) {
+    return;
+  }
+  const caseRecord = detail?.case || currentKnowledgeCase() || null;
+  if (!caseRecord) {
+    dom.knowledgeCasePreview.innerHTML = emptyCard("Create or select a case to organize private notes, papers, briefings, datasets, and Data Lab outputs.");
+    return;
+  }
+  const items = detail?.items || state.caseDetails[caseRecord.id]?.items || [];
+  dom.knowledgeCasePreview.innerHTML = `
+    <article class="card knowledge-preview-card">
+      <div class="panel-head panel-head-wrap">
+        <div>
+          <p class="eyebrow eyebrow-compact">Private case workspace</p>
+          <h3>${escapeHtml(caseRecord.title)}</h3>
+        </div>
+        <div class="chip-row chip-row-compact">
+          <span class="pill">${escapeHtml(prettyDate(caseRecord.updated_at || caseRecord.created_at))}</span>
+          <span class="pill">${escapeHtml(caseRecord.item_count || items.length || 0)} items</span>
+        </div>
+      </div>
+      <p class="muted">${escapeHtml(caseRecord.description || "No case description yet.")}</p>
+      <div class="chip-row chip-row-compact">
+        ${(caseRecord.tags || []).map((tag) => `<span class="topic-chip">${escapeHtml(tag)}</span>`).join("")}
+      </div>
+      <div class="actions compact-actions">
+        <button type="button" class="secondary" data-edit-knowledge-case="${escapeHtml(caseRecord.id)}">Edit</button>
+        <button type="button" class="secondary danger" data-delete-knowledge-case="${escapeHtml(caseRecord.id)}">Delete</button>
+        <button type="button" class="secondary" data-scroll-target="knowledge-base-panel">Open knowledge notes</button>
+        <a href="/data-lab" class="button-link secondary-link">Open Data Lab</a>
+      </div>
+      ${
+        items.length
+          ? `
+            <div class="card-list card-list-inline">
+              ${items
+                .map(
+                  (item) => `
+                    <article class="card">
+                      <p class="eyebrow eyebrow-compact">${escapeHtml(item.item_type.replaceAll("_", " "))}</p>
+                      <h4>${escapeHtml(item.title || item.title_snapshot || "Linked item")}</h4>
+                      <p class="compact-note muted">${escapeHtml(truncateText(item.summary || item.summary_snapshot || "No summary.", 180))}</p>
+                      <div class="actions compact-actions">
+                        ${item.detail_path ? `<a href="${escapeHtml(item.detail_path)}" class="button-link secondary-link">Open detail</a>` : ""}
+                        ${item.download_path ? `<button type="button" class="secondary" data-download-asset="${escapeHtml(item.ref_id)}">Download</button>` : ""}
+                        ${item.item_type === "knowledge_record" ? `<button type="button" class="secondary" data-open-knowledge-record="${escapeHtml(item.ref_id)}">Open note</button>` : ""}
+                        ${item.source_url ? `<a href="${escapeHtml(item.source_url)}" class="button-link secondary-link" target="_blank" rel="noreferrer">Source</a>` : ""}
+                        <button type="button" class="secondary danger" data-remove-case-item="${escapeHtml(item.id)}" data-case-id="${escapeHtml(caseRecord.id)}">Remove</button>
+                      </div>
+                      ${item.exists ? "" : `<p class="compact-note muted">The original item is no longer available. Snapshot preserved inside the case.</p>`}
+                    </article>
+                  `,
+                )
+                .join("")}
+            </div>
+          `
+          : `<div class="card-list card-list-inline">${emptyCard("No linked items yet. Select this case, then import Data Lab outputs or other workspace materials into it.")}</div>`
+      }
+    </article>
+  `;
+}
+
+function renderKnowledgeCases(items) {
+  state.workspaceCases = items || [];
+  if (state.selectedKnowledgeCaseId && !(state.workspaceCases || []).some((item) => item.id === state.selectedKnowledgeCaseId)) {
+    state.selectedKnowledgeCaseId = "";
+    localStorage.removeItem(storageKeys.caseId);
+  }
+  if (!state.selectedKnowledgeCaseId && state.workspaceCases.length) {
+    state.selectedKnowledgeCaseId = state.workspaceCases[0].id;
+    localStorage.setItem(storageKeys.caseId, state.selectedKnowledgeCaseId);
+  }
+  state.caseDetails = Object.fromEntries(
+    Object.entries(state.caseDetails || {}).filter(([caseId]) => (state.workspaceCases || []).some((item) => item.id === caseId)),
+  );
+  renderKnowledgeCaseSummary(state.workspaceCases);
+  syncKnowledgeCaseOptions();
+  if (dom.knowledgeCaseList) {
+    dom.knowledgeCaseList.innerHTML = state.workspaceCases.length
+      ? state.workspaceCases
+          .map(
+            (item) => `
+              <article class="card knowledge-card${item.id === state.selectedKnowledgeCaseId ? " is-selected" : ""}" data-knowledge-case-id="${escapeHtml(item.id)}">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <h4>${escapeHtml(item.title)}</h4>
+                    <p class="compact-note muted">${escapeHtml(item.description || "No description")}</p>
+                  </div>
+                  <span class="pill">${escapeHtml(item.item_count || 0)} items</span>
+                </div>
+                <div class="chip-row chip-row-compact">
+                  ${(item.tags || []).slice(0, 5).map((tag) => `<span class="topic-chip">${escapeHtml(tag)}</span>`).join("")}
+                </div>
+                <div class="actions compact-actions">
+                  <button type="button" class="secondary" data-select-knowledge-case="${escapeHtml(item.id)}">${item.id === state.selectedKnowledgeCaseId ? "Selected" : "Select"}</button>
+                  <button type="button" class="secondary" data-edit-knowledge-case="${escapeHtml(item.id)}">Edit</button>
+                </div>
+              </article>
+            `,
+          )
+          .join("")
+      : emptyCard("No cases yet. Create one to collect notes, papers, briefings, and Data Lab outputs.");
+  }
+  if (state.selectedKnowledgeCaseId) {
+    void loadKnowledgeCaseDetail(state.selectedKnowledgeCaseId);
+  } else {
+    renderKnowledgeCasePreview(null);
+  }
+  renderLabContext();
+  renderWorkspaceCockpit();
+}
+
+function focusKnowledgeCase(caseId) {
+  if (!caseId || !(state.workspaceCases || []).some((item) => item.id === caseId)) {
+    return false;
+  }
+  state.selectedKnowledgeCaseId = caseId;
+  localStorage.setItem(storageKeys.caseId, caseId);
+  syncKnowledgeCaseOptions();
+  renderKnowledgeCases(state.workspaceCases);
+  dom.knowledgeCaseList?.querySelector(`[data-knowledge-case-id="${String(caseId).replaceAll('"', '\\"')}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  return true;
+}
+
 function renderKnowledgePreview(record, { loading = false } = {}) {
   if (!dom.knowledgePreview) {
     return;
@@ -1463,6 +1732,7 @@ function renderKnowledgePreview(record, { loading = false } = {}) {
         <button type="button" class="secondary" data-edit-knowledge="${escapeHtml(record.id)}">Edit</button>
         <button type="button" class="secondary" data-${archived ? "restore" : "archive"}-knowledge="${escapeHtml(record.id)}">${archived ? "Restore" : "Archive"}</button>
         <button type="button" class="secondary danger" data-delete-knowledge="${escapeHtml(record.id)}">Delete</button>
+        ${state.selectedKnowledgeCaseId ? `<button type="button" class="secondary" data-add-case-item="${escapeHtml(record.id)}" data-case-item-type="knowledge_record">Add to case</button>` : ""}
         <button type="button" class="secondary" data-copy-knowledge-markdown="${escapeHtml(record.id)}">Copy markdown</button>
         <button type="button" class="secondary" data-download-knowledge-markdown="${escapeHtml(record.id)}">Download .md</button>
         ${relatedLinks.join("")}
@@ -1498,6 +1768,7 @@ function renderWorkspaceCockpit() {
     literature: state.literatureEntries.length,
     assets: state.workspaceAssets.length,
     notes: state.workspaceKnowledge.length,
+    cases: state.workspaceCases.length,
     schedules: state.workspaceSchedules.length,
   };
   if (!hasAccess) {
@@ -1512,6 +1783,7 @@ function renderWorkspaceCockpit() {
     dom.cockpitStatGrid.innerHTML = [
       ["Providers", 0, "No private connections loaded yet."],
       ["Papers", 0, "Private literature appears here after import."],
+      ["Cases", 0, "Build case files to group workspace evidence."],
       ["Notes", 0, "Knowledge records will accumulate here."],
       ["Schedules", 0, "Recurring jobs appear after setup."],
     ]
@@ -1577,8 +1849,8 @@ function renderWorkspaceCockpit() {
             };
   dom.cockpitWorkspaceName.textContent = workspace.name;
   dom.cockpitWorkspaceMeta.textContent = workspace.description
-    ? `${workspace.description} | ${stats.providers} providers | ${stats.notes} notes | ${stats.schedules} schedules`
-    : `${stats.providers} providers | ${stats.literature} papers | ${stats.assets} assets | ${stats.notes} notes`;
+    ? `${workspace.description} | ${stats.providers} providers | ${stats.cases} cases | ${stats.notes} notes | ${stats.schedules} schedules`
+    : `${stats.providers} providers | ${stats.literature} papers | ${stats.assets} assets | ${stats.cases} cases | ${stats.notes} notes`;
   dom.cockpitNextActionTitle.textContent = nextAction.title;
   dom.cockpitNextActionCopy.textContent = nextAction.copy;
   dom.cockpitStatGrid.innerHTML = [
@@ -1586,6 +1858,7 @@ function renderWorkspaceCockpit() {
     ["Briefings", stats.briefings, "Private macro briefings stored in this workspace."],
     ["Paper Library", stats.literature, "Imported OpenAlex entries and follow-up notes."],
     ["Assets", stats.assets, "Datasets, PDFs, charts, and processed outputs."],
+    ["Cases", stats.cases, "Case files that group evidence across modules."],
     ["Knowledge", stats.notes, "Manual notes, paper notes, and model outputs."],
     ["Schedules", stats.schedules, "Recurring private jobs waiting to run."],
   ]
@@ -1642,6 +1915,7 @@ function renderWorkspaceCockpit() {
     { label: "Connect provider", target: "provider-center-panel" },
     { label: "Generate briefing", target: "private-briefing-panel" },
     { label: "Search papers", target: "paper-library-panel" },
+    { label: "Manage cases", target: "knowledge-base-panel" },
     { label: "Open knowledge base", target: "knowledge-base-panel" },
     { label: "Create schedule", target: "schedule-panel" },
     { label: "Build workspace digest", digest: true },
@@ -1679,6 +1953,14 @@ function renderWorkspaceCockpit() {
           target: "knowledge-base-panel",
         }
       : null,
+    state.workspaceCases[0]
+      ? {
+          title: state.workspaceCases[0].title,
+          meta: `Case | ${state.workspaceCases[0].item_count || 0} linked item(s)`,
+          copy: truncateText(state.workspaceCases[0].description || "Private case file for grouped workspace evidence.", 150),
+          target: "knowledge-base-panel",
+        }
+      : null,
     state.workspaceSchedules[0]
       ? {
           title: state.workspaceSchedules[0].name,
@@ -1709,6 +1991,7 @@ function renderWorkspaceCockpit() {
   const latestPaper = state.literatureEntries[0] || null;
   const latestDataset = state.workspaceAssets.find((item) => String(item.kind || "").startsWith("dataset")) || null;
   const latestModelNote = modelHistoryItems()[0] || null;
+  const activeCase = currentKnowledgeCase();
   const flowCards = [
     latestBriefing
       ? {
@@ -1746,8 +2029,10 @@ function renderWorkspaceCockpit() {
       : null,
     latestDataset
       ? {
-          title: "Dataset -> Data Lab",
-          copy: `Latest dataset: ${latestDataset.title}. Move into the standalone Data Lab for profiling, processing, and model runs.`,
+          title: activeCase ? "Dataset -> Active Case" : "Dataset -> Data Lab",
+          copy: activeCase
+            ? `Latest dataset: ${latestDataset.title}. Use Data Lab and send outputs into the active case "${activeCase.title}".`
+            : `Latest dataset: ${latestDataset.title}. Move into the standalone Data Lab for profiling, processing, and model runs.`,
           actions: [
             `<a href="/data-lab" class="button-link">Open Data Lab</a>`,
             `<button type="button" class="button-link secondary-link" data-scroll-target="data-lab-entry-panel">Review Data Lab entry</button>`,
@@ -1900,6 +2185,7 @@ function renderLabContext() {
   const dataset = selectedDatasetAsset();
   const profile = currentAssetProfile();
   const family = currentFamilyDetail();
+  const activeCase = currentKnowledgeCase();
 
   dom.labContextAccess && (dom.labContextAccess.textContent = state.user ? "Signed in" : "Signed out");
   dom.labContextWorkspace && (dom.labContextWorkspace.textContent = workspace?.name || "No workspace selected");
@@ -1909,6 +2195,18 @@ function renderLabContext() {
   dom.labContextFamily && (dom.labContextFamily.textContent = family?.title || (currentWorkflowType() === "model" ? currentModelFamily() : currentProcessingFamily()));
   dom.labContextModel &&
     (dom.labContextModel.textContent = currentWorkflowType() === "model" ? currentModelLabel() : "Not applicable for data processing");
+  if (dom.labCaseSelect) {
+    dom.labCaseSelect.value = state.selectedKnowledgeCaseId || "";
+  }
+  if (dom.labCaseMeta) {
+    dom.labCaseMeta.textContent = activeCase
+      ? `Active case: ${activeCase.title} | ${activeCase.item_count || 0} linked items. New processing and model outputs can be attached from the history cards below.`
+      : "No active case selected. Choose one if you want to organize Data Lab outputs inside a private case file.";
+  }
+  if (dom.labCaseHomeLink) {
+    dom.labCaseHomeLink.href = activeCase ? "/#knowledge-base-panel" : "/#knowledge-base-panel";
+    dom.labCaseHomeLink.textContent = activeCase ? "Open active case on homepage" : "Open case workspace on homepage";
+  }
   dom.labContextNextAction && (dom.labContextNextAction.textContent = nextLabAction());
   if (dom.labContextDetailLink) {
     dom.labContextDetailLink.href = currentFamilyDetailPath();
@@ -1936,6 +2234,9 @@ function renderProcessingHistory(items = processingHistoryItems()) {
     const useButton = item.kind?.startsWith("dataset")
       ? `<button type="button" class="secondary" data-select-asset="${escapeHtml(item.id)}">Use in lab</button>`
       : "";
+    const caseButton = state.selectedKnowledgeCaseId
+      ? `<button type="button" class="secondary" data-add-case-item="${escapeHtml(item.id)}" data-case-item-type="data_asset">Add to case</button>`
+      : "";
     return `
       <article class="card">
         <h4>${escapeHtml(item.title)}</h4>
@@ -1944,6 +2245,7 @@ function renderProcessingHistory(items = processingHistoryItems()) {
         <div class="actions">
           ${detailPath ? `<a href="${escapeHtml(detailPath)}" class="button-link secondary-link">Open detail</a>` : ""}
           ${useButton}
+          ${caseButton}
           <button type="button" class="secondary" data-download-asset="${escapeHtml(item.id)}">${isPlot ? "Download chart" : "Download asset"}</button>
         </div>
       </article>
@@ -1963,6 +2265,9 @@ function renderModelHistory(items = modelHistoryItems()) {
     const metadata = item.metadata || {};
     const detailPath = metadata.result_detail_path || `/data-lab/results/models/${item.id}`;
     const summary = metadata.equation || metadata.model_family || item.content || "Model output recorded in the private knowledge base.";
+    const caseButton = state.selectedKnowledgeCaseId
+      ? `<button type="button" class="secondary" data-add-case-item="${escapeHtml(item.id)}" data-case-item-type="knowledge_record">Add to case</button>`
+      : "";
     return `
       <article class="card">
         <h4>${escapeHtml(metadata.model_label || item.title)}</h4>
@@ -1970,6 +2275,7 @@ function renderModelHistory(items = modelHistoryItems()) {
         <p>${escapeHtml(truncateText(summary))}</p>
         <div class="actions">
           <a href="${escapeHtml(detailPath)}" class="button-link secondary-link">Open detail</a>
+          ${caseButton}
         </div>
       </article>
     `;
@@ -2411,15 +2717,21 @@ function clearPrivateLists() {
   state.literatureEntries = [];
   state.workspaceAssets = [];
   state.workspaceKnowledge = [];
+  state.workspaceCases = [];
   state.workspaceSchedules = [];
   state.knowledgeDetails = {};
   state.knowledgeRelated = {};
+  state.caseDetails = {};
+  state.selectedKnowledgeCaseId = "";
   state.selectedKnowledgeRecordId = "";
   state.knowledgeSearchQuery = "";
   state.knowledgeStatusFilter = "active";
   state.knowledgeTypeFilter = "all";
   state.knowledgeTagFilter = "all";
   state.editingKnowledgeRecordId = "";
+  state.editingKnowledgeCaseId = "";
+  localStorage.removeItem(storageKeys.caseId);
+  resetKnowledgeCaseComposer();
   resetKnowledgeComposer();
   if (dom.integrationList) {
     dom.integrationList.innerHTML = emptyCard("Log in to view saved provider connections.");
@@ -2444,6 +2756,15 @@ function clearPrivateLists() {
   }
   if (dom.knowledgePreview) {
     dom.knowledgePreview.innerHTML = emptyCard("Select a note to inspect its full content, metadata, and source links.");
+  }
+  if (dom.knowledgeCaseList) {
+    dom.knowledgeCaseList.innerHTML = emptyCard("Create a case to group private workspace evidence.");
+  }
+  if (dom.knowledgeCaseSummaryGrid) {
+    dom.knowledgeCaseSummaryGrid.innerHTML = "";
+  }
+  if (dom.knowledgeCasePreview) {
+    dom.knowledgeCasePreview.innerHTML = emptyCard("Create or select a case to organize private notes, papers, briefings, datasets, and Data Lab outputs.");
   }
   if (dom.scheduleList) {
     dom.scheduleList.innerHTML = emptyCard("Your scheduled jobs will appear here.");
@@ -2482,9 +2803,13 @@ function clearSession() {
   state.selectedAnalysisAssetId = "";
   state.knowledgeDetails = {};
   state.knowledgeRelated = {};
+  state.caseDetails = {};
+  state.workspaceCases = [];
+  state.selectedKnowledgeCaseId = "";
   state.selectedKnowledgeRecordId = "";
   localStorage.removeItem(storageKeys.token);
   localStorage.removeItem(storageKeys.workspaceId);
+  localStorage.removeItem(storageKeys.caseId);
   revokeResultPreviewUrls();
   if (hasPrivateWorkspaceUI()) {
     renderSession();
@@ -2500,6 +2825,7 @@ function setSession(payload) {
   state.selectedWorkspaceId = state.selectedWorkspaceId || state.workspaces[0]?.id || "";
   state.knowledgeDetails = {};
   state.knowledgeRelated = {};
+  state.caseDetails = {};
   state.selectedKnowledgeRecordId = "";
   localStorage.setItem(storageKeys.token, state.token);
   if (state.selectedWorkspaceId) {
@@ -2671,6 +2997,7 @@ function renderBriefings(items) {
               <strong>${item.workspace_knowledge_record_id ? "Ready" : "Missing"}</strong>
               <p class="compact-note muted">${item.workspace_knowledge_record_id ? escapeHtml(item.workspace_knowledge_record_title || "Briefing note") : "Capture this briefing in the private knowledge base to reuse it elsewhere."}</p>
               ${item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${item.workspace_knowledge_record_id}">Open note</button>` : `<button type="button" class="secondary" data-import-briefing-knowledge="${item.id}">Save to knowledge base</button>`}
+              ${state.selectedKnowledgeCaseId ? `<button type="button" class="secondary" data-add-case-item="${item.id}" data-case-item-type="briefing">Add to case</button>` : ""}
             </article>
           </div>
         </div>
@@ -2730,6 +3057,7 @@ function renderLiterature(items) {
             ${item.has_open_access_pdf && !item.workspace_pdf_asset_id ? `<button type="button" class="secondary" data-import-literature-pdf="${item.id}">Import PDF</button>` : ""}
             ${item.workspace_pdf_asset_id ? `<button type="button" class="secondary" data-download-literature-asset="${item.workspace_pdf_asset_id}">Download private copy</button>` : ""}
             ${!item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-import-literature-knowledge="${item.id}">Save to knowledge base</button>` : ""}
+            ${state.selectedKnowledgeCaseId ? `<button type="button" class="secondary" data-add-case-item="${item.id}" data-case-item-type="literature_entry">Add to case</button>` : ""}
           </div>
           <div class="literature-status-grid">
             <article class="literature-status-card">
@@ -2793,6 +3121,7 @@ function renderAssets(items) {
             <button type="button" class="secondary" data-download-asset="${item.id}">Download</button>
             ${item.kind.startsWith("dataset") ? `<button type="button" class="secondary" data-select-asset="${item.id}">Use in lab</button>` : ""}
             ${item.kind.startsWith("dataset") ? `<button type="button" class="secondary" data-clean-asset="${item.id}">Clean</button>` : ""}
+            ${state.selectedKnowledgeCaseId ? `<button type="button" class="secondary" data-add-case-item="${item.id}" data-case-item-type="data_asset">Add to case</button>` : ""}
           </div>
         </div>
       `,
@@ -4190,13 +4519,14 @@ async function loadSession() {
 async function refreshWorkspaceData() {
   ensureWorkspace();
   const workspaceId = state.selectedWorkspaceId;
-  const [integrations, briefings, literature, assets, knowledge, schedules] = await Promise.all([
+  const [integrations, briefings, literature, assets, knowledge, schedules, cases] = await Promise.all([
     api("/api/integrations"),
     api(`/api/workspaces/${workspaceId}/briefings`),
     api(`/api/workspaces/${workspaceId}/literature`),
     api(`/api/workspaces/${workspaceId}/assets`),
     api(`/api/workspaces/${workspaceId}/knowledge?view=summary&status=all`),
     api(`/api/workspaces/${workspaceId}/schedules`),
+    api(`/api/workspaces/${workspaceId}/knowledge-cases`),
   ]);
   state.knowledgeDetails = Object.fromEntries(
     Object.entries(state.knowledgeDetails || {}).filter(([recordId]) => (knowledge.items || []).some((item) => item.id === recordId)),
@@ -4204,10 +4534,14 @@ async function refreshWorkspaceData() {
   state.knowledgeRelated = Object.fromEntries(
     Object.entries(state.knowledgeRelated || {}).filter(([recordId]) => (knowledge.items || []).some((item) => item.id === recordId)),
   );
+  state.caseDetails = Object.fromEntries(
+    Object.entries(state.caseDetails || {}).filter(([caseId]) => (cases.items || []).some((item) => item.id === caseId)),
+  );
   renderIntegrations(integrations.items || []);
   renderBriefings(briefings.items || []);
   renderLiterature(literature.items || []);
   renderAssets(assets.items || []);
+  renderKnowledgeCases(cases.items || []);
   renderKnowledge(knowledge.items || []);
   renderSchedules(schedules.items || []);
   if (state.selectedAnalysisAssetId && dom.analysisAssetSelect) {
@@ -4393,6 +4727,47 @@ async function handleKnowledge(event) {
   }
   resetKnowledgeComposer();
   showToast(recordId ? "Private note updated." : "Private note saved.");
+}
+
+async function handleKnowledgeCase(event) {
+  event.preventDefault();
+  ensureWorkspace();
+  const formData = new FormData(event.currentTarget);
+  const payload = Object.fromEntries(formData.entries());
+  const caseId = String(payload.case_id || "").trim();
+  delete payload.case_id;
+  payload.tags = payload.tags ? payload.tags.split(",").map((item) => item.trim()).filter(Boolean) : [];
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/knowledge-cases${caseId ? `/${caseId}` : ""}`, {
+    method: caseId ? "PATCH" : "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  await refreshWorkspaceData();
+  const targetCaseId = response.case?.id || caseId;
+  if (targetCaseId) {
+    focusKnowledgeCase(targetCaseId);
+  }
+  resetKnowledgeCaseComposer();
+  showToast(caseId ? "Private case updated." : "Private case created.");
+}
+
+async function addItemToSelectedCase(itemType, refId, metadata = {}) {
+  ensureWorkspace();
+  if (!state.selectedKnowledgeCaseId) {
+    throw new Error("Select or create a case first.");
+  }
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/knowledge-cases/${state.selectedKnowledgeCaseId}/items`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      item_type: itemType,
+      ref_id: refId,
+      metadata,
+    }),
+  });
+  await refreshWorkspaceData();
+  focusKnowledgeCase(state.selectedKnowledgeCaseId);
+  showToast(`${response.created === false ? "Already linked in case" : "Added to case"}: ${response.item?.title || "workspace item"}`);
 }
 
 function applyKnowledgeFiltersFromDom() {
@@ -4974,7 +5349,7 @@ function applyKnowledgeTemplate(templateKey) {
 }
 
 async function handleWorkbenchActions(event) {
-  const target = event.target.closest("[data-scroll-target], [data-knowledge-template], [data-select-knowledge], [data-open-knowledge-record], [data-copy-knowledge-markdown], [data-download-knowledge-markdown], [data-edit-knowledge], [data-archive-knowledge], [data-restore-knowledge], [data-delete-knowledge], [data-import-briefing-knowledge], [data-import-literature-knowledge], [data-create-workspace-digest]");
+  const target = event.target.closest("[data-scroll-target], [data-knowledge-template], [data-select-knowledge], [data-open-knowledge-record], [data-copy-knowledge-markdown], [data-download-knowledge-markdown], [data-edit-knowledge], [data-archive-knowledge], [data-restore-knowledge], [data-delete-knowledge], [data-import-briefing-knowledge], [data-import-literature-knowledge], [data-create-workspace-digest], [data-select-knowledge-case], [data-edit-knowledge-case], [data-delete-knowledge-case], [data-add-case-item], [data-remove-case-item]");
   if (!target) {
     return;
   }
@@ -5006,6 +5381,65 @@ async function handleWorkbenchActions(event) {
     focusKnowledgeRecord(response.record?.id || "");
     scrollToTarget("knowledge-base-panel");
     showToast(`Workspace digest created: ${response.record?.title || "digest"}`);
+    return;
+  }
+  const caseId = target.getAttribute("data-select-knowledge-case");
+  if (caseId) {
+    const found = focusKnowledgeCase(caseId);
+    if (found) {
+      scrollToTarget("knowledge-base-panel");
+    }
+    showToast(found ? "Active case updated." : "Case not found.");
+    return;
+  }
+  const editCaseId = target.getAttribute("data-edit-knowledge-case");
+  if (editCaseId) {
+    const loaded = startKnowledgeCaseEdit(editCaseId);
+    if (!loaded) {
+      throw new Error("Case not found.");
+    }
+    scrollToTarget("knowledge-base-panel");
+    showToast("Case loaded for editing.");
+    return;
+  }
+  const deleteCaseId = target.getAttribute("data-delete-knowledge-case");
+  if (deleteCaseId) {
+    ensureWorkspace();
+    if (!window.confirm("Delete this case and all of its linked item references?")) {
+      return;
+    }
+    await api(`/api/workspaces/${state.selectedWorkspaceId}/knowledge-cases/${deleteCaseId}`, {
+      method: "DELETE",
+    });
+    if (state.selectedKnowledgeCaseId === deleteCaseId) {
+      state.selectedKnowledgeCaseId = "";
+      localStorage.removeItem(storageKeys.caseId);
+    }
+    if (state.editingKnowledgeCaseId === deleteCaseId) {
+      resetKnowledgeCaseComposer();
+    }
+    await refreshWorkspaceData();
+    showToast("Case deleted.");
+    return;
+  }
+  const addCaseItemId = target.getAttribute("data-add-case-item");
+  const addCaseItemType = target.getAttribute("data-case-item-type");
+  if (addCaseItemId && addCaseItemType) {
+    await addItemToSelectedCase(addCaseItemType, addCaseItemId, {
+      source_panel: detectPageMode() === "data-lab" ? "data_lab" : "workspace",
+    });
+    return;
+  }
+  const removeCaseItemId = target.getAttribute("data-remove-case-item");
+  const removeCaseId = target.getAttribute("data-case-id");
+  if (removeCaseItemId && removeCaseId) {
+    ensureWorkspace();
+    await api(`/api/workspaces/${state.selectedWorkspaceId}/knowledge-cases/${removeCaseId}/items/${removeCaseItemId}`, {
+      method: "DELETE",
+    });
+    await refreshWorkspaceData();
+    focusKnowledgeCase(removeCaseId);
+    showToast("Case item removed.");
     return;
   }
   const recordId = target.getAttribute("data-select-knowledge");
@@ -5183,6 +5617,7 @@ function bind() {
   const importLiteraturePdfsButton = document.getElementById("import-literature-pdfs");
   const importLiteratureKnowledgeButton = document.getElementById("import-literature-knowledge");
   const uploadForm = document.getElementById("upload-form");
+  const knowledgeCaseForm = document.getElementById("knowledge-case-form");
   const knowledgeForm = document.getElementById("knowledge-form");
   const knowledgeSearchForm = document.getElementById("knowledge-search-form");
   const scheduleForm = document.getElementById("schedule-form");
@@ -5204,6 +5639,7 @@ function bind() {
   importLiteraturePdfsButton?.addEventListener("click", wrap(handleBulkLiteraturePdfImport));
   importLiteratureKnowledgeButton?.addEventListener("click", wrap(handleBulkLiteratureKnowledgeImport));
   uploadForm?.addEventListener("submit", wrap(handleUpload));
+  knowledgeCaseForm?.addEventListener("submit", wrap(handleKnowledgeCase));
   knowledgeForm?.addEventListener("submit", wrap(handleKnowledge));
   knowledgeSearchForm?.addEventListener("submit", wrap(async (event) => {
     event.preventDefault();
@@ -5214,6 +5650,7 @@ function bind() {
   dom.knowledgeTypeFilter?.addEventListener("change", applyKnowledgeFiltersFromDom);
   dom.knowledgeTagFilter?.addEventListener("change", applyKnowledgeFiltersFromDom);
   dom.knowledgeResetButton?.addEventListener("click", () => resetKnowledgeFilters());
+  dom.knowledgeCaseCancelButton?.addEventListener("click", () => resetKnowledgeCaseComposer());
   dom.knowledgeCancelButton?.addEventListener("click", () => resetKnowledgeComposer());
   scheduleForm?.addEventListener("submit", wrap(handleSchedule));
   variableGuideForm?.addEventListener("submit", wrap(handleVariableGuide));
@@ -5290,13 +5727,43 @@ function bind() {
       state.selectedAnalysisAssetId = "";
       state.knowledgeDetails = {};
       state.knowledgeRelated = {};
+      state.caseDetails = {};
+      state.workspaceCases = [];
+      state.selectedKnowledgeCaseId = "";
       state.selectedKnowledgeRecordId = "";
       state.knowledgeSearchQuery = "";
       state.knowledgeTypeFilter = "all";
       state.knowledgeTagFilter = "all";
+      localStorage.removeItem(storageKeys.caseId);
       await refreshWorkspaceData();
     }),
   );
+  dom.knowledgeCaseActiveSelect?.addEventListener("change", (event) => {
+    state.selectedKnowledgeCaseId = event.target.value || "";
+    if (state.selectedKnowledgeCaseId) {
+      localStorage.setItem(storageKeys.caseId, state.selectedKnowledgeCaseId);
+      void loadKnowledgeCaseDetail(state.selectedKnowledgeCaseId);
+    } else {
+      localStorage.removeItem(storageKeys.caseId);
+      renderKnowledgeCasePreview(null);
+    }
+    syncKnowledgeCaseOptions();
+    renderWorkspaceCockpit();
+    renderLabContext();
+  });
+  dom.labCaseSelect?.addEventListener("change", (event) => {
+    state.selectedKnowledgeCaseId = event.target.value || "";
+    if (state.selectedKnowledgeCaseId) {
+      localStorage.setItem(storageKeys.caseId, state.selectedKnowledgeCaseId);
+      void loadKnowledgeCaseDetail(state.selectedKnowledgeCaseId);
+    } else {
+      localStorage.removeItem(storageKeys.caseId);
+      renderKnowledgeCasePreview(null);
+    }
+    syncKnowledgeCaseOptions();
+    renderWorkspaceCockpit();
+    renderLabContext();
+  });
   dom.analysisAssetSelect?.addEventListener("change", wrap(async (event) => {
     state.selectedAnalysisAssetId = event.target.value;
     await loadSelectedAssetProfile();

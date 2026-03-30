@@ -22,29 +22,37 @@ from .db import init_database, session_scope
 from .entities import DataAsset
 from .platform_core import (
     archive_knowledge_record,
+    add_item_to_knowledge_case,
     build_model_result_detail,
     build_processing_result_detail,
+    build_knowledge_case_detail,
     create_plot_asset,
+    create_knowledge_case,
     create_workspace_digest_record,
     clean_dataset_asset,
     create_integration,
     create_knowledge_record,
     create_workspace,
+    delete_knowledge_case,
     delete_knowledge_record,
     delete_integration,
+    get_owned_knowledge_case,
     get_current_user,
     get_owned_knowledge_record,
     get_workspace_for_user,
     find_related_knowledge_records,
     is_knowledge_record_archived,
     list_assets,
+    list_knowledge_cases,
     list_integrations,
     list_knowledge_records,
+    list_knowledge_case_items,
     list_workspaces,
     login_user,
     prepare_dataset_asset,
     profile_dataset_asset,
     register_user,
+    remove_item_from_knowledge_case,
     resolve_integration,
     run_model_analysis,
     run_ols_analysis,
@@ -52,6 +60,7 @@ from .platform_core import (
     search_assets,
     search_knowledge_records,
     serialize_asset,
+    serialize_knowledge_case,
     serialize_integration,
     serialize_knowledge_record,
     serialize_user,
@@ -59,6 +68,7 @@ from .platform_core import (
     suggest_beginner_variable_plan,
     test_integration,
     restore_knowledge_record,
+    update_knowledge_case,
     update_knowledge_record,
 )
 from .provider_catalog import get_provider_catalog
@@ -143,6 +153,26 @@ class KnowledgeUpdateRequest(BaseModel):
     content: str | None = Field(default=None, min_length=2)
     tags: list[str] | None = Field(default=None)
     metadata: dict[str, Any] | None = Field(default=None)
+
+
+class KnowledgeCaseCreateRequest(BaseModel):
+    title: str = Field(min_length=2, max_length=240)
+    description: str = ""
+    tags: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class KnowledgeCaseUpdateRequest(BaseModel):
+    title: str | None = Field(default=None, min_length=2, max_length=240)
+    description: str | None = None
+    tags: list[str] | None = Field(default=None)
+    metadata: dict[str, Any] | None = Field(default=None)
+
+
+class KnowledgeCaseItemCreateRequest(BaseModel):
+    item_type: str = Field(min_length=2, max_length=60)
+    ref_id: str = Field(min_length=2, max_length=120)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class KnowledgeArchiveRequest(BaseModel):
@@ -791,6 +821,169 @@ def create_app() -> FastAPI:
                         limit=limit,
                     )
                 }
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/workspaces/{workspace_id}/knowledge-cases")
+    def knowledge_cases(
+        workspace_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                items = []
+                for case in list_knowledge_cases(db, user=user, workspace=workspace):
+                    case_items = list_knowledge_case_items(db, user=user, case=case)
+                    items.append(
+                        serialize_knowledge_case(
+                            case,
+                            item_count=len(case_items),
+                            latest_item_at=case_items[0].created_at.isoformat() if case_items else "",
+                            item_types=sorted({entry.item_type for entry in case_items}),
+                        )
+                    )
+                return {"items": items}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/workspaces/{workspace_id}/knowledge-cases/{case_id}")
+    def knowledge_case_detail(
+        workspace_id: str,
+        case_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return build_knowledge_case_detail(db, user=user, workspace=workspace, case_id=case_id)
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/knowledge-cases")
+    def add_knowledge_case(
+        workspace_id: str,
+        request: KnowledgeCaseCreateRequest,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                case = create_knowledge_case(
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    title=request.title,
+                    description=request.description,
+                    tags=request.tags,
+                    metadata=request.metadata,
+                )
+                return {"case": serialize_knowledge_case(case)}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.patch("/api/workspaces/{workspace_id}/knowledge-cases/{case_id}")
+    def patch_knowledge_case(
+        workspace_id: str,
+        case_id: str,
+        request: KnowledgeCaseUpdateRequest,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                case = get_owned_knowledge_case(db, user=user, case_id=case_id)
+                if case.workspace_id != workspace.id:
+                    raise FileNotFoundError("Knowledge case not found.")
+                updated = update_knowledge_case(
+                    db,
+                    user=user,
+                    case_id=case_id,
+                    title=request.title,
+                    description=request.description,
+                    tags=request.tags,
+                    metadata=request.metadata,
+                )
+                return {"case": serialize_knowledge_case(updated)}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.delete("/api/workspaces/{workspace_id}/knowledge-cases/{case_id}")
+    def remove_knowledge_case(
+        workspace_id: str,
+        case_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                case = get_owned_knowledge_case(db, user=user, case_id=case_id)
+                if case.workspace_id != workspace.id:
+                    raise FileNotFoundError("Knowledge case not found.")
+                delete_knowledge_case(db, user=user, case_id=case_id)
+                return {"status": "deleted"}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/knowledge-cases/{case_id}/items")
+    def add_knowledge_case_item(
+        workspace_id: str,
+        case_id: str,
+        request: KnowledgeCaseItemCreateRequest,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                item, created = add_item_to_knowledge_case(
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    case_id=case_id,
+                    item_type=request.item_type,
+                    ref_id=request.ref_id,
+                    metadata=request.metadata,
+                )
+                detail = build_knowledge_case_detail(db, user=user, workspace=workspace, case_id=case_id)
+                payload = next((entry for entry in detail["items"] if entry["id"] == item.id), None)
+                return {"item": payload, "created": created, "case": detail["case"]}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.delete("/api/workspaces/{workspace_id}/knowledge-cases/{case_id}/items/{item_id}")
+    def remove_knowledge_case_item(
+        workspace_id: str,
+        case_id: str,
+        item_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                remove_item_from_knowledge_case(db, user=user, workspace=workspace, case_id=case_id, item_id=item_id)
+                detail = build_knowledge_case_detail(db, user=user, workspace=workspace, case_id=case_id)
+                return {"status": "deleted", "case": detail["case"], "items": detail["items"]}
         except Exception as exc:
             _raise_http_error(exc)
 
