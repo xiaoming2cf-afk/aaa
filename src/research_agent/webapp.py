@@ -59,6 +59,7 @@ from .platform_research import (
     create_schedule_job,
     ensure_public_daily_briefing,
     generate_economic_briefing,
+    get_or_build_latest_public_briefing,
     get_latest_public_briefing,
     get_public_briefing_by_slug,
     import_openalex_works,
@@ -441,7 +442,7 @@ def create_app() -> FastAPI:
     def public_briefings(limit: int = 10) -> dict[str, Any]:
         try:
             with session_scope() as db:
-                ensure_public_daily_briefing(db, settings)
+                get_or_build_latest_public_briefing(db, settings)
                 return {
                     "items": [
                         serialize_public_briefing(item, public_base_url=settings.public_base_url)
@@ -455,7 +456,7 @@ def create_app() -> FastAPI:
     def public_briefing_latest() -> dict[str, Any]:
         try:
             with session_scope() as db:
-                briefing = ensure_public_daily_briefing(db, settings) or get_latest_public_briefing(db)
+                briefing = get_or_build_latest_public_briefing(db, settings)
                 return {
                     "briefing": serialize_public_briefing_detail(db, briefing, public_base_url=settings.public_base_url)
                     if briefing
@@ -512,7 +513,7 @@ def create_app() -> FastAPI:
     def public_summary(days: int = 7) -> dict[str, Any]:
         try:
             with session_scope() as db:
-                ensure_public_daily_briefing(db, settings)
+                get_or_build_latest_public_briefing(db, settings)
                 return build_public_briefing_summary(db, days=days, public_base_url=settings.public_base_url)
         except Exception as exc:
             _raise_http_error(exc)
@@ -521,7 +522,7 @@ def create_app() -> FastAPI:
     def public_summary_detail(window: str) -> dict[str, Any]:
         try:
             with session_scope() as db:
-                ensure_public_daily_briefing(db, settings)
+                get_or_build_latest_public_briefing(db, settings)
                 return build_named_public_summary(db, window=window, public_base_url=settings.public_base_url)
         except Exception as exc:
             _raise_http_error(exc)

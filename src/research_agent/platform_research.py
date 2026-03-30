@@ -149,6 +149,17 @@ PUBLIC_OFFICIAL_RSS_FEEDS = [
         "credibility": "official central bank",
         "note": "Bank of England news feed",
     },
+    {
+        "name": "China NBS Latest Releases",
+        "url": "https://www.stats.gov.cn/english/PressRelease/rss.xml",
+        "domain": "stats.gov.cn",
+        "source_country": "CN",
+        "language": "English",
+        "source_type": "official",
+        "region_focus": "China",
+        "credibility": "official statistics agency",
+        "note": "National Bureau of Statistics of China release feed",
+    },
 ]
 PUBLIC_OFFICIAL_PAGE_SOURCES = [
     {
@@ -163,6 +174,19 @@ PUBLIC_OFFICIAL_PAGE_SOURCES = [
         "note": "U.S. Treasury press-release page",
         "kind": "html",
         "parser": "treasury_press",
+    },
+    {
+        "name": "U.S. BEA Current Releases",
+        "url": "https://www.bea.gov/news/current-releases",
+        "domain": "bea.gov",
+        "source_country": "US",
+        "language": "English",
+        "source_type": "official",
+        "region_focus": "United States",
+        "credibility": "official statistics agency",
+        "note": "Bureau of Economic Analysis current releases page",
+        "kind": "html",
+        "parser": "bea_current_releases",
     },
     {
         "name": "State Council China News",
@@ -1371,6 +1395,34 @@ def _parse_treasury_press_items(source: dict[str, Any], html: str) -> list[dict[
     return items
 
 
+def _parse_bea_current_release_items(source: dict[str, Any], html: str) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    pattern = re.compile(
+        r'(?P<date>\d{4}-\d{2}-\d{2}).{0,500}?href="(?P<href>/news/[^"#?]+)"[^>]*>(?P<title>.*?)</a>',
+        flags=re.S,
+    )
+    seen: set[str] = set()
+    for match in pattern.finditer(html):
+        title = _strip_html(match.group("title"))
+        if not title or title.lower() in {"economy at a glance", "archive", "news releases"}:
+            continue
+        link = _normalize_source_href(source["url"], match.group("href"))
+        if link in seen:
+            continue
+        seen.add(link)
+        items.append(
+            _coerce_source_item(
+                source,
+                title=title,
+                link=link,
+                pub_date=match.group("date"),
+                excerpt=title,
+                lookback_days=PUBLIC_OFFICIAL_LOOKBACK_DAYS,
+            )
+        )
+    return items
+
+
 def _parse_state_council_items(source: dict[str, Any], html: str) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     pattern = re.compile(
@@ -1481,6 +1533,8 @@ def _parse_official_page_items(source: dict[str, Any], html: str) -> list[dict[s
     parser_name = str(source.get("parser", "")).strip()
     if parser_name == "treasury_press":
         return _parse_treasury_press_items(source, html)
+    if parser_name == "bea_current_releases":
+        return _parse_bea_current_release_items(source, html)
     if parser_name == "state_council":
         return _parse_state_council_items(source, html)
     if parser_name == "safe_updates":
@@ -2030,6 +2084,22 @@ def get_latest_public_briefing(db: Session) -> PublicEconomicBriefing | None:
             PublicEconomicBriefing.briefing_date.desc(), PublicEconomicBriefing.created_at.desc()
         )
     )
+
+
+def get_or_build_latest_public_briefing(
+    db: Session,
+    settings: Settings,
+    *,
+    now: datetime | None = None,
+) -> PublicEconomicBriefing | None:
+    briefing = ensure_public_daily_briefing(db, settings, now=now)
+    if briefing:
+        return briefing
+    latest = get_latest_public_briefing(db)
+    local_today = _current_local_time(settings.public_digest_timezone, now=now).date().isoformat()
+    if latest and latest.briefing_date == local_today and not _public_briefing_needs_schema_refresh(latest):
+        return latest
+    return generate_public_daily_briefing(db, settings, now=now, force=True)
 
 
 def _public_digest_is_due(settings: Settings, *, now: datetime | None = None) -> bool:
