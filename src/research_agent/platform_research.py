@@ -738,6 +738,13 @@ def build_public_source_panel(briefing: PublicEconomicBriefing) -> dict[str, Any
     type_active_counts = Counter(str(item.get("source_type", "")).strip() or "media" for item in active_items)
     type_excluded_counts = Counter(str(item.get("source_type", "")).strip() or "media" for item in excluded_items)
     type_names = sorted(set(type_active_counts) | set(type_excluded_counts))
+    region_active_counts = Counter(
+        str(item.get("region_focus", "")).strip() or "Global" for item in active_items
+    )
+    region_excluded_counts = Counter(
+        str(item.get("region_focus", "")).strip() or "Global" for item in excluded_items
+    )
+    region_names = sorted(set(region_active_counts) | set(region_excluded_counts))
     source_directory = _public_source_directory_rows(
         briefing,
         active_items=active_items,
@@ -778,6 +785,26 @@ def build_public_source_panel(briefing: PublicEconomicBriefing) -> dict[str, Any
             }
             for type_name in type_names
         ],
+        "region_breakdown": [
+            {
+                "region": region_name or "Global",
+                "active_count": int(region_active_counts.get(region_name, 0)),
+                "excluded_count": int(region_excluded_counts.get(region_name, 0)),
+            }
+            for region_name in region_names[:12]
+        ],
+        "available_filters": {
+            "source_types": [type_name or "unknown" for type_name in type_names],
+            "countries": all_countries[:12],
+            "regions": region_names[:12],
+            "priority_views": [
+                {"slug": "all", "label": "All Sources"},
+                {"slug": "official", "label": "Official First"},
+                {"slug": "us", "label": "United States"},
+                {"slug": "cn", "label": "China"},
+                {"slug": "developed", "label": "Developed Markets"},
+            ],
+        },
         "feeds": feed_rows,
         "source_directory": source_directory,
         "gdelt": {

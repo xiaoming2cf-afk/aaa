@@ -24,6 +24,10 @@ const state = {
   dataLabCatalog: null,
   variableGuideResult: null,
   resultPreviewUrls: [],
+  publicSourceView: "all",
+  publicSourceTypeFilter: "all",
+  publicSourceCountryFilter: "all",
+  publicSourceRegionFilter: "all",
 };
 
 const MODEL_FAMILY_OPTIONS = {
@@ -126,6 +130,10 @@ const dom = {
   publicLatestView: document.getElementById("public-latest-view"),
   publicThemeStrip: document.getElementById("public-theme-strip"),
   publicSourcePanel: document.getElementById("public-source-panel"),
+  publicSourceView: document.getElementById("public-source-view"),
+  publicSourceTypeFilter: document.getElementById("public-source-type-filter"),
+  publicSourceCountryFilter: document.getElementById("public-source-country-filter"),
+  publicSourceRegionFilter: document.getElementById("public-source-region-filter"),
   publicReviewNote: document.getElementById("public-review-note"),
   publicReviewList: document.getElementById("public-review-list"),
   publicExcludedList: document.getElementById("public-excluded-list"),
@@ -1905,6 +1913,55 @@ function hasPublicModerationAccess() {
   return Boolean(state.user && state.token);
 }
 
+function buildOptions(options, selected, allLabel) {
+  const rows = [{ value: "all", label: allLabel }, ...(options || []).map((value) => ({ value, label: value }))];
+  return rows
+    .map(
+      (row) =>
+        `<option value="${escapeHtml(row.value)}"${row.value === selected ? " selected" : ""}>${escapeHtml(row.label)}</option>`,
+    )
+    .join("");
+}
+
+function applyPublicSourceView(row) {
+  const view = state.publicSourceView || "all";
+  if (!row || view === "all") {
+    return true;
+  }
+  if (view === "official") {
+    return (row.source_type || "") === "official";
+  }
+  if (view === "us") {
+    return (row.source_country || "") === "US";
+  }
+  if (view === "cn") {
+    return (row.source_country || "") === "CN";
+  }
+  if (view === "developed") {
+    return ["US", "GB", "EA", "JP", "CA"].includes(row.source_country || "");
+  }
+  return true;
+}
+
+function applyPublicSourceFilters(row) {
+  if (!row) {
+    return false;
+  }
+  if (!applyPublicSourceView(row)) {
+    return false;
+  }
+  if (state.publicSourceTypeFilter !== "all" && (row.source_type || "") !== state.publicSourceTypeFilter) {
+    return false;
+  }
+  if (state.publicSourceCountryFilter !== "all" && (row.source_country || "") !== state.publicSourceCountryFilter) {
+    return false;
+  }
+  if (state.publicSourceRegionFilter !== "all" && (row.region_focus || "") !== state.publicSourceRegionFilter) {
+    return false;
+  }
+  return true;
+}
+
 function renderPublicSourcePanel(panel) {
   if (!dom.publicSourcePanel) {
     return;
@@ -1918,8 +1975,40 @@ function renderPublicSourcePanel(panel) {
   const countries = Array.isArray(panel.countries) ? panel.countries : [];
   const feeds = Array.isArray(panel.feeds) ? panel.feeds : [];
   const typeBreakdown = Array.isArray(panel.type_breakdown) ? panel.type_breakdown : [];
+  const regionBreakdown = Array.isArray(panel.region_breakdown) ? panel.region_breakdown : [];
   const sourceDirectory = Array.isArray(panel.source_directory) ? panel.source_directory : [];
   const notes = Array.isArray(panel.notes) ? panel.notes : [];
+  const availableFilters = panel.available_filters || {};
+  if (dom.publicSourceView) {
+    const views = Array.isArray(availableFilters.priority_views) ? availableFilters.priority_views : [];
+    dom.publicSourceView.innerHTML = views.length
+      ? views
+          .map(
+            (view) =>
+              `<option value="${escapeHtml(view.slug)}"${view.slug === state.publicSourceView ? " selected" : ""}>${escapeHtml(view.label)}</option>`,
+          )
+          .join("")
+      : `<option value="all">All Sources</option>`;
+  }
+  if (dom.publicSourceTypeFilter) {
+    dom.publicSourceTypeFilter.innerHTML = buildOptions(availableFilters.source_types || [], state.publicSourceTypeFilter, "All Types");
+  }
+  if (dom.publicSourceCountryFilter) {
+    dom.publicSourceCountryFilter.innerHTML = buildOptions(
+      availableFilters.countries || [],
+      state.publicSourceCountryFilter,
+      "All Countries",
+    );
+  }
+  if (dom.publicSourceRegionFilter) {
+    dom.publicSourceRegionFilter.innerHTML = buildOptions(
+      availableFilters.regions || [],
+      state.publicSourceRegionFilter,
+      "All Regions",
+    );
+  }
+  const filteredSourceDirectory = sourceDirectory.filter((row) => applyPublicSourceFilters(row));
+  const filteredFeeds = feeds.filter((row) => applyPublicSourceFilters(row));
   dom.publicSourcePanel.innerHTML = `
     <article class="source-panel-card">
       <h4>Edition Overview</h4>
@@ -1951,6 +2040,25 @@ function renderPublicSourcePanel(panel) {
                 )
                 .join("")
             : `<p class="muted">No source-type breakdown yet.</p>`
+        }
+      </div>
+    </article>
+    <article class="source-panel-card">
+      <h4>Region Focus</h4>
+      <div class="source-list">
+        ${
+          regionBreakdown.length
+            ? regionBreakdown
+                .map(
+                  (item) => `
+                    <div class="source-list-row">
+                      <strong>${escapeHtml(item.region)}</strong>
+                      <span>Visible ${escapeHtml(item.active_count)} | Filtered ${escapeHtml(item.excluded_count)}</span>
+                    </div>
+                  `,
+                )
+                .join("")
+            : `<p class="muted">No region-focus breakdown yet.</p>`
         }
       </div>
     </article>
@@ -1996,8 +2104,8 @@ function renderPublicSourcePanel(panel) {
       <h4>Source Directory</h4>
       <div class="source-list">
         ${
-          sourceDirectory.length
-            ? sourceDirectory
+          filteredSourceDirectory.length
+            ? filteredSourceDirectory
                 .map(
                   (row) => `
                     <div class="source-directory-row">
@@ -2013,7 +2121,7 @@ function renderPublicSourcePanel(panel) {
                   `,
                 )
                 .join("")
-            : `<p class="muted">The configured source directory is not available for this edition.</p>`
+            : `<p class="muted">No configured sources match the current filter view.</p>`
         }
       </div>
     </article>
@@ -2021,8 +2129,8 @@ function renderPublicSourcePanel(panel) {
       <h4>Feed Health</h4>
       <div class="source-list">
         ${
-          feeds.length
-            ? feeds
+          filteredFeeds.length
+            ? filteredFeeds
                 .map(
                   (feed) => `
                     <div class="source-list-row">
@@ -2034,7 +2142,7 @@ function renderPublicSourcePanel(panel) {
                   `,
                 )
                 .join("")
-            : `<p class="muted">Feed-status detail is not available for this edition.</p>`
+            : `<p class="muted">No feed rows match the current filter view.</p>`
         }
       </div>
     </article>
@@ -3660,6 +3768,22 @@ function bind() {
     await copyToClipboard(target);
     showToast("Public link copied.");
   }));
+  dom.publicSourceView?.addEventListener("change", () => {
+    state.publicSourceView = dom.publicSourceView?.value || "all";
+    renderPublicSourcePanel(state.selectedPublicBriefing?.source_panel || null);
+  });
+  dom.publicSourceTypeFilter?.addEventListener("change", () => {
+    state.publicSourceTypeFilter = dom.publicSourceTypeFilter?.value || "all";
+    renderPublicSourcePanel(state.selectedPublicBriefing?.source_panel || null);
+  });
+  dom.publicSourceCountryFilter?.addEventListener("change", () => {
+    state.publicSourceCountryFilter = dom.publicSourceCountryFilter?.value || "all";
+    renderPublicSourcePanel(state.selectedPublicBriefing?.source_panel || null);
+  });
+  dom.publicSourceRegionFilter?.addEventListener("change", () => {
+    state.publicSourceRegionFilter = dom.publicSourceRegionFilter?.value || "all";
+    renderPublicSourcePanel(state.selectedPublicBriefing?.source_panel || null);
+  });
   document.querySelectorAll("[data-summary-days]").forEach((button) => {
     button.addEventListener(
       "click",

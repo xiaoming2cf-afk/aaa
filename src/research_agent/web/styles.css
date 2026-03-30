@@ -575,6 +575,13 @@ button.secondary,
   gap: 0.8rem;
 }
 
+.public-source-toolbar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0.95rem 0 0.8rem;
+}
+
 .method-browser-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1027,6 +1034,7 @@ button.secondary,
   .lab-status-grid,
   .context-grid,
   .interpretation-grid,
+  .public-source-toolbar,
   .source-panel-grid,
   .review-grid {
     grid-template-columns: 1fr;
