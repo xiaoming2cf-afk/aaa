@@ -254,6 +254,7 @@ const dom = {
   publicSummaryPages: document.getElementById("public-summary-pages"),
   publicSummaryFeatured: document.getElementById("public-summary-featured"),
   publicBriefingList: document.getElementById("public-briefing-list"),
+  publicSnapshotGrid: document.getElementById("public-snapshot-grid"),
   refreshPublicButton: document.getElementById("refresh-public"),
   copyPublicLinkButton: document.getElementById("copy-public-link"),
   sessionIndicator: document.getElementById("session-indicator"),
@@ -332,6 +333,10 @@ const dom = {
   labActiveFamilyMethods: document.getElementById("lab-active-family-methods"),
   labActiveFamilyChecks: document.getElementById("lab-active-family-checks"),
   labActiveFamilyLink: document.getElementById("lab-active-family-link"),
+  labRunDesignTitle: document.getElementById("lab-run-design-title"),
+  labRunDesignCopy: document.getElementById("lab-run-design-copy"),
+  labRunDesignSurfaces: document.getElementById("lab-run-design-surfaces"),
+  labRunDesignChecks: document.getElementById("lab-run-design-checks"),
   labRecentProcessingList: document.getElementById("lab-recent-processing-list"),
   labRecentModelList: document.getElementById("lab-recent-model-list"),
   variableGuideForm: document.getElementById("variable-guide-form"),
@@ -524,6 +529,8 @@ const dom = {
   labModelMethodPaper: document.getElementById("lab-model-method-paper"),
   labModelMethodPreview: document.getElementById("lab-model-method-preview"),
   labModelMethodAudit: document.getElementById("lab-model-method-audit"),
+  labModelMethodSnapshot: document.getElementById("lab-model-method-snapshot"),
+  labModelMethodRunbook: document.getElementById("lab-model-method-runbook"),
   labTeachingEyebrow: document.getElementById("lab-teaching-eyebrow"),
   labTeachingTitle: document.getElementById("lab-teaching-title"),
   labTeachingSummary: document.getElementById("lab-teaching-summary"),
@@ -535,6 +542,8 @@ const dom = {
   labTeachingSections: document.getElementById("lab-teaching-sections"),
   labTeachingPaper: document.getElementById("lab-teaching-paper"),
   labTeachingPreview: document.getElementById("lab-teaching-preview"),
+  labTeachingSnapshot: document.getElementById("lab-teaching-snapshot"),
+  labTeachingRunbook: document.getElementById("lab-teaching-runbook"),
   labResultEyebrow: document.getElementById("lab-result-eyebrow"),
   labResultTitle: document.getElementById("lab-result-title"),
   labResultSummary: document.getElementById("lab-result-summary"),
@@ -548,7 +557,10 @@ const dom = {
   labResultTables: document.getElementById("lab-result-tables"),
   labResultAudit: document.getElementById("lab-result-audit"),
   labResultPreview: document.getElementById("lab-result-preview"),
+  labResultGallery: document.getElementById("lab-result-gallery"),
   labResultRaw: document.getElementById("lab-result-raw"),
+  labResultSnapshot: document.getElementById("lab-result-snapshot"),
+  labResultActions: document.getElementById("lab-result-actions"),
 };
 
 function escapeHtml(value) {
@@ -2159,6 +2171,53 @@ function renderActiveFamilySummary() {
   }
 }
 
+function currentRunDesignSummary() {
+  const detail = currentFamilyDetail();
+  const workflowLabel = currentWorkflowLabel();
+  const surfaces =
+    currentWorkflowType() === "model"
+      ? ["Coefficient table", "Result detail page", "Knowledge note", "Case link"]
+      : currentProcessingFamily() === "visualization"
+        ? ["PNG chart", "Saved plot asset", "Result detail page", "Case link"]
+        : ["Prepared sample", "Processing detail page", "Downloadable dataset", "Case link"];
+  const checks = (detail?.manual_checks || []).slice(0, 4);
+  let copy = "Choose a family to see what the run expects and what it exports.";
+  if (detail) {
+    copy =
+      currentWorkflowType() === "model"
+        ? `${workflowLabel} mode is set to ${detail.title}. Expect estimation output plus a transparent specification, tables, and audit trail.`
+        : `${workflowLabel} mode is set to ${detail.title}. Expect a transformed asset plus an explicit record of processing operations.`;
+  }
+  return {
+    title: detail ? `${workflowLabel}: ${detail.title}` : `${workflowLabel}: select a family`,
+    copy,
+    surfaces,
+    checks,
+  };
+}
+
+function renderLabRunDesign() {
+  if (!dom.labRunDesignTitle || !dom.labRunDesignCopy) {
+    return;
+  }
+  const design = currentRunDesignSummary();
+  dom.labRunDesignTitle.textContent = design.title;
+  dom.labRunDesignCopy.textContent = design.copy;
+  if (dom.labRunDesignSurfaces) {
+    dom.labRunDesignSurfaces.innerHTML = design.surfaces
+      .map((item) => `<span class="topic-chip">${escapeHtml(item)}</span>`)
+      .join("");
+  }
+  renderListCards(dom.labRunDesignChecks, design.checks, (item) => `
+    <article class="card compact-card">
+      <p>${escapeHtml(item)}</p>
+    </article>
+  `);
+  if (!design.checks.length && dom.labRunDesignChecks) {
+    dom.labRunDesignChecks.innerHTML = emptyCard("Manual verification checkpoints will appear here.");
+  }
+}
+
 function nextLabAction() {
   if (!state.user) {
     return "Next action: sign in or create an account.";
@@ -2213,6 +2272,7 @@ function renderLabContext() {
   }
   renderWorkflowGuide();
   renderActiveFamilySummary();
+  renderLabRunDesign();
 }
 
 function renderProcessingHistory(items = processingHistoryItems()) {
@@ -3760,6 +3820,56 @@ function renderSummaryFeatured(items) {
     .join("");
 }
 
+function renderPublicSnapshot(briefing) {
+  if (!dom.publicSnapshotGrid) {
+    return;
+  }
+  if (!briefing) {
+    dom.publicSnapshotGrid.innerHTML = emptyCard("The edition snapshot will appear once the latest public briefing is available.");
+    return;
+  }
+  const sourcePanel = briefing.source_panel || {};
+  const typeBreakdown = Array.isArray(sourcePanel.type_breakdown) ? sourcePanel.type_breakdown : [];
+  const countryBreakdown = Array.isArray(sourcePanel.countries) ? sourcePanel.countries : [];
+  const officialCount = typeBreakdown.find((item) => item.type === "official")?.active_count ?? 0;
+  const mediaCount = typeBreakdown.find((item) => item.type === "media")?.active_count ?? 0;
+  const topTheme = Array.isArray(briefing.top_themes) && briefing.top_themes.length ? briefing.top_themes[0].theme : "No dominant theme yet";
+  const leadCountry = countryBreakdown.length ? countryBreakdown[0].country : "Global";
+  const cards = [
+    {
+      label: "Edition date",
+      value: briefing.briefing_date || "Latest",
+      copy: `${briefing.headline_count || 0} headlines in the current public note`,
+    },
+    {
+      label: "Source mix",
+      value: `${officialCount} official / ${mediaCount} media`,
+      copy: "Visible items after current source filtering",
+    },
+    {
+      label: "Lead geography",
+      value: leadCountry,
+      copy: "Most represented country in the current edition",
+    },
+    {
+      label: "Top theme",
+      value: topTheme,
+      copy: "First theme extracted from the current edition",
+    },
+  ];
+  dom.publicSnapshotGrid.innerHTML = cards
+    .map(
+      (item) => `
+        <article class="snapshot-card">
+          <span>${escapeHtml(item.label)}</span>
+          <strong>${escapeHtml(item.value)}</strong>
+          <p>${escapeHtml(item.copy)}</p>
+        </article>
+      `,
+    )
+    .join("");
+}
+
 function renderPublicLatest(briefing) {
   if (!hasPublicMonitorUI()) {
     return;
@@ -3780,6 +3890,7 @@ function renderPublicLatest(briefing) {
     renderPublicReviewQueue(null);
     renderPublicClusters([]);
     renderRecommendedReading(null);
+    renderPublicSnapshot(null);
     return;
   }
   state.selectedPublicBriefing = briefing;
@@ -3797,6 +3908,7 @@ function renderPublicLatest(briefing) {
   renderPublicReviewQueue(briefing);
   renderPublicClusters(briefing.news_clusters || []);
   renderRecommendedReading(briefing.recommended_reading || null);
+  renderPublicSnapshot(briefing);
 }
 
 function renderPublicSummary(summary) {
@@ -3864,6 +3976,75 @@ function renderDataLabMethodDetail(detail) {
   updateDocumentTitle();
 }
 
+function renderModelMethodSnapshot(detail) {
+  if (!dom.labModelMethodSnapshot) {
+    return;
+  }
+  const snapshotCards = [
+    {
+      label: "Family",
+      value: detail.family_title || "Model family",
+      copy: detail.category_label || "Model method",
+    },
+    {
+      label: "Inputs",
+      value: String((detail.inputs || []).length || 0),
+      copy: "Required field or design checks",
+    },
+    {
+      label: "Outputs",
+      value: String((detail.outputs || []).length + (detail.normal_result ? 1 : 0)),
+      copy: "Normal output surfaces",
+    },
+    {
+      label: "Audit",
+      value: String((detail.manual_checks || []).length || 0),
+      copy: "Manual verification checks",
+    },
+  ];
+  dom.labModelMethodSnapshot.innerHTML = snapshotCards
+    .map(
+      (item) => `
+        <article class="snapshot-card">
+          <span>${escapeHtml(item.label)}</span>
+          <strong>${escapeHtml(item.value)}</strong>
+          <p>${escapeHtml(item.copy)}</p>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function renderModelMethodRunbook(detail) {
+  if (!dom.labModelMethodRunbook) {
+    return;
+  }
+  const steps = [
+    {
+      title: "1. Inspect inputs",
+      body: "Check the required variables and confirm that the dataset profile supports the fields this method needs.",
+    },
+    {
+      title: "2. Open workbench",
+      body: "Use the workbench link to open Data Lab with the correct family and model preselected.",
+    },
+    {
+      title: "3. Read the output package",
+      body: "Expect a result detail page with tables, figures if applicable, specification metadata, and an audit trail.",
+    },
+  ];
+  dom.labModelMethodRunbook.innerHTML = steps
+    .map(
+      (step) => `
+        <article class="guide-card">
+          <h4>${escapeHtml(step.title)}</h4>
+          <p>${escapeHtml(step.body)}</p>
+        </article>
+      `,
+    )
+    .join("");
+}
+
 function renderModelMethodPage(detail) {
   if (!detail) {
     throw new Error("Model method not found.");
@@ -3905,6 +4086,8 @@ function renderModelMethodPage(detail) {
       <p>${escapeHtml(item)}</p>
     </article>
   `);
+  renderModelMethodSnapshot(detail);
+  renderModelMethodRunbook(detail);
   updateDocumentTitle();
 }
 
@@ -3932,6 +4115,67 @@ function renderModelTeachingPage(guide) {
   `);
   renderPaperTemplateCards(dom.labTeachingPaper, guide.paper_template || []);
   renderPaperTablePreviewCards(dom.labTeachingPreview, guide.paper_table_preview || []);
+  if (dom.labTeachingSnapshot) {
+    const snapshotCards = [
+      {
+        label: "Family",
+        value: guide.family_title || "Model family",
+        copy: "Teaching page",
+      },
+      {
+        label: "Lessons",
+        value: String((guide.sections || []).length || 0),
+        copy: "Core lesson blocks",
+      },
+      {
+        label: "Paper blocks",
+        value: String((guide.paper_template || []).length || 0),
+        copy: "Paper reporting modules",
+      },
+      {
+        label: "Preview tables",
+        value: String((guide.paper_table_preview || []).length || 0),
+        copy: "Illustrative table layouts",
+      },
+    ];
+    dom.labTeachingSnapshot.innerHTML = snapshotCards
+      .map(
+        (item) => `
+          <article class="snapshot-card">
+            <span>${escapeHtml(item.label)}</span>
+            <strong>${escapeHtml(item.value)}</strong>
+            <p>${escapeHtml(item.copy)}</p>
+          </article>
+        `,
+      )
+      .join("");
+  }
+  if (dom.labTeachingRunbook) {
+    const steps = [
+      {
+        title: "1. Read the core lessons",
+        body: "Start with the lesson blocks to understand when the model is appropriate and what assumptions matter.",
+      },
+      {
+        title: "2. Check paper reporting",
+        body: "Use the paper template and table preview to understand how the output should look in a paper.",
+      },
+      {
+        title: "3. Open the workbench",
+        body: "Only after the teaching page is clear should you open the workbench and run the model on a private dataset.",
+      },
+    ];
+    dom.labTeachingRunbook.innerHTML = steps
+      .map(
+        (step) => `
+          <article class="guide-card">
+            <h4>${escapeHtml(step.title)}</h4>
+            <p>${escapeHtml(step.body)}</p>
+          </article>
+        `,
+      )
+      .join("");
+  }
   updateDocumentTitle();
 }
 
@@ -4171,8 +4415,92 @@ function renderResultAudit(target, result) {
   `;
 }
 
-async function renderResultPreview(target, result) {
+function renderResultSnapshot(target, payload, result, route) {
   if (!target) {
+    return;
+  }
+  const audit = result.audit_trail || {};
+  const snapshotCards = [
+    {
+      label: "Result type",
+      value: result.model_label || result.processing_family || route.category,
+      copy: route.category === "models" ? "Model estimation output" : "Data processing output",
+    },
+    {
+      label: "Dataset",
+      value: result.asset?.title || payload.record?.title || "Workspace asset",
+      copy: "Primary asset behind this result",
+    },
+    {
+      label: "Rows used",
+      value: String(audit.rows_used ?? result.observations ?? result.summary?.rows_after_prepare ?? "N/A"),
+      copy: "Sample size reflected in the result",
+    },
+    {
+      label: "Figures",
+      value: String(Array.isArray(result.figures) ? result.figures.length : 0),
+      copy: "Chart or figure outputs attached to the result",
+    },
+  ];
+  target.innerHTML = snapshotCards
+    .map(
+      (item) => `
+        <article class="snapshot-card">
+          <span>${escapeHtml(item.label)}</span>
+          <strong>${escapeHtml(item.value)}</strong>
+          <p>${escapeHtml(item.copy)}</p>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function renderResultActions(target, payload, result, route) {
+  if (!target) {
+    return;
+  }
+  const audit = result.audit_trail || {};
+  const actions = [
+    {
+      title: "Back to workbench",
+      body: "Return to the standalone Data Lab with the correct workflow mode preselected.",
+      controls: `<a href="${escapeHtml(route.category === "models" ? "/data-lab?workflow=model#data-lab-workbench" : "/data-lab?workflow=data_processing#data-lab-workbench")}" class="button-link">Open workbench</a>`,
+    },
+    audit.prepared_asset_id
+      ? {
+          title: "Prepared sample",
+          body: "Download the prepared sample used or generated by this result for manual replication outside the app.",
+          controls: `<button type="button" class="secondary" data-download-asset="${escapeHtml(audit.prepared_asset_id)}">Download prepared sample</button>`,
+        }
+      : null,
+    audit.sample_asset_id
+      ? {
+          title: "Sample used",
+          body: "Download the exact sample used in estimation if you want to reproduce the model step by step.",
+          controls: `<button type="button" class="secondary" data-download-asset="${escapeHtml(audit.sample_asset_id)}">Download sample used</button>`,
+        }
+      : null,
+    {
+      title: "Main workspace",
+      body: "Move back to the homepage workspace cockpit, case workspace, or private knowledge base.",
+      controls: `<a href="/" class="button-link secondary-link">Open main platform</a>`,
+    },
+  ].filter(Boolean);
+  target.innerHTML = actions
+    .map(
+      (item) => `
+        <article class="action-deck-card">
+          <h4>${escapeHtml(item.title)}</h4>
+          <p>${escapeHtml(item.body)}</p>
+          <div class="actions">${item.controls}</div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+async function renderResultPreview(previewTarget, galleryTarget, result) {
+  if (!previewTarget && !galleryTarget) {
     return;
   }
   revokeResultPreviewUrls();
@@ -4202,6 +4530,9 @@ async function renderResultPreview(target, result) {
       </article>
     `);
   }
+  if (previewTarget) {
+    previewTarget.innerHTML = blocks.join("") || emptyCard("No preview rows are available for this result.");
+  }
   const figures = Array.isArray(result.figures) ? result.figures : [];
   if (figures.length) {
     const figureCards = await Promise.all(
@@ -4230,14 +4561,17 @@ async function renderResultPreview(target, result) {
         `;
       }),
     );
-    blocks.push(`
-      <article class="card">
-        <h4>Figures</h4>
-        <div class="result-figure-grid">${figureCards.join("")}</div>
-      </article>
-    `);
+    if (galleryTarget) {
+      galleryTarget.innerHTML = `
+        <article class="card">
+          <h4>Figures</h4>
+          <div class="result-figure-grid">${figureCards.join("")}</div>
+        </article>
+      `;
+    }
+  } else if (galleryTarget) {
+    galleryTarget.innerHTML = emptyCard("No figures are attached to this result.");
   }
-  target.innerHTML = blocks.join("") || emptyCard("No preview rows or figures are available for this result.");
 }
 
 async function loadMethodDetailPage() {
@@ -4293,12 +4627,14 @@ async function loadResultDetailPage() {
   if (dom.labResultWorkbenchLink) {
     dom.labResultWorkbenchLink.href = route.category === "models" ? "/data-lab?workflow=model#data-lab-workbench" : "/data-lab?workflow=data_processing#data-lab-workbench";
   }
+  renderResultSnapshot(dom.labResultSnapshot, payload, result, route);
+  renderResultActions(dom.labResultActions, payload, result, route);
   renderResultMetrics(dom.labResultMetrics, result);
   renderResultInterpretation(dom.labResultInterpretation, result);
   renderResultSpecification(dom.labResultSpecification, result);
   renderResultTables(dom.labResultTables, result);
   renderResultAudit(dom.labResultAudit, result);
-  await renderResultPreview(dom.labResultPreview, result);
+  await renderResultPreview(dom.labResultPreview, dom.labResultGallery, result);
   if (dom.labResultRaw) {
     dom.labResultRaw.textContent = JSON.stringify(payload, null, 2);
   }

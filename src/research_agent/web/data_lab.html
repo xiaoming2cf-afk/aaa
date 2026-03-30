@@ -213,6 +213,64 @@
         </div>
       </article>
 
+      <article class="panel public-section" id="lab-design-board">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h3>Run Design Board</h3>
+            <span class="muted">A plain-language summary of the selected workflow, what it expects, and what it will export.</span>
+          </div>
+        </div>
+        <div class="lab-design-grid">
+          <article class="card run-design-card">
+            <p class="eyebrow eyebrow-compact">Current design</p>
+            <h4 id="lab-run-design-title">Select a workflow and family</h4>
+            <p class="muted" id="lab-run-design-copy">The selected workflow will determine which inputs are required and which outputs are generated.</p>
+            <div class="chip-row chip-row-compact" id="lab-run-design-surfaces"></div>
+          </article>
+          <article class="card run-design-card">
+            <p class="eyebrow eyebrow-compact">Verification focus</p>
+            <div id="lab-run-design-checks" class="card-list card-list-inline">
+              <div class="card"><p>Manual verification checkpoints will appear here.</p></div>
+            </div>
+          </article>
+        </div>
+      </article>
+
+      <article class="panel public-section" id="lab-start-paths">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h3>Start Paths</h3>
+            <span class="muted">Three common ways to use the page without searching through every control first.</span>
+          </div>
+        </div>
+        <div class="guide-grid">
+          <article class="guide-card">
+            <p class="eyebrow eyebrow-compact">Beginner</p>
+            <h4>Question to variables</h4>
+            <p>Load a dataset, use the Beginner Variable Guide, then apply the suggested fields to the workbench.</p>
+            <div class="actions">
+              <button type="button" class="secondary" data-scroll-target="variable-guide-form">Open variable guide</button>
+            </div>
+          </article>
+          <article class="guide-card">
+            <p class="eyebrow eyebrow-compact">Replication</p>
+            <h4>Paper-style estimation</h4>
+            <p>Choose a model family, inspect its method page, and run the model with transparent specification and tables.</p>
+            <div class="actions">
+              <button type="button" class="secondary" data-scroll-target="model-methods">Browse model families</button>
+            </div>
+          </article>
+          <article class="guide-card">
+            <p class="eyebrow eyebrow-compact">Output</p>
+            <h4>Charts and downloads</h4>
+            <p>Go straight to visualization or any result page to preview tables, figures, prepared samples, and PNG exports.</p>
+            <div class="actions">
+              <button type="button" class="secondary" data-scroll-target="data-lab-workbench">Open workbench</button>
+            </div>
+          </article>
+        </div>
+      </article>
+
       <article class="panel public-section" id="processing-methods">
         <div class="panel-head panel-head-wrap">
           <div>

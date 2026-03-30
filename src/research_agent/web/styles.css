@@ -257,6 +257,58 @@ h1 {
   margin-top: 1rem;
 }
 
+.guide-grid,
+.snapshot-grid,
+.action-deck-grid,
+.lab-design-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.guide-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.snapshot-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.action-deck-grid,
+.lab-design-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.guide-card,
+.snapshot-card,
+.action-deck-card,
+.run-design-card {
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.55);
+  display: grid;
+  gap: 0.5rem;
+}
+
+.guide-card p,
+.snapshot-card p,
+.action-deck-card p,
+.run-design-card p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.snapshot-card span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.snapshot-card strong {
+  font-size: 1.15rem;
+  line-height: 1.15;
+}
+
 .platform-nav-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1303,6 +1355,10 @@ button.secondary.danger,
     .public-preview-grid,
     .public-entry-grid,
     .platform-nav-grid,
+    .guide-grid,
+    .snapshot-grid,
+    .action-deck-grid,
+    .lab-design-grid,
     .knowledge-summary-grid,
     .knowledge-layout,
     .knowledge-search-form,

@@ -45,6 +45,37 @@
         </div>
       </section>
 
+      <section class="panel public-section">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h3>Result Snapshot</h3>
+            <span class="muted">A quick read of what this result is, what it produced, and which surfaces you can open next.</span>
+          </div>
+        </div>
+        <div id="lab-result-snapshot" class="snapshot-grid">
+          <article class="snapshot-card">
+            <span>Loading...</span>
+            <strong>Result summary</strong>
+            <p>The snapshot cards will appear once the result is loaded.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel public-section">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h3>Action Deck</h3>
+            <span class="muted">Move from the result to the workbench, prepared sample, figures, or the main workspace.</span>
+          </div>
+        </div>
+        <div id="lab-result-actions" class="action-deck-grid">
+          <article class="action-deck-card">
+            <h4>Loading actions...</h4>
+            <p>The action deck will appear after the result loads.</p>
+          </article>
+        </div>
+      </section>
+
       <div class="public-layout">
         <aside class="panel public-sidebar">
           <div class="stack">
@@ -108,6 +139,16 @@
               <div class="card"><p>Loading audit trail...</p></div>
             </div>
             <div id="lab-result-preview" class="card-list"></div>
+          </article>
+
+          <article class="panel public-section" id="lab-result-gallery-card">
+            <div class="panel-head">
+              <h3>Visual Output Gallery</h3>
+              <span class="muted">Figures and chart outputs are rendered here separately from the raw audit section.</span>
+            </div>
+            <div id="lab-result-gallery" class="card-list">
+              <div class="card"><p>Loading figures...</p></div>
+            </div>
           </article>
 
           <article class="panel public-section" id="lab-result-raw-card">

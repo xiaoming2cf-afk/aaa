@@ -47,6 +47,22 @@
         </div>
       </section>
 
+      <section class="panel public-section">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h3>Method Snapshot</h3>
+            <span class="muted">A compact overview of what this method needs, what it produces, and how to use it in the workbench.</span>
+          </div>
+        </div>
+        <div id="lab-model-method-snapshot" class="snapshot-grid">
+          <article class="snapshot-card">
+            <span>Loading...</span>
+            <strong>Method metadata</strong>
+            <p>The summary cards will load with the method detail.</p>
+          </article>
+        </div>
+      </section>
+
       <div class="public-layout">
         <aside class="panel public-sidebar">
           <div class="stack">
@@ -106,6 +122,19 @@
             </div>
             <div id="lab-model-method-paper" class="card-list">
               <div class="card"><p>Loading paper template...</p></div>
+            </div>
+          </article>
+
+          <article class="panel public-section" id="lab-model-method-runbook-card">
+            <div class="panel-head">
+              <h3>Execution Runbook</h3>
+              <span class="muted">A short sequence for moving from the method page into the private workbench without losing transparency.</span>
+            </div>
+            <div id="lab-model-method-runbook" class="guide-grid">
+              <article class="guide-card">
+                <h4>Loading runbook...</h4>
+                <p>The execution sequence will appear once the method detail loads.</p>
+              </article>
             </div>
           </article>
 
