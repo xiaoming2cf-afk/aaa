@@ -753,6 +753,16 @@ button.secondary.danger,
   gap: 0.9rem;
 }
 
+.knowledge-related-block {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.knowledge-related-list {
+  max-height: none;
+  margin-top: 0;
+}
+
 .knowledge-form-status {
   margin: 0.35rem 0 0;
   max-width: 60ch;

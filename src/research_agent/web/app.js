@@ -15,6 +15,7 @@ const state = {
   workspaceKnowledge: [],
   workspaceSchedules: [],
   knowledgeDetails: {},
+  knowledgeRelated: {},
   selectedKnowledgeRecordId: "",
   knowledgeSearchQuery: "",
   knowledgeStatusFilter: "active",
@@ -1132,6 +1133,9 @@ function knowledgeTypeSpec(item) {
   if (metadata.briefing_id) {
     return { key: "briefing_note", label: "Briefing Note", description: "Generated from a private daily briefing" };
   }
+  if (metadata.source_type === "workspace_digest") {
+    return { key: "workspace_digest", label: "Workspace Digest", description: "Cross-module digest created from recent workspace materials" };
+  }
   if (noteTemplate && KNOWLEDGE_TEMPLATES[noteTemplate]) {
     return {
       key: `template_${noteTemplate}`,
@@ -1256,6 +1260,39 @@ function resetKnowledgeComposer() {
     dom.knowledgeSubmitButton.textContent = "Save note";
   }
   toggleHidden(dom.knowledgeCancelButton, true);
+}
+
+function renderRelatedKnowledgeSection(items) {
+  const relatedItems = items || [];
+  if (!relatedItems.length) {
+    return `
+      <section class="knowledge-related-block">
+        <h4>Related notes</h4>
+        <p class="compact-note muted">No closely related private notes were found yet.</p>
+      </section>
+    `;
+  }
+  return `
+    <section class="knowledge-related-block">
+      <h4>Related notes</h4>
+      <div class="card-list card-list-inline knowledge-related-list">
+        ${relatedItems
+          .map(
+            (item) => `
+              <article class="card compact-card">
+                <h4>${escapeHtml(item.title)}</h4>
+                <p class="compact-note">${escapeHtml(knowledgeTypeSpec(item).label)} | score ${escapeHtml(item.relation_score || 0)}</p>
+                <p class="compact-note muted">${escapeHtml((item.relation_reasons || []).join(" | ") || item.content_excerpt || "Related workspace note")}</p>
+                <div class="actions compact-actions">
+                  <button type="button" class="secondary" data-open-knowledge-record="${escapeHtml(item.id)}">Open note</button>
+                </div>
+              </article>
+            `,
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
 }
 
 async function startKnowledgeEdit(recordId) {
@@ -1391,6 +1428,7 @@ function renderKnowledgePreview(record, { loading = false } = {}) {
   const metadata = record.metadata || {};
   const tags = (record.tags || []).filter(Boolean);
   const archived = isKnowledgeArchived(record);
+  const relatedItems = state.knowledgeRelated[record.id] || [];
   const relatedLinks = [];
   if (typeSpec.relatedPath) {
     relatedLinks.push(`<a href="${escapeHtml(typeSpec.relatedPath)}" class="button-link secondary-link">Open related detail</a>`);
@@ -1439,6 +1477,7 @@ function renderKnowledgePreview(record, { loading = false } = {}) {
           ? `<p class="muted">Loading full note body...</p>`
           : `<div class="markdown-body">${markdownToHtml(record.content || record.content_excerpt || "No note body.")}</div>`
       }
+      ${renderRelatedKnowledgeSection(relatedItems)}
       <details class="result-json-toggle">
         <summary>Open metadata</summary>
         <pre>${escapeHtml(JSON.stringify(metadata, null, 2))}</pre>
@@ -1504,6 +1543,7 @@ function renderWorkspaceCockpit() {
     dom.cockpitActionList.innerHTML = `
       <button type="button" class="button-link" data-scroll-target="provider-center-panel">Open Provider Center</button>
       <button type="button" class="button-link secondary-link" data-scroll-target="knowledge-base-panel">Open Knowledge Base</button>
+      <button type="button" class="button-link secondary-link" data-create-workspace-digest="true">Build workspace digest</button>
       <a href="/public-monitor" class="button-link secondary-link">Browse Public Daily Monitor</a>
       <a href="/data-lab" class="button-link secondary-link">Open standalone Data Lab</a>
     `;
@@ -1604,10 +1644,13 @@ function renderWorkspaceCockpit() {
     { label: "Search papers", target: "paper-library-panel" },
     { label: "Open knowledge base", target: "knowledge-base-panel" },
     { label: "Create schedule", target: "schedule-panel" },
+    { label: "Build workspace digest", digest: true },
   ]
     .map(
       (action) =>
-        `<button type="button" class="button-link secondary-link" data-scroll-target="${escapeHtml(action.target)}">${escapeHtml(action.label)}</button>`,
+        action.digest
+          ? `<button type="button" class="button-link secondary-link" data-create-workspace-digest="true">${escapeHtml(action.label)}</button>`
+          : `<button type="button" class="button-link secondary-link" data-scroll-target="${escapeHtml(action.target)}">${escapeHtml(action.label)}</button>`,
     )
     .join("") +
     `<a href="/data-lab" class="button-link">Open standalone Data Lab</a>`;
@@ -2370,6 +2413,7 @@ function clearPrivateLists() {
   state.workspaceKnowledge = [];
   state.workspaceSchedules = [];
   state.knowledgeDetails = {};
+  state.knowledgeRelated = {};
   state.selectedKnowledgeRecordId = "";
   state.knowledgeSearchQuery = "";
   state.knowledgeStatusFilter = "active";
@@ -2437,6 +2481,7 @@ function clearSession() {
   state.assetProfiles = {};
   state.selectedAnalysisAssetId = "";
   state.knowledgeDetails = {};
+  state.knowledgeRelated = {};
   state.selectedKnowledgeRecordId = "";
   localStorage.removeItem(storageKeys.token);
   localStorage.removeItem(storageKeys.workspaceId);
@@ -2454,6 +2499,7 @@ function setSession(payload) {
   state.workspaces = payload.workspaces || [];
   state.selectedWorkspaceId = state.selectedWorkspaceId || state.workspaces[0]?.id || "";
   state.knowledgeDetails = {};
+  state.knowledgeRelated = {};
   state.selectedKnowledgeRecordId = "";
   localStorage.setItem(storageKeys.token, state.token);
   if (state.selectedWorkspaceId) {
@@ -2816,6 +2862,11 @@ function renderKnowledge(items) {
       showToast(error.message || "Failed to load the full knowledge note.", true);
     });
   }
+  if (selectedRecord?.id) {
+    void loadKnowledgeRelated(selectedRecord.id).catch((error) => {
+      console.warn("Failed to load related knowledge", error);
+    });
+  }
   renderModelHistory(modelHistoryItems());
   renderWorkspaceCockpit();
 }
@@ -2833,6 +2884,21 @@ async function loadKnowledgeDetail(recordId, force = false) {
     renderKnowledge(state.workspaceKnowledge);
   }
   return response.record;
+}
+
+async function loadKnowledgeRelated(recordId, force = false) {
+  if (!recordId || !state.selectedWorkspaceId || !state.user) {
+    return [];
+  }
+  if (!force && state.knowledgeRelated[recordId]) {
+    return state.knowledgeRelated[recordId];
+  }
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/knowledge/${recordId}/related?limit=4`);
+  state.knowledgeRelated[recordId] = response.items || [];
+  if (state.selectedKnowledgeRecordId === recordId) {
+    renderKnowledge(state.workspaceKnowledge);
+  }
+  return state.knowledgeRelated[recordId];
 }
 
 function focusKnowledgeRecord(recordId) {
@@ -2863,6 +2929,7 @@ function focusKnowledgeRecord(recordId) {
   window.clearTimeout(focusKnowledgeRecord.timer);
   focusKnowledgeRecord.timer = window.setTimeout(() => target.classList.remove("is-highlighted"), 2200);
   void loadKnowledgeDetail(recordId);
+  void loadKnowledgeRelated(recordId);
   return true;
 }
 
@@ -4134,6 +4201,9 @@ async function refreshWorkspaceData() {
   state.knowledgeDetails = Object.fromEntries(
     Object.entries(state.knowledgeDetails || {}).filter(([recordId]) => (knowledge.items || []).some((item) => item.id === recordId)),
   );
+  state.knowledgeRelated = Object.fromEntries(
+    Object.entries(state.knowledgeRelated || {}).filter(([recordId]) => (knowledge.items || []).some((item) => item.id === recordId)),
+  );
   renderIntegrations(integrations.items || []);
   renderBriefings(briefings.items || []);
   renderLiterature(literature.items || []);
@@ -4904,7 +4974,7 @@ function applyKnowledgeTemplate(templateKey) {
 }
 
 async function handleWorkbenchActions(event) {
-  const target = event.target.closest("[data-scroll-target], [data-knowledge-template], [data-select-knowledge], [data-open-knowledge-record], [data-copy-knowledge-markdown], [data-download-knowledge-markdown], [data-edit-knowledge], [data-archive-knowledge], [data-restore-knowledge], [data-delete-knowledge], [data-import-briefing-knowledge], [data-import-literature-knowledge]");
+  const target = event.target.closest("[data-scroll-target], [data-knowledge-template], [data-select-knowledge], [data-open-knowledge-record], [data-copy-knowledge-markdown], [data-download-knowledge-markdown], [data-edit-knowledge], [data-archive-knowledge], [data-restore-knowledge], [data-delete-knowledge], [data-import-briefing-knowledge], [data-import-literature-knowledge], [data-create-workspace-digest]");
   if (!target) {
     return;
   }
@@ -4924,6 +4994,18 @@ async function handleWorkbenchActions(event) {
       titleField?.focus();
     }
     showToast(`Template loaded: ${KNOWLEDGE_TEMPLATES[templateKey]?.label || "Note template"}`);
+    return;
+  }
+  const createDigest = target.getAttribute("data-create-workspace-digest");
+  if (createDigest) {
+    ensureWorkspace();
+    const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/knowledge/digest`, {
+      method: "POST",
+    });
+    await refreshWorkspaceData();
+    focusKnowledgeRecord(response.record?.id || "");
+    scrollToTarget("knowledge-base-panel");
+    showToast(`Workspace digest created: ${response.record?.title || "digest"}`);
     return;
   }
   const recordId = target.getAttribute("data-select-knowledge");
@@ -5207,6 +5289,7 @@ function bind() {
       state.assetProfiles = {};
       state.selectedAnalysisAssetId = "";
       state.knowledgeDetails = {};
+      state.knowledgeRelated = {};
       state.selectedKnowledgeRecordId = "";
       state.knowledgeSearchQuery = "";
       state.knowledgeTypeFilter = "all";

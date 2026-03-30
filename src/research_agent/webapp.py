@@ -25,6 +25,7 @@ from .platform_core import (
     build_model_result_detail,
     build_processing_result_detail,
     create_plot_asset,
+    create_workspace_digest_record,
     clean_dataset_asset,
     create_integration,
     create_knowledge_record,
@@ -34,6 +35,7 @@ from .platform_core import (
     get_current_user,
     get_owned_knowledge_record,
     get_workspace_for_user,
+    find_related_knowledge_records,
     is_knowledge_record_archived,
     list_assets,
     list_integrations,
@@ -767,6 +769,31 @@ def create_app() -> FastAPI:
         except Exception as exc:
             _raise_http_error(exc)
 
+    @app.get("/api/workspaces/{workspace_id}/knowledge/{record_id}/related")
+    def related_knowledge(
+        workspace_id: str,
+        record_id: str,
+        limit: int = 5,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return {
+                    "items": find_related_knowledge_records(
+                        db,
+                        user=user,
+                        workspace=workspace,
+                        record_id=record_id,
+                        limit=limit,
+                    )
+                }
+        except Exception as exc:
+            _raise_http_error(exc)
+
     @app.post("/api/workspaces/{workspace_id}/knowledge")
     def add_knowledge(
         workspace_id: str,
@@ -788,6 +815,22 @@ def create_app() -> FastAPI:
                     tags=request.tags,
                     metadata=request.metadata,
                 )
+                return {"record": serialize_knowledge_record(record)}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/knowledge/digest")
+    def create_workspace_digest(
+        workspace_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                record = create_workspace_digest_record(db, user=user, workspace=workspace)
                 return {"record": serialize_knowledge_record(record)}
         except Exception as exc:
             _raise_http_error(exc)

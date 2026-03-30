@@ -98,13 +98,26 @@ def main() -> None:
         expect_status(large_note_response, 200)
         large_record_id = large_note_response.json()["record"]["id"]
 
+        related_note_response = client.post(
+            f"/api/workspaces/{workspace_id}/knowledge",
+            headers=auth_headers(token),
+            json={
+                "title": "FX Spillover Checklist",
+                "content": "## Checklist\n\n- Compare FX and bond reactions.\n- Track spillover persistence.\n- Note identification caveats.",
+                "tags": ["fx", "spillover", "checklist"],
+                "metadata": {"source_type": "manual_workspace", "note_template": "hypothesis_log"},
+            },
+        )
+        expect_status(related_note_response, 200)
+        related_record_id = related_note_response.json()["record"]["id"]
+
         summary_list = client.get(
             f"/api/workspaces/{workspace_id}/knowledge?view=summary&status=all",
             headers=auth_headers(token),
         )
         expect_status(summary_list, 200)
         summary_items = summary_list.json()["items"]
-        assert len(summary_items) == 2
+        assert len(summary_items) == 3
         memo_summary = next(item for item in summary_items if item["id"] == record_id)
         large_summary = next(item for item in summary_items if item["id"] == large_record_id)
         assert memo_summary["content"] == ""
@@ -162,7 +175,7 @@ def main() -> None:
         )
         expect_status(active_list_response, 200)
         active_items = active_list_response.json()["items"]
-        assert {item["id"] for item in active_items} == {large_record_id}
+        assert {item["id"] for item in active_items} == {large_record_id, related_record_id}
 
         archived_list_response = client.get(
             f"/api/workspaces/{workspace_id}/knowledge?view=summary&status=archived",
@@ -188,7 +201,7 @@ def main() -> None:
         )
         expect_status(restored_active_list, 200)
         restored_active_items = restored_active_list.json()["items"]
-        assert {item["id"] for item in restored_active_items} == {record_id, large_record_id}
+        assert {item["id"] for item in restored_active_items} == {record_id, large_record_id, related_record_id}
 
         search_response = client.get(
             f"/api/workspaces/{workspace_id}/knowledge?q=bond markets&view=summary&status=all",
@@ -198,6 +211,16 @@ def main() -> None:
         search_items = search_response.json()["items"]
         assert len(search_items) == 1
         assert search_items[0]["id"] == record_id
+
+        related_response = client.get(
+            f"/api/workspaces/{workspace_id}/knowledge/{record_id}/related?limit=4",
+            headers=auth_headers(token),
+        )
+        expect_status(related_response, 200)
+        related_items = related_response.json()["items"]
+        assert related_items
+        assert related_items[0]["id"] == related_record_id
+        assert "Shared tags" in " | ".join(related_items[0]["relation_reasons"])
 
         with session_scope() as db:
             briefing = EconomicBriefing(
@@ -236,6 +259,23 @@ def main() -> None:
         assert briefing_item["workspace_knowledge_record_id"] == briefing_record_id
         assert briefing_item["workspace_knowledge_record_title"] == briefing_import_payload["record"]["title"]
 
+        digest_response = client.post(
+            f"/api/workspaces/{workspace_id}/knowledge/digest",
+            headers=auth_headers(token),
+        )
+        expect_status(digest_response, 200)
+        digest_record = digest_response.json()["record"]
+        assert digest_record["metadata"]["source_type"] == "workspace_digest"
+        digest_detail_response = client.get(
+            f"/api/workspaces/{workspace_id}/knowledge/{digest_record['id']}",
+            headers=auth_headers(token),
+        )
+        expect_status(digest_detail_response, 200)
+        digest_detail = digest_detail_response.json()["record"]
+        assert "Workspace Digest: Workbench QA" in digest_detail["title"]
+        assert "QA Briefing" in digest_detail["content"]
+        assert "Research Memo: FX Spillovers Revised" in digest_detail["content"]
+
         delete_briefing_record_response = client.delete(
             f"/api/workspaces/{workspace_id}/knowledge/{briefing_record_id}",
             headers=auth_headers(token),
@@ -265,8 +305,8 @@ def main() -> None:
         )
         expect_status(all_after_delete, 200)
         remaining_items = all_after_delete.json()["items"]
-        assert len(remaining_items) == 1
-        assert remaining_items[0]["id"] == record_id
+        remaining_ids = {item["id"] for item in remaining_items}
+        assert remaining_ids == {record_id, related_record_id, digest_record["id"]}
 
         deleted_detail_response = client.get(
             f"/api/workspaces/{workspace_id}/knowledge/{large_record_id}",
@@ -284,7 +324,7 @@ def main() -> None:
             "contains_editable_knowledge_form": True,
         },
         "knowledge_summary_view": {
-            "record_count_before_delete": 2,
+            "record_count_before_delete": 3,
             "summary_omits_full_content": memo_summary["content"] == "",
             "large_note_content_length": large_summary["content_length"],
         },
@@ -303,6 +343,18 @@ def main() -> None:
             "query": "bond markets",
             "match_count": len(search_items),
             "matched_record_id": search_items[0]["id"],
+        },
+        "knowledge_related": {
+            "source_record_id": record_id,
+            "top_related_record_id": related_items[0]["id"],
+            "top_related_score": related_items[0]["relation_score"],
+            "top_related_reasons": related_items[0]["relation_reasons"],
+        },
+        "workspace_digest": {
+            "digest_record_id": digest_record["id"],
+            "digest_title": digest_detail["title"],
+            "contains_briefing_title": "QA Briefing" in digest_detail["content"],
+            "contains_updated_note_title": "Research Memo: FX Spillovers Revised" in digest_detail["content"],
         },
         "briefing_to_knowledge_flow": {
             "briefing_id": briefing_id,

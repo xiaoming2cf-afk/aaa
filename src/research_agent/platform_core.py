@@ -28,7 +28,7 @@ from sqlalchemy.orm import Session
 
 from .asset_storage import load_asset_bytes, store_asset_content
 from .config import Settings
-from .entities import DataAsset, IntegrationCredential, KnowledgeRecord, User, UserSession, Workspace
+from .entities import DataAsset, EconomicBriefing, IntegrationCredential, KnowledgeRecord, LiteratureEntry, User, UserSession, Workspace
 from .provider_catalog import apply_provider_defaults, get_provider_spec
 from .provider_gateway import ProviderGateway
 from .security import (
@@ -1327,6 +1327,225 @@ def delete_knowledge_record(
     db.delete(record)
     db.flush()
     return record
+
+
+def find_related_knowledge_records(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    record_id: str,
+    limit: int = 5,
+    include_archived: bool = False,
+) -> list[dict[str, Any]]:
+    base_record = get_owned_knowledge_record(db, user=user, record_id=record_id)
+    if base_record.workspace_id != workspace.id:
+        raise FileNotFoundError("Knowledge record not found.")
+    base_tags = {str(tag).strip().lower() for tag in (base_record.tags_json or []) if str(tag).strip()}
+    base_metadata = base_record.metadata_json if isinstance(base_record.metadata_json, dict) else {}
+    candidates = [
+        row
+        for row in list_knowledge_records(db, user=user, workspace=workspace, include_archived=include_archived)
+        if row.id != base_record.id
+    ]
+    ranked: list[tuple[int, str, KnowledgeRecord, list[str]]] = []
+    for candidate in candidates:
+        candidate_tags = {str(tag).strip().lower() for tag in (candidate.tags_json or []) if str(tag).strip()}
+        candidate_metadata = candidate.metadata_json if isinstance(candidate.metadata_json, dict) else {}
+        reasons: list[str] = []
+        score = 0
+
+        shared_tags = sorted(base_tags & candidate_tags)
+        if shared_tags:
+            score += len(shared_tags) * 4
+            reasons.append(f"Shared tags: {', '.join(shared_tags[:4])}")
+
+        shared_keys = [
+            ("source_type", 3, "Shared note source"),
+            ("note_template", 3, "Shared note template"),
+            ("derivative_mode", 3, "Shared derivative note type"),
+            ("briefing_id", 6, "Derived from the same private briefing"),
+            ("openalex_id", 6, "Derived from the same paper"),
+            ("model_type", 5, "Same model family output"),
+            ("model_family", 4, "Shared model family"),
+        ]
+        for key, weight, label in shared_keys:
+            base_value = str(base_metadata.get(key) or "").strip()
+            candidate_value = str(candidate_metadata.get(key) or "").strip()
+            if base_value and base_value == candidate_value:
+                score += weight
+                reasons.append(label)
+
+        if not score:
+            continue
+        ranked.append(
+            (
+                score,
+                candidate.updated_at.isoformat() if candidate.updated_at else candidate.created_at.isoformat(),
+                candidate,
+                reasons,
+            )
+        )
+
+    ranked.sort(key=lambda item: (item[0], item[1]), reverse=True)
+    return [
+        {
+            **serialize_knowledge_record(candidate, include_content=False),
+            "relation_score": score,
+            "relation_reasons": reasons,
+        }
+        for score, _, candidate, reasons in ranked[: max(1, limit)]
+    ]
+
+
+def create_workspace_digest_record(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    max_notes: int = 6,
+    max_briefings: int = 3,
+    max_papers: int = 3,
+    max_assets: int = 3,
+) -> KnowledgeRecord:
+    note_rows = [
+        row
+        for row in list_knowledge_records(db, user=user, workspace=workspace, include_archived=False)
+        if str((row.metadata_json or {}).get("source_type") or "").strip() != "workspace_digest"
+    ][: max_notes]
+    briefings = list(
+        db.scalars(
+            select(EconomicBriefing)
+            .where(
+                and_(
+                    EconomicBriefing.owner_user_id == user.id,
+                    EconomicBriefing.workspace_id == workspace.id,
+                )
+            )
+            .order_by(EconomicBriefing.created_at.desc())
+            .limit(max_briefings)
+        )
+    )
+    literature = list(
+        db.scalars(
+            select(LiteratureEntry)
+            .where(
+                and_(
+                    LiteratureEntry.owner_user_id == user.id,
+                    LiteratureEntry.workspace_id == workspace.id,
+                )
+            )
+            .order_by(LiteratureEntry.updated_at.desc())
+            .limit(max_papers)
+        )
+    )
+    assets = list(
+        db.scalars(
+            select(DataAsset)
+            .where(
+                and_(
+                    DataAsset.owner_user_id == user.id,
+                    DataAsset.workspace_id == workspace.id,
+                )
+            )
+            .order_by(DataAsset.updated_at.desc())
+            .limit(max_assets)
+        )
+    )
+
+    top_tags_counter: dict[str, int] = {}
+    for note in note_rows:
+        for tag in note.tags_json or []:
+            normalized = str(tag).strip()
+            if not normalized:
+                continue
+            top_tags_counter[normalized] = top_tags_counter.get(normalized, 0) + 1
+    top_tags = [item for item, _ in sorted(top_tags_counter.items(), key=lambda pair: (-pair[1], pair[0]))[:6]]
+
+    lines = [
+        f"# Workspace Digest: {workspace.name}",
+        "",
+        "## Snapshot",
+        "",
+        f"- Notes included: {len(note_rows)}",
+        f"- Briefings included: {len(briefings)}",
+        f"- Papers included: {len(literature)}",
+        f"- Assets included: {len(assets)}",
+        f"- Top tags: {', '.join(top_tags) if top_tags else 'none'}",
+        "",
+        "## Recent notes",
+        "",
+    ]
+    if note_rows:
+        for note in note_rows:
+            excerpt = truncate_text(note.content or "", 220)
+            lines.extend(
+                [
+                    f"### {note.title}",
+                    f"- Tags: {', '.join(note.tags_json or []) or 'none'}",
+                    f"- Updated: {note.updated_at.isoformat()}",
+                    f"- Excerpt: {excerpt or 'n/a'}",
+                    "",
+                ]
+            )
+    else:
+        lines.extend(["- No active notes available.", ""])
+
+    lines.extend(["## Latest briefings", ""])
+    if briefings:
+        for briefing in briefings:
+            lines.extend(
+                [
+                    f"- {briefing.title} | headlines: {briefing.headline_count} | created: {briefing.created_at.isoformat()}",
+                ]
+            )
+    else:
+        lines.append("- No private briefings yet.")
+    lines.append("")
+
+    lines.extend(["## Latest papers", ""])
+    if literature:
+        for item in literature:
+            lines.append(f"- {item.title} | {item.publication_year or 'n/a'} | {item.venue or 'Unknown venue'}")
+    else:
+        lines.append("- No imported papers yet.")
+    lines.append("")
+
+    lines.extend(["## Latest assets", ""])
+    if assets:
+        for asset in assets:
+            lines.append(f"- {asset.title} | {asset.kind} | updated: {asset.updated_at.isoformat()}")
+    else:
+        lines.append("- No assets yet.")
+    lines.extend(
+        [
+            "",
+            "## Next manual review checks",
+            "",
+            "- Confirm that the newest note, briefing, and paper agree on the current research focus.",
+            "- Archive obsolete notes after synthesizing them into a digest or memo.",
+            "- Use the Research Flow Lane on the homepage to continue from the latest private output.",
+        ]
+    )
+
+    title = f"Workspace Digest: {workspace.name} ({datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')})"
+    return create_knowledge_record(
+        db,
+        user=user,
+        workspace=workspace,
+        title=title,
+        content="\n".join(lines),
+        tags=["workspace-digest", "cockpit", "knowledge-base", *top_tags[:3]],
+        metadata={
+            "source_type": "workspace_digest",
+            "workspace_id": workspace.id,
+            "included_note_count": len(note_rows),
+            "included_briefing_count": len(briefings),
+            "included_paper_count": len(literature),
+            "included_asset_count": len(assets),
+            "top_tags": top_tags,
+        },
+    )
 
 
 def build_model_result_detail(db: Session, *, user: User, record_id: str) -> dict[str, Any]:
