@@ -721,7 +721,7 @@ function extractDataLabResultRoute() {
 }
 
 function extractOptimizationResultRoute() {
-  const match = window.location.pathname.match(/^\/optimization-lab\/results\/([^/]+)$/);
+  const match = window.location.pathname.match(/^\/(?:optimization-lab\/results|data-lab\/results\/optimization)\/([^/]+)$/);
   if (!match) {
     return null;
   }
@@ -3135,7 +3135,7 @@ function renderOptimizationResults(items) {
         <p>${escapeHtml(`Algorithms ${summary.algorithm_count || 0} | Functions ${summary.function_count || 0} | Runs ${summary.run_count || 0}`)}</p>
         <p class="compact-note">${escapeHtml(`Successful tasks ${summary.success_count || 0}/${summary.task_count || 0}`)}</p>
         <div class="actions">
-          <a class="button-link secondary-link" href="${escapeHtml(item.result_detail_path || `/optimization-lab/results/${item.id}`)}">Open result</a>
+          <a class="button-link secondary-link" href="${escapeHtml(item.result_detail_path || `/data-lab/results/optimization/${item.id}`)}">Open result</a>
         </div>
       </article>
     `;
@@ -3197,7 +3197,7 @@ async function handleOptimizationSuiteRun(event) {
         <p>${escapeHtml(`Successful tasks ${summary.success_count || 0}/${summary.task_count || 0} | Workers ${summary.worker_count || 1}`)}</p>
         <p class="compact-note">${escapeHtml(`Algorithms ${summary.algorithm_count || 0} | Functions ${summary.function_count || 0} | Runs ${summary.run_count || 0}`)}</p>
         <div class="actions">
-          <a class="button-link" href="${escapeHtml(result.result_detail_path || `/optimization-lab/results/${response.record?.id || ""}`)}">Open result page</a>
+          <a class="button-link" href="${escapeHtml(result.result_detail_path || `/data-lab/results/optimization/${response.record?.id || ""}`)}">Open result page</a>
         </div>
       </article>
     `;
@@ -5441,6 +5441,9 @@ async function loadSession() {
   renderSession();
   renderWorkspaceOptions();
   await refreshWorkspaceData();
+  if (hasOptimizationLabUI()) {
+    await refreshOptimizationResults();
+  }
 }
 
 async function refreshWorkspaceData() {
@@ -6772,6 +6775,10 @@ async function init() {
       pageMode === "data-lab-teaching"
     )) {
       await loadDataLabCatalog();
+      if (pageMode === "data-lab" && hasOptimizationLabUI()) {
+        await loadOptimizationCatalog();
+        renderOptimizationCatalog();
+      }
     }
     if (pageMode === "optimization-lab") {
       await loadOptimizationLabPage();
@@ -6780,6 +6787,7 @@ async function init() {
       renderLabContext();
       renderProcessingHistory([]);
       renderModelHistory([]);
+      renderOptimizationResults([]);
     }
     if (pageMode === "data-lab-method-detail") {
       await loadMethodDetailPage();

@@ -12,10 +12,11 @@
     <header class="hero">
       <div>
         <p class="eyebrow">Data Lab</p>
-        <h1>Transparent data processing and model workflows in a standalone page.</h1>
+        <h1>Transparent data processing, model estimation, and optimization workflows in one standalone lab.</h1>
         <p class="hero-copy">
-          This page is dedicated to private dataset preparation, model selection, plotting, and manual verification.
-          Data processing methods and model families are separated so you can inspect every step before running the workbench.
+          This page is dedicated to private dataset preparation, model selection, optimization benchmarking, plotting,
+          and manual verification. Data processing, model, and optimization modules are separated so you can inspect
+          every step before running the workbench.
         </p>
       </div>
       <div class="hero-meta">
@@ -25,7 +26,7 @@
         </div>
         <div class="meta-card">
           <span>Workflow split</span>
-          <strong>Processing vs Model</strong>
+          <strong>Processing, Model, Optimization</strong>
         </div>
       </div>
     </header>
@@ -52,10 +53,10 @@
             <h3>Public Daily Monitor</h3>
             <p>Open the official-first public macro page and compare it with private modeling work.</p>
           </a>
-          <a class="platform-nav-card" href="/optimization-lab">
-            <span class="eyebrow eyebrow-compact">Private</span>
-            <h3>Optimization Lab</h3>
-            <p>Switch from econometrics to parallel optimization benchmarks without leaving the standalone tool surface.</p>
+          <a class="platform-nav-card" href="#optimization-module">
+            <span class="eyebrow eyebrow-compact">Module</span>
+            <h3>Optimization Module</h3>
+            <p>Run parallel Mealpy and Opfunu benchmark suites directly inside Data Lab.</p>
           </a>
           <a class="platform-nav-card" href="/summaries/weekly">
             <span class="eyebrow eyebrow-compact">Roundup</span>
@@ -94,7 +95,7 @@
         </div>
       </section>
 
-      <section class="panel public-toolbar access-guarded">
+      <section class="panel public-toolbar access-guarded" id="data-lab-entry-panel">
         <div class="panel-head panel-head-wrap">
           <div>
             <h2>Standalone Data Lab</h2>
@@ -113,7 +114,7 @@
             <span class="eyebrow eyebrow-compact">Scope</span>
             <h3>Separated method layers</h3>
             <p class="muted">
-              First choose whether you are doing data processing or model estimation. Then choose the specific family and method.
+              First choose whether you are doing data processing, model estimation, or optimization benchmarking. Then choose the specific family and method.
             </p>
           </div>
           <div class="public-dates-card">
@@ -143,6 +144,7 @@
             <nav class="public-section-nav">
               <a href="#processing-methods">Data Processing Methods</a>
               <a href="#model-methods">Model Methods</a>
+              <a href="#optimization-module">Optimization Module</a>
               <a href="#data-lab-access">Workspace Access</a>
               <a href="#data-lab-workbench">Workbench</a>
             </nav>
@@ -280,11 +282,11 @@
             </div>
           </article>
           <article class="guide-card">
-            <p class="eyebrow eyebrow-compact">Output</p>
-            <h4>Charts and downloads</h4>
-            <p>Go straight to visualization or any result page to preview tables, figures, prepared samples, and PNG exports.</p>
+            <p class="eyebrow eyebrow-compact">Optimization</p>
+            <h4>Benchmark and export</h4>
+            <p>Open the optimization module to run parallel suites, compare algorithms, and download figures and statistical tables.</p>
             <div class="actions">
-              <button type="button" class="secondary" data-scroll-target="data-lab-workbench">Open workbench</button>
+              <button type="button" class="secondary" data-scroll-target="optimization-module">Open optimization module</button>
             </div>
           </article>
         </div>
@@ -450,6 +452,105 @@
         </div>
       </article>
 
+      <article class="panel public-section" id="optimization-module">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h3>Optimization Module</h3>
+            <span class="muted">Parallel Mealpy benchmark suites against Opfunu test functions, embedded directly inside Data Lab.</span>
+          </div>
+          <div class="actions compact-actions">
+            <button type="button" class="secondary" id="optimization-defaults-button">Use defaults</button>
+          </div>
+        </div>
+        <div class="lab-design-grid">
+          <article class="card run-design-card">
+            <p class="eyebrow eyebrow-compact">Optimization scope</p>
+            <h4>Catalog and suite execution</h4>
+            <p class="muted">Choose optimizers, choose benchmark functions, set parallel run controls, then export figures, tables, and raw process traces.</p>
+            <div class="chip-row chip-row-compact" id="optimization-snapshot-grid">
+              <span class="topic-chip">Loading optimization catalog...</span>
+            </div>
+          </article>
+          <article class="card run-design-card">
+            <p class="eyebrow eyebrow-compact">Result package</p>
+            <div class="card-list card-list-inline">
+              <div class="card"><p>Every suite stores convergence curves, ranking plots, significance tables, process data, and reusable result links.</p></div>
+            </div>
+          </article>
+        </div>
+        <form id="optimization-suite-form" class="stack">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h4>Optimization Suite Builder</h4>
+              <span class="muted">Configure the benchmark batch, launch it in parallel, then review exported statistics and figures.</span>
+            </div>
+          </div>
+          <div class="form-grid">
+            <input id="optimization-suite-label" name="suite_label" type="text" value="Optimization Suite" placeholder="Suite label" required />
+            <input id="optimization-dimension" name="dimension" type="number" min="2" value="30" />
+            <input id="optimization-epoch" name="epoch" type="number" min="2" value="50" />
+            <input id="optimization-pop-size" name="pop_size" type="number" min="4" value="30" />
+            <input id="optimization-runs" name="runs" type="number" min="1" value="5" />
+            <input id="optimization-workers" name="workers" type="number" min="0" value="0" />
+          </div>
+          <label for="optimization-optimizer-select">Mealpy algorithms</label>
+          <select id="optimization-optimizer-select" name="optimizer_names" multiple size="12"></select>
+          <label for="optimization-function-select">Opfunu benchmark functions</label>
+          <select id="optimization-function-select" name="function_names" multiple size="12"></select>
+          <div class="actions">
+            <button type="submit">Run optimization suite</button>
+            <button type="button" class="secondary" id="optimization-clear-selection">Clear selection</button>
+          </div>
+          <p class="muted">Safety caps are applied before execution to prevent unusable suite sizes. Results will appear below and open under the Data Lab result surface.</p>
+        </form>
+        <div class="card-list" id="optimization-run-summary">
+          <div class="card"><p>No optimization suite has been run in this session yet.</p></div>
+        </div>
+        <div class="summary-page-grid">
+          <article class="panel public-section nested-panel">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h4>Optimizer Catalog</h4>
+                <span class="muted">All discovered Mealpy algorithms available to the suite builder.</span>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table" id="optimization-optimizer-table">
+                <thead>
+                  <tr><th>Optimizer</th><th>Module</th><th>Status</th><th>Notes</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </article>
+          <article class="panel public-section nested-panel">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <h4>Benchmark Catalog</h4>
+                <span class="muted">All concrete Opfunu functions available to the suite builder.</span>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table" id="optimization-function-table">
+                <thead>
+                  <tr><th>Function</th><th>Module</th><th>Dimension</th><th>Status</th><th>Notes</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h4>Recent Optimization Results</h4>
+            <span class="muted">Open previous suites, inspect statistical packages, or reuse exports in cases and knowledge notes.</span>
+          </div>
+        </div>
+        <div class="card-list" id="optimization-results-list">
+          <div class="card"><p>Sign in and run a suite to populate the result history.</p></div>
+        </div>
+      </article>
+
           <div class="public-section" id="data-lab-access">
       <section class="panel auth-panel" id="auth-panel">
         <div>
@@ -493,8 +594,8 @@
 
           <article class="panel public-section" id="data-lab-workbench">
           <div class="panel-head">
-            <h2>Data Lab</h2>
-            <span class="muted">Transparent sample prep, variable selection, econometric models, and downloadable charts</span>
+            <h2>Data Lab Workbench</h2>
+            <span class="muted">Transparent sample prep, variable selection, econometric models, optimization suites, and downloadable charts</span>
           </div>
           <div class="data-lab-grid">
             <div class="stack">

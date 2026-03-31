@@ -5,7 +5,7 @@ from typing import Any
 
 import requests
 from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -430,12 +430,12 @@ def create_app() -> FastAPI:
         return FileResponse(DATA_LAB_WEB_FILE)
 
     @app.get("/optimization-lab")
-    def optimization_lab_page() -> FileResponse:
-        return FileResponse(OPTIMIZATION_LAB_WEB_FILE)
+    def optimization_lab_page() -> RedirectResponse:
+        return RedirectResponse(url="/data-lab#optimization-module", status_code=307)
 
     @app.get("/optimization-lab/results/{record_id}")
-    def optimization_lab_result_page(record_id: str) -> FileResponse:
-        return FileResponse(OPTIMIZATION_LAB_RESULT_WEB_FILE)
+    def optimization_lab_result_page(record_id: str) -> RedirectResponse:
+        return RedirectResponse(url=f"/data-lab/results/optimization/{record_id}", status_code=307)
 
     @app.get("/data-lab/processing/{family}")
     def data_lab_processing_family_page(family: str) -> FileResponse:
@@ -468,6 +468,10 @@ def create_app() -> FastAPI:
     @app.get("/data-lab/results/models/{record_id}")
     def data_lab_model_result_page(record_id: str) -> FileResponse:
         return FileResponse(DATA_LAB_RESULT_WEB_FILE)
+
+    @app.get("/data-lab/results/optimization/{record_id}")
+    def data_lab_optimization_result_page(record_id: str) -> FileResponse:
+        return FileResponse(OPTIMIZATION_LAB_RESULT_WEB_FILE)
 
     @app.get("/macro-desk")
     def public_macro_desk_page() -> FileResponse:

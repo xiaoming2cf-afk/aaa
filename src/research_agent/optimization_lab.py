@@ -1002,7 +1002,7 @@ def run_optimization_suite(
         **(record.metadata_json or {}),
         "workflow_type": "optimization",
         "result_record_id": record.id,
-        "result_detail_path": f"/optimization-lab/results/{record.id}",
+        "result_detail_path": f"/data-lab/results/optimization/{record.id}",
     }
     db.flush()
     return build_optimization_result_detail(db, user=user, record_id=record.id)
@@ -1020,7 +1020,7 @@ def build_optimization_result_detail(db: Session, *, user: User, record_id: str)
             **metadata,
             "workflow_type": "optimization",
             "result_record_id": record.id,
-            "result_detail_path": metadata.get("result_detail_path") or f"/optimization-lab/results/{record.id}",
+            "result_detail_path": metadata.get("result_detail_path") or f"/data-lab/results/optimization/{record.id}",
             "artifacts": artifacts,
         },
         "workspace_id": record.workspace_id,
@@ -1035,6 +1035,6 @@ def serialize_optimization_result_list(rows: list[KnowledgeRecord]) -> list[dict
         item["workflow_type"] = "optimization"
         item["summary"] = metadata.get("summary", {})
         item["suite_label"] = metadata.get("suite_label", row.title)
-        item["result_detail_path"] = metadata.get("result_detail_path", f"/optimization-lab/results/{row.id}")
+        item["result_detail_path"] = metadata.get("result_detail_path", f"/data-lab/results/optimization/{row.id}")
         items.append(item)
     return items
