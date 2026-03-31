@@ -30,7 +30,35 @@
     </header>
 
     <main class="shell public-shell">
-      <section class="panel public-toolbar">
+      <section class="panel platform-nav-panel">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h2>Platform Navigation</h2>
+            <p class="muted">Only navigation stays open on public hosts before login. Use these links to move across standalone pages.</p>
+          </div>
+        </div>
+        <div class="platform-nav-grid">
+          <a class="platform-nav-card" href="/"><span class="eyebrow eyebrow-compact">Main</span><h3>Main Platform</h3><p>Return to sign-in, Provider Center, Paper Library, and the private workspace cockpit.</p></a>
+          <a class="platform-nav-card" href="/data-lab"><span class="eyebrow eyebrow-compact">Standalone</span><h3>Data Lab</h3><p>Open the main Data Lab workbench.</p></a>
+          <a class="platform-nav-card" href="/optimization-lab"><span class="eyebrow eyebrow-compact">Standalone</span><h3>Optimization Lab</h3><p>Open the optimization benchmark workspace.</p></a>
+          <a class="platform-nav-card" href="/public-monitor"><span class="eyebrow eyebrow-compact">Public</span><h3>Public Daily Monitor</h3><p>Switch to the macro monitor surface.</p></a>
+        </div>
+      </section>
+
+      <section class="panel access-gate-panel hidden" id="access-gate-panel" data-access-gate>
+        <div class="access-gate-card">
+          <p class="eyebrow eyebrow-compact" id="access-gate-eyebrow">Access Control</p>
+          <h2 id="access-gate-title">Sign in to unlock model method pages</h2>
+          <p class="muted" id="access-gate-copy">
+            On public hosts, only Platform Navigation stays open before login. Sign in on the main platform, then reopen this method page.
+          </p>
+          <div class="actions compact-actions" id="access-gate-actions">
+            <a href="/" class="button-link">Go to sign-in</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel public-toolbar access-guarded">
         <div class="panel-head panel-head-wrap">
           <div>
             <h2 id="lab-model-method-heading">Model Method Detail</h2>
@@ -47,7 +75,7 @@
         </div>
       </section>
 
-      <section class="panel public-section">
+      <section class="panel public-section access-guarded">
         <div class="panel-head panel-head-wrap">
           <div>
             <h3>Method Snapshot</h3>
@@ -63,7 +91,7 @@
         </div>
       </section>
 
-      <div class="public-layout">
+      <div class="public-layout access-guarded">
         <aside class="panel public-sidebar">
           <div class="stack">
             <div>

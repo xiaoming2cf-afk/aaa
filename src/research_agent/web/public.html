@@ -52,6 +52,11 @@
             <h3>Data Lab</h3>
             <p>Open the dedicated page for data processing, econometric models, charting, and audit trails.</p>
           </a>
+          <a class="platform-nav-card" href="/optimization-lab">
+            <span class="eyebrow eyebrow-compact">Standalone</span>
+            <h3>Optimization Lab</h3>
+            <p>Open the dedicated page for parallel optimization suites, benchmark catalogs, and exported ranking charts.</p>
+          </a>
           <a class="platform-nav-card" href="/public-monitor/us">
             <span class="eyebrow eyebrow-compact">Region</span>
             <h3>United States</h3>
@@ -75,7 +80,20 @@
         </div>
       </section>
 
-      <section class="panel public-toolbar">
+      <section class="panel access-gate-panel hidden" id="access-gate-panel" data-access-gate>
+        <div class="access-gate-card">
+          <p class="eyebrow eyebrow-compact" id="access-gate-eyebrow">Access Control</p>
+          <h2 id="access-gate-title">Sign in to unlock the monitor</h2>
+          <p class="muted" id="access-gate-copy">
+            On public hosts, only Platform Navigation is available before login. Return to the main platform to sign in, then come back to this page.
+          </p>
+          <div class="actions compact-actions" id="access-gate-actions">
+            <a href="/" class="button-link">Go to sign-in</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel public-toolbar access-guarded">
         <div class="panel-head panel-head-wrap">
           <div>
             <h2>Public Daily Monitor</h2>
@@ -110,7 +128,7 @@
         </div>
       </section>
 
-      <section class="panel public-summary-rail">
+      <section class="panel public-summary-rail access-guarded">
         <div class="panel-head panel-head-wrap">
           <div>
             <h3>Roundup Entry Bar</h3>
@@ -143,7 +161,7 @@
         </div>
       </section>
 
-      <section class="panel public-section">
+      <section class="panel public-section access-guarded">
         <div class="panel-head panel-head-wrap">
           <div>
             <h3>Edition Snapshot</h3>
@@ -159,7 +177,7 @@
         </div>
       </section>
 
-      <section class="panel public-section">
+      <section class="panel public-section access-guarded">
         <div class="panel-head panel-head-wrap">
           <div>
             <h3>How To Read This Page</h3>
@@ -185,7 +203,7 @@
         </div>
       </section>
 
-      <div class="public-layout">
+      <div class="public-layout access-guarded">
         <aside class="panel public-sidebar">
           <div class="stack">
             <div>

@@ -39,6 +39,9 @@ const state = {
   selectedSummaryWindow: "",
   bootstrap: null,
   dataLabCatalog: null,
+  optimizationCatalog: null,
+  optimizationResults: [],
+  currentOptimizationResult: null,
   variableGuideResult: null,
   resultPreviewUrls: [],
   currentResultDetail: null,
@@ -717,12 +720,23 @@ function extractDataLabResultRoute() {
   };
 }
 
+function extractOptimizationResultRoute() {
+  const match = window.location.pathname.match(/^\/optimization-lab\/results\/([^/]+)$/);
+  if (!match) {
+    return null;
+  }
+  return { id: decodeURIComponent(match[1]) };
+}
+
 function detectPageMode() {
   if (window.location.pathname === "/") {
     return "home";
   }
   if (window.location.pathname === "/data-lab") {
     return "data-lab";
+  }
+  if (window.location.pathname === "/optimization-lab") {
+    return "optimization-lab";
   }
   if (extractDataLabTeachingRoute()) {
     return "data-lab-teaching";
@@ -736,6 +750,9 @@ function detectPageMode() {
   if (extractDataLabResultRoute()) {
     return "data-lab-result-detail";
   }
+  if (extractOptimizationResultRoute()) {
+    return "optimization-result-detail";
+  }
   if (extractPublicMonitorViewRoute()) {
     return "public-monitor";
   }
@@ -746,6 +763,25 @@ function detectPageMode() {
     return "summary";
   }
   return "home";
+}
+
+function isTrustedLocalHost() {
+  const host = (window.location.hostname || "").toLowerCase();
+  return !host || host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "testserver";
+}
+
+function applyAccessGateState() {
+  const gates = Array.from(document.querySelectorAll("[data-access-gate]"));
+  if (!gates.length) {
+    return;
+  }
+  const shouldLock = !isTrustedLocalHost() && !state.user;
+  document.body.classList.toggle("experience-locked", shouldLock);
+  gates.forEach((gate) => gate.classList.toggle("hidden", !shouldLock));
+}
+
+function isExperienceLocked() {
+  return document.body.classList.contains("experience-locked");
 }
 
 function prettyDate(value) {
@@ -792,6 +828,36 @@ async function loadDataLabCatalog() {
   const payload = await api("/api/data-lab/catalog", {}, false);
   state.dataLabCatalog = payload;
   return payload;
+}
+
+async function loadOptimizationCatalog() {
+  if (state.optimizationCatalog) {
+    return state.optimizationCatalog;
+  }
+  const payload = await api("/api/optimization/catalog", {}, false);
+  state.optimizationCatalog = payload;
+  return payload;
+}
+
+function optimizationElement(id) {
+  return document.getElementById(id);
+}
+
+function setMultiSelectValues(element, values) {
+  if (!element) {
+    return;
+  }
+  const selected = new Set(values || []);
+  Array.from(element.options).forEach((option) => {
+    option.selected = selected.has(option.value);
+  });
+}
+
+function selectedValues(element) {
+  if (!element) {
+    return [];
+  }
+  return Array.from(element.selectedOptions || []).map((option) => option.value).filter(Boolean);
 }
 
 async function ensureAuthenticatedUser() {
@@ -2982,6 +3048,231 @@ function hasPublicMonitorUI() {
   return Boolean(dom.publicLatestView && dom.publicSummaryView && dom.publicBriefingList);
 }
 
+function hasOptimizationLabUI() {
+  return Boolean(optimizationElement("optimization-suite-form"));
+}
+
+function renderOptimizationCatalog() {
+  if (!hasOptimizationLabUI() || !state.optimizationCatalog) {
+    return;
+  }
+  const catalog = state.optimizationCatalog;
+  const snapshot = optimizationElement("optimization-snapshot-grid");
+  const optimizerSelect = optimizationElement("optimization-optimizer-select");
+  const functionSelect = optimizationElement("optimization-function-select");
+  const optimizerBody = optimizationElement("optimization-optimizer-table")?.querySelector("tbody");
+  const functionBody = optimizationElement("optimization-function-table")?.querySelector("tbody");
+  const summary = catalog.summary || {};
+  if (optimizationElement("optimization-health-status")) {
+    optimizationElement("optimization-health-status").textContent =
+      `${summary.optimizer_available_count || 0}/${summary.optimizer_count || 0} optimizers | ${summary.function_available_count || 0}/${summary.function_count || 0} functions`;
+  }
+  if (snapshot) {
+    snapshot.innerHTML = [
+      { label: "Mealpy optimizers", value: `${summary.optimizer_available_count || 0} available`, copy: `${summary.optimizer_count || 0} discovered locally.` },
+      { label: "Opfunu functions", value: `${summary.function_available_count || 0} available`, copy: `${summary.function_count || 0} discovered locally.` },
+      { label: "Default suite", value: `${(catalog.defaults?.optimizers || []).length} x ${(catalog.defaults?.functions || []).length}`, copy: "Use defaults to run a safe representative benchmark set." },
+      { label: "Outputs", value: "Tables + PNG + JSON", copy: "Each suite exports score tables, statistical tests, convergence data, and charts." },
+    ].map((item) => `
+      <article class="snapshot-card">
+        <span>${escapeHtml(item.label)}</span>
+        <strong>${escapeHtml(item.value)}</strong>
+        <p>${escapeHtml(item.copy)}</p>
+      </article>
+    `).join("");
+  }
+  if (optimizerSelect) {
+    optimizerSelect.innerHTML = (catalog.optimizers || [])
+      .filter((item) => item.availability?.status === "available")
+      .map((item) => `<option value="${escapeHtml(item.name)}">${escapeHtml(item.label)} | ${escapeHtml(item.module)}</option>`)
+      .join("");
+    setMultiSelectValues(optimizerSelect, catalog.defaults?.optimizers || []);
+  }
+  if (functionSelect) {
+    functionSelect.innerHTML = (catalog.functions || [])
+      .filter((item) => item.availability?.status === "available")
+      .map((item) => `<option value="${escapeHtml(item.name)}">${escapeHtml(item.label)} | dim ${escapeHtml(item.dimension || "n/a")}</option>`)
+      .join("");
+    setMultiSelectValues(functionSelect, catalog.defaults?.functions || []);
+  }
+  if (optimizerBody) {
+    optimizerBody.innerHTML = (catalog.optimizers || []).map((item) => `
+      <tr>
+        <td>${escapeHtml(item.name)}</td>
+        <td>${escapeHtml(item.module || "")}</td>
+        <td>${escapeHtml(item.availability?.status || "unknown")}</td>
+        <td>${escapeHtml(item.availability?.note || "")}</td>
+      </tr>
+    `).join("");
+  }
+  if (functionBody) {
+    functionBody.innerHTML = (catalog.functions || []).map((item) => `
+      <tr>
+        <td>${escapeHtml(item.name)}</td>
+        <td>${escapeHtml(item.module || "")}</td>
+        <td>${escapeHtml(item.dimension || "n/a")}</td>
+        <td>${escapeHtml(item.availability?.status || "unknown")}</td>
+        <td>${escapeHtml(item.availability?.note || "")}</td>
+      </tr>
+    `).join("");
+  }
+}
+
+function renderOptimizationResults(items) {
+  const target = optimizationElement("optimization-results-list");
+  if (!target) {
+    return;
+  }
+  if (!items?.length) {
+    target.innerHTML = emptyCard("No optimization suites have been saved in this workspace yet.");
+    return;
+  }
+  target.innerHTML = items.map((item) => {
+    const summary = item.summary || {};
+    return `
+      <article class="card">
+        <h4>${escapeHtml(item.title || item.suite_label || "Optimization suite")}</h4>
+        <p>${escapeHtml(`Algorithms ${summary.algorithm_count || 0} | Functions ${summary.function_count || 0} | Runs ${summary.run_count || 0}`)}</p>
+        <p class="compact-note">${escapeHtml(`Successful tasks ${summary.success_count || 0}/${summary.task_count || 0}`)}</p>
+        <div class="actions">
+          <a class="button-link secondary-link" href="${escapeHtml(item.result_detail_path || `/optimization-lab/results/${item.id}`)}">Open result</a>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+async function refreshOptimizationResults() {
+  if (!state.selectedWorkspaceId) {
+    renderOptimizationResults([]);
+    return;
+  }
+  const payload = await api(`/api/workspaces/${state.selectedWorkspaceId}/optimization/results`);
+  state.optimizationResults = payload.items || [];
+  renderOptimizationResults(state.optimizationResults);
+}
+
+async function loadOptimizationLabPage() {
+  if (!isExperienceLocked()) {
+    await loadOptimizationCatalog();
+    renderOptimizationCatalog();
+    await loadSession();
+    if (state.user && state.selectedWorkspaceId) {
+      await refreshOptimizationResults();
+    } else {
+      renderOptimizationResults([]);
+    }
+  }
+  applyAccessGateState();
+}
+
+async function handleOptimizationSuiteRun(event) {
+  event.preventDefault();
+  ensureWorkspace();
+  const optimizerSelect = optimizationElement("optimization-optimizer-select");
+  const functionSelect = optimizationElement("optimization-function-select");
+  const payload = {
+    suite_label: optimizationElement("optimization-suite-label")?.value || "Optimization Suite",
+    optimizer_names: selectedValues(optimizerSelect),
+    function_names: selectedValues(functionSelect),
+    dimension: Number(optimizationElement("optimization-dimension")?.value || 30),
+    epoch: Number(optimizationElement("optimization-epoch")?.value || 50),
+    pop_size: Number(optimizationElement("optimization-pop-size")?.value || 30),
+    runs: Number(optimizationElement("optimization-runs")?.value || 5),
+    workers: Number(optimizationElement("optimization-workers")?.value || 0),
+  };
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/optimization/run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  state.currentOptimizationResult = response;
+  const result = response.result || {};
+  const summary = result.summary || {};
+  const target = optimizationElement("optimization-run-summary");
+  if (target) {
+    target.innerHTML = `
+      <article class="card">
+        <h4>${escapeHtml(result.suite_label || payload.suite_label)}</h4>
+        <p>${escapeHtml(`Successful tasks ${summary.success_count || 0}/${summary.task_count || 0} | Workers ${summary.worker_count || 1}`)}</p>
+        <p class="compact-note">${escapeHtml(`Algorithms ${summary.algorithm_count || 0} | Functions ${summary.function_count || 0} | Runs ${summary.run_count || 0}`)}</p>
+        <div class="actions">
+          <a class="button-link" href="${escapeHtml(result.result_detail_path || `/optimization-lab/results/${response.record?.id || ""}`)}">Open result page</a>
+        </div>
+      </article>
+    `;
+  }
+  await refreshOptimizationResults();
+  showToast("Optimization suite completed.");
+}
+
+async function loadOptimizationResultPage() {
+  const route = extractOptimizationResultRoute();
+  if (!route || isExperienceLocked()) {
+    return;
+  }
+  await ensureAuthenticatedUser();
+  const payload = await api(`/api/optimization/results/${route.id}`);
+  state.currentOptimizationResult = payload;
+  const result = payload.result || {};
+  const summary = result.summary || {};
+  const figures = result.artifacts?.figures || [];
+  const tables = result.artifacts?.tables || [];
+  const ranking = result.ranking_preview || [];
+  if (optimizationElement("optimization-result-title")) {
+    optimizationElement("optimization-result-title").textContent = result.suite_label || payload.record?.title || "Optimization suite";
+  }
+  if (optimizationElement("optimization-result-summary")) {
+    optimizationElement("optimization-result-summary").textContent =
+      `Algorithms ${summary.algorithm_count || 0} | Functions ${summary.function_count || 0} | Runs ${summary.run_count || 0} | Successful tasks ${summary.success_count || 0}/${summary.task_count || 0}`;
+  }
+  const snapshot = optimizationElement("optimization-result-snapshot");
+  if (snapshot) {
+    snapshot.innerHTML = [
+      { label: "Suite label", value: result.suite_label || payload.record?.title || "Optimization suite", copy: "Private result record stored in the selected workspace." },
+      { label: "Task success", value: `${summary.success_count || 0}/${summary.task_count || 0}`, copy: "Successful optimization tasks across all algorithm-function-run pairs." },
+      { label: "Top rank", value: ranking[0]?.optimizer_name || "n/a", copy: ranking[0] ? `Average rank ${ranking[0].average_rank}` : "Ranking preview unavailable." },
+      { label: "Workers", value: `${summary.worker_count || 1}`, copy: "Parallel task workers used for the suite." },
+    ].map((item) => `
+      <article class="snapshot-card">
+        <span>${escapeHtml(item.label)}</span>
+        <strong>${escapeHtml(item.value)}</strong>
+        <p>${escapeHtml(item.copy)}</p>
+      </article>
+    `).join("");
+  }
+  const assetCard = (asset, kind) => `
+    <article class="card">
+      <h4>${escapeHtml(asset.title || kind)}</h4>
+      <p>${escapeHtml(asset.description || "")}</p>
+      <div class="actions">
+        <button type="button" class="secondary" data-download-asset="${escapeHtml(asset.id)}">Download</button>
+      </div>
+    </article>
+  `;
+  const figuresTarget = optimizationElement("optimization-result-figures");
+  if (figuresTarget) {
+    figuresTarget.innerHTML = figures.length
+      ? figures.map((asset) => assetCard(asset, "Figure")).join("")
+      : emptyCard("No figure assets were generated.");
+  }
+  const tablesTarget = optimizationElement("optimization-result-tables");
+  if (tablesTarget) {
+    tablesTarget.innerHTML = tables.length
+      ? tables.map((asset) => assetCard(asset, "Table")).join("")
+      : emptyCard("No table assets were generated.");
+  }
+  const exportTarget = optimizationElement("optimization-result-assets");
+  if (exportTarget) {
+    exportTarget.innerHTML = [...figures, ...tables].length
+      ? [...figures, ...tables].map((asset) => assetCard(asset, asset.kind || "Asset")).join("")
+      : emptyCard("No export assets were attached to this result.");
+  }
+  if (optimizationElement("optimization-result-raw")) {
+    optimizationElement("optimization-result-raw").textContent = JSON.stringify(payload, null, 2);
+  }
+}
+
 function clearPrivateLists() {
   if (!hasPrivateWorkspaceUI()) {
     return;
@@ -3089,6 +3380,7 @@ function clearSession() {
   localStorage.removeItem(storageKeys.workspaceId);
   localStorage.removeItem(storageKeys.caseId);
   revokeResultPreviewUrls();
+  applyAccessGateState();
   if (hasPrivateWorkspaceUI()) {
     renderSession();
     renderWorkspaceOptions();
@@ -3109,6 +3401,7 @@ function setSession(payload) {
   if (state.selectedWorkspaceId) {
     localStorage.setItem(storageKeys.workspaceId, state.selectedWorkspaceId);
   }
+  applyAccessGateState();
   if (hasPrivateWorkspaceUI()) {
     renderSession();
     renderWorkspaceOptions();
@@ -3122,12 +3415,14 @@ function renderSession() {
   if (!state.user) {
     dom.sessionIndicator.textContent = "Signed out";
     dom.userSummary.textContent = "Register or log in to access your private workspace.";
+    applyAccessGateState();
     renderLabContext();
     renderWorkspaceCockpit();
     return;
   }
   dom.sessionIndicator.textContent = "Signed in";
   dom.userSummary.textContent = `${state.user.full_name} | ${state.user.email}`;
+  applyAccessGateState();
   renderLabContext();
   renderWorkspaceCockpit();
 }
@@ -4870,7 +5165,7 @@ async function renderResultPreview(previewTarget, galleryTarget, result) {
 
 async function loadMethodDetailPage() {
   const route = extractDataLabMethodRoute();
-  if (!route) {
+  if (!route || isExperienceLocked()) {
     return;
   }
   const payload = await api(`/api/data-lab/${route.category}/${route.family}`, {}, false);
@@ -4879,7 +5174,7 @@ async function loadMethodDetailPage() {
 
 async function loadModelMethodPage() {
   const route = extractDataLabModelMethodRoute();
-  if (!route) {
+  if (!route || isExperienceLocked()) {
     return;
   }
   const payload = await api(`/api/data-lab/models/${route.family}/${route.method}`, {}, false);
@@ -4888,7 +5183,7 @@ async function loadModelMethodPage() {
 
 async function loadTeachingGuidePage() {
   const route = extractDataLabTeachingRoute();
-  if (!route) {
+  if (!route || isExperienceLocked()) {
     return;
   }
   const payload = await api(`/api/data-lab/learn/models/${route.family}/${route.method}`, {}, false);
@@ -4897,7 +5192,7 @@ async function loadTeachingGuidePage() {
 
 async function loadResultDetailPage() {
   const route = extractDataLabResultRoute();
-  if (!route) {
+  if (!route || isExperienceLocked()) {
     return;
   }
   await ensureAuthenticatedUser();
@@ -6268,6 +6563,9 @@ function bind() {
   const prepareForm = document.getElementById("prepare-form");
   const modelForm = document.getElementById("model-form");
   const plotForm = document.getElementById("plot-form");
+  const optimizationSuiteForm = document.getElementById("optimization-suite-form");
+  const optimizationDefaultsButton = document.getElementById("optimization-defaults-button");
+  const optimizationClearSelection = document.getElementById("optimization-clear-selection");
 
   registerForm?.addEventListener("submit", wrap(handleRegister));
   loginForm?.addEventListener("submit", wrap(handleLogin));
@@ -6300,6 +6598,18 @@ function bind() {
   prepareForm?.addEventListener("submit", wrap(handlePrepareSample));
   modelForm?.addEventListener("submit", wrap(handleModelRun));
   plotForm?.addEventListener("submit", wrap(handlePlot));
+  optimizationSuiteForm?.addEventListener("submit", wrap(handleOptimizationSuiteRun));
+  optimizationDefaultsButton?.addEventListener("click", () => {
+    if (!state.optimizationCatalog) {
+      return;
+    }
+    setMultiSelectValues(optimizationElement("optimization-optimizer-select"), state.optimizationCatalog.defaults?.optimizers || []);
+    setMultiSelectValues(optimizationElement("optimization-function-select"), state.optimizationCatalog.defaults?.functions || []);
+  });
+  optimizationClearSelection?.addEventListener("click", () => {
+    setMultiSelectValues(optimizationElement("optimization-optimizer-select"), []);
+    setMultiSelectValues(optimizationElement("optimization-function-select"), []);
+  });
   dom.variableGuideApply?.addEventListener("click", wrap(async () => {
     applyVariableGuidePrefill();
   }));
@@ -6379,6 +6689,9 @@ function bind() {
       state.knowledgeTagFilter = "all";
       localStorage.removeItem(storageKeys.caseId);
       await refreshWorkspaceData();
+      if (hasOptimizationLabUI()) {
+        await refreshOptimizationResults();
+      }
     }),
   );
   dom.knowledgeCaseActiveSelect?.addEventListener("change", (event) => {
@@ -6449,16 +6762,21 @@ async function init() {
   bind();
   try {
     await fetchHealth();
+    await maybeLoadPublicIdentity();
+    applyAccessGateState();
     const pageMode = detectPageMode();
-    if (
+    if (!isExperienceLocked() && (
       pageMode === "data-lab" ||
       pageMode === "data-lab-method-detail" ||
       pageMode === "data-lab-model-method" ||
       pageMode === "data-lab-teaching"
-    ) {
+    )) {
       await loadDataLabCatalog();
     }
-    if (pageMode === "data-lab") {
+    if (pageMode === "optimization-lab") {
+      await loadOptimizationLabPage();
+    }
+    if (pageMode === "data-lab" && !isExperienceLocked()) {
       renderLabContext();
       renderProcessingHistory([]);
       renderModelHistory([]);
@@ -6475,15 +6793,21 @@ async function init() {
     if (pageMode === "data-lab-result-detail") {
       await loadResultDetailPage();
     }
-    if (hasPublicMonitorUI()) {
+    if (pageMode === "optimization-result-detail") {
+      await loadOptimizationResultPage();
+    }
+    if (hasPublicMonitorUI() && !document.body.classList.contains("experience-locked")) {
       await loadPublicData();
     }
-    if (hasPrivateWorkspaceUI()) {
+    if (hasPrivateWorkspaceUI() && !isExperienceLocked()) {
       clearPrivateLists();
       renderSession();
       renderWorkspaceOptions();
       await loadSession();
+    } else if (hasPrivateWorkspaceUI()) {
+      renderSession();
     }
+    applyAccessGateState();
   } catch (error) {
     showToast(error.message || "Initialization failed.", true);
   }

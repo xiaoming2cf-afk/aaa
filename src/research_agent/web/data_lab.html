@@ -52,6 +52,11 @@
             <h3>Public Daily Monitor</h3>
             <p>Open the official-first public macro page and compare it with private modeling work.</p>
           </a>
+          <a class="platform-nav-card" href="/optimization-lab">
+            <span class="eyebrow eyebrow-compact">Private</span>
+            <h3>Optimization Lab</h3>
+            <p>Switch from econometrics to parallel optimization benchmarks without leaving the standalone tool surface.</p>
+          </a>
           <a class="platform-nav-card" href="/summaries/weekly">
             <span class="eyebrow eyebrow-compact">Roundup</span>
             <h3>Weekly Summary</h3>
@@ -75,7 +80,21 @@
         </div>
       </section>
 
-      <section class="panel public-toolbar">
+      <section class="panel access-gate-panel hidden" id="access-gate-panel" data-access-gate>
+        <div class="access-gate-card">
+          <p class="eyebrow eyebrow-compact" id="access-gate-eyebrow">Access Control</p>
+          <h2 id="access-gate-title">Sign in to unlock Data Lab</h2>
+          <p class="muted" id="access-gate-copy">
+            On public hosts, the standalone Data Lab is hidden until login. Use the sign-in panel below or return to the main platform first.
+          </p>
+          <div class="actions compact-actions" id="access-gate-actions">
+            <button type="button" class="secondary" data-scroll-target="auth-panel">Open sign-in</button>
+            <a href="/" class="button-link secondary-link">Main platform</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel public-toolbar access-guarded">
         <div class="panel-head panel-head-wrap">
           <div>
             <h2>Standalone Data Lab</h2>
@@ -114,7 +133,7 @@
         </div>
       </section>
 
-      <div class="public-layout">
+      <div class="public-layout access-guarded">
         <aside class="panel public-sidebar">
           <div class="stack">
             <div>
@@ -432,7 +451,7 @@
       </article>
 
           <div class="public-section" id="data-lab-access">
-      <section class="panel auth-panel">
+      <section class="panel auth-panel" id="auth-panel">
         <div>
           <h2>Private Workspace Access</h2>
           <p class="muted">

@@ -30,7 +30,35 @@
     </header>
 
     <main class="shell public-shell">
-      <section class="panel public-toolbar">
+      <section class="panel platform-nav-panel">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h2>Platform Navigation</h2>
+            <p class="muted">Use the standalone pages to move between Navigation, Data Lab, Optimization Lab, Public Daily Monitor, and the main platform.</p>
+          </div>
+        </div>
+        <div class="platform-nav-grid">
+          <a class="platform-nav-card" href="/"><span class="eyebrow eyebrow-compact">Main</span><h3>Main Platform</h3><p>Return to sign-in, Provider Center, Paper Library, cases, and the private cockpit.</p></a>
+          <a class="platform-nav-card" href="/data-lab"><span class="eyebrow eyebrow-compact">Standalone</span><h3>Data Lab</h3><p>Go back to the main Data Lab workbench.</p></a>
+          <a class="platform-nav-card" href="/optimization-lab"><span class="eyebrow eyebrow-compact">Standalone</span><h3>Optimization Lab</h3><p>Switch to the optimization benchmark workspace.</p></a>
+          <a class="platform-nav-card" href="/public-monitor"><span class="eyebrow eyebrow-compact">Public</span><h3>Public Daily Monitor</h3><p>Open the standalone macro monitor surface.</p></a>
+        </div>
+      </section>
+
+      <section class="panel access-gate-panel hidden" id="access-gate-panel" data-access-gate>
+        <div class="access-gate-card">
+          <p class="eyebrow eyebrow-compact" id="access-gate-eyebrow">Access Control</p>
+          <h2 id="access-gate-title">Sign in to unlock Data Lab details</h2>
+          <p class="muted" id="access-gate-copy">
+            On public hosts, only Platform Navigation stays open before login. Return to the main platform, sign in, then reopen this detail page.
+          </p>
+          <div class="actions compact-actions" id="access-gate-actions">
+            <a href="/" class="button-link">Go to sign-in</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel public-toolbar access-guarded">
         <div class="panel-head panel-head-wrap">
           <div>
             <h2 id="lab-detail-heading">Method Family Detail</h2>
@@ -45,7 +73,7 @@
         </div>
       </section>
 
-      <div class="public-layout">
+      <div class="public-layout access-guarded">
         <aside class="panel public-sidebar">
           <div class="stack">
             <div>
@@ -59,7 +87,7 @@
             </nav>
             <div class="public-sidebar-note">
               <p class="muted">
-                This page is public and descriptive. Actual runs still happen in the private Data Lab workbench.
+                This page is private on public hosts. Sign in first, then return here to inspect the method family in detail.
               </p>
             </div>
           </div>

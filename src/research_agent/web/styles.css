@@ -270,6 +270,16 @@ h1 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.form-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+select[multiple] {
+  min-height: 16rem;
+}
+
 .snapshot-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -764,6 +774,30 @@ button.secondary.danger,
 .panel.is-spotlit {
   border-color: rgba(11, 95, 69, 0.4);
   box-shadow: 0 0 0 2px rgba(11, 95, 69, 0.1), var(--shadow);
+}
+
+.experience-locked .access-guarded {
+  display: none !important;
+}
+
+.access-gate-panel.hidden {
+  display: none;
+}
+
+.access-gate-card {
+  display: grid;
+  gap: 0.9rem;
+  border: 1px solid rgba(11, 95, 69, 0.14);
+  border-radius: 1rem;
+  padding: 1rem 1.1rem;
+  background: rgba(248, 247, 242, 0.9);
+}
+
+.access-gate-card h2,
+.access-gate-card h3,
+.access-gate-card h4,
+.access-gate-card p {
+  margin: 0;
 }
 
 .literature-status-grid {
@@ -1359,6 +1393,7 @@ button.secondary.danger,
     .snapshot-grid,
     .action-deck-grid,
     .lab-design-grid,
+    .form-grid,
     .knowledge-summary-grid,
     .knowledge-layout,
     .knowledge-search-form,

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import requests
-from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -20,6 +20,13 @@ from .data_lab_catalog import (
 )
 from .db import init_database, session_scope
 from .entities import DataAsset
+from .optimization_lab import (
+    build_optimization_result_detail,
+    get_optimization_catalog,
+    list_optimization_results,
+    run_optimization_suite,
+    serialize_optimization_result_list,
+)
 from .platform_core import (
     archive_knowledge_record,
     add_item_to_knowledge_case,
@@ -111,6 +118,8 @@ DATA_LAB_DETAIL_WEB_FILE = WEB_DIR / "data_lab_detail.html"
 DATA_LAB_METHOD_WEB_FILE = WEB_DIR / "data_lab_method.html"
 DATA_LAB_TEACHING_WEB_FILE = WEB_DIR / "data_lab_teaching.html"
 DATA_LAB_RESULT_WEB_FILE = WEB_DIR / "data_lab_result.html"
+OPTIMIZATION_LAB_WEB_FILE = WEB_DIR / "optimization_lab.html"
+OPTIMIZATION_LAB_RESULT_WEB_FILE = WEB_DIR / "optimization_lab_result.html"
 
 
 class RegisterRequest(BaseModel):
@@ -342,6 +351,18 @@ class VariableGuideRequest(BaseModel):
     prompt: str = Field(min_length=8, max_length=4000)
 
 
+class OptimizationRunRequest(BaseModel):
+    suite_label: str = Field(default="Optimization Suite", min_length=2, max_length=200)
+    optimizer_names: list[str] = Field(default_factory=list)
+    function_names: list[str] = Field(default_factory=list)
+    dimension: int = 30
+    epoch: int = 50
+    pop_size: int = 30
+    runs: int = 5
+    workers: int = 0
+    seed_base: int = 20260331
+
+
 class PublicBriefingModerationRequest(BaseModel):
     action: str = Field(min_length=2, max_length=20)
     url: str = ""
@@ -367,6 +388,25 @@ def _raise_http_error(exc: Exception) -> None:
     raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+def _is_trusted_local_request(request: Request) -> bool:
+    host = (request.url.hostname or "").strip().lower()
+    return host in {"", "localhost", "127.0.0.1", "::1", "testserver"}
+
+
+def _require_feature_access(
+    db,
+    request: Request,
+    authorization: str | None,
+    x_session_token: str | None,
+):
+    token = _token_from_headers(authorization, x_session_token)
+    if token:
+        return get_current_user(db, token)
+    if _is_trusted_local_request(request):
+        return None
+    raise PermissionError("Sign in to unlock this feature on public hosts.")
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     init_database()
@@ -388,6 +428,14 @@ def create_app() -> FastAPI:
     @app.get("/data-lab")
     def data_lab_page() -> FileResponse:
         return FileResponse(DATA_LAB_WEB_FILE)
+
+    @app.get("/optimization-lab")
+    def optimization_lab_page() -> FileResponse:
+        return FileResponse(OPTIMIZATION_LAB_WEB_FILE)
+
+    @app.get("/optimization-lab/results/{record_id}")
+    def optimization_lab_result_page(record_id: str) -> FileResponse:
+        return FileResponse(OPTIMIZATION_LAB_RESULT_WEB_FILE)
 
     @app.get("/data-lab/processing/{family}")
     def data_lab_processing_family_page(family: str) -> FileResponse:
@@ -462,6 +510,7 @@ def create_app() -> FastAPI:
                 "scheduled_jobs",
                 "public_daily_briefings",
                 "public_macro_summary",
+                "optimization_lab",
             ],
         }
 
@@ -486,41 +535,111 @@ def create_app() -> FastAPI:
         return {"providers": get_provider_catalog(settings.model)}
 
     @app.get("/api/data-lab/catalog")
-    def data_lab_catalog() -> dict[str, Any]:
-        return get_data_lab_catalog()
-
-    @app.get("/api/data-lab/processing/{family}")
-    def data_lab_processing_family_detail(family: str) -> dict[str, Any]:
-        detail = get_processing_family(family)
-        if not detail:
-            raise HTTPException(status_code=404, detail="Data processing family not found.")
-        return {"family": detail}
-
-    @app.get("/api/data-lab/models/{family}")
-    def data_lab_model_family_detail(family: str) -> dict[str, Any]:
-        detail = get_model_family(family)
-        if not detail:
-            raise HTTPException(status_code=404, detail="Model family not found.")
-        return {"family": detail}
-
-    @app.get("/api/data-lab/models/{family}/{method}")
-    def data_lab_model_method_detail(family: str, method: str) -> dict[str, Any]:
-        detail = get_model_method(family, method)
-        if not detail:
-            raise HTTPException(status_code=404, detail="Model method not found.")
-        return {"method": detail}
-
-    @app.get("/api/data-lab/learn/models/{family}/{method}")
-    def data_lab_model_teaching_detail(family: str, method: str) -> dict[str, Any]:
-        guide = get_model_teaching_guide(family, method)
-        if not guide:
-            raise HTTPException(status_code=404, detail="Model teaching guide not found.")
-        return {"guide": guide}
-
-    @app.get("/api/public/briefings")
-    def public_briefings(limit: int = 10) -> dict[str, Any]:
+    def data_lab_catalog(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
         try:
             with session_scope() as db:
+                _require_feature_access(db, request, authorization, x_session_token)
+                return get_data_lab_catalog()
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/optimization/catalog")
+    def optimization_catalog(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            with session_scope() as db:
+                _require_feature_access(db, request, authorization, x_session_token)
+                return get_optimization_catalog()
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/data-lab/processing/{family}")
+    def data_lab_processing_family_detail(
+        family: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            with session_scope() as db:
+                _require_feature_access(db, request, authorization, x_session_token)
+                detail = get_processing_family(family)
+                if not detail:
+                    raise HTTPException(status_code=404, detail="Data processing family not found.")
+                return {"family": detail}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/data-lab/models/{family}")
+    def data_lab_model_family_detail(
+        family: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            with session_scope() as db:
+                _require_feature_access(db, request, authorization, x_session_token)
+                detail = get_model_family(family)
+                if not detail:
+                    raise HTTPException(status_code=404, detail="Model family not found.")
+                return {"family": detail}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/data-lab/models/{family}/{method}")
+    def data_lab_model_method_detail(
+        family: str,
+        method: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            with session_scope() as db:
+                _require_feature_access(db, request, authorization, x_session_token)
+                detail = get_model_method(family, method)
+                if not detail:
+                    raise HTTPException(status_code=404, detail="Model method not found.")
+                return {"method": detail}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/data-lab/learn/models/{family}/{method}")
+    def data_lab_model_teaching_detail(
+        family: str,
+        method: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            with session_scope() as db:
+                _require_feature_access(db, request, authorization, x_session_token)
+                guide = get_model_teaching_guide(family, method)
+                if not guide:
+                    raise HTTPException(status_code=404, detail="Model teaching guide not found.")
+                return {"guide": guide}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/public/briefings")
+    def public_briefings(
+        limit: int = 10,
+        request: Request = None,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            with session_scope() as db:
+                _require_feature_access(db, request, authorization, x_session_token)
                 get_or_build_latest_public_briefing(db, settings)
                 return {
                     "items": [
@@ -532,9 +651,14 @@ def create_app() -> FastAPI:
             _raise_http_error(exc)
 
     @app.get("/api/public/briefings/latest")
-    def public_briefing_latest() -> dict[str, Any]:
+    def public_briefing_latest(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
         try:
             with session_scope() as db:
+                _require_feature_access(db, request, authorization, x_session_token)
                 briefing = get_or_build_latest_public_briefing(db, settings)
                 return {
                     "briefing": serialize_public_briefing_detail(db, briefing, public_base_url=settings.public_base_url)
@@ -545,9 +669,15 @@ def create_app() -> FastAPI:
             _raise_http_error(exc)
 
     @app.get("/api/public/briefings/{slug}")
-    def public_briefing_detail(slug: str) -> dict[str, Any]:
+    def public_briefing_detail(
+        slug: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
         try:
             with session_scope() as db:
+                _require_feature_access(db, request, authorization, x_session_token)
                 briefing = get_public_briefing_by_slug(db, slug=slug)
                 if not briefing:
                     raise FileNotFoundError("Public briefing not found.")
@@ -589,18 +719,30 @@ def create_app() -> FastAPI:
             _raise_http_error(exc)
 
     @app.get("/api/public/summary")
-    def public_summary(days: int = 7) -> dict[str, Any]:
+    def public_summary(
+        days: int = 7,
+        request: Request = None,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
         try:
             with session_scope() as db:
+                _require_feature_access(db, request, authorization, x_session_token)
                 get_or_build_latest_public_briefing(db, settings)
                 return build_public_briefing_summary(db, days=days, public_base_url=settings.public_base_url)
         except Exception as exc:
             _raise_http_error(exc)
 
     @app.get("/api/public/summaries/{window}")
-    def public_summary_detail(window: str) -> dict[str, Any]:
+    def public_summary_detail(
+        window: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
         try:
             with session_scope() as db:
+                _require_feature_access(db, request, authorization, x_session_token)
                 get_or_build_latest_public_briefing(db, settings)
                 return build_named_public_summary(db, window=window, public_base_url=settings.public_base_url)
         except Exception as exc:
@@ -1251,6 +1393,36 @@ def create_app() -> FastAPI:
         except Exception as exc:
             _raise_http_error(exc)
 
+    @app.get("/api/optimization/results/{record_id}")
+    def optimization_result(
+        record_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                return build_optimization_result_detail(db, user=user, record_id=record_id)
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/workspaces/{workspace_id}/optimization/results")
+    def workspace_optimization_results(
+        workspace_id: str,
+        limit: int = 20,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return {"items": serialize_optimization_result_list(list_optimization_results(db, user=user, workspace=workspace, limit=limit))}
+        except Exception as exc:
+            _raise_http_error(exc)
+
     @app.post("/api/workspaces/{workspace_id}/analysis/prepare")
     def prepare_analysis_sample(
         workspace_id: str,
@@ -1476,20 +1648,55 @@ def create_app() -> FastAPI:
         except Exception as exc:
             _raise_http_error(exc)
 
+    @app.post("/api/workspaces/{workspace_id}/optimization/run")
+    def run_optimization(
+        workspace_id: str,
+        request: OptimizationRunRequest,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return run_optimization_suite(
+                    settings,
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    suite_label=request.suite_label,
+                    optimizer_names=request.optimizer_names,
+                    function_names=request.function_names,
+                    dimension=request.dimension,
+                    epoch=request.epoch,
+                    pop_size=request.pop_size,
+                    runs=request.runs,
+                    workers=request.workers,
+                    seed_base=request.seed_base,
+                )
+        except Exception as exc:
+            _raise_http_error(exc)
+
     @app.get("/api/openalex/search")
     def openalex_search(
         q: str,
         max_results: int = 10,
         open_access_only: bool = False,
+        request: Request = None,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> dict[str, Any]:
         try:
-            return {
-                "items": search_openalex(
-                    query=q,
-                    max_results=max_results,
-                    open_access_only=open_access_only,
-                )
-            }
+            with session_scope() as db:
+                _require_feature_access(db, request, authorization, x_session_token)
+                return {
+                    "items": search_openalex(
+                        query=q,
+                        max_results=max_results,
+                        open_access_only=open_access_only,
+                    )
+                }
         except Exception as exc:
             _raise_http_error(exc)
 

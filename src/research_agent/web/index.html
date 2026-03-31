@@ -52,6 +52,11 @@
             <h3>Data Lab</h3>
             <p>Run transparent data processing, model estimation, charting, and manual verification.</p>
           </a>
+          <a class="platform-nav-card" href="/optimization-lab">
+            <span class="eyebrow eyebrow-compact">Private</span>
+            <h3>Optimization Lab</h3>
+            <p>Run parallel Mealpy benchmark suites against Opfunu functions and export statistical result packages.</p>
+          </a>
           <a class="platform-nav-card" href="#provider-center-panel">
             <span class="eyebrow eyebrow-compact">Workspace</span>
             <h3>Provider Center</h3>
@@ -75,7 +80,20 @@
         </div>
       </section>
 
-      <section class="panel public-entry-panel">
+      <section class="panel access-gate-panel hidden" id="access-gate-panel" data-access-gate>
+        <div class="access-gate-card">
+          <p class="eyebrow eyebrow-compact" id="access-gate-eyebrow">Access Control</p>
+          <h2 id="access-gate-title">Sign in to unlock the private platform</h2>
+          <p class="muted" id="access-gate-copy">
+            On public hosts, only Platform Navigation stays open before login. Sign in below to continue into the rest of the workspace.
+          </p>
+          <div class="actions compact-actions" id="access-gate-actions">
+            <button type="button" class="secondary" data-scroll-target="auth-panel">Open sign-in</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel public-entry-panel access-guarded">
         <div class="panel-head panel-head-wrap">
           <div>
             <h2>Standalone Research Pages</h2>
@@ -114,6 +132,17 @@
           </article>
 
           <article class="card">
+            <h3>Optimization Lab</h3>
+            <p>
+              A dedicated private page for large-scale optimization benchmarks, parallel execution, and exportable
+              performance statistics.
+            </p>
+            <div class="actions">
+              <a href="/optimization-lab" class="button-link secondary-link">Enter Optimization Lab</a>
+            </div>
+          </article>
+
+          <article class="card">
             <h3>Roundup Views</h3>
             <p>Direct links to the public weekly and monthly summary pages.</p>
             <div class="actions">
@@ -124,7 +153,7 @@
         </div>
       </section>
 
-      <section class="panel public-entry-panel">
+      <section class="panel public-entry-panel access-guarded">
         <div class="panel-head panel-head-wrap">
           <div>
             <h2>Display Surface Guide</h2>
@@ -152,7 +181,7 @@
         </div>
       </section>
 
-      <section class="panel auth-panel">
+      <section class="panel auth-panel" id="auth-panel">
         <div>
           <h2>Private Workspace Access</h2>
           <p class="muted">
@@ -191,7 +220,7 @@
         </div>
       </section>
 
-      <section class="panel cockpit-panel" id="workspace-cockpit-panel">
+      <section class="panel cockpit-panel access-guarded" id="workspace-cockpit-panel">
         <div class="panel-head panel-head-wrap">
           <div>
             <h2>Workspace Cockpit</h2>
@@ -270,7 +299,7 @@
         </div>
       </section>
 
-      <section class="dashboard-grid">
+      <section class="dashboard-grid access-guarded">
         <section class="panel" id="provider-center-panel">
           <div class="panel-head">
             <h2>Provider Center</h2>

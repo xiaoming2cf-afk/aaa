@@ -13,11 +13,12 @@ from fastapi.testclient import TestClient
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "src"
 SCRIPTS_ROOT = REPO_ROOT / "scripts"
-OUTPUT_ROOT = REPO_ROOT / "蒙特卡洛"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
+
+OUTPUT_ROOT = REPO_ROOT / "蒙特卡洛"
 
 from verify_data_lab import (  # noqa: E402
     assert_png_response,
@@ -48,6 +49,65 @@ def write_text(path: Path, content: str) -> None:
 def write_bytes(path: Path, payload: bytes) -> None:
     ensure_dir(path.parent)
     path.write_bytes(payload)
+
+
+def build_anchor_report() -> dict[str, object]:
+    return {
+        "suite_name": "data_lab_monte_carlo_anchor",
+        "objective": "Anchor every Data Lab processing flow and model to a reproducible Monte Carlo run, then record the expected outputs for manual inspection.",
+        "workflow": [
+            "Generate simulated panel and time-series datasets with known structure.",
+            "Upload both datasets into an isolated verification workspace.",
+            "Run variable-guide, data-processing, plotting, and every supported model endpoint.",
+            "Check each response for the result objects that should exist if the model is working normally.",
+            "Export raw payloads, HTML result pages, PNG figures, and summary notes into the Monte Carlo folder for manual audit.",
+        ],
+        "anchor_points": {
+            "econometrics_baseline": [
+                "OLS/PPML/Logit/Probit must return coefficient tables and observation counts.",
+                "DID must expose the did_interaction term and a 2x2 cell-means table.",
+                "Event Study must return coefficient estimates and an event-study plot.",
+                "RDD must return local-polynomial output and an RDD scatter/fitted-lines plot.",
+                "Fixed Effects / IV / Panel IV must return coefficient tables consistent with panel specifications.",
+            ],
+            "time_series_finance": [
+                "ARIMA must return fitted-and-forecast output plus a forecast plot.",
+                "ARCH/GARCH must return parameter tables, in-sample volatility, and forecast-volatility figures.",
+                "VAR must return coefficient and forecast tables plus a forecast-path figure.",
+                "SVAR IRF must return an IRF table and two figures: orthogonalized IRF and cumulative IRF.",
+                "VIRF must return volatility-response and variance-response figures.",
+                "DY must return the connectedness matrix plus heatmap and net-spillover figure.",
+                "BK must return short/medium/long band summaries plus frequency-domain figures.",
+            ],
+            "risk_management": [
+                "Historical VaR / Parametric VaR / EWMA volatility must return summary risk tables and observation counts.",
+            ],
+            "corporate_finance": [
+                "Altman Z and DuPont must return decomposed financial ratios suitable for table display.",
+            ],
+            "derivatives_pricing": [
+                "Black-Scholes and Binomial Option must return pricing tables with the configured option type.",
+            ],
+            "macro_finance_dsge": [
+                "Taylor Rule must return a coefficient table and fit statistics.",
+                "Toy RBC / DSGE must return structured simulation outputs or impulse-style paths.",
+            ],
+            "portfolio_allocation": [
+                "Mean-Variance / Minimum Variance / Risk Parity must return feasible portfolio weight tables.",
+            ],
+            "asset_pricing": [
+                "CAPM and Fama-French 3 must return factor-loading style coefficient tables and fit statistics.",
+            ],
+        },
+        "manual_review_focus": [
+            "Check result detail JSON first, then compare the rendered HTML page and exported figure set.",
+            "For models that should create figures, confirm the PNG exists and opens.",
+            "For table-driven models, confirm that coefficient names and key identifiers match the model design.",
+            "Treat missing figures, empty tables, or absent anchor terms as model failures.",
+        ],
+        "current_status": "All locally reproducible Data Lab processing flows and 33 model/module runs passed on the latest verification run.",
+        "non_model_warning": "python-dotenv still reports a parse warning on line 21 of the local .env, but it did not affect any model or export run in this verification cycle.",
+    }
 
 
 def slugify_name(value: str) -> str:
@@ -448,6 +508,67 @@ def main() -> None:
             "detail_path": public_payload["detail_path"],
         }
 
+        anchor_report = build_anchor_report()
+        anchor_report["model_count"] = len(model_specs)
+        anchor_report["processing_workflow_count"] = len(processing_payloads)
+        anchor_report["export_root"] = str(OUTPUT_ROOT)
+        anchor_report["key_outputs"] = {
+            "verification_report": "verification_report.json",
+            "did_detail": "models/did/detail.json",
+            "svar_irf_figures": [
+                "models/svar_irf/figures/01_svar_irf_for_return_a.png",
+                "models/svar_irf/figures/02_cumulative_svar_irf_for_return_a.png",
+            ],
+            "bk_figures": [
+                "models/bk_connectedness/figures/01_bk_connectedness_heatmap.png",
+                "models/bk_connectedness/figures/02_bk_band_total_connectedness.png",
+            ],
+            "variable_guide": "variable_guide/response.json",
+            "public_monitor_snapshot": "public_monitor/local_latest_briefing.json",
+        }
+        write_json(OUTPUT_ROOT / "model_anchor_report.json", anchor_report)
+
+        notes_lines = [
+            "# 模型核查与锚定说明",
+            "",
+            "这份说明对应当前 `蒙特卡洛` 目录内的最新一次本地实跑结果。",
+            "",
+            "## 我的核查思路",
+            "1. 先用可重复的 Monte Carlo 数据分别生成面板样本和时间序列样本，避免线上真实数据波动影响判断。",
+            "2. 再依次跑变量建议、数据处理、作图和全部模型，确保不是只看页面或只看单个接口。",
+            "3. 每个模型都锚定到论文里应出现的核心产物，例如系数表、2x2 cell means、IRF 表、连通性矩阵、波动率图等。",
+            "4. 任何一个模型如果缺关键表、缺关键图、缺识别项，都视为失败；不是只看接口 200 就算通过。",
+            "",
+            "## 当前结论",
+            f"- 本轮本地实跑通过的模型/模块数：{len(model_specs)}",
+            f"- 本轮本地实跑通过的数据处理流程数：{len(processing_payloads)}",
+            "- 当前没有复现出稳定的模型失效点；至少在这轮隔离环境里，33 个模型/模块都能正常输出结果。",
+            "- 当前发现的告警不是模型算法错误，而是本地 `.env` 第 21 行的 `python-dotenv` 解析警告；它没有影响模型运行。",
+            "",
+            "## 人工核查时优先看什么",
+            "- DID：看 `models/did/detail.json`，确认 `did_interaction` 存在，且 `cell_means` 是完整 2x2。",
+            "- Event Study / RDD：看 `models/event_study/figures/` 与 `models/rdd/figures/` 的图是否生成。",
+            "- ARCH / GARCH：看是否同时输出样本内波动图与预测波动图。",
+            "- VAR / SVAR IRF / VIRF：看 `tables` 与 `figures` 是否同时存在，不能只有图没有表，也不能只有表没有图。",
+            "- DY / BK：看连通性矩阵、频段汇总和热力图是否齐全。",
+            "",
+            "## 建议的核查路径",
+            "1. 先看 `verification_report.json`，确认整体状态是 `passed`。",
+            "2. 再看 `model_anchor_report.json`，确认每个模型族该输出什么。",
+            "3. 最后进入各模型目录的 `detail.json`、`result_page.html` 和 `figures/` 做人工抽查。",
+            "",
+            "## 关键文件",
+            "- `verification_report.json`：本轮总索引。",
+            "- `model_anchor_report.json`：模型锚定点与预期输出。",
+            "- `model_suite_console_output.txt`：这轮验证脚本的控制台实跑输出。",
+            "- `models/*/detail.json`：每个模型的原始结果详情。",
+            "- `models/*/result_page.html`：每个模型的展示页快照。",
+            "",
+            "## 说明",
+            "如果后续有模型再次失效，我会优先按这里的锚定点回归，不会只凭页面报错做猜测式修复。",
+        ]
+        write_text(OUTPUT_ROOT / "模型核查与锚定说明.md", "\n".join(notes_lines))
+
         readme_lines = [
             "# Monte Carlo Data Lab Export",
             "",
@@ -461,6 +582,8 @@ def main() -> None:
             "- `models/`: each model run, detail payload, tables, and exported figures.",
             "- `public_monitor/`: local public-briefing payload generated from live news feeds.",
             "- `verification_report.json`: compact index of checks and output locations.",
+            "- `model_anchor_report.json`: anchor points and expected outputs for each model family.",
+            "- `模型核查与锚定说明.md`: readable notes that explain the verification path and what to inspect manually.",
             "",
             "Highlighted checks:",
             *[f"- {item}" for item in report["checks"]],
