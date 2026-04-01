@@ -5,11 +5,10 @@ import inspect
 import json
 import logging
 import math
-import multiprocessing as mp
 import os
 import pkgutil
 import warnings
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import redirect_stdout
 from io import BytesIO, StringIO
 from functools import lru_cache
@@ -119,16 +118,6 @@ def _ensure_numpy_compat_aliases() -> None:
         np.factorial = scipy_factorial  # type: ignore[attr-defined]
     if not hasattr(np, "p"):
         np.p = np.pi  # type: ignore[attr-defined]
-
-
-def _can_use_process_pool() -> bool:
-    main_file = getattr(__import__("__main__"), "__file__", "")
-    if not main_file or str(main_file).startswith("<"):
-        return False
-    try:
-        return mp.get_start_method(allow_none=True) in {None, "spawn", "fork", "forkserver"}
-    except Exception:
-        return False
 
 
 def _normalize_scalar(value: Any) -> Any:
@@ -904,11 +893,17 @@ def run_optimization_suite(
     cpu_count = os.cpu_count() or 1
     worker_count = min(max(1, int(workers or cpu_count)), cpu_count, len(task_payloads))
     task_results: list[dict[str, Any]] = []
+    parallel_backend = "serial"
     if worker_count == 1:
         for payload in task_payloads:
             task_results.append(_run_single_optimization_task(payload))
     else:
-        executor_cls = ProcessPoolExecutor if _can_use_process_pool() else ThreadPoolExecutor
+        # Web requests need a conservative execution backend. In deployed ASGI workers,
+        # process pools can fail due to spawn/import constraints and abruptly kill the suite.
+        # Thread pools still provide parallel execution for these numeric workloads while
+        # keeping the request lifecycle stable across local and hosted environments.
+        executor_cls = ThreadPoolExecutor
+        parallel_backend = "thread_pool"
         with executor_cls(max_workers=worker_count) as executor:
             futures = [executor.submit(_run_single_optimization_task, payload) for payload in task_payloads]
             for future in as_completed(futures):
@@ -1104,6 +1099,7 @@ def run_optimization_suite(
         "run_count": int(runs),
         "task_count": len(task_payloads),
         "worker_count": worker_count,
+        "parallel_backend": parallel_backend,
         "estimated_evaluations": estimated_evaluations,
         "success_count": len(success_rows),
         "failure_count": len(task_results) - len(success_rows),
