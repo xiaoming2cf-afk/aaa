@@ -141,6 +141,19 @@ def _normalize_scalar(value: Any) -> Any:
     return value
 
 
+def _sanitize_json_payload(value: Any) -> Any:
+    normalized = _normalize_scalar(value)
+    if isinstance(normalized, float):
+        if math.isnan(normalized) or math.isinf(normalized):
+            return None
+        return normalized
+    if isinstance(normalized, dict):
+        return {str(key): _sanitize_json_payload(item) for key, item in normalized.items()}
+    if isinstance(normalized, (list, tuple, set)):
+        return [_sanitize_json_payload(item) for item in normalized]
+    return normalized
+
+
 def _safe_float(value: Any, default: float = float("nan")) -> float:
     try:
         return float(value)
@@ -436,7 +449,7 @@ def get_optimization_catalog() -> dict[str, Any]:
 
     available_optimizers = [item for item in optimizer_entries if item["availability"]["status"] == "available"]
     available_functions = [item for item in function_entries if item["availability"]["status"] == "available"]
-    return {
+    return _sanitize_json_payload({
         "optimizers": optimizer_entries,
         "functions": function_entries,
         "defaults": {
@@ -454,7 +467,7 @@ def get_optimization_catalog() -> dict[str, Any]:
             "min_functions": MIN_STANDARD_FUNCTIONS,
             "min_runs": MIN_STANDARD_RUNS,
         },
-    }
+    })
 
 
 def list_optimization_results(db: Session, *, user: User, workspace: Workspace, limit: int = 20) -> list[KnowledgeRecord]:
@@ -1115,7 +1128,7 @@ def run_optimization_suite(
             top_text,
         ]
     )
-    metadata = {
+    metadata = _sanitize_json_payload({
         "workflow_type": "optimization",
         "module": "optimization_lab",
         "suite_label": suite_label,
@@ -1146,7 +1159,7 @@ def run_optimization_suite(
             "figures": figure_assets,
             "tables": table_assets,
         },
-    }
+    })
     record = create_knowledge_record(
         db,
         user=user,
@@ -1172,7 +1185,7 @@ def build_optimization_result_detail(db: Session, *, user: User, record_id: str)
     if metadata.get("workflow_type") != "optimization":
         raise ValueError("This knowledge record is not an optimization result.")
     artifacts = metadata.get("artifacts", {}) if isinstance(metadata.get("artifacts"), dict) else {}
-    return {
+    return _sanitize_json_payload({
         "record": serialize_knowledge_record(record),
         "result": {
             **metadata,
@@ -1182,7 +1195,7 @@ def build_optimization_result_detail(db: Session, *, user: User, record_id: str)
             "artifacts": artifacts,
         },
         "workspace_id": record.workspace_id,
-    }
+    })
 
 
 def serialize_optimization_result_list(rows: list[KnowledgeRecord]) -> list[dict[str, Any]]:

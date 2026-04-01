@@ -7409,6 +7409,14 @@ async function init() {
     await maybeLoadPublicIdentity();
     applyAccessGateState();
     const pageMode = detectPageMode();
+    if (hasPrivateWorkspaceUI() && !isExperienceLocked()) {
+      clearPrivateLists();
+      renderSession();
+      renderWorkspaceOptions();
+      await loadSession();
+    } else if (hasPrivateWorkspaceUI()) {
+      renderSession();
+    }
     if (!isExperienceLocked() && (
       pageMode === "data-lab" ||
       pageMode === "data-lab-method-detail" ||
@@ -7417,8 +7425,13 @@ async function init() {
     )) {
       await loadDataLabCatalog();
       if (pageMode === "data-lab" && hasOptimizationLabUI()) {
-        await loadOptimizationCatalog();
-        renderOptimizationCatalog();
+        try {
+          await loadOptimizationCatalog();
+          renderOptimizationCatalog();
+        } catch (error) {
+          renderOptimizationCatalog();
+          showToast(error.message || "Failed to load the optimization catalog.", true);
+        }
       }
     }
     if (pageMode === "data-lab" && !isExperienceLocked()) {
@@ -7444,14 +7457,6 @@ async function init() {
     }
     if (hasPublicMonitorUI() && !document.body.classList.contains("experience-locked")) {
       await loadPublicData();
-    }
-    if (hasPrivateWorkspaceUI() && !isExperienceLocked()) {
-      clearPrivateLists();
-      renderSession();
-      renderWorkspaceOptions();
-      await loadSession();
-    } else if (hasPrivateWorkspaceUI()) {
-      renderSession();
     }
     applyAccessGateState();
   } catch (error) {
