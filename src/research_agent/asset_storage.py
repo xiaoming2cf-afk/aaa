@@ -10,10 +10,11 @@ from .utils import slugify
 
 try:
     from supabase import create_client
-    from supabase.lib.client_options import ClientOptions
+    from supabase.lib.client_options import ClientOptions, SyncClientOptions
 except ImportError:  # pragma: no cover - optional dependency for local-only setups
     create_client = None
     ClientOptions = None
+    SyncClientOptions = None
 
 
 SUPABASE_PREFIX = "supabase://"
@@ -48,12 +49,12 @@ def build_asset_object_key(user_id: str, workspace_id: str, asset_id: str, filen
 
 @lru_cache(maxsize=4)
 def _get_supabase_client(supabase_url: str, service_role_key: str):
-    if create_client is None or ClientOptions is None:
+    if create_client is None or SyncClientOptions is None:
         raise RuntimeError("Supabase support is not installed. Run `pip install -e .` again.")
     return create_client(
         supabase_url,
         service_role_key,
-        options=ClientOptions(auto_refresh_token=False, persist_session=False),
+        options=SyncClientOptions(auto_refresh_token=False, persist_session=False),
     )
 
 
