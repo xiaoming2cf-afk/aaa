@@ -32,6 +32,7 @@ from .entities import (
     DataAsset,
     EconomicBriefing,
     IntegrationCredential,
+    LabTemplate,
     KnowledgeCase,
     KnowledgeCaseItem,
     KnowledgeRecord,
@@ -593,14 +594,17 @@ def serialize_knowledge_case_item(
 
 
 def serialize_asset(asset: DataAsset) -> dict[str, Any]:
+    metadata = asset.metadata_json if isinstance(asset.metadata_json, dict) else {}
+    filename = metadata.get("original_filename") or asset.title
     return {
         "id": asset.id,
         "kind": asset.kind,
         "title": asset.title,
+        "filename": filename,
         "description": asset.description,
         "content_type": asset.content_type,
         "source_url": asset.source_url,
-        "metadata": asset.metadata_json,
+        "metadata": metadata,
         "created_at": asset.created_at.isoformat(),
         "updated_at": asset.updated_at.isoformat(),
     }
@@ -651,6 +655,15 @@ def login_user(db: Session, settings: Settings, *, email: str, password: str) ->
     return user, token
 
 
+def logout_user_session(db: Session, *, token: str) -> None:
+    if not token:
+        return
+    session_row = db.scalar(select(UserSession).where(UserSession.token_hash == hash_token(token)))
+    if session_row:
+        db.delete(session_row)
+        db.flush()
+
+
 def get_current_user(db: Session, token: str) -> User:
     session_row = db.scalar(
         select(UserSession).where(
@@ -667,6 +680,15 @@ def get_current_user(db: Session, token: str) -> User:
     if not user or not user.is_active:
         raise PermissionError("The account is inactive.")
     return user
+
+
+def get_current_user_optional(db: Session, token: str) -> User | None:
+    if not token:
+        return None
+    try:
+        return get_current_user(db, token)
+    except PermissionError:
+        return None
 
 
 def create_workspace(
@@ -929,6 +951,117 @@ def create_knowledge_case(
     db.add(case)
     db.flush()
     return case
+
+
+def serialize_lab_template(template: LabTemplate) -> dict[str, Any]:
+    return {
+        "id": template.id,
+        "template_scope": template.template_scope,
+        "workflow_type": template.workflow_type,
+        "family": template.family,
+        "method": template.method,
+        "name": template.name,
+        "description": template.description,
+        "is_default": template.is_default,
+        "specification": template.specification_json if isinstance(template.specification_json, dict) else {},
+        "metadata": template.metadata_json if isinstance(template.metadata_json, dict) else {},
+        "created_at": template.created_at.isoformat(),
+        "updated_at": template.updated_at.isoformat(),
+    }
+
+
+def list_lab_templates(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    template_scope: str,
+    workflow_type: str = "",
+    family: str = "",
+    method: str = "",
+) -> list[LabTemplate]:
+    stmt = (
+        select(LabTemplate)
+        .where(
+            and_(
+                LabTemplate.owner_user_id == user.id,
+                LabTemplate.workspace_id == workspace.id,
+                LabTemplate.template_scope == template_scope.strip(),
+            )
+        )
+        .order_by(LabTemplate.is_default.desc(), LabTemplate.updated_at.desc(), LabTemplate.created_at.desc())
+    )
+    rows = list(db.scalars(stmt))
+    if workflow_type:
+        rows = [row for row in rows if row.workflow_type == workflow_type]
+    if family:
+        rows = [row for row in rows if row.family == family]
+    if method:
+        rows = [row for row in rows if row.method == method]
+    return rows
+
+
+def get_owned_lab_template(db: Session, *, user: User, template_id: str) -> LabTemplate:
+    template = db.get(LabTemplate, template_id)
+    if not template or template.owner_user_id != user.id:
+        raise FileNotFoundError("Lab template not found.")
+    return template
+
+
+def create_lab_template(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    template_scope: str,
+    workflow_type: str,
+    family: str,
+    method: str,
+    name: str,
+    description: str = "",
+    specification: dict[str, Any] | None = None,
+    metadata: dict[str, Any] | None = None,
+    is_default: bool = False,
+) -> LabTemplate:
+    normalized_scope = template_scope.strip()
+    normalized_workflow = workflow_type.strip()
+    normalized_family = family.strip()
+    normalized_method = method.strip()
+    normalized_name = name.strip()
+    if not normalized_scope:
+        raise ValueError("Template scope is required.")
+    if not normalized_workflow:
+        raise ValueError("Workflow type is required.")
+    if not normalized_name:
+        raise ValueError("Template name is required.")
+    if is_default:
+        for existing in list_lab_templates(
+            db,
+            user=user,
+            workspace=workspace,
+            template_scope=normalized_scope,
+            workflow_type=normalized_workflow,
+            family=normalized_family,
+            method=normalized_method,
+        ):
+            if existing.is_default:
+                existing.is_default = False
+    template = LabTemplate(
+        workspace_id=workspace.id,
+        owner_user_id=user.id,
+        template_scope=normalized_scope,
+        workflow_type=normalized_workflow,
+        family=normalized_family,
+        method=normalized_method,
+        name=normalized_name,
+        description=description.strip(),
+        is_default=bool(is_default),
+        specification_json=dict(specification or {}) if isinstance(specification, dict) else {},
+        metadata_json=dict(metadata or {}) if isinstance(metadata, dict) else {},
+    )
+    db.add(template)
+    db.flush()
+    return template
 
 
 def list_knowledge_cases(
@@ -3122,6 +3255,11 @@ def prepare_dataset_asset(
     rolling_window: int = 5,
     drop_duplicates: bool = True,
     drop_missing_required: bool = True,
+    template_id: str = "",
+    template_name: str = "",
+    variant_label: str = "",
+    variant_spec: dict[str, Any] | None = None,
+    effective_specification: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
     frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
@@ -3175,6 +3313,11 @@ def prepare_dataset_asset(
         "source_asset_title": asset.title,
         "prepared_asset_id": prepared_asset.id,
         "prepared_download_url": f"/api/assets/{prepared_asset.id}/download",
+        "template_id": template_id,
+        "template_name": template_name,
+        "variant_label": variant_label,
+        "variant_spec": dict(variant_spec or {}) if isinstance(variant_spec, dict) else {},
+        "effective_specification": dict(effective_specification or {}) if isinstance(effective_specification, dict) else {},
         "manual_checklist": [
             "Download the prepared asset and compare row/column counts with rows_after_prepare and columns.",
             "Reapply each cleaning step in order: imputation, winsorization, transforms, outlier filter, and missing-value filtering.",
@@ -3201,6 +3344,11 @@ def prepare_dataset_asset(
     processing_result = {
         "workflow_type": "data_processing",
         "processing_family": workflow_group or "sample_preparation",
+        "template_id": template_id,
+        "template_name": template_name,
+        "variant_label": variant_label,
+        "variant_spec": dict(variant_spec or {}) if isinstance(variant_spec, dict) else {},
+        "effective_specification": dict(effective_specification or {}) if isinstance(effective_specification, dict) else {},
         "asset": serialize_asset(prepared_asset),
         "summary": summary,
         "preview_rows": preview_rows,
@@ -4306,11 +4454,53 @@ def run_event_study_analysis(
             "coefficient": item["coefficient"],
             "std_error": item["std_error"],
             "p_value": item["p_value"],
+            "confidence_low": (
+                float(item["coefficient"]) - 1.96 * float(item["std_error"])
+                if item["coefficient"] is not None and item["std_error"] is not None
+                else None
+            ),
+            "confidence_high": (
+                float(item["coefficient"]) + 1.96 * float(item["std_error"])
+                if item["coefficient"] is not None and item["std_error"] is not None
+                else None
+            ),
+            "significance_stars": (
+                "***"
+                if item["p_value"] is not None and float(item["p_value"]) < 0.01
+                else "**"
+                if item["p_value"] is not None and float(item["p_value"]) < 0.05
+                else "*"
+                if item["p_value"] is not None and float(item["p_value"]) < 0.1
+                else ""
+            ),
         }
         for item in _serialize_coefficients(fitted)
         if item["term"] in effect_map
     ]
     dynamic_rows = sorted(dynamic_rows, key=lambda item: int(item["period"]))
+    table_rows = [
+        {
+            "period": int(item["period"]),
+            "term": item["term"],
+            "coefficient": float(item["coefficient"]) if item["coefficient"] is not None else None,
+            "std_error": float(item["std_error"]) if item["std_error"] is not None else None,
+            "p_value": float(item["p_value"]) if item["p_value"] is not None else None,
+            "confidence_low": float(item["confidence_low"]) if item["confidence_low"] is not None else None,
+            "confidence_high": float(item["confidence_high"]) if item["confidence_high"] is not None else None,
+            "significance_stars": item["significance_stars"],
+        }
+        for item in dynamic_rows
+    ]
+    window_rows = [
+        {
+            "window_start": -int(lead_window),
+            "window_end": int(lag_window),
+            "omitted_period": int(omitted_period),
+            "periods_estimated": len(table_rows),
+            "treated_observations": int(sample[treatment_column].sum()),
+            "total_observations": int(len(sample)),
+        }
+    ]
     if dynamic_rows:
         periods_plot = np.array([int(item["period"]) for item in dynamic_rows], dtype=int)
         coefficients_plot = np.array([float(item["coefficient"]) for item in dynamic_rows], dtype=float)
@@ -4363,6 +4553,10 @@ def run_event_study_analysis(
             "lag_window": int(lag_window),
             "omitted_period": int(omitted_period),
             "dynamic_effects": dynamic_rows,
+            "tables": {
+                "event_study_table": table_rows,
+                "event_study_window": window_rows,
+            },
             "figures": [figure_asset] if figure_asset else [],
             "audit_trail": {
                 "derived_columns": derived_columns,
@@ -4510,6 +4704,81 @@ def run_rdd_analysis(
         title="RDD scatter and fitted lines",
         summary="RDD plot with separate fitted curves on each side of the cutoff.",
     )
+
+    def _fit_rdd_variant(local_bandwidth: float, local_polynomial_order: int) -> dict[str, Any] | None:
+        local_sample = frame[required_columns].copy()
+        local_sample[dependent] = _coerce_numeric_series(local_sample[dependent])
+        local_sample[running_column] = _coerce_numeric_series(local_sample[running_column])
+        for column in controls:
+            local_sample[column] = _coerce_numeric_series(local_sample[column])
+        local_sample = local_sample.dropna().copy()
+        local_sample["running_centered"] = local_sample[running_column] - float(cutoff)
+        if local_bandwidth > 0:
+            local_sample = local_sample.loc[local_sample["running_centered"].abs() <= float(local_bandwidth)].copy()
+        if len(local_sample) < max(12, 4 * local_polynomial_order):
+            return None
+        if treat_above_cutoff:
+            local_sample["rdd_treatment"] = (local_sample["running_centered"] >= 0).astype(float)
+        else:
+            local_sample["rdd_treatment"] = (local_sample["running_centered"] <= 0).astype(float)
+        local_regressors = ["rdd_treatment"]
+        for power in range(1, int(local_polynomial_order) + 1):
+            base_name = "running_centered" if power == 1 else f"running_centered_pow_{power}"
+            if power > 1:
+                local_sample[base_name] = local_sample["running_centered"] ** power
+            local_regressors.append(base_name)
+            interaction_name = f"rdd_treatment_x_{base_name}"
+            local_sample[interaction_name] = local_sample["rdd_treatment"] * local_sample[base_name]
+            local_regressors.append(interaction_name)
+        local_regressors.extend(controls)
+        try:
+            local_fit = _fit_ols(
+                local_sample[[dependent, *local_regressors]].copy(),
+                dependent,
+                local_regressors,
+                robust_covariance=robust_covariance,
+            )
+        except Exception:
+            return None
+        return {
+            "bandwidth": float(local_bandwidth),
+            "polynomial_order": int(local_polynomial_order),
+            "observations": int(len(local_sample)),
+            "local_effect": float(local_fit.params.get("rdd_treatment", np.nan)),
+            "std_error": _safe_float(local_fit.bse.get("rdd_treatment")) if hasattr(local_fit, "bse") else None,
+            "p_value": _safe_float(local_fit.pvalues.get("rdd_treatment")) if hasattr(local_fit, "pvalues") else None,
+        }
+
+    candidate_bandwidths = []
+    if bandwidth and bandwidth > 0:
+        candidate_bandwidths = [max(float(bandwidth) * 0.75, 0.05), float(bandwidth), float(bandwidth) * 1.25]
+    else:
+        centered_abs = sample["running_centered"].abs()
+        median_abs = float(centered_abs.median()) if len(centered_abs) else 0.0
+        fallback = max(median_abs, 0.5)
+        candidate_bandwidths = [max(fallback * 0.75, 0.05), fallback, fallback * 1.25]
+    sensitivity_rows: list[dict[str, Any]] = []
+    seen_specs: set[tuple[float, int]] = set()
+    for bw in candidate_bandwidths:
+        for order in sorted({max(1, int(polynomial_order) - 1), int(polynomial_order), min(3, int(polynomial_order) + 1)}):
+            key = (round(float(bw), 6), int(order))
+            if key in seen_specs:
+                continue
+            seen_specs.add(key)
+            candidate = _fit_rdd_variant(float(bw), int(order))
+            if candidate is not None:
+                sensitivity_rows.append(candidate)
+    if not sensitivity_rows:
+        sensitivity_rows.append(
+            {
+                "bandwidth": float(bandwidth) if bandwidth and bandwidth > 0 else None,
+                "polynomial_order": int(polynomial_order),
+                "observations": int(len(sample)),
+                "local_effect": local_effect,
+                "std_error": _safe_float(fitted.bse.get("rdd_treatment")) if hasattr(fitted, "bse") else None,
+                "p_value": _safe_float(fitted.pvalues.get("rdd_treatment")) if hasattr(fitted, "pvalues") else None,
+            }
+        )
     payload = _model_result_payload(
         model_type="rdd",
         model_label="RDD",
@@ -4526,6 +4795,18 @@ def run_rdd_analysis(
             "polynomial_order": int(polynomial_order),
             "treat_above_cutoff": bool(treat_above_cutoff),
             "local_effect": local_effect,
+            "tables": {
+                "bandwidth_sensitivity": sensitivity_rows,
+                "rdd_design_audit": [
+                    {
+                        "cutoff": float(cutoff),
+                        "bandwidth": float(bandwidth),
+                        "polynomial_order": int(polynomial_order),
+                        "treat_above_cutoff": bool(treat_above_cutoff),
+                        "observations": int(len(sample)),
+                    }
+                ],
+            },
             "figures": [figure_asset],
             "audit_trail": {
                 "derived_columns": derived_columns,
@@ -5727,6 +6008,23 @@ def run_risk_metric_analysis(
         metrics = {"ewma_lambda": normalized_lambda, "latest_volatility": float(volatility_path[-1]), "mean_return": float(returns.mean()), "volatility": float(returns.std())}
         derived_columns = ["ewma_volatility"]
 
+    risk_summary_rows = [
+        {
+            "confidence_level": float(confidence_level),
+            "holding_period_days": int(holding_period_days),
+            "var": float(metrics["var"]) if metrics.get("var") is not None else None,
+            "expected_shortfall": (
+                float(metrics["expected_shortfall"])
+                if metrics.get("expected_shortfall") is not None
+                else (float(metrics["var"]) if metrics.get("var") is not None else None)
+            ),
+            "mean_return": float(metrics["mean_return"]) if metrics.get("mean_return") is not None else None,
+            "volatility": float(metrics["volatility"]) if metrics.get("volatility") is not None else None,
+            "ewma_lambda": float(metrics["ewma_lambda"]) if model_type == "ewma_volatility" else None,
+            "latest_volatility": float(metrics["latest_volatility"]) if model_type == "ewma_volatility" else None,
+        }
+    ]
+    risk_series_rows = _frame_preview_rows(sample, limit=25)
     return _nonregression_result_payload(
         model_type=model_type,
         model_label=label,
@@ -5746,7 +6044,10 @@ def run_risk_metric_analysis(
             "filters": ["Rows with missing selected return values are dropped."],
         },
         metrics=metrics,
-        tables={"series_preview": _frame_preview_rows(sample, limit=10)},
+        tables={
+            "risk_summary": risk_summary_rows,
+            "series_preview": risk_series_rows,
+        },
     )
 
 
@@ -5811,6 +6112,19 @@ def run_option_pricing_analysis(
     latest = preview.iloc[-1]
     label = "Binomial Option Pricing" if model_type == "binomial_option" else "Black-Scholes"
     equation = "CRR binomial tree backward induction" if model_type == "binomial_option" else "Closed-form Black-Scholes-Merton pricing formula"
+    pricing_rows = _frame_preview_rows(preview, limit=25)
+    greek_rows = [
+        {
+            "latest_price": float(latest["price"]),
+            "mean_price": float(preview["price"].mean()),
+            "delta": float(latest["delta"]) if "delta" in latest and pd.notna(latest["delta"]) else None,
+            "gamma": float(latest["gamma"]) if "gamma" in latest and pd.notna(latest["gamma"]) else None,
+            "d1": float(latest["d1"]) if "d1" in latest and pd.notna(latest["d1"]) else None,
+            "d2": float(latest["d2"]) if "d2" in latest and pd.notna(latest["d2"]) else None,
+            "option_type": option_type,
+            "option_steps": int(option_steps),
+        }
+    ]
     return _nonregression_result_payload(
         model_type=model_type,
         model_label=label,
@@ -5837,7 +6151,10 @@ def run_option_pricing_analysis(
             "filters": ["Rows with missing pricing inputs are dropped.", "Only the first 500 complete rows are priced for stability."],
         },
         metrics={"latest_price": float(latest["price"]), "mean_price": float(preview["price"].mean())},
-        tables={"valuation_preview": _frame_preview_rows(preview, limit=10)},
+        tables={
+            "pricing_table": pricing_rows,
+            "pricing_greeks_summary": greek_rows,
+        },
     )
 
 
@@ -5931,7 +6248,17 @@ def run_rbc_dsge_analysis(
             "filters": [],
         },
         metrics={"steady_state_capital": float(capital), "steady_state_output": float(output), "steady_state_consumption": float(consumption), "steady_state_investment": float(investment)},
-        tables={"impulse_response": impulse},
+        tables={
+            "impulse_response_table": impulse,
+            "steady_state_summary": [
+                {
+                    "steady_state_capital": float(capital),
+                    "steady_state_output": float(output),
+                    "steady_state_consumption": float(consumption),
+                    "steady_state_investment": float(investment),
+                }
+            ],
+        },
     )
 
 
@@ -5983,6 +6310,16 @@ def run_portfolio_analysis(
     portfolio_return = float(mean_returns @ weights)
     portfolio_volatility = float(math.sqrt(max(weights @ covariance @ weights, 0.0)))
     weights_table = [{"asset_column": series_columns[index], "weight": float(weights[index]), "mean_return": float(mean_returns[index])} for index in range(len(series_columns))]
+    covariance_rows = [
+        {
+            "asset_row": series_columns[row_index],
+            **{
+                series_columns[column_index]: float(covariance[row_index, column_index])
+                for column_index in range(len(series_columns))
+            },
+        }
+        for row_index in range(len(series_columns))
+    ]
     return _nonregression_result_payload(
         model_type=model_type,
         model_label=label,
@@ -6002,7 +6339,10 @@ def run_portfolio_analysis(
             "filters": ["Rows with missing return values across any selected asset column are dropped."],
         },
         metrics={"expected_return": portfolio_return, "volatility": portfolio_volatility},
-        tables={"weights": weights_table},
+        tables={
+            "weights_table": weights_table,
+            "covariance_matrix": covariance_rows,
+        },
     )
 
 
@@ -6475,6 +6815,11 @@ def run_model_analysis(
     dsge_shock_size: float = 0.01,
     dsge_impulse_horizon: int = 12,
     robust_covariance: bool = True,
+    template_id: str = "",
+    template_name: str = "",
+    variant_label: str = "",
+    variant_spec: dict[str, Any] | None = None,
+    effective_specification: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     normalized_model = model_type.strip().lower()
 
@@ -6483,8 +6828,28 @@ def run_model_analysis(
         payload["workflow_type"] = "model"
         payload.setdefault("model_family", family)
         specification = payload.get("specification")
-        if isinstance(specification, dict):
-            specification.setdefault("model_family", family)
+        if not isinstance(specification, dict):
+            specification = {}
+        base_specification = dict(effective_specification or {}) if isinstance(effective_specification, dict) else {}
+        specification = {
+            **base_specification,
+            **specification,
+        }
+        specification.setdefault("model_family", family)
+        specification.setdefault("model_type", normalized_model)
+        if template_id:
+            specification.setdefault("template_id", template_id)
+        if template_name:
+            specification.setdefault("template_name", template_name)
+        if variant_label:
+            specification.setdefault("variant_label", variant_label)
+        if isinstance(variant_spec, dict) and variant_spec:
+            specification.setdefault("variant_spec", dict(variant_spec))
+        payload["specification"] = specification
+        payload["template_id"] = template_id
+        payload["template_name"] = template_name
+        payload["variant_label"] = variant_label
+        payload["variant_spec"] = dict(variant_spec or {}) if isinstance(variant_spec, dict) else {}
         if not payload.get("result_record_id"):
             asset_title = ((payload.get("asset") or {}).get("title") or "dataset").strip()
             record = create_knowledge_record(

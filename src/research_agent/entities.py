@@ -114,6 +114,26 @@ class KnowledgeCaseItem(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
 
+class LabTemplate(Base):
+    __tablename__ = "lab_templates"
+    __table_args__ = (UniqueConstraint("workspace_id", "template_scope", "name", name="uq_lab_template_scope_name"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"), index=True)
+    owner_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    template_scope: Mapped[str] = mapped_column(String(40), index=True)
+    workflow_type: Mapped[str] = mapped_column(String(40), index=True)
+    family: Mapped[str] = mapped_column(String(80), default="", index=True)
+    method: Mapped[str] = mapped_column(String(80), default="", index=True)
+    name: Mapped[str] = mapped_column(String(240))
+    description: Mapped[str] = mapped_column(Text, default="")
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    specification_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    metadata_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
 class DataAsset(Base):
     __tablename__ = "data_assets"
 

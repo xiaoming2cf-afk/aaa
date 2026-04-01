@@ -92,6 +92,10 @@ MEALPY_DISABLED_OPTIMIZERS: dict[str, str] = {
         "Disabled due to an upstream Mealpy bug: the implementation references undefined attributes "
         "such as self.dim/self.positions during evolve()."
     ),
+    "mealpy.human_based.CHIO.OriginalCHIO": (
+        "Disabled due to an upstream Mealpy instability: under baseline benchmark settings the implementation "
+        "can exhaust its candidate pool and fail with an empty argmin sequence."
+    ),
 }
 
 MEALPY_PATCH_NOTES: dict[str, str] = {
@@ -105,6 +109,9 @@ OPFUNU_ABSTRACT_NAMES = {"Benchmark", "CecBenchmark"}
 OPFUNU_DIMENSION_CANDIDATES = (30, 10, 50, 100, 5, 2)
 MAX_PARALLEL_TASKS = 240
 MAX_ESTIMATED_EVALUATIONS = 5_000_000
+MIN_STANDARD_ALGORITHMS = 3
+MIN_STANDARD_FUNCTIONS = 3
+MIN_STANDARD_RUNS = 3
 
 
 def _ensure_numpy_compat_aliases() -> None:
@@ -371,7 +378,9 @@ def get_optimization_catalog() -> dict[str, Any]:
                 "name": fqcn,
                 "label": cls.__name__,
                 "module": cls.__module__,
+                "library": "mealpy",
                 "group": cls.__module__.split(".")[1] if "." in cls.__module__ else "misc",
+                "family": cls.__module__.split(".")[2] if len(cls.__module__.split(".")) > 2 else "misc",
                 "availability": availability,
             }
         )
@@ -386,6 +395,9 @@ def get_optimization_catalog() -> dict[str, Any]:
                     "name": function_name,
                     "label": function_name,
                     "module": getattr(_cls, "__module__", ""),
+                    "library": "opfunu",
+                    "group": getattr(_cls, "__module__", "").split(".")[1] if "." in getattr(_cls, "__module__", "") else "misc",
+                    "family": getattr(_cls, "__module__", "").split(".")[2] if len(getattr(_cls, "__module__", "").split(".")) > 2 else "misc",
                     "availability": {"status": "unavailable", "note": "Abstract base entry; not a runnable benchmark."},
                 }
             )
@@ -397,6 +409,9 @@ def get_optimization_catalog() -> dict[str, Any]:
                     "name": function_name,
                     "label": function_name,
                     "module": getattr(_cls, "__module__", ""),
+                    "library": "opfunu",
+                    "group": getattr(_cls, "__module__", "").split(".")[1] if "." in getattr(_cls, "__module__", "") else "misc",
+                    "family": getattr(_cls, "__module__", "").split(".")[2] if len(getattr(_cls, "__module__", "").split(".")) > 2 else "misc",
                     "dimension": probe["dimension"],
                     "availability": {"status": "available", "note": "Instantiation and baseline evaluation verified locally."},
                     "bounds": {
@@ -412,6 +427,9 @@ def get_optimization_catalog() -> dict[str, Any]:
                     "name": function_name,
                     "label": function_name,
                     "module": getattr(_cls, "__module__", ""),
+                    "library": "opfunu",
+                    "group": getattr(_cls, "__module__", "").split(".")[1] if "." in getattr(_cls, "__module__", "") else "misc",
+                    "family": getattr(_cls, "__module__", "").split(".")[2] if len(getattr(_cls, "__module__", "").split(".")) > 2 else "misc",
                     "availability": {"status": "unavailable", "note": str(exc)},
                 }
             )
@@ -430,6 +448,11 @@ def get_optimization_catalog() -> dict[str, Any]:
             "optimizer_available_count": len(available_optimizers),
             "function_count": len(function_entries),
             "function_available_count": len(available_functions),
+        },
+        "suite_requirements": {
+            "min_algorithms": MIN_STANDARD_ALGORITHMS,
+            "min_functions": MIN_STANDARD_FUNCTIONS,
+            "min_runs": MIN_STANDARD_RUNS,
         },
     }
 
@@ -531,23 +554,37 @@ def _run_single_optimization_task(task: dict[str, Any]) -> dict[str, Any]:
 
 def _rank_table(score_frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]]:
     if score_frame.empty:
-        return pd.DataFrame(), {"statistic": None, "pvalue": None, "rankings": []}
+        raise ValueError("No score data were available for ranking or Friedman testing.")
     pivot = score_frame.pivot(index="function_name", columns="optimizer_name", values="mean_fitness")
     rank_frame = pivot.rank(axis=1, method="average", ascending=True)
     average_ranks = rank_frame.mean(axis=0).sort_values()
-    friedman_stat = None
-    friedman_pvalue = None
-    if rank_frame.shape[1] >= 2 and rank_frame.shape[0] >= 2:
-        friedman_stat, friedman_pvalue = stats.friedmanchisquare(*[pivot[column].fillna(pivot[column].mean()) for column in pivot.columns])
+    if rank_frame.shape[1] < MIN_STANDARD_ALGORITHMS:
+        raise ValueError(
+            f"Optimization ranking requires at least {MIN_STANDARD_ALGORITHMS} algorithms; got {rank_frame.shape[1]}."
+        )
+    if rank_frame.shape[0] < MIN_STANDARD_FUNCTIONS:
+        raise ValueError(
+            f"Optimization ranking requires at least {MIN_STANDARD_FUNCTIONS} benchmark functions; got {rank_frame.shape[0]}."
+        )
+    try:
+        friedman_stat, friedman_pvalue = stats.friedmanchisquare(
+            *[pivot[column].fillna(pivot[column].mean()) for column in pivot.columns]
+        )
+    except Exception as exc:
+        raise ValueError(f"Friedman test failed: {exc}") from exc
     ranking_rows = [
         {"optimizer_name": name, "average_rank": float(rank), "rank_order": index + 1}
         for index, (name, rank) in enumerate(average_ranks.items())
     ]
     ranking_frame = pd.DataFrame(ranking_rows)
     return ranking_frame, {
-        "statistic": _safe_float(friedman_stat) if friedman_stat is not None else None,
-        "pvalue": _safe_float(friedman_pvalue) if friedman_pvalue is not None else None,
+        "available": True,
+        "statistic": _safe_float(friedman_stat),
+        "pvalue": _safe_float(friedman_pvalue),
         "rankings": ranking_rows,
+        "algorithm_count": int(rank_frame.shape[1]),
+        "function_count": int(rank_frame.shape[0]),
+        "note": "Friedman test computed successfully.",
     }
 
 
@@ -601,6 +638,26 @@ def _pairwise_tests(score_frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFra
                 }
             )
     return pd.DataFrame(wilcoxon_rows), pd.DataFrame(sign_rows)
+
+
+def _validate_suite_requirements(
+    *,
+    optimizer_count: int,
+    function_count: int,
+    runs: int,
+) -> None:
+    if optimizer_count < MIN_STANDARD_ALGORITHMS:
+        raise ValueError(
+            f"Optimization suites require at least {MIN_STANDARD_ALGORITHMS} algorithms to produce valid ranking and Friedman outputs; got {optimizer_count}."
+        )
+    if function_count < MIN_STANDARD_FUNCTIONS:
+        raise ValueError(
+            f"Optimization suites require at least {MIN_STANDARD_FUNCTIONS} benchmark functions to produce valid comparative outputs; got {function_count}."
+        )
+    if runs < MIN_STANDARD_RUNS:
+        raise ValueError(
+            f"Optimization suites require at least {MIN_STANDARD_RUNS} runs per algorithm-function pair to produce stable process curves and statistical outputs; got {runs}."
+        )
 
 
 def _mean_curve(curves: list[list[float]]) -> list[float]:
@@ -698,6 +755,47 @@ def _plot_per_function_curves(function_curves: dict[str, dict[str, list[float]]]
     return outputs
 
 
+def _plot_score_heatmap(score_frame: pd.DataFrame) -> bytes:
+    if score_frame.empty:
+        return b""
+    pivot = score_frame.pivot(index="function_name", columns="optimizer_name", values="mean_fitness")
+    if pivot.empty:
+        return b""
+
+    def draw(figure):
+        axis = figure.add_subplot(1, 1, 1)
+        matrix = pivot.to_numpy(dtype=float)
+        image = axis.imshow(matrix, aspect="auto", cmap="viridis")
+        axis.set_xticks(range(len(pivot.columns)))
+        axis.set_xticklabels(pivot.columns, rotation=45, ha="right", fontsize=8)
+        axis.set_yticks(range(len(pivot.index)))
+        axis.set_yticklabels(pivot.index, fontsize=8)
+        axis.set_title("Mean fitness heatmap")
+        colorbar = figure.colorbar(image, ax=axis, shrink=0.82)
+        colorbar.set_label("Mean fitness")
+
+    return _figure_bytes(draw)
+
+
+def _plot_score_dispersion(result_frame: pd.DataFrame) -> bytes:
+    if result_frame.empty:
+        return b""
+    grouped = [group["best_fitness"].astype(float).tolist() for _, group in result_frame.groupby("optimizer_name")]
+    labels = [name for name, _ in result_frame.groupby("optimizer_name")]
+    if not grouped or not labels:
+        return b""
+
+    def draw(figure):
+        axis = figure.add_subplot(1, 1, 1)
+        axis.boxplot(grouped, labels=labels, vert=True, patch_artist=True)
+        axis.set_title("Final-fitness dispersion by algorithm")
+        axis.set_ylabel("Best fitness")
+        axis.tick_params(axis="x", rotation=45, labelsize=8)
+        axis.grid(alpha=0.2, axis="y")
+
+    return _figure_bytes(draw)
+
+
 def _to_csv_bytes(frame: pd.DataFrame) -> bytes:
     return frame.to_csv(index=False).encode("utf-8")
 
@@ -743,6 +841,11 @@ def run_optimization_suite(
     runs: int = 5,
     workers: int = 0,
     seed_base: int = 20260331,
+    template_id: str = "",
+    template_name: str = "",
+    variant_label: str = "",
+    variant_spec: dict[str, Any] | None = None,
+    effective_specification: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     catalog = get_optimization_catalog()
     available_optimizers = {item["name"]: item for item in catalog["optimizers"] if item["availability"]["status"] == "available"}
@@ -753,6 +856,11 @@ def run_optimization_suite(
         raise ValueError("No available optimization algorithms were selected.")
     if not selected_functions:
         raise ValueError("No available benchmark functions were selected.")
+    _validate_suite_requirements(
+        optimizer_count=len(selected_optimizers),
+        function_count=len(selected_functions),
+        runs=max(1, int(runs)),
+    )
     total_tasks = len(selected_optimizers) * len(selected_functions) * max(1, int(runs))
     estimated_evaluations = total_tasks * max(1, int(epoch)) * max(2, int(pop_size))
     if total_tasks > MAX_PARALLEL_TASKS:
@@ -824,6 +932,17 @@ def run_optimization_suite(
     )
     ranking_frame, friedman_summary = _rank_table(score_frame)
     wilcoxon_frame, sign_frame = _pairwise_tests(score_frame)
+    friedman_frame = pd.DataFrame(
+        [
+            {
+                "statistic": friedman_summary.get("statistic"),
+                "pvalue": friedman_summary.get("pvalue"),
+                "algorithm_count": friedman_summary.get("algorithm_count"),
+                "function_count": friedman_summary.get("function_count"),
+                "note": friedman_summary.get("note"),
+            }
+        ]
+    )
 
     curve_frame = pd.DataFrame(
         [
@@ -862,6 +981,8 @@ def run_optimization_suite(
     average_curve_bytes = _plot_average_convergence(mean_curves)
     radar_bytes = _plot_radar(ranking_frame)
     ranking_bytes = _plot_ranking_bar(ranking_frame)
+    heatmap_bytes = _plot_score_heatmap(score_frame)
+    dispersion_bytes = _plot_score_dispersion(result_frame)
     if average_curve_bytes:
         figure_assets.append(
             _save_generated_asset(
@@ -901,6 +1022,32 @@ def run_optimization_suite(
                 description="Average rank ordering of the selected algorithms.",
             )
         )
+    if heatmap_bytes:
+        figure_assets.append(
+            _save_generated_asset(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                filename=f"{suite_slug}-mean-fitness-heatmap.png",
+                content=heatmap_bytes,
+                content_type="image/png",
+                description="Heatmap of per-function mean fitness for every algorithm.",
+            )
+        )
+    if dispersion_bytes:
+        figure_assets.append(
+            _save_generated_asset(
+                settings,
+                db,
+                user=user,
+                workspace=workspace,
+                filename=f"{suite_slug}-fitness-dispersion.png",
+                content=dispersion_bytes,
+                content_type="image/png",
+                description="Distribution of final best-fitness values for each algorithm across all successful runs.",
+            )
+        )
     for function_name, image_bytes in _plot_per_function_curves(per_function_curves).items():
         figure_assets.append(
             _save_generated_asset(
@@ -918,6 +1065,7 @@ def run_optimization_suite(
     for filename, frame, description in [
         (f"{suite_slug}-scores.csv", score_frame, "Mean fitness table by algorithm and benchmark."),
         (f"{suite_slug}-ranks.csv", ranking_frame, "Average rank table derived from per-function mean fitness."),
+        (f"{suite_slug}-friedman.csv", friedman_frame, "Friedman test summary table for the full optimization suite."),
         (f"{suite_slug}-wilcoxon.csv", wilcoxon_frame, "Pairwise Wilcoxon signed-rank test table."),
         (f"{suite_slug}-sign-test.csv", sign_frame, "Pairwise sign-test table."),
         (f"{suite_slug}-curves.csv", curve_frame, "Raw iteration-by-iteration convergence data for every task."),
@@ -947,6 +1095,7 @@ def run_optimization_suite(
         "success_count": len(success_rows),
         "failure_count": len(task_results) - len(success_rows),
         "friedman": friedman_summary,
+        "strict_requirements": catalog.get("suite_requirements", {}),
     }
     top_rank = ranking_frame.iloc[0].to_dict() if not ranking_frame.empty else {}
     top_text = (
@@ -981,8 +1130,17 @@ def run_optimization_suite(
             "worker_count": worker_count,
             "seed_base": int(seed_base),
         },
+        "template_id": template_id,
+        "template_name": template_name,
+        "variant_label": variant_label,
+        "variant_spec": dict(variant_spec or {}) if isinstance(variant_spec, dict) else {},
+        "effective_specification": dict(effective_specification or {}) if isinstance(effective_specification, dict) else {},
+        "suite_requirements": catalog.get("suite_requirements", {}),
         "tables_preview": score_frame.head(50).to_dict(orient="records"),
         "ranking_preview": ranking_frame.head(20).to_dict(orient="records"),
+        "friedman_preview": friedman_frame.to_dict(orient="records"),
+        "raw_curve_rows": curve_frame.to_dict(orient="records"),
+        "raw_run_rows": pd.DataFrame(task_results).to_dict(orient="records"),
         "failures": [item for item in task_results if item["status"] != "ok"],
         "artifacts": {
             "figures": figure_assets,

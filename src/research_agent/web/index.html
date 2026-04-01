@@ -31,7 +31,7 @@
     </header>
 
     <main class="shell">
-      <section class="panel platform-nav-panel">
+      <section class="panel platform-nav-panel access-guarded">
         <div class="panel-head panel-head-wrap">
           <div>
             <h2>Platform Navigation</h2>
@@ -88,7 +88,7 @@
         </div>
       </section>
 
-      <section class="panel public-entry-panel access-guarded">
+      <section class="panel public-entry-panel access-guarded" data-home-session-only>
         <div class="panel-head panel-head-wrap">
           <div>
             <h2>Standalone Research Pages</h2>
@@ -137,7 +137,7 @@
         </div>
       </section>
 
-      <section class="panel public-entry-panel access-guarded">
+      <section class="panel public-entry-panel access-guarded" data-home-session-only>
         <div class="panel-head panel-head-wrap">
           <div>
             <h2>Display Surface Guide</h2>
@@ -200,11 +200,19 @@
               <input name="description" type="text" placeholder="Description (optional)" />
               <button type="submit">Create workspace</button>
             </form>
+            <div class="session-launchpad">
+              <p class="eyebrow eyebrow-compact">Workspace launchpad</p>
+              <div class="actions compact-actions">
+                <a href="/data-lab" class="button-link">Open Data Lab</a>
+                <a href="/public-monitor" class="button-link secondary-link">Open Daily Monitor Workspace</a>
+                <button type="button" class="secondary" data-scroll-target="workspace-cockpit-panel">Open workspace cockpit</button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="panel cockpit-panel access-guarded" id="workspace-cockpit-panel">
+      <section class="panel cockpit-panel access-guarded" id="workspace-cockpit-panel" data-home-session-only>
         <div class="panel-head panel-head-wrap">
           <div>
             <h2>Workspace Cockpit</h2>
@@ -283,7 +291,7 @@
         </div>
       </section>
 
-      <section class="dashboard-grid access-guarded">
+      <section class="dashboard-grid access-guarded" data-home-session-only>
         <section class="panel" id="provider-center-panel">
           <div class="panel-head">
             <h2>Provider Center</h2>

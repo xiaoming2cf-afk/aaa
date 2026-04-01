@@ -416,6 +416,411 @@ MODEL_FAMILY_CATALOG: list[dict[str, object]] = [
 ]
 
 
+PROCESSING_VARIANT_PRESETS: dict[str, list[dict[str, object]]] = {
+    "sample_preparation": [
+        {
+            "label": "Strict row eligibility",
+            "description": "Keep duplicate removal and required-field filtering on so the prepared sample is maximally clean before modeling.",
+            "spec": {
+                "drop_duplicates": True,
+                "drop_missing_required": True,
+            },
+        },
+        {
+            "label": "Loose eligibility review",
+            "description": "Temporarily keep duplicate and missing-row rules off so you can inspect borderline rows before imposing final eligibility filters.",
+            "spec": {
+                "drop_duplicates": False,
+                "drop_missing_required": False,
+            },
+        },
+    ],
+    "cleaning_transforms": [
+        {
+            "label": "Median + conservative tails",
+            "description": "Median imputation with conservative winsor bounds and IQR outlier filtering.",
+            "spec": {
+                "impute_method": "median",
+                "winsor_lower_quantile": 0.02,
+                "winsor_upper_quantile": 0.98,
+                "outlier_method": "iqr",
+                "outlier_threshold": 1.5,
+            },
+        },
+        {
+            "label": "Mean + z-score trim",
+            "description": "Mean imputation with wider tails and z-score outlier trimming for a looser robustness pass.",
+            "spec": {
+                "impute_method": "mean",
+                "winsor_lower_quantile": 0.01,
+                "winsor_upper_quantile": 0.99,
+                "outlier_method": "zscore",
+                "outlier_threshold": 3.0,
+            },
+        },
+    ],
+    "time_series_features": [
+        {
+            "label": "Short-horizon returns",
+            "description": "Use log returns with one-step lags/leads and a short rolling window for monthly-style macro-finance panels.",
+            "spec": {
+                "return_method": "log",
+                "lag_periods": 1,
+                "lead_periods": 1,
+                "rolling_window": 5,
+            },
+        },
+        {
+            "label": "Longer smoothing window",
+            "description": "Keep simple returns but use longer dynamic windows for slower-moving macro variables.",
+            "spec": {
+                "return_method": "simple",
+                "lag_periods": 2,
+                "lead_periods": 2,
+                "rolling_window": 12,
+            },
+        },
+    ],
+    "visualization": [
+        {
+            "label": "High-resolution export",
+            "description": "Use a denser chart output budget so diagnostics retain more points before export.",
+            "spec": {
+                "max_points": 800,
+            },
+        },
+        {
+            "label": "Compact review chart",
+            "description": "Keep chart exports lighter for quick manual review and notebook-style iteration.",
+            "spec": {
+                "max_points": 200,
+            },
+        },
+    ],
+}
+
+
+MODEL_FAMILY_VARIANT_PRESETS: dict[str, list[dict[str, object]]] = {
+    "econometrics_baseline": [
+        {
+            "label": "Robust covariance",
+            "description": "Use heteroskedasticity-robust covariance as the default empirical baseline.",
+            "spec": {"robust_covariance": True},
+        },
+        {
+            "label": "Classical covariance",
+            "description": "Re-run the same design with classical covariance for a direct table-to-table comparison.",
+            "spec": {"robust_covariance": False},
+        },
+    ],
+    "time_series_finance": [
+        {
+            "label": "Short horizon",
+            "description": "Use a short forecast and impulse-response horizon with one lag.",
+            "spec": {"forecast_steps": 4, "irf_horizon": 8, "var_lags": 1},
+        },
+        {
+            "label": "Long horizon",
+            "description": "Stretch the dynamic horizon and lag order to inspect persistence and longer spillovers.",
+            "spec": {"forecast_steps": 12, "irf_horizon": 20, "var_lags": 2},
+        },
+    ],
+    "corporate_finance": [
+        {
+            "label": "Balance-sheet focus",
+            "description": "A bookkeeping-focused corporate-finance pass that keeps the emphasis on balance-sheet variables.",
+            "spec": {},
+        },
+    ],
+    "risk_management": [
+        {
+            "label": "Tighter confidence",
+            "description": "Estimate risk metrics at a 99 percent confidence level.",
+            "spec": {"confidence_level": 0.99},
+        },
+        {
+            "label": "Multi-day horizon",
+            "description": "Expand the holding period to inspect longer horizon loss aggregation.",
+            "spec": {"holding_period_days": 5},
+        },
+    ],
+    "derivatives_pricing": [
+        {
+            "label": "Call baseline",
+            "description": "Keep call-option pricing with a moderate binomial tree depth.",
+            "spec": {"option_type": "call", "option_steps": 50},
+        },
+        {
+            "label": "Put robustness",
+            "description": "Re-price with a put payoff and a denser tree for a robustness comparison.",
+            "spec": {"option_type": "put", "option_steps": 100},
+        },
+    ],
+    "macro_finance_dsge": [
+        {
+            "label": "Moderate persistence",
+            "description": "Use a moderate shock persistence and horizon suitable for a first DSGE-style impulse pass.",
+            "spec": {"dsge_shock_persistence": 0.9, "dsge_impulse_horizon": 12},
+        },
+        {
+            "label": "High persistence",
+            "description": "Increase shock persistence and horizon to inspect more durable macro propagation.",
+            "spec": {"dsge_shock_persistence": 0.97, "dsge_impulse_horizon": 20},
+        },
+    ],
+    "portfolio_allocation": [
+        {
+            "label": "Long-only benchmark",
+            "description": "Keep the portfolio constrained to long-only allocations.",
+            "spec": {"long_only": True, "risk_aversion": 3.0},
+        },
+        {
+            "label": "Flexible allocation",
+            "description": "Relax the long-only constraint and reduce risk aversion for a more aggressive allocation design.",
+            "spec": {"long_only": False, "risk_aversion": 2.0},
+        },
+    ],
+    "asset_pricing": [
+        {
+            "label": "Robust factor regression",
+            "description": "Use robust covariance in the asset-pricing regression baseline.",
+            "spec": {"robust_covariance": True},
+        },
+        {
+            "label": "Classical factor regression",
+            "description": "Re-run the factor regression with classical covariance for comparison against robust inference.",
+            "spec": {"robust_covariance": False},
+        },
+    ],
+}
+
+
+def _model_method_variant_presets(method_slug: str) -> list[dict[str, object]]:
+    presets: dict[str, list[dict[str, object]]] = {
+        "ols": MODEL_FAMILY_VARIANT_PRESETS["econometrics_baseline"],
+        "ppml": MODEL_FAMILY_VARIANT_PRESETS["econometrics_baseline"],
+        "logit": MODEL_FAMILY_VARIANT_PRESETS["econometrics_baseline"],
+        "probit": MODEL_FAMILY_VARIANT_PRESETS["econometrics_baseline"],
+        "did": [
+            {
+                "label": "Robust DID baseline",
+                "description": "Keep robust covariance for the main DID table.",
+                "spec": {"robust_covariance": True},
+            },
+            {
+                "label": "Classical DID comparison",
+                "description": "Turn robust covariance off for a table-to-table comparison against the baseline.",
+                "spec": {"robust_covariance": False},
+            },
+        ],
+        "event_study": [
+            {
+                "label": "Narrow event window",
+                "description": "Use a tighter lead-lag window for compact treatment dynamics.",
+                "spec": {"lead_window": 2, "lag_window": 4, "omitted_period": -1},
+            },
+            {
+                "label": "Wide event window",
+                "description": "Use a wider event window to inspect longer-run anticipation and adjustment paths.",
+                "spec": {"lead_window": 4, "lag_window": 8, "omitted_period": -1},
+            },
+        ],
+        "rdd": [
+            {
+                "label": "Local linear RDD",
+                "description": "Estimate the discontinuity with a local linear specification.",
+                "spec": {"rdd_polynomial_order": 1, "rdd_bandwidth": 1.0, "treat_above_cutoff": True},
+            },
+            {
+                "label": "Quadratic bandwidth check",
+                "description": "Expand the bandwidth and fit a quadratic polynomial for robustness.",
+                "spec": {"rdd_polynomial_order": 2, "rdd_bandwidth": 2.0, "treat_above_cutoff": True},
+            },
+        ],
+        "fixed_effects": [
+            {
+                "label": "Entity effects only",
+                "description": "Estimate with entity effects only.",
+                "spec": {"include_time_effects": False},
+            },
+            {
+                "label": "Two-way effects",
+                "description": "Add time effects for a two-way fixed-effects robustness check.",
+                "spec": {"include_time_effects": True},
+            },
+        ],
+        "gravity": [
+            {
+                "label": "Robust gravity",
+                "description": "Run the gravity model with robust covariance.",
+                "spec": {"robust_covariance": True},
+            },
+            {
+                "label": "Classical gravity",
+                "description": "Run the same gravity design with classical covariance for comparison.",
+                "spec": {"robust_covariance": False},
+            },
+        ],
+        "iv_2sls": [
+            {
+                "label": "Robust IV",
+                "description": "Use robust covariance in the 2SLS baseline.",
+                "spec": {"robust_covariance": True},
+            },
+            {
+                "label": "Classical IV",
+                "description": "Turn robust covariance off to compare with conventional 2SLS output.",
+                "spec": {"robust_covariance": False},
+            },
+        ],
+        "panel_iv": [
+            {
+                "label": "Entity IV",
+                "description": "Use panel IV without time effects.",
+                "spec": {"include_time_effects": False},
+            },
+            {
+                "label": "Two-way panel IV",
+                "description": "Add time effects to the panel IV setup.",
+                "spec": {"include_time_effects": True},
+            },
+        ],
+        "arima": [
+            {
+                "label": "ARIMA short-memory",
+                "description": "Use a compact ARIMA(1,0,1) configuration with short forecast steps.",
+                "spec": {"arima_p": 1, "arima_d": 0, "arima_q": 1, "forecast_steps": 4},
+            },
+            {
+                "label": "ARIMA differenced trend",
+                "description": "Difference once and extend the forecast horizon for persistence checks.",
+                "spec": {"arima_p": 2, "arima_d": 1, "arima_q": 1, "forecast_steps": 8},
+            },
+        ],
+        "arch": [
+            {
+                "label": "ARCH(1) baseline",
+                "description": "A simple ARCH-style volatility specification.",
+                "spec": {"garch_p": 1, "garch_q": 0, "forecast_steps": 6},
+            },
+            {
+                "label": "ARCH(2) check",
+                "description": "Increase ARCH order for a sensitivity pass on short volatility clustering.",
+                "spec": {"garch_p": 2, "garch_q": 0, "forecast_steps": 8},
+            },
+        ],
+        "garch": [
+            {
+                "label": "GARCH(1,1) benchmark",
+                "description": "Use the canonical GARCH(1,1) specification.",
+                "spec": {"garch_p": 1, "garch_q": 1, "forecast_steps": 6},
+            },
+            {
+                "label": "GARCH(2,1) persistence check",
+                "description": "Increase the ARCH order and forecast horizon for a persistence comparison.",
+                "spec": {"garch_p": 2, "garch_q": 1, "forecast_steps": 10},
+            },
+        ],
+        "var": [
+            {
+                "label": "VAR short lag",
+                "description": "Use one lag and a shorter forecast window.",
+                "spec": {"var_lags": 1, "forecast_steps": 4},
+            },
+            {
+                "label": "VAR longer lag",
+                "description": "Use two lags and extend the forecast horizon for a richer dynamic comparison.",
+                "spec": {"var_lags": 2, "forecast_steps": 8},
+            },
+        ],
+        "svar_irf": [
+            {
+                "label": "SVAR compact IRF",
+                "description": "Use a shorter horizon for compact impulse-response tables and figures.",
+                "spec": {"var_lags": 1, "irf_horizon": 8},
+            },
+            {
+                "label": "SVAR extended IRF",
+                "description": "Use more lags and a longer horizon to inspect persistent structural responses.",
+                "spec": {"var_lags": 2, "irf_horizon": 16},
+            },
+        ],
+        "virf": [
+            {
+                "label": "One-sigma shock",
+                "description": "Trace the volatility impulse response from a one-sigma shock.",
+                "spec": {"virf_shock_size": 1.0, "forecast_steps": 6},
+            },
+            {
+                "label": "Two-sigma shock",
+                "description": "Increase the shock size to inspect stronger volatility propagation.",
+                "spec": {"virf_shock_size": 2.0, "forecast_steps": 10},
+            },
+        ],
+        "dy_connectedness": [
+            {
+                "label": "Short spillover window",
+                "description": "Use a compact connectedness horizon with one lag.",
+                "spec": {"var_lags": 1, "irf_horizon": 8},
+            },
+            {
+                "label": "Extended spillover window",
+                "description": "Extend both lag order and horizon for longer connectedness diagnostics.",
+                "spec": {"var_lags": 2, "irf_horizon": 16},
+            },
+        ],
+        "bk_connectedness": [
+            {
+                "label": "Short/medium frequency split",
+                "description": "Use tighter short and medium frequency cutoffs.",
+                "spec": {"var_lags": 1, "irf_horizon": 12, "bk_short_horizon": 4, "bk_medium_horizon": 16},
+            },
+            {
+                "label": "Longer frequency split",
+                "description": "Expand the BK horizons to emphasize slower cyclical connectedness.",
+                "spec": {"var_lags": 2, "irf_horizon": 20, "bk_short_horizon": 6, "bk_medium_horizon": 24},
+            },
+        ],
+        "historical_var": MODEL_FAMILY_VARIANT_PRESETS["risk_management"],
+        "parametric_var": MODEL_FAMILY_VARIANT_PRESETS["risk_management"],
+        "ewma_volatility": [
+            {
+                "label": "Baseline lambda",
+                "description": "Use the canonical RiskMetrics-style lambda.",
+                "spec": {"ewma_lambda": 0.94, "forecast_steps": 10},
+            },
+            {
+                "label": "Faster decay",
+                "description": "Reduce lambda to emphasize recent shocks more aggressively.",
+                "spec": {"ewma_lambda": 0.90, "forecast_steps": 10},
+            },
+        ],
+        "black_scholes": MODEL_FAMILY_VARIANT_PRESETS["derivatives_pricing"],
+        "binomial_option": MODEL_FAMILY_VARIANT_PRESETS["derivatives_pricing"],
+        "taylor_rule": [
+            {
+                "label": "Baseline policy rule",
+                "description": "Keep the baseline Taylor-rule style specification.",
+                "spec": {"robust_covariance": True},
+            },
+            {
+                "label": "Classical policy rule",
+                "description": "Use classical covariance for a specification comparison.",
+                "spec": {"robust_covariance": False},
+            },
+        ],
+        "toy_dsge": MODEL_FAMILY_VARIANT_PRESETS["macro_finance_dsge"],
+        "mean_variance": MODEL_FAMILY_VARIANT_PRESETS["portfolio_allocation"],
+        "minimum_variance": MODEL_FAMILY_VARIANT_PRESETS["portfolio_allocation"],
+        "risk_parity": MODEL_FAMILY_VARIANT_PRESETS["portfolio_allocation"],
+        "capm": MODEL_FAMILY_VARIANT_PRESETS["asset_pricing"],
+        "ff3": MODEL_FAMILY_VARIANT_PRESETS["asset_pricing"],
+        "altman_z": MODEL_FAMILY_VARIANT_PRESETS["corporate_finance"],
+        "dupont": MODEL_FAMILY_VARIANT_PRESETS["corporate_finance"],
+    }
+    return deepcopy(presets.get(method_slug, []))
+
+
 def _prefilled_data_lab_link(query: dict[str, str]) -> str:
     return "/data-lab?" + urlencode(query) + "#data-lab-workbench"
 
@@ -438,6 +843,9 @@ def _decorate_family(item: dict[str, object], *, kind: str) -> dict[str, object]
     default_query = deepcopy(detail.get("default_workbench_query") or {})
     detail["detail_path"] = _family_detail_path("processing" if kind == "processing" else "models", slug)
     detail["workbench_path"] = _prefilled_data_lab_link(default_query)
+    detail["variant_presets"] = deepcopy(
+        PROCESSING_VARIANT_PRESETS.get(slug, []) if kind == "processing" else MODEL_FAMILY_VARIANT_PRESETS.get(slug, [])
+    )
     methods = []
     for method in detail.get("methods") or []:
         method_copy = deepcopy(method)
@@ -452,6 +860,7 @@ def _decorate_family(item: dict[str, object], *, kind: str) -> dict[str, object]
                     "model_type": method_slug,
                 }
             )
+            method_copy["variant_presets"] = _model_method_variant_presets(method_slug)
         methods.append(method_copy)
     detail["methods"] = methods
     return detail
@@ -483,6 +892,13 @@ def get_data_lab_catalog() -> dict[str, object]:
     return {
         "processing_families": list_processing_families(),
         "model_families": list_model_families(),
+        "suite_requirements": {
+            "optimization": {
+                "min_algorithms": 3,
+                "min_functions": 3,
+                "min_runs": 3,
+            }
+        },
     }
 
 
@@ -1015,6 +1431,7 @@ def get_model_method(family_slug: str, method_slug: str) -> dict[str, object] | 
         "outputs": list(guide.get("outputs") or []),
         "manual_checks": list(guide.get("manual_checks") or family.get("manual_checks") or []),
         "normal_result": guide.get("normal_result") or "",
+        "variant_presets": list(method.get("variant_presets") or family.get("variant_presets") or []),
         "paper_template": _paper_results_template(method_slug, str(method.get("name") or method_slug), guide),
         "paper_table_preview": _paper_table_preview(method_slug, str(method.get("name") or method_slug)),
     }
@@ -1037,6 +1454,7 @@ def get_model_teaching_guide(family_slug: str, method_slug: str) -> dict[str, ob
         "detail_path": method["detail_path"],
         "workbench_path": method["workbench_path"],
         "sections": _teaching_sections(str(method["name"]), family or {}, guide),
+        "variant_presets": list(method.get("variant_presets") or family.get("variant_presets") or []),
         "paper_template": _paper_results_template(method_slug, str(method["name"]), guide),
         "paper_table_preview": _paper_table_preview(method_slug, str(method["name"])),
     }

@@ -9,6 +9,7 @@ const state = {
   user: null,
   workspaces: [],
   selectedWorkspaceId: localStorage.getItem(storageKeys.workspaceId) || "",
+  labTemplates: [],
   integrations: [],
   privateBriefings: [],
   literatureEntries: [],
@@ -592,7 +593,7 @@ async function api(path, options = {}, auth = true) {
   if (auth && state.token) {
     headers.set("Authorization", `Bearer ${state.token}`);
   }
-  const response = await fetch(path, { ...options, headers });
+  const response = await fetch(path, { credentials: "same-origin", ...options, headers });
   const text = await response.text();
   let payload = {};
   if (text) {
@@ -735,9 +736,6 @@ function detectPageMode() {
   if (window.location.pathname === "/data-lab") {
     return "data-lab";
   }
-  if (window.location.pathname === "/optimization-lab") {
-    return "optimization-lab";
-  }
   if (extractDataLabTeachingRoute()) {
     return "data-lab-teaching";
   }
@@ -770,14 +768,67 @@ function isTrustedLocalHost() {
   return !host || host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "testserver";
 }
 
+function shouldLockExperience() {
+  return detectPageMode() !== "home" && !state.user;
+}
+
+function renderPrivateNavigationState() {
+  const shouldHide = !state.user;
+  document.querySelectorAll("[data-private-nav]").forEach((element) => {
+    element.classList.toggle("hidden", shouldHide);
+  });
+}
+
+function renderHomeSessionSections() {
+  const show = detectPageMode() === "home" && Boolean(state.user);
+  document.querySelectorAll("[data-home-session-only]").forEach((element) => {
+    element.classList.toggle("hidden", !show);
+  });
+}
+
+function renderAuthSurface() {
+  const pageMode = detectPageMode();
+  const hasAuthForms = Boolean(document.getElementById("register-form") || document.getElementById("login-form"));
+  const showHomeForms = pageMode === "home" && !state.user;
+  renderHomeSessionSections();
+  document.querySelectorAll("[data-auth-form]").forEach((element) => {
+    element.classList.toggle("hidden", !showHomeForms);
+  });
+  toggleHidden(dom.workspaceBox, !state.user);
+  toggleHidden(dom.sessionSignoutButton, !state.user);
+  dom.authGrid?.classList.toggle("auth-grid-logged-in", Boolean(state.user));
+  if (!dom.authPanelTitle || !dom.authPanelCopy) {
+    return;
+  }
+  if (!state.user) {
+    if (pageMode === "home") {
+      dom.authPanelTitle.textContent = "Private Workspace Access";
+      dom.authPanelCopy.textContent = "Sign in to unlock Data Lab, Provider Center, Paper Library, the Private Knowledge Base, and all other private modules.";
+    } else {
+      dom.authPanelTitle.textContent = "Workspace Session";
+      dom.authPanelCopy.textContent = "Return to the homepage to sign in, then come back here to use the private workspace.";
+    }
+    if (!hasAuthForms && !state.user) {
+      toggleHidden(dom.workspaceBox, true);
+    }
+    return;
+  }
+  dom.authPanelTitle.textContent = pageMode === "home" ? "Workspace Session" : "Private Workspace Session";
+  dom.authPanelCopy.textContent = "You are signed in. Select a workspace, create a new one if needed, and continue into the private modules without re-entering credentials.";
+}
+
 function applyAccessGateState() {
   const gates = Array.from(document.querySelectorAll("[data-access-gate]"));
   if (!gates.length) {
+    renderPrivateNavigationState();
+    renderHomeSessionSections();
     return;
   }
-  const shouldLock = !isTrustedLocalHost() && !state.user;
+  const shouldLock = shouldLockExperience();
   document.body.classList.toggle("experience-locked", shouldLock);
   gates.forEach((gate) => gate.classList.toggle("hidden", !shouldLock));
+  renderPrivateNavigationState();
+  renderHomeSessionSections();
 }
 
 function isExperienceLocked() {
@@ -825,7 +876,7 @@ async function loadDataLabCatalog() {
   if (state.dataLabCatalog) {
     return state.dataLabCatalog;
   }
-  const payload = await api("/api/data-lab/catalog", {}, false);
+  const payload = await api("/api/data-lab/catalog");
   state.dataLabCatalog = payload;
   return payload;
 }
@@ -834,7 +885,7 @@ async function loadOptimizationCatalog() {
   if (state.optimizationCatalog) {
     return state.optimizationCatalog;
   }
-  const payload = await api("/api/optimization/catalog", {}, false);
+  const payload = await api("/api/optimization/catalog");
   state.optimizationCatalog = payload;
   return payload;
 }
@@ -861,29 +912,35 @@ function selectedValues(element) {
 }
 
 async function ensureAuthenticatedUser() {
-  if (!state.token) {
-    throw new Error("Sign in on the standalone Data Lab page before opening private result details.");
-  }
   if (state.user) {
     return state.user;
   }
-  const payload = await api("/api/auth/me");
+  const payload = await api("/api/auth/me", {}, false);
+  if (!payload?.user) {
+    throw new Error("Sign in on the homepage before opening private result details.");
+  }
   state.user = payload.user;
   state.workspaces = payload.workspaces || [];
   return state.user;
 }
 
 async function maybeLoadPublicIdentity() {
-  if (!state.token || state.user) {
+  if (state.user) {
     return state.user;
   }
   try {
-    const payload = await api("/api/auth/me");
+    const payload = await api("/api/auth/me", {}, false);
+    if (!payload?.user) {
+      state.user = null;
+      state.workspaces = [];
+      return null;
+    }
     state.user = payload.user;
     state.workspaces = payload.workspaces || [];
     return state.user;
   } catch {
     state.user = null;
+    state.workspaces = [];
     return null;
   }
 }
@@ -1178,6 +1235,578 @@ function currentModelLabel() {
   const modelType = dom.modelType?.value || "";
   const options = MODEL_FAMILY_OPTIONS[currentModelFamily()] || [];
   return options.find((item) => item.value === modelType)?.label || (modelType ? modelType.replaceAll("_", " ") : "Not applicable");
+}
+
+function mergePlainObjects(...values) {
+  const merged = {};
+  for (const value of values) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      continue;
+    }
+    Object.assign(merged, value);
+  }
+  return merged;
+}
+
+function findCurrentModelMethodDetail() {
+  const family = state.dataLabCatalog?.model_families?.find((item) => item.slug === currentModelFamily());
+  if (!family) {
+    return null;
+  }
+  return (family.methods || []).find((item) => item.slug === (dom.modelType?.value || "")) || null;
+}
+
+function labBuilderElement(prefix, suffix) {
+  return document.getElementById(`${prefix}-${suffix}`);
+}
+
+function getProcessingVariantPresets() {
+  const family = state.dataLabCatalog?.processing_families?.find((item) => item.slug === currentProcessingFamily());
+  return family?.variant_presets || [];
+}
+
+function getModelVariantPresets() {
+  const detail = findCurrentModelMethodDetail();
+  if (detail?.variant_presets?.length) {
+    return detail.variant_presets;
+  }
+  const family = state.dataLabCatalog?.model_families?.find((item) => item.slug === currentModelFamily());
+  return family?.variant_presets || [];
+}
+
+function getOptimizationVariantPresets() {
+  return state.optimizationCatalog?.variant_presets || [];
+}
+
+function templateContextForPrefix(prefix) {
+  if (prefix === "prepare") {
+    return {
+      workflow_type: "data_processing",
+      family: currentProcessingFamily(),
+      method: "",
+      variant_presets: getProcessingVariantPresets(),
+      title: currentFamilyDetail()?.title || "Processing workflow",
+    };
+  }
+  if (prefix === "model") {
+    return {
+      workflow_type: "model",
+      family: currentModelFamily(),
+      method: dom.modelType?.value || "",
+      variant_presets: getModelVariantPresets(),
+      title: currentModelLabel(),
+    };
+  }
+  return {
+    workflow_type: "optimization",
+    family: "optimization",
+    method: "suite",
+    variant_presets: getOptimizationVariantPresets(),
+    title: "Optimization suite",
+  };
+}
+
+function filteredTemplatesForContext(context) {
+  return (state.labTemplates || []).filter((item) => {
+    if (item.workflow_type !== context.workflow_type) {
+      return false;
+    }
+    if (item.family && context.family && item.family !== context.family) {
+      return false;
+    }
+    if (item.method && context.method && item.method !== context.method) {
+      return false;
+    }
+    return true;
+  });
+}
+
+function updateBuilderStatus(prefix, message) {
+  const target = labBuilderElement(prefix, "template-status");
+  if (target) {
+    target.textContent = message;
+  }
+}
+
+function renderLabTemplateBuilder(prefix) {
+  const context = templateContextForPrefix(prefix);
+  const templateSelect = labBuilderElement(prefix, "template-select");
+  const variantSelect = labBuilderElement(prefix, "variant-select");
+  const variantJson = labBuilderElement(prefix, "variant-json");
+  if (!templateSelect && !variantSelect && !variantJson) {
+    return;
+  }
+  const templates = filteredTemplatesForContext(context);
+  const previousTemplate = templateSelect?.value || "";
+  const previousVariant = variantSelect?.value || "";
+  if (templateSelect) {
+    templateSelect.innerHTML = [
+      `<option value="">No saved template</option>`,
+      ...templates.map(
+        (item) =>
+          `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}${item.is_default ? " (Default)" : ""}</option>`,
+      ),
+    ].join("");
+    if (templates.some((item) => item.id === previousTemplate)) {
+      templateSelect.value = previousTemplate;
+    } else {
+      const defaultTemplate = templates.find((item) => item.is_default);
+      templateSelect.value = defaultTemplate?.id || "";
+    }
+  }
+  if (variantSelect) {
+    variantSelect.innerHTML = [
+      `<option value="">No preset variant</option>`,
+      ...context.variant_presets.map(
+        (item, index) =>
+          `<option value="${escapeHtml(String(index))}">${escapeHtml(item.label || `Preset ${index + 1}`)}</option>`,
+      ),
+    ].join("");
+    if (context.variant_presets.some((_, index) => String(index) === previousVariant)) {
+      variantSelect.value = previousVariant;
+    }
+  }
+  if (variantJson && !variantJson.dataset.boundPreset) {
+    variantJson.value = "";
+  }
+  const selectedTemplate = templates.find((item) => item.id === (templateSelect?.value || ""));
+  const selectedPreset = currentVariantPreset(prefix);
+  updateBuilderStatus(
+    prefix,
+    `${templates.length} template${templates.length === 1 ? "" : "s"} | ${context.variant_presets.length} preset variant${context.variant_presets.length === 1 ? "" : "s"} for ${context.title}.${selectedTemplate ? ` Active template: ${selectedTemplate.name}.` : ""}${selectedPreset ? ` Active preset: ${selectedPreset.label || "Preset variant"}.` : ""}`,
+  );
+}
+
+function renderAllLabTemplateBuilders() {
+  renderLabTemplateBuilder("prepare");
+  renderLabTemplateBuilder("model");
+  renderLabTemplateBuilder("optimization");
+}
+
+function currentVariantPreset(prefix) {
+  const select = labBuilderElement(prefix, "variant-select");
+  const context = templateContextForPrefix(prefix);
+  const index = Number(select?.value || -1);
+  return Number.isInteger(index) && index >= 0 ? context.variant_presets[index] || null : null;
+}
+
+function parseVariantSpec(prefix) {
+  const preset = currentVariantPreset(prefix);
+  const textarea = labBuilderElement(prefix, "variant-json");
+  const raw = String(textarea?.value || "").trim();
+  let parsed = {};
+  if (raw) {
+    try {
+      const value = JSON.parse(raw);
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        throw new Error("Advanced specification must be a JSON object.");
+      }
+      parsed = value;
+    } catch (error) {
+      throw new Error(`${templateContextForPrefix(prefix).title}: ${error.message || "Invalid JSON in advanced specification."}`);
+    }
+  }
+  const merged = mergePlainObjects(preset?.spec || {}, parsed);
+  const labels = [preset?.label || "", raw ? "Custom override" : ""].filter(Boolean);
+  return {
+    template_id: String(labBuilderElement(prefix, "template-select")?.value || "").trim(),
+    variant_label: labels.join(" + "),
+    variant_spec: merged,
+  };
+}
+
+function compactPayload(value) {
+  if (Array.isArray(value)) {
+    const items = value
+      .map((item) => compactPayload(item))
+      .filter((item) => item !== undefined);
+    return items.length ? items : undefined;
+  }
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value)
+      .map(([key, item]) => [key, compactPayload(item)])
+      .filter(([, item]) => item !== undefined);
+    return entries.length ? Object.fromEntries(entries) : undefined;
+  }
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : undefined;
+  }
+  return value;
+}
+
+function valuesEqual(left, right) {
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return left.length === right.length && left.every((item, index) => valuesEqual(item, right[index]));
+  }
+  if (left && typeof left === "object" && right && typeof right === "object") {
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    return leftKeys.length === rightKeys.length && leftKeys.every((key) => valuesEqual(left[key], right[key]));
+  }
+  return left === right;
+}
+
+function stripDefaultValues(payload, defaults, requiredKeys = []) {
+  const next = {};
+  for (const [key, value] of Object.entries(payload || {})) {
+    if (!requiredKeys.includes(key) && Object.prototype.hasOwnProperty.call(defaults || {}, key) && valuesEqual(value, defaults[key])) {
+      continue;
+    }
+    next[key] = value;
+  }
+  return next;
+}
+
+const PREPARE_DEFAULTS = {
+  workflow_group: "sample_preparation",
+  include_columns: [],
+  required_columns: [],
+  numeric_columns: [],
+  binary_columns: [],
+  date_columns: [],
+  impute_columns: [],
+  impute_method: "none",
+  winsorize_columns: [],
+  winsor_lower_quantile: 0.01,
+  winsor_upper_quantile: 0.99,
+  log_transform_columns: [],
+  standardize_columns: [],
+  minmax_scale_columns: [],
+  outlier_columns: [],
+  outlier_method: "none",
+  outlier_threshold: 1.5,
+  sort_column: "",
+  time_group_column: "",
+  difference_columns: [],
+  return_columns: [],
+  return_method: "simple",
+  lag_columns: [],
+  lag_periods: 1,
+  lead_columns: [],
+  lead_periods: 1,
+  rolling_mean_columns: [],
+  rolling_volatility_columns: [],
+  rolling_window: 5,
+  drop_duplicates: true,
+  drop_missing_required: true,
+};
+
+const MODEL_DEFAULTS = {
+  model_family: "",
+  model_type: "ols",
+  dependent: "",
+  independents: [],
+  controls: [],
+  series_columns: [],
+  treatment_column: "",
+  post_column: "",
+  event_time_column: "",
+  lead_window: 4,
+  lag_window: 4,
+  omitted_period: -1,
+  origin_mass_column: "",
+  destination_mass_column: "",
+  distance_column: "",
+  running_column: "",
+  rdd_cutoff: 0,
+  rdd_bandwidth: 0,
+  rdd_polynomial_order: 1,
+  treat_above_cutoff: true,
+  entity_column: "",
+  time_column: "",
+  include_time_effects: false,
+  endogenous_column: "",
+  instrument_columns: [],
+  market_column: "",
+  risk_free_column: "",
+  smb_column: "",
+  hml_column: "",
+  spot_column: "",
+  strike_column: "",
+  maturity_column: "",
+  rate_column: "",
+  volatility_column: "",
+  working_capital_column: "",
+  retained_earnings_column: "",
+  ebit_column: "",
+  market_equity_column: "",
+  total_assets_column: "",
+  total_liabilities_column: "",
+  sales_column: "",
+  net_income_column: "",
+  revenue_column: "",
+  equity_column: "",
+  inflation_gap_column: "",
+  output_gap_column: "",
+  arima_p: 1,
+  arima_d: 0,
+  arima_q: 0,
+  garch_p: 1,
+  garch_q: 1,
+  forecast_steps: 5,
+  var_lags: 1,
+  irf_horizon: 12,
+  impulse_column: "",
+  response_column: "",
+  virf_shock_size: 1,
+  bk_short_horizon: 5,
+  bk_medium_horizon: 20,
+  confidence_level: 0.95,
+  holding_period_days: 1,
+  ewma_lambda: 0.94,
+  option_type: "call",
+  option_steps: 50,
+  risk_aversion: 3,
+  long_only: true,
+  dsge_alpha: 0.33,
+  dsge_beta: 0.99,
+  dsge_delta: 0.025,
+  dsge_productivity: 1,
+  dsge_labor: 0.33,
+  dsge_shock_persistence: 0.9,
+  dsge_shock_size: 0.01,
+  dsge_impulse_horizon: 12,
+  robust_covariance: true,
+};
+
+const OPTIMIZATION_DEFAULTS = {
+  suite_label: "Optimization Suite",
+  optimizer_names: [],
+  function_names: [],
+  dimension: 30,
+  epoch: 50,
+  pop_size: 30,
+  runs: 5,
+  workers: 0,
+  seed_base: 20260331,
+};
+
+function buildPreparePayload(assetId) {
+  const template = parseVariantSpec("prepare");
+  const payload = {
+    asset_id: assetId,
+    workflow_group: dom.processingFamily?.value || "sample_preparation",
+    include_columns: getSelectedValues(dom.prepareKeepColumns),
+    required_columns: getSelectedValues(dom.prepareRequiredColumns),
+    numeric_columns: getSelectedValues(dom.prepareNumericColumns),
+    binary_columns: getSelectedValues(dom.prepareBinaryColumns),
+    date_columns: getSelectedValues(dom.prepareDateColumns),
+    impute_columns: getSelectedValues(dom.prepareImputeColumns),
+    impute_method: dom.prepareImputeMethod?.value || "none",
+    winsorize_columns: getSelectedValues(dom.prepareWinsorizeColumns),
+    winsor_lower_quantile: Number(dom.prepareWinsorLower?.value || 0.01),
+    winsor_upper_quantile: Number(dom.prepareWinsorUpper?.value || 0.99),
+    log_transform_columns: getSelectedValues(dom.prepareLogTransformColumns),
+    standardize_columns: getSelectedValues(dom.prepareStandardizeColumns),
+    minmax_scale_columns: getSelectedValues(dom.prepareMinmaxScaleColumns),
+    outlier_columns: getSelectedValues(dom.prepareOutlierColumns),
+    outlier_method: dom.prepareOutlierMethod?.value || "none",
+    outlier_threshold: Number(dom.prepareOutlierThreshold?.value || 1.5),
+    sort_column: dom.prepareSortColumn?.value || "",
+    time_group_column: dom.prepareTimeGroupColumn?.value || "",
+    difference_columns: getSelectedValues(dom.prepareDifferenceColumns),
+    return_columns: getSelectedValues(dom.prepareReturnColumns),
+    return_method: dom.prepareReturnMethod?.value || "simple",
+    lag_columns: getSelectedValues(dom.prepareLagColumns),
+    lag_periods: Number(dom.prepareLagPeriods?.value || 1),
+    lead_columns: getSelectedValues(dom.prepareLeadColumns),
+    lead_periods: Number(dom.prepareLeadPeriods?.value || 1),
+    rolling_mean_columns: getSelectedValues(dom.prepareRollingMeanColumns),
+    rolling_volatility_columns: getSelectedValues(dom.prepareRollingVolatilityColumns),
+    rolling_window: Number(dom.prepareRollingWindow?.value || 5),
+    drop_duplicates: dom.prepareForm?.querySelector('[name="drop_duplicates"]')?.checked ?? true,
+    drop_missing_required: dom.prepareForm?.querySelector('[name="drop_missing_required"]')?.checked ?? true,
+    template_id: template.template_id,
+    variant_label: template.variant_label,
+    variant_spec: template.variant_spec,
+  };
+  return compactPayload(stripDefaultValues(payload, PREPARE_DEFAULTS, ["asset_id", "workflow_group"]));
+}
+
+function buildModelPayload(assetId) {
+  const modelType = dom.modelType?.value || "ols";
+  const template = parseVariantSpec("model");
+  const useSeriesTimeColumn = ["arima", "arch", "garch", "virf", "var", "svar_irf", "dy_connectedness", "bk_connectedness", "historical_var", "parametric_var", "ewma_volatility"].includes(modelType);
+  const payload = {
+    asset_id: assetId,
+    model_family: dom.modelFamily?.value || "",
+    model_type: modelType,
+    dependent: dom.modelDependent?.value || "",
+    independents: getSelectedValues(dom.modelIndependents),
+    controls: getSelectedValues(dom.modelControls),
+    series_columns: getSelectedValues(dom.modelSeriesColumns),
+    treatment_column: modelType === "event_study" ? dom.eventTreatmentColumn?.value || "" : dom.didTreatmentColumn?.value || "",
+    post_column: dom.didPostColumn?.value || "",
+    event_time_column: dom.eventTimeColumn?.value || "",
+    lead_window: Number(dom.eventLeadWindow?.value || 4),
+    lag_window: Number(dom.eventLagWindow?.value || 4),
+    omitted_period: Number(dom.eventOmittedPeriod?.value || -1),
+    origin_mass_column: dom.gravityOriginMassColumn?.value || "",
+    destination_mass_column: dom.gravityDestinationMassColumn?.value || "",
+    distance_column: dom.gravityDistanceColumn?.value || "",
+    running_column: dom.rddRunningColumn?.value || "",
+    rdd_cutoff: Number(dom.rddCutoff?.value || 0),
+    rdd_bandwidth: Number(dom.rddBandwidth?.value || 0),
+    rdd_polynomial_order: Number(dom.rddPolynomialOrder?.value || 1),
+    treat_above_cutoff: dom.rddTreatAboveCutoff?.checked ?? true,
+    entity_column: dom.panelEntityColumn?.value || "",
+    time_column: useSeriesTimeColumn ? dom.modelTimeColumn?.value || "" : dom.panelTimeColumn?.value || "",
+    include_time_effects: dom.includeTimeEffects?.checked ?? false,
+    endogenous_column: dom.ivEndogenousColumn?.value || "",
+    instrument_columns: getSelectedValues(dom.ivInstrumentColumns),
+    market_column: dom.marketColumn?.value || "",
+    risk_free_column: dom.riskFreeColumn?.value || "",
+    smb_column: dom.smbColumn?.value || "",
+    hml_column: dom.hmlColumn?.value || "",
+    spot_column: dom.spotColumn?.value || "",
+    strike_column: dom.strikeColumn?.value || "",
+    maturity_column: dom.maturityColumn?.value || "",
+    rate_column: dom.rateColumn?.value || "",
+    volatility_column: dom.volatilityColumn?.value || "",
+    working_capital_column: dom.workingCapitalColumn?.value || "",
+    retained_earnings_column: dom.retainedEarningsColumn?.value || "",
+    ebit_column: dom.ebitColumn?.value || "",
+    market_equity_column: dom.marketEquityColumn?.value || "",
+    total_assets_column: dom.totalAssetsColumn?.value || "",
+    total_liabilities_column: dom.totalLiabilitiesColumn?.value || "",
+    sales_column: dom.salesColumn?.value || "",
+    net_income_column: dom.netIncomeColumn?.value || "",
+    revenue_column: dom.revenueColumn?.value || "",
+    equity_column: dom.equityColumn?.value || "",
+    inflation_gap_column: dom.inflationGapColumn?.value || "",
+    output_gap_column: dom.outputGapColumn?.value || "",
+    arima_p: Number(dom.arimaP?.value || 1),
+    arima_d: Number(dom.arimaD?.value || 0),
+    arima_q: Number(dom.arimaQ?.value || 0),
+    garch_p: Number(dom.garchP?.value || 1),
+    garch_q: Number(dom.garchQ?.value || 1),
+    forecast_steps: Number(dom.forecastSteps?.value || 5),
+    var_lags: Number(dom.varLags?.value || 1),
+    irf_horizon: Number(dom.irfHorizon?.value || 12),
+    impulse_column: dom.impulseColumn?.value || "",
+    response_column: dom.responseColumn?.value || "",
+    virf_shock_size: Number(dom.virfShockSize?.value || 1),
+    bk_short_horizon: Number(dom.bkShortHorizon?.value || 5),
+    bk_medium_horizon: Number(dom.bkMediumHorizon?.value || 20),
+    confidence_level: Number(dom.confidenceLevel?.value || 0.95),
+    holding_period_days: Number(dom.holdingPeriodDays?.value || 1),
+    ewma_lambda: Number(dom.ewmaLambda?.value || 0.94),
+    option_type: dom.optionType?.value || "call",
+    option_steps: Number(dom.optionSteps?.value || 50),
+    risk_aversion: Number(dom.portfolioRiskAversion?.value || 3),
+    long_only: dom.portfolioLongOnly?.checked ?? true,
+    dsge_alpha: Number(dom.dsgeAlpha?.value || 0.33),
+    dsge_beta: Number(dom.dsgeBeta?.value || 0.99),
+    dsge_delta: Number(dom.dsgeDelta?.value || 0.025),
+    dsge_productivity: Number(dom.dsgeProductivity?.value || 1),
+    dsge_labor: Number(dom.dsgeLabor?.value || 0.33),
+    dsge_shock_persistence: Number(dom.dsgeShockPersistence?.value || 0.9),
+    dsge_shock_size: Number(dom.dsgeShockSize?.value || 0.01),
+    dsge_impulse_horizon: Number(dom.dsgeImpulseHorizon?.value || 12),
+    robust_covariance: dom.modelRobustCovariance?.checked ?? true,
+    template_id: template.template_id,
+    variant_label: template.variant_label,
+    variant_spec: template.variant_spec,
+  };
+  return compactPayload(stripDefaultValues(payload, MODEL_DEFAULTS, ["asset_id", "model_family", "model_type"]));
+}
+
+function buildOptimizationPayload() {
+  const template = parseVariantSpec("optimization");
+  const payload = {
+    suite_label: optimizationElement("optimization-suite-label")?.value || "Optimization Suite",
+    optimizer_names: selectedValues(optimizationElement("optimization-optimizer-select")),
+    function_names: selectedValues(optimizationElement("optimization-function-select")),
+    dimension: Number(optimizationElement("optimization-dimension")?.value || 30),
+    epoch: Number(optimizationElement("optimization-epoch")?.value || 50),
+    pop_size: Number(optimizationElement("optimization-pop-size")?.value || 30),
+    runs: Number(optimizationElement("optimization-runs")?.value || 5),
+    workers: Number(optimizationElement("optimization-workers")?.value || 0),
+    template_id: template.template_id,
+    variant_label: template.variant_label,
+    variant_spec: template.variant_spec,
+  };
+  return compactPayload(stripDefaultValues(payload, OPTIMIZATION_DEFAULTS, ["suite_label", "optimizer_names", "function_names"]));
+}
+
+async function saveCurrentLabTemplate(prefix) {
+  ensureWorkspace();
+  const context = templateContextForPrefix(prefix);
+  let specification = {};
+  if (prefix === "prepare") {
+    const assetId = dom.analysisAssetSelect?.value || state.selectedAnalysisAssetId;
+    if (!assetId) {
+      throw new Error("Select a dataset asset before saving a processing template.");
+    }
+    specification = buildPreparePayload(assetId);
+    delete specification.asset_id;
+  } else if (prefix === "model") {
+    const assetId = dom.analysisAssetSelect?.value || state.selectedAnalysisAssetId;
+    if (!assetId) {
+      throw new Error("Select a dataset asset before saving a model template.");
+    }
+    specification = buildModelPayload(assetId);
+    delete specification.asset_id;
+  } else {
+    specification = buildOptimizationPayload();
+  }
+  const defaultName = `${context.title} Template`;
+  const name = window.prompt("Template name", defaultName);
+  if (!name) {
+    updateBuilderStatus(prefix, "Template save cancelled.");
+    return;
+  }
+  const description = window.prompt("Optional description", `Reusable ${context.title.toLowerCase()} configuration.`) || "";
+  const isDefault = window.confirm("Set this as the default template for this family?");
+  const payload = compactPayload({
+    template_scope: "workspace",
+    workflow_type: context.workflow_type,
+    family: context.family,
+    method: context.method,
+    name,
+    description,
+    specification,
+    metadata: {
+      title: context.title,
+      saved_from_page: detectPageMode(),
+      saved_at: new Date().toISOString(),
+    },
+    is_default: isDefault,
+  });
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/lab-templates`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  await refreshWorkspaceData();
+  const templateSelect = labBuilderElement(prefix, "template-select");
+  if (templateSelect && response.template?.id) {
+    templateSelect.value = response.template.id;
+  }
+  updateBuilderStatus(prefix, `Saved template "${response.template?.name || name}".`);
+}
+
+function applyVariantPresetSelection(prefix) {
+  const textarea = labBuilderElement(prefix, "variant-json");
+  if (!textarea) {
+    return;
+  }
+  const preset = currentVariantPreset(prefix);
+  if (!preset) {
+    if (textarea.dataset.boundPreset === "1") {
+      textarea.value = "";
+    }
+    textarea.dataset.boundPreset = "0";
+    renderLabTemplateBuilder(prefix);
+    return;
+  }
+  textarea.value = JSON.stringify(preset.spec || {}, null, 2);
+  textarea.dataset.boundPreset = "1";
+  updateBuilderStatus(prefix, `Preset selected: ${preset.label || "Preset variant"}.`);
 }
 
 function processingHistoryItems() {
@@ -3028,20 +3657,12 @@ function updateWorkflowVisibility() {
     syncModelTypeOptions();
     updateModelFieldVisibility();
   }
+  renderAllLabTemplateBuilders();
   renderLabContext();
 }
 
 function hasPrivateWorkspaceUI() {
-  return Boolean(
-    dom.workspaceSelect &&
-      (dom.analysisAssetSelect ||
-        dom.assetList ||
-        dom.integrationList ||
-        dom.briefingList ||
-        dom.literatureList ||
-        dom.knowledgeList ||
-        dom.scheduleList),
-  );
+  return Boolean(dom.workspaceSelect);
 }
 
 function hasPublicMonitorUI() {
@@ -3060,9 +3681,13 @@ function renderOptimizationCatalog() {
   const snapshot = optimizationElement("optimization-snapshot-grid");
   const optimizerSelect = optimizationElement("optimization-optimizer-select");
   const functionSelect = optimizationElement("optimization-function-select");
+  const requirements = optimizationElement("optimization-suite-requirements");
+  const explorer = optimizationElement("optimization-catalog-explorer");
+  const exportBoard = optimizationElement("optimization-validation-export-board");
   const optimizerBody = optimizationElement("optimization-optimizer-table")?.querySelector("tbody");
   const functionBody = optimizationElement("optimization-function-table")?.querySelector("tbody");
   const summary = catalog.summary || {};
+  const suiteRequirements = catalog.suite_requirements || {};
   if (optimizationElement("optimization-health-status")) {
     optimizationElement("optimization-health-status").textContent =
       `${summary.optimizer_available_count || 0}/${summary.optimizer_count || 0} optimizers | ${summary.function_available_count || 0}/${summary.function_count || 0} functions`;
@@ -3071,8 +3696,8 @@ function renderOptimizationCatalog() {
     snapshot.innerHTML = [
       { label: "Mealpy optimizers", value: `${summary.optimizer_available_count || 0} available`, copy: `${summary.optimizer_count || 0} discovered locally.` },
       { label: "Opfunu functions", value: `${summary.function_available_count || 0} available`, copy: `${summary.function_count || 0} discovered locally.` },
-      { label: "Default suite", value: `${(catalog.defaults?.optimizers || []).length} x ${(catalog.defaults?.functions || []).length}`, copy: "Use defaults to run a safe representative benchmark set." },
-      { label: "Outputs", value: "Tables + PNG + JSON", copy: "Each suite exports score tables, statistical tests, convergence data, and charts." },
+      { label: "Default suite", value: `${(catalog.defaults?.optimizers || []).length} x ${(catalog.defaults?.functions || []).length}`, copy: "The default standard suite is the minimum valid comparative configuration." },
+      { label: "Outputs", value: "Tables + PNG + JSON", copy: "Each suite exports score tables, significance tests, ranking visuals, and raw process traces." },
     ].map((item) => `
       <article class="snapshot-card">
         <span>${escapeHtml(item.label)}</span>
@@ -3080,6 +3705,20 @@ function renderOptimizationCatalog() {
         <p>${escapeHtml(item.copy)}</p>
       </article>
     `).join("");
+  }
+  if (requirements) {
+    requirements.innerHTML = `
+      <article class="card">
+        <p class="eyebrow eyebrow-compact">Strict suite rules</p>
+        <h4>Standard comparative benchmark</h4>
+        <p class="muted">This module will not downgrade statistical validation. A valid comparative suite must meet every condition below before Friedman, Wilcoxon, sign, and rank outputs are produced.</p>
+        <div class="chip-row chip-row-compact">
+          <span class="topic-chip">Algorithms >= ${escapeHtml(suiteRequirements.min_algorithms || 3)}</span>
+          <span class="topic-chip">Functions >= ${escapeHtml(suiteRequirements.min_functions || 3)}</span>
+          <span class="topic-chip">Runs >= ${escapeHtml(suiteRequirements.min_runs || 3)}</span>
+        </div>
+      </article>
+    `;
   }
   if (optimizerSelect) {
     optimizerSelect.innerHTML = (catalog.optimizers || [])
@@ -3094,6 +3733,80 @@ function renderOptimizationCatalog() {
       .map((item) => `<option value="${escapeHtml(item.name)}">${escapeHtml(item.label)} | dim ${escapeHtml(item.dimension || "n/a")}</option>`)
       .join("");
     setMultiSelectValues(functionSelect, catalog.defaults?.functions || []);
+  }
+  if (explorer) {
+    const optimizerGroups = Object.values(
+      (catalog.optimizers || []).reduce((groups, item) => {
+        const key = `${item.library || "mealpy"}::${item.group || "unknown"}::${item.family || "unknown"}`;
+        groups[key] ||= { title: `${item.library || "mealpy"} / ${item.group || "unknown"} / ${item.family || "unknown"}`, items: [] };
+        groups[key].items.push(item);
+        return groups;
+      }, {}),
+    );
+    const functionGroups = Object.values(
+      (catalog.functions || []).reduce((groups, item) => {
+        const key = `${item.library || "opfunu"}::${item.family || item.module || "unknown"}`;
+        groups[key] ||= { title: `${item.library || "opfunu"} / ${item.family || item.module || "unknown"}`, items: [] };
+        groups[key].items.push(item);
+        return groups;
+      }, {}),
+    );
+    explorer.innerHTML = `
+      <article class="panel public-section nested-panel">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h4>Catalog Explorer</h4>
+            <span class="muted">Browse the available libraries by family before you add items into the suite builder.</span>
+          </div>
+        </div>
+        <div class="catalog-explorer-grid">
+          <div class="catalog-group-column">
+            <h5>Mealpy families</h5>
+            ${optimizerGroups.map((group) => `
+              <article class="catalog-group-card">
+                <p class="eyebrow eyebrow-compact">${escapeHtml(group.title)}</p>
+                <div class="chip-row chip-row-compact">
+                  <span class="topic-chip">${escapeHtml(group.items.filter((item) => item.availability?.status === "available").length)} available</span>
+                  <span class="topic-chip">${escapeHtml(group.items.length)} discovered</span>
+                </div>
+                <div class="catalog-inline-list">
+                  ${group.items.slice(0, 8).map((item) => `<span class="catalog-inline-pill ${item.availability?.status !== "available" ? "muted-pill" : ""}">${escapeHtml(item.label || item.name)}</span>`).join("")}
+                  ${group.items.length > 8 ? `<span class="catalog-inline-pill muted-pill">+${group.items.length - 8} more</span>` : ""}
+                </div>
+              </article>
+            `).join("")}
+          </div>
+          <div class="catalog-group-column">
+            <h5>Opfunu families</h5>
+            ${functionGroups.map((group) => `
+              <article class="catalog-group-card">
+                <p class="eyebrow eyebrow-compact">${escapeHtml(group.title)}</p>
+                <div class="chip-row chip-row-compact">
+                  <span class="topic-chip">${escapeHtml(group.items.filter((item) => item.availability?.status === "available").length)} available</span>
+                  <span class="topic-chip">${escapeHtml(group.items.length)} discovered</span>
+                </div>
+                <div class="catalog-inline-list">
+                  ${group.items.slice(0, 8).map((item) => `<span class="catalog-inline-pill ${item.availability?.status !== "available" ? "muted-pill" : ""}">${escapeHtml(item.label || item.name)}</span>`).join("")}
+                  ${group.items.length > 8 ? `<span class="catalog-inline-pill muted-pill">+${group.items.length - 8} more</span>` : ""}
+                </div>
+              </article>
+            `).join("")}
+          </div>
+        </div>
+      </article>
+    `;
+  }
+  if (exportBoard) {
+    exportBoard.innerHTML = `
+      <article class="card">
+        <p class="eyebrow eyebrow-compact">Validation & Export</p>
+        <div class="card-list card-list-inline">
+          <div class="card"><p>Average convergence curve, per-algorithm process curves, radar and ranking visuals are exported as PNG assets.</p></div>
+          <div class="card"><p>Friedman, Wilcoxon, sign, ranking, score, and raw process tables are exported as downloadable CSV assets.</p></div>
+          <div class="card"><p>Every successful suite is stored in the current workspace and can be routed into cases or the private knowledge base.</p></div>
+        </div>
+      </article>
+    `;
   }
   if (optimizerBody) {
     optimizerBody.innerHTML = (catalog.optimizers || []).map((item) => `
@@ -3152,35 +3865,23 @@ async function refreshOptimizationResults() {
   renderOptimizationResults(state.optimizationResults);
 }
 
-async function loadOptimizationLabPage() {
-  if (!isExperienceLocked()) {
-    await loadOptimizationCatalog();
-    renderOptimizationCatalog();
-    await loadSession();
-    if (state.user && state.selectedWorkspaceId) {
-      await refreshOptimizationResults();
-    } else {
-      renderOptimizationResults([]);
-    }
-  }
-  applyAccessGateState();
-}
-
 async function handleOptimizationSuiteRun(event) {
   event.preventDefault();
   ensureWorkspace();
-  const optimizerSelect = optimizationElement("optimization-optimizer-select");
-  const functionSelect = optimizationElement("optimization-function-select");
-  const payload = {
-    suite_label: optimizationElement("optimization-suite-label")?.value || "Optimization Suite",
-    optimizer_names: selectedValues(optimizerSelect),
-    function_names: selectedValues(functionSelect),
-    dimension: Number(optimizationElement("optimization-dimension")?.value || 30),
-    epoch: Number(optimizationElement("optimization-epoch")?.value || 50),
-    pop_size: Number(optimizationElement("optimization-pop-size")?.value || 30),
-    runs: Number(optimizationElement("optimization-runs")?.value || 5),
-    workers: Number(optimizationElement("optimization-workers")?.value || 0),
-  };
+  const payload = buildOptimizationPayload();
+  const requirements = state.optimizationCatalog?.suite_requirements || {};
+  const selectedOptimizers = payload.optimizer_names || [];
+  const selectedFunctions = payload.function_names || [];
+  const selectedRuns = Number(payload.runs || OPTIMIZATION_DEFAULTS.runs);
+  if (selectedOptimizers.length < Number(requirements.min_algorithms || 3)) {
+    throw new Error(`Optimization suites require at least ${requirements.min_algorithms || 3} algorithms; got ${selectedOptimizers.length}.`);
+  }
+  if (selectedFunctions.length < Number(requirements.min_functions || 3)) {
+    throw new Error(`Optimization suites require at least ${requirements.min_functions || 3} benchmark functions; got ${selectedFunctions.length}.`);
+  }
+  if (selectedRuns < Number(requirements.min_runs || 3)) {
+    throw new Error(`Optimization suites require at least ${requirements.min_runs || 3} runs per algorithm-function pair; got ${selectedRuns}.`);
+  }
   const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/optimization/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -3196,6 +3897,7 @@ async function handleOptimizationSuiteRun(event) {
         <h4>${escapeHtml(result.suite_label || payload.suite_label)}</h4>
         <p>${escapeHtml(`Successful tasks ${summary.success_count || 0}/${summary.task_count || 0} | Workers ${summary.worker_count || 1}`)}</p>
         <p class="compact-note">${escapeHtml(`Algorithms ${summary.algorithm_count || 0} | Functions ${summary.function_count || 0} | Runs ${summary.run_count || 0}`)}</p>
+        ${summary.friedman?.note ? `<p class="compact-note">${escapeHtml(summary.friedman.note)}</p>` : ""}
         <div class="actions">
           <a class="button-link" href="${escapeHtml(result.result_detail_path || `/data-lab/results/optimization/${response.record?.id || ""}`)}">Open result page</a>
         </div>
@@ -3351,7 +4053,7 @@ function clearPrivateLists() {
 }
 
 function ensureSignedIn() {
-  if (!state.token || !state.user) {
+  if (!state.user) {
     throw new Error("Please sign in first.");
   }
 }
@@ -3363,7 +4065,8 @@ function ensureWorkspace() {
   }
 }
 
-function clearSession() {
+function clearSession(options = {}) {
+  const { redirect = true } = options;
   state.token = "";
   state.user = null;
   state.workspaces = [];
@@ -3385,6 +4088,9 @@ function clearSession() {
     renderSession();
     renderWorkspaceOptions();
     clearPrivateLists();
+  }
+  if (redirect && detectPageMode() !== "home") {
+    window.location.assign("/");
   }
 }
 
@@ -5423,33 +6129,43 @@ async function loadSelectedAssetProfile(force = false) {
 }
 
 async function loadSession() {
-  if (!state.token) {
+  try {
+    const payload = await api("/api/auth/me", {}, false);
+    if (!payload?.user) {
+      throw new Error("No active session");
+    }
+    state.user = payload.user;
+    state.workspaces = payload.workspaces || [];
+    if (!state.workspaces.some((item) => item.id === state.selectedWorkspaceId)) {
+      state.selectedWorkspaceId = state.workspaces[0]?.id || "";
+      if (state.selectedWorkspaceId) {
+        localStorage.setItem(storageKeys.workspaceId, state.selectedWorkspaceId);
+      }
+    }
+      renderSession();
+      renderWorkspaceOptions();
+      if (state.selectedWorkspaceId) {
+        await refreshWorkspaceData();
+      } else {
+        clearPrivateLists();
+      }
+      if (hasOptimizationLabUI() && state.selectedWorkspaceId) {
+        await refreshOptimizationResults();
+      } else {
+        renderOptimizationResults([]);
+      }
+    } catch {
+    clearSession({ redirect: false });
     renderSession();
     renderWorkspaceOptions();
     clearPrivateLists();
-    return;
-  }
-  const payload = await api("/api/auth/me");
-  state.user = payload.user;
-  state.workspaces = payload.workspaces || [];
-  if (!state.workspaces.some((item) => item.id === state.selectedWorkspaceId)) {
-    state.selectedWorkspaceId = state.workspaces[0]?.id || "";
-    if (state.selectedWorkspaceId) {
-      localStorage.setItem(storageKeys.workspaceId, state.selectedWorkspaceId);
-    }
-  }
-  renderSession();
-  renderWorkspaceOptions();
-  await refreshWorkspaceData();
-  if (hasOptimizationLabUI()) {
-    await refreshOptimizationResults();
   }
 }
 
 async function refreshWorkspaceData() {
   ensureWorkspace();
   const workspaceId = state.selectedWorkspaceId;
-  const [integrations, briefings, literature, assets, knowledge, schedules, cases] = await Promise.all([
+  const [integrations, briefings, literature, assets, knowledge, schedules, cases, templates] = await Promise.all([
     api("/api/integrations"),
     api(`/api/workspaces/${workspaceId}/briefings`),
     api(`/api/workspaces/${workspaceId}/literature`),
@@ -5457,7 +6173,9 @@ async function refreshWorkspaceData() {
     api(`/api/workspaces/${workspaceId}/knowledge?view=summary&status=all`),
     api(`/api/workspaces/${workspaceId}/schedules`),
     api(`/api/workspaces/${workspaceId}/knowledge-cases`),
+    api(`/api/workspaces/${workspaceId}/lab-templates`),
   ]);
+  state.labTemplates = templates.items || [];
   state.knowledgeDetails = Object.fromEntries(
     Object.entries(state.knowledgeDetails || {}).filter(([recordId]) => (knowledge.items || []).some((item) => item.id === recordId)),
   );
@@ -5474,6 +6192,7 @@ async function refreshWorkspaceData() {
   renderKnowledgeCases(cases.items || []);
   renderKnowledge(knowledge.items || []);
   renderSchedules(schedules.items || []);
+  renderAllLabTemplateBuilders();
   if (state.selectedAnalysisAssetId && dom.analysisAssetSelect) {
     try {
       await loadSelectedAssetProfile();
@@ -5740,6 +6459,15 @@ async function handleSchedule(event) {
   showToast("Private daily job created.");
 }
 
+async function handleSignOut() {
+  try {
+    await api("/api/auth/logout", { method: "POST" }, false);
+  } catch {
+    // Ignore server-side logout failures and clear local state anyway.
+  }
+  clearSession({ redirect: detectPageMode() !== "home" });
+  showToast("Signed out.");
+}
 function renderVariableGuide(result) {
   state.variableGuideResult = result || null;
   if (!result) {
@@ -5901,41 +6629,7 @@ async function handlePrepareSample(event) {
   if (!assetId) {
     throw new Error("Select a dataset asset first.");
   }
-  const payload = {
-    asset_id: assetId,
-    workflow_group: dom.processingFamily?.value || "sample_preparation",
-    include_columns: getSelectedValues(dom.prepareKeepColumns),
-    required_columns: getSelectedValues(dom.prepareRequiredColumns),
-    numeric_columns: getSelectedValues(dom.prepareNumericColumns),
-    binary_columns: getSelectedValues(dom.prepareBinaryColumns),
-    date_columns: getSelectedValues(dom.prepareDateColumns),
-    impute_columns: getSelectedValues(dom.prepareImputeColumns),
-    impute_method: dom.prepareImputeMethod?.value || "none",
-    winsorize_columns: getSelectedValues(dom.prepareWinsorizeColumns),
-    winsor_lower_quantile: Number(dom.prepareWinsorLower?.value || 0.01),
-    winsor_upper_quantile: Number(dom.prepareWinsorUpper?.value || 0.99),
-    log_transform_columns: getSelectedValues(dom.prepareLogTransformColumns),
-    standardize_columns: getSelectedValues(dom.prepareStandardizeColumns),
-    minmax_scale_columns: getSelectedValues(dom.prepareMinmaxScaleColumns),
-    outlier_columns: getSelectedValues(dom.prepareOutlierColumns),
-    outlier_method: dom.prepareOutlierMethod?.value || "none",
-    outlier_threshold: Number(dom.prepareOutlierThreshold?.value || 1.5),
-    sort_column: dom.prepareSortColumn?.value || "",
-    time_group_column: dom.prepareTimeGroupColumn?.value || "",
-    difference_columns: getSelectedValues(dom.prepareDifferenceColumns),
-    return_columns: getSelectedValues(dom.prepareReturnColumns),
-    return_method: dom.prepareReturnMethod?.value || "simple",
-    lag_columns: getSelectedValues(dom.prepareLagColumns),
-    lag_periods: Number(dom.prepareLagPeriods?.value || 1),
-    lead_columns: getSelectedValues(dom.prepareLeadColumns),
-    lead_periods: Number(dom.prepareLeadPeriods?.value || 1),
-    rolling_mean_columns: getSelectedValues(dom.prepareRollingMeanColumns),
-    rolling_volatility_columns: getSelectedValues(dom.prepareRollingVolatilityColumns),
-    rolling_window: Number(dom.prepareRollingWindow?.value || 5),
-    drop_duplicates: event.currentTarget.querySelector('[name=\"drop_duplicates\"]')?.checked ?? true,
-    drop_missing_required:
-      event.currentTarget.querySelector('[name=\"drop_missing_required\"]')?.checked ?? true,
-  };
+  const payload = buildPreparePayload(assetId);
   const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/analysis/prepare`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -5956,87 +6650,7 @@ async function handleModelRun(event) {
   if (!assetId) {
     throw new Error("Select a dataset asset first.");
   }
-  const modelType = dom.modelType?.value || "ols";
-  const useSeriesTimeColumn = ["arima", "arch", "garch", "virf", "var", "svar_irf", "dy_connectedness", "bk_connectedness", "historical_var", "parametric_var", "ewma_volatility"].includes(modelType);
-  const payload = {
-    asset_id: assetId,
-    model_family: dom.modelFamily?.value || "",
-    model_type: modelType,
-    dependent: dom.modelDependent?.value || "",
-    independents: getSelectedValues(dom.modelIndependents),
-    controls: getSelectedValues(dom.modelControls),
-    series_columns: getSelectedValues(dom.modelSeriesColumns),
-    treatment_column:
-      modelType === "event_study" ? dom.eventTreatmentColumn?.value || "" : dom.didTreatmentColumn?.value || "",
-    post_column: dom.didPostColumn?.value || "",
-    event_time_column: dom.eventTimeColumn?.value || "",
-    lead_window: Number(dom.eventLeadWindow?.value || 4),
-    lag_window: Number(dom.eventLagWindow?.value || 4),
-    omitted_period: Number(dom.eventOmittedPeriod?.value || -1),
-    origin_mass_column: dom.gravityOriginMassColumn?.value || "",
-    destination_mass_column: dom.gravityDestinationMassColumn?.value || "",
-    distance_column: dom.gravityDistanceColumn?.value || "",
-    running_column: dom.rddRunningColumn?.value || "",
-    rdd_cutoff: Number(dom.rddCutoff?.value || 0),
-    rdd_bandwidth: Number(dom.rddBandwidth?.value || 0),
-    rdd_polynomial_order: Number(dom.rddPolynomialOrder?.value || 1),
-    treat_above_cutoff: dom.rddTreatAboveCutoff?.checked ?? true,
-    entity_column: dom.panelEntityColumn?.value || "",
-    time_column: useSeriesTimeColumn ? dom.modelTimeColumn?.value || "" : dom.panelTimeColumn?.value || "",
-    include_time_effects: dom.includeTimeEffects?.checked ?? false,
-    endogenous_column: dom.ivEndogenousColumn?.value || "",
-    instrument_columns: getSelectedValues(dom.ivInstrumentColumns),
-    market_column: dom.marketColumn?.value || "",
-    risk_free_column: dom.riskFreeColumn?.value || "",
-    smb_column: dom.smbColumn?.value || "",
-    hml_column: dom.hmlColumn?.value || "",
-    spot_column: dom.spotColumn?.value || "",
-    strike_column: dom.strikeColumn?.value || "",
-    maturity_column: dom.maturityColumn?.value || "",
-    rate_column: dom.rateColumn?.value || "",
-    volatility_column: dom.volatilityColumn?.value || "",
-    working_capital_column: dom.workingCapitalColumn?.value || "",
-    retained_earnings_column: dom.retainedEarningsColumn?.value || "",
-    ebit_column: dom.ebitColumn?.value || "",
-    market_equity_column: dom.marketEquityColumn?.value || "",
-    total_assets_column: dom.totalAssetsColumn?.value || "",
-    total_liabilities_column: dom.totalLiabilitiesColumn?.value || "",
-    sales_column: dom.salesColumn?.value || "",
-    net_income_column: dom.netIncomeColumn?.value || "",
-    revenue_column: dom.revenueColumn?.value || "",
-    equity_column: dom.equityColumn?.value || "",
-    inflation_gap_column: dom.inflationGapColumn?.value || "",
-    output_gap_column: dom.outputGapColumn?.value || "",
-    arima_p: Number(dom.arimaP?.value || 1),
-    arima_d: Number(dom.arimaD?.value || 0),
-    arima_q: Number(dom.arimaQ?.value || 0),
-    garch_p: Number(dom.garchP?.value || 1),
-    garch_q: Number(dom.garchQ?.value || 1),
-    forecast_steps: Number(dom.forecastSteps?.value || 5),
-    var_lags: Number(dom.varLags?.value || 1),
-    irf_horizon: Number(dom.irfHorizon?.value || 12),
-    impulse_column: dom.impulseColumn?.value || "",
-    response_column: dom.responseColumn?.value || "",
-    virf_shock_size: Number(dom.virfShockSize?.value || 1),
-    bk_short_horizon: Number(dom.bkShortHorizon?.value || 5),
-    bk_medium_horizon: Number(dom.bkMediumHorizon?.value || 20),
-    confidence_level: Number(dom.confidenceLevel?.value || 0.95),
-    holding_period_days: Number(dom.holdingPeriodDays?.value || 1),
-    ewma_lambda: Number(dom.ewmaLambda?.value || 0.94),
-    option_type: dom.optionType?.value || "call",
-    option_steps: Number(dom.optionSteps?.value || 50),
-    risk_aversion: Number(dom.portfolioRiskAversion?.value || 3),
-    long_only: dom.portfolioLongOnly?.checked ?? true,
-    dsge_alpha: Number(dom.dsgeAlpha?.value || 0.33),
-    dsge_beta: Number(dom.dsgeBeta?.value || 0.99),
-    dsge_delta: Number(dom.dsgeDelta?.value || 0.025),
-    dsge_productivity: Number(dom.dsgeProductivity?.value || 1),
-    dsge_labor: Number(dom.dsgeLabor?.value || 0.33),
-    dsge_shock_persistence: Number(dom.dsgeShockPersistence?.value || 0.9),
-    dsge_shock_size: Number(dom.dsgeShockSize?.value || 0.01),
-    dsge_impulse_horizon: Number(dom.dsgeImpulseHorizon?.value || 12),
-    robust_covariance: dom.modelRobustCovariance?.checked ?? true,
-  };
+  const payload = buildModelPayload(assetId);
   const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/analysis/models`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -6053,8 +6667,13 @@ async function renderPlotPreview(result) {
     return;
   }
   revokeCurrentPlotUrl();
+  const headers = new Headers();
+  if (state.token) {
+    headers.set("Authorization", `Bearer ${state.token}`);
+  }
   const response = await fetch(`/api/assets/${result.asset.id}/download`, {
-    headers: { Authorization: `Bearer ${state.token}` },
+    credentials: "same-origin",
+    headers,
   });
   if (!response.ok) {
     throw new Error("Chart preview download failed.");
@@ -6111,11 +6730,17 @@ async function handleIntegrationActions(event) {
     await refreshWorkspaceData();
     showToast("Connection deleted.");
   }
+  renderAllLabTemplateBuilders();
 }
 
 async function downloadAsset(assetId) {
+  const headers = new Headers();
+  if (state.token) {
+    headers.set("Authorization", `Bearer ${state.token}`);
+  }
   const response = await fetch(`/api/assets/${assetId}/download`, {
-    headers: { Authorization: `Bearer ${state.token}` },
+    credentials: "same-origin",
+    headers,
   });
   if (!response.ok) {
     throw new Error("Download failed.");
@@ -6608,10 +7233,26 @@ function bind() {
     }
     setMultiSelectValues(optimizationElement("optimization-optimizer-select"), state.optimizationCatalog.defaults?.optimizers || []);
     setMultiSelectValues(optimizationElement("optimization-function-select"), state.optimizationCatalog.defaults?.functions || []);
+    updateBuilderStatus("optimization", "Applied the default comparative optimization suite.");
   });
   optimizationClearSelection?.addEventListener("click", () => {
     setMultiSelectValues(optimizationElement("optimization-optimizer-select"), []);
     setMultiSelectValues(optimizationElement("optimization-function-select"), []);
+    updateBuilderStatus("optimization", "Cleared the current optimization selection.");
+  });
+  ["prepare", "model", "optimization"].forEach((prefix) => {
+    labBuilderElement(prefix, "template-select")?.addEventListener("change", () => renderLabTemplateBuilder(prefix));
+    labBuilderElement(prefix, "variant-select")?.addEventListener("change", () => applyVariantPresetSelection(prefix));
+    labBuilderElement(prefix, "variant-json")?.addEventListener("input", () => {
+      const textarea = labBuilderElement(prefix, "variant-json");
+      if (textarea) {
+        textarea.dataset.boundPreset = "0";
+      }
+      updateBuilderStatus(prefix, "Advanced specification updated. Save as a template to reuse it later.");
+    });
+    labBuilderElement(prefix, "save-template")?.addEventListener("click", wrap(async () => {
+      await saveCurrentLabTemplate(prefix);
+    }));
   });
   dom.variableGuideApply?.addEventListener("click", wrap(async () => {
     applyVariableGuidePrefill();
@@ -6779,9 +7420,6 @@ async function init() {
         await loadOptimizationCatalog();
         renderOptimizationCatalog();
       }
-    }
-    if (pageMode === "optimization-lab") {
-      await loadOptimizationLabPage();
     }
     if (pageMode === "data-lab" && !isExperienceLocked()) {
       renderLabContext();

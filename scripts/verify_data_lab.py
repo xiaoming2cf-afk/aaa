@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import io
+import json
 import os
+import shutil
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -27,6 +30,29 @@ def configure_test_environment(temp_root: Path) -> None:
     os.environ["RESEARCH_AGENT_REPORTS_DIR"] = str((temp_root / "reports").resolve())
     os.environ["ASSET_STORAGE_BACKEND"] = "local"
     os.environ["PUBLIC_BASE_URL"] = "http://testserver"
+
+
+def _write_json(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+
+def _write_frame(path: Path, rows: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if isinstance(rows, pd.DataFrame):
+        frame = rows
+    elif isinstance(rows, list):
+        frame = pd.DataFrame(rows)
+    elif isinstance(rows, dict):
+        frame = pd.DataFrame([rows])
+    else:
+        frame = pd.DataFrame()
+    frame.to_csv(path, index=False)
 
 
 def build_panel_dataset() -> pd.DataFrame:

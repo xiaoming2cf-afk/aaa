@@ -29,6 +29,15 @@ def _write_text(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def _assert_redirect_home(response, route: str) -> dict[str, Any]:
+    if response.status_code not in {302, 303, 307, 308}:
+        raise AssertionError(f"{route}: expected redirect to home, got {response.status_code}")
+    location = response.headers.get("location", "")
+    if location != "/":
+        raise AssertionError(f"{route}: expected redirect target '/', got {location!r}")
+    return {"status_code": response.status_code, "location": location}
+
+
 def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
     temp_root = Path(tempfile.mkdtemp(prefix="erp-access-gate-verify-"))
     configure_test_environment(temp_root)
@@ -42,39 +51,62 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
             output_dir.mkdir(parents=True, exist_ok=True)
 
         remote_headers = {"host": "economic-research-web.onrender.com"}
-        local_headers = {"host": "127.0.0.1"}
-        pages = ["/", "/data-lab", "/optimization-lab", "/public-monitor"]
-        page_checks: dict[str, Any] = {}
-        for route in pages:
-            response = client.get(route, headers=remote_headers)
-            response.raise_for_status()
-            page_checks[route] = {
-                "status_code": response.status_code,
-                "has_platform_navigation": "Platform Navigation" in response.text,
-                "has_access_gate": "data-access-gate" in response.text,
-            }
-            if output_dir:
-                slug = route.strip("/").replace("/", "_") or "home"
-                _write_text(output_dir / "pages" / f"{slug}.html", response.text)
+        insert_public_briefing()
 
-        gated_api_routes = [
+        home = client.get("/", headers=remote_headers)
+        home.raise_for_status()
+        if "Platform Navigation" not in home.text:
+            raise AssertionError("Home page lost the platform navigation surface")
+        if "Daily" not in home.text and "Public Daily Monitor" not in home.text:
+            raise AssertionError("Home page no longer exposes the public daily-report surface")
+
+        public_api_routes = [
+            "/api/public/briefings/latest",
+            "/api/public/briefings",
+            "/api/public/summary?days=7",
+        ]
+        public_api_status: dict[str, int] = {}
+        for route in public_api_routes:
+            response = client.get(route, headers=remote_headers)
+            public_api_status[route] = response.status_code
+            if response.status_code != 200:
+                raise AssertionError(f"{route}: expected public access, got {response.status_code}")
+
+        private_pages = [
+            "/data-lab",
+            "/public-monitor",
+            "/summaries/weekly",
+            "/summaries/monthly",
+            "/data-lab/models/econometrics_baseline/ols",
+            "/data-lab/learn/models/econometrics_baseline/ols",
+        ]
+        page_redirects: dict[str, Any] = {}
+        for route in private_pages:
+            response = client.get(route, headers=remote_headers, follow_redirects=False)
+            page_redirects[route] = _assert_redirect_home(response, route)
+
+        legacy_opt_response = client.get("/optimization-lab", headers=remote_headers, follow_redirects=False)
+        if legacy_opt_response.status_code not in {302, 303, 307, 308}:
+            raise AssertionError(
+                f"/optimization-lab: expected redirect into Data Lab anchor, got {legacy_opt_response.status_code}"
+            )
+        if legacy_opt_response.headers.get("location") != "/data-lab#optimization-module":
+            raise AssertionError(
+                f"/optimization-lab: unexpected location {legacy_opt_response.headers.get('location')!r}"
+            )
+
+        private_api_routes = [
             "/api/data-lab/catalog",
             "/api/optimization/catalog",
-            "/api/public/briefings/latest",
             "/api/openalex/search?q=inflation&max_results=1",
+            "/api/auth/me",
         ]
-        remote_api_status: dict[str, int] = {}
-        for route in gated_api_routes:
+        private_api_status: dict[str, int] = {}
+        for route in private_api_routes:
             response = client.get(route, headers=remote_headers)
-            remote_api_status[route] = response.status_code
+            private_api_status[route] = response.status_code
             if response.status_code != 401:
-                raise AssertionError(f"Expected remote unauthenticated access to fail for {route}, got {response.status_code}")
-
-        local_api_status: dict[str, int] = {}
-        for route in ["/api/data-lab/catalog", "/api/optimization/catalog"]:
-            response = client.get(route, headers=local_headers)
-            response.raise_for_status()
-            local_api_status[route] = response.status_code
+                raise AssertionError(f"{route}: expected 401 for anonymous remote access, got {response.status_code}")
 
         register = client.post(
             "/api/auth/register",
@@ -82,27 +114,42 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
         )
         register.raise_for_status()
         token = register.json()["session_token"]
-        insert_public_briefing()
 
-        authed_remote_status: dict[str, int] = {}
-        for route in gated_api_routes:
+        authenticated_pages: dict[str, int] = {}
+        for route in private_pages:
             response = client.get(route, headers={**remote_headers, **auth_headers(token)})
-            authed_remote_status[route] = response.status_code
-            if route.endswith("/latest"):
-                # latest may still build or return null content, but should become accessible
-                if response.status_code != 200:
-                    raise AssertionError(f"Authenticated remote access should unlock {route}, got {response.status_code}")
-            elif response.status_code != 200:
-                raise AssertionError(f"Authenticated remote access should unlock {route}, got {response.status_code}")
+            authenticated_pages[route] = response.status_code
+            if response.status_code != 200:
+                raise AssertionError(f"{route}: expected authenticated access, got {response.status_code}")
+
+        authenticated_private_api_status: dict[str, int] = {}
+        for route in private_api_routes:
+            response = client.get(route, headers={**remote_headers, **auth_headers(token)})
+            authenticated_private_api_status[route] = response.status_code
+            if response.status_code != 200:
+                raise AssertionError(f"{route}: expected authenticated API access, got {response.status_code}")
+
+        me_response = client.get("/api/auth/me", headers={**remote_headers, **auth_headers(token)})
+        me_response.raise_for_status()
+        me_payload = me_response.json()
+        if me_payload.get("user", {}).get("email") != "gate@example.com":
+            raise AssertionError("Authenticated /api/auth/me returned the wrong user")
 
         report = {
             "status": "passed",
-            "page_checks": page_checks,
-            "remote_api_status": remote_api_status,
-            "local_api_status": local_api_status,
-            "authenticated_remote_api_status": authed_remote_status,
+            "home_status": home.status_code,
+            "public_api_status": public_api_status,
+            "private_page_redirects": page_redirects,
+            "legacy_optimization_redirect": {
+                "status_code": legacy_opt_response.status_code,
+                "location": legacy_opt_response.headers.get("location", ""),
+            },
+            "private_api_status": private_api_status,
+            "authenticated_pages": authenticated_pages,
+            "authenticated_private_api_status": authenticated_private_api_status,
         }
         if output_dir:
+            _write_text(output_dir / "pages" / "home.html", home.text)
             _write_json(output_dir / "verification_report.json", report)
         return report
     finally:

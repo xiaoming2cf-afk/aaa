@@ -467,6 +467,7 @@
             <p class="eyebrow eyebrow-compact">Optimization scope</p>
             <h4>Catalog and suite execution</h4>
             <p class="muted">Choose optimizers, choose benchmark functions, set parallel run controls, then export figures, tables, and raw process traces.</p>
+            <p class="muted" id="optimization-health-status">Loading optimization health summary...</p>
             <div class="chip-row chip-row-compact" id="optimization-snapshot-grid">
               <span class="topic-chip">Loading optimization catalog...</span>
             </div>
@@ -478,72 +479,128 @@
             </div>
           </article>
         </div>
-        <form id="optimization-suite-form" class="stack">
-          <div class="panel-head panel-head-wrap">
-            <div>
-              <h4>Optimization Suite Builder</h4>
-              <span class="muted">Configure the benchmark batch, launch it in parallel, then review exported statistics and figures.</span>
-            </div>
-          </div>
-          <div class="form-grid">
-            <input id="optimization-suite-label" name="suite_label" type="text" value="Optimization Suite" placeholder="Suite label" required />
-            <input id="optimization-dimension" name="dimension" type="number" min="2" value="30" />
-            <input id="optimization-epoch" name="epoch" type="number" min="2" value="50" />
-            <input id="optimization-pop-size" name="pop_size" type="number" min="4" value="30" />
-            <input id="optimization-runs" name="runs" type="number" min="1" value="5" />
-            <input id="optimization-workers" name="workers" type="number" min="0" value="0" />
-          </div>
-          <label for="optimization-optimizer-select">Mealpy algorithms</label>
-          <select id="optimization-optimizer-select" name="optimizer_names" multiple size="12"></select>
-          <label for="optimization-function-select">Opfunu benchmark functions</label>
-          <select id="optimization-function-select" name="function_names" multiple size="12"></select>
-          <div class="actions">
-            <button type="submit">Run optimization suite</button>
-            <button type="button" class="secondary" id="optimization-clear-selection">Clear selection</button>
-          </div>
-          <p class="muted">Safety caps are applied before execution to prevent unusable suite sizes. Results will appear below and open under the Data Lab result surface.</p>
-        </form>
-        <div class="card-list" id="optimization-run-summary">
-          <div class="card"><p>No optimization suite has been run in this session yet.</p></div>
-        </div>
         <div class="summary-page-grid">
           <article class="panel public-section nested-panel">
             <div class="panel-head panel-head-wrap">
               <div>
-                <h4>Optimizer Catalog</h4>
-                <span class="muted">All discovered Mealpy algorithms available to the suite builder.</span>
+                <h4>Catalog Explorer</h4>
+                <span class="muted">Browse the optimization directory by library, family, and implementation status before you select a suite.</span>
               </div>
             </div>
-            <div class="table-scroll">
-              <table class="data-table" id="optimization-optimizer-table">
-                <thead>
-                  <tr><th>Optimizer</th><th>Module</th><th>Status</th><th>Notes</th></tr>
-                </thead>
-                <tbody></tbody>
-              </table>
+            <div id="optimization-suite-requirements" class="chip-row chip-row-compact">
+              <span class="topic-chip">Loading suite requirements...</span>
+            </div>
+            <div id="optimization-catalog-explorer" class="card-list">
+              <div class="card"><p>Loading the optimizer and benchmark catalogs...</p></div>
+            </div>
+            <div class="summary-page-grid">
+              <article class="panel public-section nested-panel">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <h4>Optimizer Catalog</h4>
+                    <span class="muted">All discovered Mealpy algorithms available to the suite builder.</span>
+                  </div>
+                </div>
+                <div class="table-scroll">
+                  <table class="data-table" id="optimization-optimizer-table">
+                    <thead>
+                      <tr><th>Optimizer</th><th>Module</th><th>Status</th><th>Notes</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="panel public-section nested-panel">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <h4>Benchmark Catalog</h4>
+                    <span class="muted">All concrete Opfunu functions available to the suite builder.</span>
+                  </div>
+                </div>
+                <div class="table-scroll">
+                  <table class="data-table" id="optimization-function-table">
+                    <thead>
+                      <tr><th>Function</th><th>Module</th><th>Dimension</th><th>Status</th><th>Notes</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </article>
             </div>
           </article>
+
           <article class="panel public-section nested-panel">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <h4>Benchmark Catalog</h4>
-                <span class="muted">All concrete Opfunu functions available to the suite builder.</span>
+            <form id="optimization-suite-form" class="stack">
+              <div class="panel-head panel-head-wrap">
+                <div>
+                  <h4>Experiment Builder</h4>
+                  <span class="muted">Configure a strict benchmark suite. If the selected suite violates the minimum comparative conditions, the run will fail with the exact requirement message.</span>
+                </div>
               </div>
-            </div>
-            <div class="table-scroll">
-              <table class="data-table" id="optimization-function-table">
-                <thead>
-                  <tr><th>Function</th><th>Module</th><th>Dimension</th><th>Status</th><th>Notes</th></tr>
-                </thead>
-                <tbody></tbody>
-              </table>
+              <div class="lab-template-builder">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <h5>Optimization Templates &amp; Variant Builder</h5>
+                    <span class="muted">Reuse saved suite configurations, apply preset variants, or write an advanced JSON override.</span>
+                  </div>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="optimization-template-select">Saved template</label>
+                    <select id="optimization-template-select"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="optimization-variant-select">Preset variant</label>
+                    <select id="optimization-variant-select"></select>
+                  </div>
+                </div>
+                <div class="stack compact">
+                  <label for="optimization-variant-json">Advanced specification (JSON)</label>
+                  <textarea id="optimization-variant-json" rows="5" placeholder='{"runs": 7, "dimension": 50}'></textarea>
+                </div>
+                <div class="actions compact-actions">
+                  <button type="button" class="secondary" id="optimization-save-template">Save current optimization template</button>
+                  <span class="muted" id="optimization-template-status">No template selected.</span>
+                </div>
+              </div>
+              <div class="form-grid">
+                <input id="optimization-suite-label" name="suite_label" type="text" value="Optimization Suite" placeholder="Suite label" required />
+                <input id="optimization-dimension" name="dimension" type="number" min="2" value="30" />
+                <input id="optimization-epoch" name="epoch" type="number" min="2" value="50" />
+                <input id="optimization-pop-size" name="pop_size" type="number" min="4" value="30" />
+                <input id="optimization-runs" name="runs" type="number" min="1" value="5" />
+                <input id="optimization-workers" name="workers" type="number" min="0" value="0" />
+              </div>
+              <label for="optimization-optimizer-select">Mealpy algorithms</label>
+              <select id="optimization-optimizer-select" name="optimizer_names" multiple size="12"></select>
+              <label for="optimization-function-select">Opfunu benchmark functions</label>
+              <select id="optimization-function-select" name="function_names" multiple size="12"></select>
+              <div class="actions">
+                <button type="submit">Run optimization suite</button>
+                <button type="button" class="secondary" id="optimization-clear-selection">Clear selection</button>
+              </div>
+              <p class="muted">Standard suites require multiple algorithms, multiple functions, and multiple repeated runs. Smaller suites now fail fast with explicit requirement errors.</p>
+            </form>
+            <div class="card-list" id="optimization-run-summary">
+              <div class="card"><p>No optimization suite has been run in this session yet.</p></div>
             </div>
           </article>
         </div>
+        <article class="panel public-section nested-panel">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h4>Validation &amp; Export</h4>
+              <span class="muted">Every completed suite should leave a research-grade package: convergence curves, process paths, significance tables, rank visuals, and raw process data.</span>
+            </div>
+          </div>
+          <div id="optimization-validation-export-board" class="card-list">
+            <div class="card"><p>Run a suite to populate the validation and export board.</p></div>
+          </div>
+        </article>
         <div class="panel-head panel-head-wrap">
           <div>
-            <h4>Recent Optimization Results</h4>
-            <span class="muted">Open previous suites, inspect statistical packages, or reuse exports in cases and knowledge notes.</span>
+            <h4>Workspace Results</h4>
+            <span class="muted">Open previous suites, inspect statistical packages, and route finished runs into cases or knowledge notes.</span>
           </div>
         </div>
         <div class="card-list" id="optimization-results-list">
@@ -698,6 +755,32 @@
               </div>
 
               <form id="prepare-form" class="stack">
+                <div class="lab-template-builder">
+                  <div class="panel-head panel-head-wrap">
+                    <div>
+                      <h4>Processing Templates &amp; Variant Builder</h4>
+                      <span class="muted">Save reusable preparation recipes, apply preset variants, or define an advanced JSON override before building the sample.</span>
+                    </div>
+                  </div>
+                  <div class="split">
+                    <div class="stack compact">
+                      <label for="prepare-template-select">Saved template</label>
+                      <select id="prepare-template-select"></select>
+                    </div>
+                    <div class="stack compact">
+                      <label for="prepare-variant-select">Preset variant</label>
+                      <select id="prepare-variant-select"></select>
+                    </div>
+                  </div>
+                  <div class="stack compact">
+                    <label for="prepare-variant-json">Advanced specification (JSON)</label>
+                    <textarea id="prepare-variant-json" rows="5" placeholder='{"impute_method": "median", "winsor_lower_quantile": 0.02, "winsor_upper_quantile": 0.98}'></textarea>
+                  </div>
+                  <div class="actions compact-actions">
+                    <button type="button" class="secondary" id="prepare-save-template">Save current processing template</button>
+                    <span class="muted" id="prepare-template-status">No template selected.</span>
+                  </div>
+                </div>
                 <div id="prepare-core-fields" class="stack">
                 <div class="panel-head">
                   <h3>Sample Preparation</h3>
@@ -879,6 +962,32 @@
               </form>
 
               <form id="model-form" class="stack hidden">
+                <div class="lab-template-builder">
+                  <div class="panel-head panel-head-wrap">
+                    <div>
+                      <h4>Model Templates &amp; Variant Builder</h4>
+                      <span class="muted">Store reusable specifications, apply family or method-level variants, and document robustness settings before you estimate.</span>
+                    </div>
+                  </div>
+                  <div class="split">
+                    <div class="stack compact">
+                      <label for="model-template-select">Saved template</label>
+                      <select id="model-template-select"></select>
+                    </div>
+                    <div class="stack compact">
+                      <label for="model-variant-select">Preset variant</label>
+                      <select id="model-variant-select"></select>
+                    </div>
+                  </div>
+                  <div class="stack compact">
+                    <label for="model-variant-json">Advanced specification (JSON)</label>
+                    <textarea id="model-variant-json" rows="5" placeholder='{"robust_covariance": false, "include_time_effects": true}'></textarea>
+                  </div>
+                  <div class="actions compact-actions">
+                    <button type="button" class="secondary" id="model-save-template">Save current model template</button>
+                    <span class="muted" id="model-template-status">No template selected.</span>
+                  </div>
+                </div>
                 <div class="panel-head">
                   <h3>Model Lab</h3>
                   <span class="muted">Use family-based model selection instead of one long flat list.</span>

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
 
@@ -45,11 +46,14 @@ from .platform_core import (
     delete_integration,
     get_owned_knowledge_case,
     get_current_user,
+    get_current_user_optional,
     get_owned_knowledge_record,
     get_workspace_for_user,
     find_related_knowledge_records,
     is_knowledge_record_archived,
+    logout_user_session,
     list_assets,
+    list_lab_templates,
     list_knowledge_cases,
     list_integrations,
     list_knowledge_records,
@@ -77,6 +81,9 @@ from .platform_core import (
     restore_knowledge_record,
     update_knowledge_case,
     update_knowledge_record,
+    create_lab_template,
+    serialize_lab_template,
+    get_owned_lab_template,
 )
 from .provider_catalog import get_provider_catalog
 from .platform_research import (
@@ -120,6 +127,8 @@ DATA_LAB_TEACHING_WEB_FILE = WEB_DIR / "data_lab_teaching.html"
 DATA_LAB_RESULT_WEB_FILE = WEB_DIR / "data_lab_result.html"
 OPTIMIZATION_LAB_WEB_FILE = WEB_DIR / "optimization_lab.html"
 OPTIMIZATION_LAB_RESULT_WEB_FILE = WEB_DIR / "optimization_lab_result.html"
+SESSION_COOKIE_NAME = "erp_session_token"
+_REQUEST_SESSION_TOKEN: ContextVar[str] = ContextVar("erp_request_session_token", default="")
 
 
 class RegisterRequest(BaseModel):
@@ -225,6 +234,9 @@ class OlsAnalysisRequest(BaseModel):
 class DatasetPrepareRequest(BaseModel):
     asset_id: str
     workflow_group: str = Field(default="sample_preparation")
+    template_id: str = ""
+    variant_label: str = ""
+    variant_spec: dict[str, Any] = Field(default_factory=dict)
     include_columns: list[str] = Field(default_factory=list)
     required_columns: list[str] = Field(default_factory=list)
     numeric_columns: list[str] = Field(default_factory=list)
@@ -261,6 +273,9 @@ class ModelRunRequest(BaseModel):
     asset_id: str
     model_family: str = ""
     model_type: str = Field(default="ols")
+    template_id: str = ""
+    variant_label: str = ""
+    variant_spec: dict[str, Any] = Field(default_factory=dict)
     dependent: str = ""
     independents: list[str] = Field(default_factory=list)
     controls: list[str] = Field(default_factory=list)
@@ -353,6 +368,9 @@ class VariableGuideRequest(BaseModel):
 
 class OptimizationRunRequest(BaseModel):
     suite_label: str = Field(default="Optimization Suite", min_length=2, max_length=200)
+    template_id: str = ""
+    variant_label: str = ""
+    variant_spec: dict[str, Any] = Field(default_factory=dict)
     optimizer_names: list[str] = Field(default_factory=list)
     function_names: list[str] = Field(default_factory=list)
     dimension: int = 30
@@ -361,6 +379,18 @@ class OptimizationRunRequest(BaseModel):
     runs: int = 5
     workers: int = 0
     seed_base: int = 20260331
+
+
+class LabTemplateCreateRequest(BaseModel):
+    template_scope: str = Field(min_length=2, max_length=40)
+    workflow_type: str = Field(min_length=2, max_length=40)
+    family: str = ""
+    method: str = ""
+    name: str = Field(min_length=2, max_length=240)
+    description: str = ""
+    specification: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    is_default: bool = False
 
 
 class PublicBriefingModerationRequest(BaseModel):
@@ -373,7 +403,47 @@ def _token_from_headers(authorization: str | None, x_session_token: str | None) 
     bearer = (authorization or "").strip()
     if bearer.lower().startswith("bearer "):
         return bearer[7:].strip()
-    return (x_session_token or "").strip()
+    header_token = (x_session_token or "").strip()
+    if header_token:
+        return header_token
+    return (_REQUEST_SESSION_TOKEN.get("") or "").strip()
+
+
+def _resolve_session_token(
+    request: Request,
+    authorization: str | None,
+    x_session_token: str | None,
+) -> str:
+    token = _token_from_headers(authorization, x_session_token)
+    if token:
+        return token
+    return (request.cookies.get(SESSION_COOKIE_NAME) or "").strip()
+
+
+def _session_cookie_secure(settings) -> bool:
+    return settings.public_base_url.strip().lower().startswith("https://")
+
+
+def _set_session_cookie(response: Response, settings, token: str) -> None:
+    response.set_cookie(
+        SESSION_COOKIE_NAME,
+        token,
+        httponly=True,
+        samesite="lax",
+        secure=_session_cookie_secure(settings),
+        max_age=max(3600, int(settings.session_ttl_hours) * 3600),
+        path="/",
+    )
+
+
+def _clear_session_cookie(response: Response, settings) -> None:
+    response.delete_cookie(
+        SESSION_COOKIE_NAME,
+        path="/",
+        httponly=True,
+        samesite="lax",
+        secure=_session_cookie_secure(settings),
+    )
 
 
 def _raise_http_error(exc: Exception) -> None:
@@ -393,18 +463,100 @@ def _is_trusted_local_request(request: Request) -> bool:
     return host in {"", "localhost", "127.0.0.1", "::1", "testserver"}
 
 
+def _merge_spec_dicts(base: dict[str, Any] | None, overlay: dict[str, Any] | None) -> dict[str, Any]:
+    merged = dict(base or {})
+    for key, value in (overlay or {}).items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _merge_spec_dicts(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _resolve_template_execution(
+    request_model: BaseModel,
+    *,
+    db,
+    user,
+    workspace,
+    template_scope: str,
+    workflow_type: str,
+    family: str = "",
+    method: str = "",
+) -> dict[str, Any]:
+    payload = request_model.model_dump(exclude_unset=True)
+    template_id = str(payload.pop("template_id", "") or "").strip()
+    variant_label = str(payload.pop("variant_label", "") or "").strip()
+    raw_variant_spec = payload.pop("variant_spec", {}) or {}
+    variant_spec = dict(raw_variant_spec) if isinstance(raw_variant_spec, dict) else {}
+    template = None
+    template_spec: dict[str, Any] = {}
+    if template_id:
+        template = get_owned_lab_template(db, user=user, template_id=template_id)
+        if template.workspace_id != workspace.id:
+            raise PermissionError("Lab template does not belong to the selected workspace.")
+        if template.template_scope != template_scope:
+            raise ValueError(f"Template scope mismatch: expected {template_scope}.")
+        if template.workflow_type != workflow_type:
+            raise ValueError(f"Template workflow mismatch: expected {workflow_type}.")
+        if family and template.family and template.family != family:
+            raise ValueError(f"Template family mismatch: expected {family}.")
+        if method and template.method and template.method != method:
+            raise ValueError(f"Template method mismatch: expected {method}.")
+        template_spec = dict(template.specification_json or {}) if isinstance(template.specification_json, dict) else {}
+    explicit_fields = {
+        key: getattr(request_model, key)
+        for key in request_model.model_fields_set
+        if key not in {"template_id", "variant_label", "variant_spec"}
+    }
+    effective_payload = _merge_spec_dicts(payload, template_spec)
+    effective_payload = _merge_spec_dicts(effective_payload, variant_spec)
+    effective_payload = _merge_spec_dicts(effective_payload, explicit_fields)
+    return {
+        "payload": effective_payload,
+        "template_id": template.id if template else "",
+        "template_name": template.name if template else "",
+        "template_scope": template_scope,
+        "workflow_type": workflow_type,
+        "family": family or str(effective_payload.get("workflow_group") or effective_payload.get("model_family") or "").strip(),
+        "method": method or str(effective_payload.get("model_type") or "").strip(),
+        "variant_label": variant_label,
+        "variant_spec": variant_spec,
+        "effective_specification": effective_payload,
+    }
+
+
 def _require_feature_access(
     db,
     request: Request,
     authorization: str | None,
     x_session_token: str | None,
 ):
-    token = _token_from_headers(authorization, x_session_token)
-    if token:
-        return get_current_user(db, token)
-    if _is_trusted_local_request(request):
-        return None
-    raise PermissionError("Sign in to unlock this feature on public hosts.")
+    token = _resolve_session_token(request, authorization, x_session_token)
+    return get_current_user(db, token)
+
+
+def _current_user_from_request(
+    db,
+    request: Request,
+    authorization: str | None,
+    x_session_token: str | None,
+):
+    token = _resolve_session_token(request, authorization, x_session_token)
+    return get_current_user_optional(db, token)
+
+
+def _private_page_or_home(
+    request: Request,
+    file_path: Path,
+    authorization: str | None,
+    x_session_token: str | None,
+) -> Response:
+    with session_scope() as db:
+        user = _current_user_from_request(db, request, authorization, x_session_token)
+    if not user:
+        return RedirectResponse(url="/", status_code=307)
+    return FileResponse(file_path)
 
 
 def create_app() -> FastAPI:
@@ -413,21 +565,44 @@ def create_app() -> FastAPI:
     app = FastAPI(title=settings.app_name)
     app.mount("/assets", StaticFiles(directory=str(WEB_DIR)), name="assets")
 
+    @app.middleware("http")
+    async def bind_request_session_token(request: Request, call_next):
+        token = (request.cookies.get(SESSION_COOKIE_NAME) or "").strip()
+        reset_token = _REQUEST_SESSION_TOKEN.set(token)
+        try:
+            response = await call_next(request)
+        finally:
+            _REQUEST_SESSION_TOKEN.reset(reset_token)
+        return response
+
     @app.get("/")
     def index() -> FileResponse:
         return FileResponse(WEB_DIR / "index.html")
 
     @app.get("/public-monitor")
-    def public_monitor_page() -> FileResponse:
-        return FileResponse(PUBLIC_WEB_FILE)
+    def public_monitor_page(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, PUBLIC_WEB_FILE, authorization, x_session_token)
 
     @app.get("/public-monitor/{view_slug}")
-    def public_monitor_view_page(view_slug: str) -> FileResponse:
-        return FileResponse(PUBLIC_WEB_FILE)
+    def public_monitor_view_page(
+        view_slug: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, PUBLIC_WEB_FILE, authorization, x_session_token)
 
     @app.get("/data-lab")
-    def data_lab_page() -> FileResponse:
-        return FileResponse(DATA_LAB_WEB_FILE)
+    def data_lab_page(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, DATA_LAB_WEB_FILE, authorization, x_session_token)
 
     @app.get("/optimization-lab")
     def optimization_lab_page() -> RedirectResponse:
@@ -438,58 +613,114 @@ def create_app() -> FastAPI:
         return RedirectResponse(url=f"/data-lab/results/optimization/{record_id}", status_code=307)
 
     @app.get("/data-lab/processing/{family}")
-    def data_lab_processing_family_page(family: str) -> FileResponse:
+    def data_lab_processing_family_page(
+        family: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
         if not get_processing_family(family):
             raise HTTPException(status_code=404, detail="Data processing family not found.")
-        return FileResponse(DATA_LAB_DETAIL_WEB_FILE)
+        return _private_page_or_home(request, DATA_LAB_DETAIL_WEB_FILE, authorization, x_session_token)
 
     @app.get("/data-lab/models/{family}")
-    def data_lab_model_family_page(family: str) -> FileResponse:
+    def data_lab_model_family_page(
+        family: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
         if not get_model_family(family):
             raise HTTPException(status_code=404, detail="Model family not found.")
-        return FileResponse(DATA_LAB_DETAIL_WEB_FILE)
+        return _private_page_or_home(request, DATA_LAB_DETAIL_WEB_FILE, authorization, x_session_token)
 
     @app.get("/data-lab/models/{family}/{method}")
-    def data_lab_model_method_page(family: str, method: str) -> FileResponse:
+    def data_lab_model_method_page(
+        family: str,
+        method: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
         if not get_model_method(family, method):
             raise HTTPException(status_code=404, detail="Model method not found.")
-        return FileResponse(DATA_LAB_METHOD_WEB_FILE)
+        return _private_page_or_home(request, DATA_LAB_METHOD_WEB_FILE, authorization, x_session_token)
 
     @app.get("/data-lab/learn/models/{family}/{method}")
-    def data_lab_model_teaching_page(family: str, method: str) -> FileResponse:
+    def data_lab_model_teaching_page(
+        family: str,
+        method: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
         if not get_model_teaching_guide(family, method):
             raise HTTPException(status_code=404, detail="Model teaching guide not found.")
-        return FileResponse(DATA_LAB_TEACHING_WEB_FILE)
+        return _private_page_or_home(request, DATA_LAB_TEACHING_WEB_FILE, authorization, x_session_token)
 
     @app.get("/data-lab/results/processing/{asset_id}")
-    def data_lab_processing_result_page(asset_id: str) -> FileResponse:
-        return FileResponse(DATA_LAB_RESULT_WEB_FILE)
+    def data_lab_processing_result_page(
+        asset_id: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, DATA_LAB_RESULT_WEB_FILE, authorization, x_session_token)
 
     @app.get("/data-lab/results/models/{record_id}")
-    def data_lab_model_result_page(record_id: str) -> FileResponse:
-        return FileResponse(DATA_LAB_RESULT_WEB_FILE)
+    def data_lab_model_result_page(
+        record_id: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, DATA_LAB_RESULT_WEB_FILE, authorization, x_session_token)
 
     @app.get("/data-lab/results/optimization/{record_id}")
-    def data_lab_optimization_result_page(record_id: str) -> FileResponse:
-        return FileResponse(OPTIMIZATION_LAB_RESULT_WEB_FILE)
+    def data_lab_optimization_result_page(
+        record_id: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, OPTIMIZATION_LAB_RESULT_WEB_FILE, authorization, x_session_token)
 
     @app.get("/macro-desk")
-    def public_macro_desk_page() -> FileResponse:
-        return FileResponse(PUBLIC_WEB_FILE)
+    def public_macro_desk_page(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, PUBLIC_WEB_FILE, authorization, x_session_token)
 
     @app.get("/macro-desk/{view_slug}")
-    def public_macro_desk_view_page(view_slug: str) -> FileResponse:
-        return FileResponse(PUBLIC_WEB_FILE)
+    def public_macro_desk_view_page(
+        view_slug: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, PUBLIC_WEB_FILE, authorization, x_session_token)
 
     @app.get("/briefings/{slug}")
-    def public_briefing_page(slug: str) -> FileResponse:
-        return FileResponse(PUBLIC_WEB_FILE)
+    def public_briefing_page(
+        slug: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, PUBLIC_WEB_FILE, authorization, x_session_token)
 
     @app.get("/summaries/{window}")
-    def public_summary_page(window: str) -> FileResponse:
+    def public_summary_page(
+        window: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
         if window not in {"weekly", "monthly"}:
             raise HTTPException(status_code=404, detail="Public summary page not found.")
-        return FileResponse(PUBLIC_WEB_FILE)
+        return _private_page_or_home(request, PUBLIC_WEB_FILE, authorization, x_session_token)
 
     @app.get("/favicon.ico", include_in_schema=False)
     def favicon() -> FileResponse:
@@ -753,11 +984,12 @@ def create_app() -> FastAPI:
             _raise_http_error(exc)
 
     @app.post("/api/auth/register")
-    def register(request: RegisterRequest) -> dict[str, Any]:
+    def register(request: RegisterRequest, response: Response) -> dict[str, Any]:
         try:
             with session_scope() as db:
                 user = register_user(db, email=request.email, password=request.password, full_name=request.full_name)
                 user, token = login_user(db, settings, email=request.email, password=request.password)
+                _set_session_cookie(response, settings, token)
                 return {
                     "user": serialize_user(user),
                     "session_token": token,
@@ -767,10 +999,11 @@ def create_app() -> FastAPI:
             _raise_http_error(exc)
 
     @app.post("/api/auth/login")
-    def login(request: LoginRequest) -> dict[str, Any]:
+    def login(request: LoginRequest, response: Response) -> dict[str, Any]:
         try:
             with session_scope() as db:
                 user, token = login_user(db, settings, email=request.email, password=request.password)
+                _set_session_cookie(response, settings, token)
                 return {
                     "user": serialize_user(user),
                     "session_token": token,
@@ -781,17 +1014,34 @@ def create_app() -> FastAPI:
 
     @app.get("/api/auth/me")
     def me(
+        request: Request,
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> dict[str, Any]:
         try:
-            token = _token_from_headers(authorization, x_session_token)
+            token = _resolve_session_token(request, authorization, x_session_token)
             with session_scope() as db:
                 user = get_current_user(db, token)
                 return {
                     "user": serialize_user(user),
                     "workspaces": [serialize_workspace(item) for item in list_workspaces(db, user=user)],
                 }
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/auth/logout")
+    def logout(
+        request: Request,
+        response: Response,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _resolve_session_token(request, authorization, x_session_token)
+            with session_scope() as db:
+                logout_user_session(db, token=token)
+            _clear_session_cookie(response, settings)
+            return {"status": "ok"}
         except Exception as exc:
             _raise_http_error(exc)
 
@@ -1439,43 +1689,58 @@ def create_app() -> FastAPI:
             with session_scope() as db:
                 user = get_current_user(db, token)
                 workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                resolved = _resolve_template_execution(
+                    request,
+                    db=db,
+                    user=user,
+                    workspace=workspace,
+                    template_scope="workspace",
+                    workflow_type="data_processing",
+                    family=request.workflow_group or "sample_preparation",
+                )
+                payload = resolved["payload"]
                 return prepare_dataset_asset(
                     settings,
                     db,
                     user=user,
                     workspace=workspace,
-                    asset_id=request.asset_id,
-                    workflow_group=request.workflow_group,
-                    include_columns=request.include_columns,
-                    required_columns=request.required_columns,
-                    numeric_columns=request.numeric_columns,
-                    binary_columns=request.binary_columns,
-                    date_columns=request.date_columns,
-                    impute_columns=request.impute_columns,
-                    impute_method=request.impute_method,
-                    winsorize_columns=request.winsorize_columns,
-                    winsor_lower_quantile=request.winsor_lower_quantile,
-                    winsor_upper_quantile=request.winsor_upper_quantile,
-                    log_transform_columns=request.log_transform_columns,
-                    standardize_columns=request.standardize_columns,
-                    minmax_scale_columns=request.minmax_scale_columns,
-                    outlier_columns=request.outlier_columns,
-                    outlier_method=request.outlier_method,
-                    outlier_threshold=request.outlier_threshold,
-                    sort_column=request.sort_column,
-                    time_group_column=request.time_group_column,
-                    difference_columns=request.difference_columns,
-                    return_columns=request.return_columns,
-                    return_method=request.return_method,
-                    lag_columns=request.lag_columns,
-                    lag_periods=request.lag_periods,
-                    lead_columns=request.lead_columns,
-                    lead_periods=request.lead_periods,
-                    rolling_mean_columns=request.rolling_mean_columns,
-                    rolling_volatility_columns=request.rolling_volatility_columns,
-                    rolling_window=request.rolling_window,
-                    drop_duplicates=request.drop_duplicates,
-                    drop_missing_required=request.drop_missing_required,
+                    asset_id=payload.get("asset_id", request.asset_id),
+                    workflow_group=payload.get("workflow_group", request.workflow_group),
+                    include_columns=payload.get("include_columns", request.include_columns),
+                    required_columns=payload.get("required_columns", request.required_columns),
+                    numeric_columns=payload.get("numeric_columns", request.numeric_columns),
+                    binary_columns=payload.get("binary_columns", request.binary_columns),
+                    date_columns=payload.get("date_columns", request.date_columns),
+                    impute_columns=payload.get("impute_columns", request.impute_columns),
+                    impute_method=payload.get("impute_method", request.impute_method),
+                    winsorize_columns=payload.get("winsorize_columns", request.winsorize_columns),
+                    winsor_lower_quantile=payload.get("winsor_lower_quantile", request.winsor_lower_quantile),
+                    winsor_upper_quantile=payload.get("winsor_upper_quantile", request.winsor_upper_quantile),
+                    log_transform_columns=payload.get("log_transform_columns", request.log_transform_columns),
+                    standardize_columns=payload.get("standardize_columns", request.standardize_columns),
+                    minmax_scale_columns=payload.get("minmax_scale_columns", request.minmax_scale_columns),
+                    outlier_columns=payload.get("outlier_columns", request.outlier_columns),
+                    outlier_method=payload.get("outlier_method", request.outlier_method),
+                    outlier_threshold=payload.get("outlier_threshold", request.outlier_threshold),
+                    sort_column=payload.get("sort_column", request.sort_column),
+                    time_group_column=payload.get("time_group_column", request.time_group_column),
+                    difference_columns=payload.get("difference_columns", request.difference_columns),
+                    return_columns=payload.get("return_columns", request.return_columns),
+                    return_method=payload.get("return_method", request.return_method),
+                    lag_columns=payload.get("lag_columns", request.lag_columns),
+                    lag_periods=payload.get("lag_periods", request.lag_periods),
+                    lead_columns=payload.get("lead_columns", request.lead_columns),
+                    lead_periods=payload.get("lead_periods", request.lead_periods),
+                    rolling_mean_columns=payload.get("rolling_mean_columns", request.rolling_mean_columns),
+                    rolling_volatility_columns=payload.get("rolling_volatility_columns", request.rolling_volatility_columns),
+                    rolling_window=payload.get("rolling_window", request.rolling_window),
+                    drop_duplicates=payload.get("drop_duplicates", request.drop_duplicates),
+                    drop_missing_required=payload.get("drop_missing_required", request.drop_missing_required),
+                    template_id=resolved["template_id"],
+                    template_name=resolved["template_name"],
+                    variant_label=resolved["variant_label"],
+                    variant_spec=resolved["variant_spec"],
+                    effective_specification=resolved["effective_specification"],
                 )
         except Exception as exc:
             _raise_http_error(exc)
@@ -1540,86 +1805,102 @@ def create_app() -> FastAPI:
             with session_scope() as db:
                 user = get_current_user(db, token)
                 workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                resolved = _resolve_template_execution(
+                    request,
+                    db=db,
+                    user=user,
+                    workspace=workspace,
+                    template_scope="workspace",
+                    workflow_type="model",
+                    family=request.model_family or "",
+                    method=request.model_type or "",
+                )
+                payload = resolved["payload"]
                 return run_model_analysis(
                     settings,
                     db,
                     user=user,
                     workspace=workspace,
-                    model_type=request.model_type,
-                    asset_id=request.asset_id,
-                    dependent=request.dependent,
-                    independents=request.independents,
-                    controls=request.controls,
-                    series_columns=request.series_columns,
-                    treatment_column=request.treatment_column,
-                    post_column=request.post_column,
-                    event_time_column=request.event_time_column,
-                    lead_window=request.lead_window,
-                    lag_window=request.lag_window,
-                    omitted_period=request.omitted_period,
-                    origin_mass_column=request.origin_mass_column,
-                    destination_mass_column=request.destination_mass_column,
-                    distance_column=request.distance_column,
-                    running_column=request.running_column,
-                    cutoff=request.rdd_cutoff,
-                    bandwidth=request.rdd_bandwidth,
-                    polynomial_order=request.rdd_polynomial_order,
-                    treat_above_cutoff=request.treat_above_cutoff,
-                    entity_column=request.entity_column,
-                    time_column=request.time_column,
-                    include_time_effects=request.include_time_effects,
-                    endogenous_column=request.endogenous_column,
-                    instrument_columns=request.instrument_columns,
-                    market_column=request.market_column,
-                    risk_free_column=request.risk_free_column,
-                    smb_column=request.smb_column,
-                    hml_column=request.hml_column,
-                    spot_column=request.spot_column,
-                    strike_column=request.strike_column,
-                    maturity_column=request.maturity_column,
-                    rate_column=request.rate_column,
-                    volatility_column=request.volatility_column,
-                    working_capital_column=request.working_capital_column,
-                    retained_earnings_column=request.retained_earnings_column,
-                    ebit_column=request.ebit_column,
-                    market_equity_column=request.market_equity_column,
-                    total_assets_column=request.total_assets_column,
-                    total_liabilities_column=request.total_liabilities_column,
-                    sales_column=request.sales_column,
-                    net_income_column=request.net_income_column,
-                    revenue_column=request.revenue_column,
-                    equity_column=request.equity_column,
-                    inflation_gap_column=request.inflation_gap_column,
-                    output_gap_column=request.output_gap_column,
-                    arima_p=request.arima_p,
-                    arima_d=request.arima_d,
-                    arima_q=request.arima_q,
-                    garch_p=request.garch_p,
-                    garch_q=request.garch_q,
-                    forecast_steps=request.forecast_steps,
-                    var_lags=request.var_lags,
-                    irf_horizon=request.irf_horizon,
-                    impulse_column=request.impulse_column,
-                    response_column=request.response_column,
-                    virf_shock_size=request.virf_shock_size,
-                    bk_short_horizon=request.bk_short_horizon,
-                    bk_medium_horizon=request.bk_medium_horizon,
-                    confidence_level=request.confidence_level,
-                    holding_period_days=request.holding_period_days,
-                    ewma_lambda=request.ewma_lambda,
-                    option_type=request.option_type,
-                    option_steps=request.option_steps,
-                    risk_aversion=request.risk_aversion,
-                    long_only=request.long_only,
-                    dsge_alpha=request.dsge_alpha,
-                    dsge_beta=request.dsge_beta,
-                    dsge_delta=request.dsge_delta,
-                    dsge_productivity=request.dsge_productivity,
-                    dsge_labor=request.dsge_labor,
-                    dsge_shock_persistence=request.dsge_shock_persistence,
-                    dsge_shock_size=request.dsge_shock_size,
-                    dsge_impulse_horizon=request.dsge_impulse_horizon,
-                    robust_covariance=request.robust_covariance,
+                    model_type=payload.get("model_type", request.model_type),
+                    asset_id=payload.get("asset_id", request.asset_id),
+                    dependent=payload.get("dependent", request.dependent),
+                    independents=payload.get("independents", request.independents),
+                    controls=payload.get("controls", request.controls),
+                    series_columns=payload.get("series_columns", request.series_columns),
+                    treatment_column=payload.get("treatment_column", request.treatment_column),
+                    post_column=payload.get("post_column", request.post_column),
+                    event_time_column=payload.get("event_time_column", request.event_time_column),
+                    lead_window=payload.get("lead_window", request.lead_window),
+                    lag_window=payload.get("lag_window", request.lag_window),
+                    omitted_period=payload.get("omitted_period", request.omitted_period),
+                    origin_mass_column=payload.get("origin_mass_column", request.origin_mass_column),
+                    destination_mass_column=payload.get("destination_mass_column", request.destination_mass_column),
+                    distance_column=payload.get("distance_column", request.distance_column),
+                    running_column=payload.get("running_column", request.running_column),
+                    cutoff=payload.get("rdd_cutoff", request.rdd_cutoff),
+                    bandwidth=payload.get("rdd_bandwidth", request.rdd_bandwidth),
+                    polynomial_order=payload.get("rdd_polynomial_order", request.rdd_polynomial_order),
+                    treat_above_cutoff=payload.get("treat_above_cutoff", request.treat_above_cutoff),
+                    entity_column=payload.get("entity_column", request.entity_column),
+                    time_column=payload.get("time_column", request.time_column),
+                    include_time_effects=payload.get("include_time_effects", request.include_time_effects),
+                    endogenous_column=payload.get("endogenous_column", request.endogenous_column),
+                    instrument_columns=payload.get("instrument_columns", request.instrument_columns),
+                    market_column=payload.get("market_column", request.market_column),
+                    risk_free_column=payload.get("risk_free_column", request.risk_free_column),
+                    smb_column=payload.get("smb_column", request.smb_column),
+                    hml_column=payload.get("hml_column", request.hml_column),
+                    spot_column=payload.get("spot_column", request.spot_column),
+                    strike_column=payload.get("strike_column", request.strike_column),
+                    maturity_column=payload.get("maturity_column", request.maturity_column),
+                    rate_column=payload.get("rate_column", request.rate_column),
+                    volatility_column=payload.get("volatility_column", request.volatility_column),
+                    working_capital_column=payload.get("working_capital_column", request.working_capital_column),
+                    retained_earnings_column=payload.get("retained_earnings_column", request.retained_earnings_column),
+                    ebit_column=payload.get("ebit_column", request.ebit_column),
+                    market_equity_column=payload.get("market_equity_column", request.market_equity_column),
+                    total_assets_column=payload.get("total_assets_column", request.total_assets_column),
+                    total_liabilities_column=payload.get("total_liabilities_column", request.total_liabilities_column),
+                    sales_column=payload.get("sales_column", request.sales_column),
+                    net_income_column=payload.get("net_income_column", request.net_income_column),
+                    revenue_column=payload.get("revenue_column", request.revenue_column),
+                    equity_column=payload.get("equity_column", request.equity_column),
+                    inflation_gap_column=payload.get("inflation_gap_column", request.inflation_gap_column),
+                    output_gap_column=payload.get("output_gap_column", request.output_gap_column),
+                    arima_p=payload.get("arima_p", request.arima_p),
+                    arima_d=payload.get("arima_d", request.arima_d),
+                    arima_q=payload.get("arima_q", request.arima_q),
+                    garch_p=payload.get("garch_p", request.garch_p),
+                    garch_q=payload.get("garch_q", request.garch_q),
+                    forecast_steps=payload.get("forecast_steps", request.forecast_steps),
+                    var_lags=payload.get("var_lags", request.var_lags),
+                    irf_horizon=payload.get("irf_horizon", request.irf_horizon),
+                    impulse_column=payload.get("impulse_column", request.impulse_column),
+                    response_column=payload.get("response_column", request.response_column),
+                    virf_shock_size=payload.get("virf_shock_size", request.virf_shock_size),
+                    bk_short_horizon=payload.get("bk_short_horizon", request.bk_short_horizon),
+                    bk_medium_horizon=payload.get("bk_medium_horizon", request.bk_medium_horizon),
+                    confidence_level=payload.get("confidence_level", request.confidence_level),
+                    holding_period_days=payload.get("holding_period_days", request.holding_period_days),
+                    ewma_lambda=payload.get("ewma_lambda", request.ewma_lambda),
+                    option_type=payload.get("option_type", request.option_type),
+                    option_steps=payload.get("option_steps", request.option_steps),
+                    risk_aversion=payload.get("risk_aversion", request.risk_aversion),
+                    long_only=payload.get("long_only", request.long_only),
+                    dsge_alpha=payload.get("dsge_alpha", request.dsge_alpha),
+                    dsge_beta=payload.get("dsge_beta", request.dsge_beta),
+                    dsge_delta=payload.get("dsge_delta", request.dsge_delta),
+                    dsge_productivity=payload.get("dsge_productivity", request.dsge_productivity),
+                    dsge_labor=payload.get("dsge_labor", request.dsge_labor),
+                    dsge_shock_persistence=payload.get("dsge_shock_persistence", request.dsge_shock_persistence),
+                    dsge_shock_size=payload.get("dsge_shock_size", request.dsge_shock_size),
+                    dsge_impulse_horizon=payload.get("dsge_impulse_horizon", request.dsge_impulse_horizon),
+                    robust_covariance=payload.get("robust_covariance", request.robust_covariance),
+                    template_id=resolved["template_id"],
+                    template_name=resolved["template_name"],
+                    variant_label=resolved["variant_label"],
+                    variant_spec=resolved["variant_spec"],
+                    effective_specification=resolved["effective_specification"],
                 )
         except Exception as exc:
             _raise_http_error(exc)
@@ -1664,21 +1945,95 @@ def create_app() -> FastAPI:
             with session_scope() as db:
                 user = get_current_user(db, token)
                 workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                resolved = _resolve_template_execution(
+                    request,
+                    db=db,
+                    user=user,
+                    workspace=workspace,
+                    template_scope="workspace",
+                    workflow_type="optimization",
+                    family="optimization",
+                    method="suite",
+                )
+                payload = resolved["payload"]
                 return run_optimization_suite(
                     settings,
                     db,
                     user=user,
                     workspace=workspace,
-                    suite_label=request.suite_label,
-                    optimizer_names=request.optimizer_names,
-                    function_names=request.function_names,
-                    dimension=request.dimension,
-                    epoch=request.epoch,
-                    pop_size=request.pop_size,
-                    runs=request.runs,
-                    workers=request.workers,
-                    seed_base=request.seed_base,
+                    suite_label=payload.get("suite_label", request.suite_label),
+                    optimizer_names=payload.get("optimizer_names", request.optimizer_names),
+                    function_names=payload.get("function_names", request.function_names),
+                    dimension=payload.get("dimension", request.dimension),
+                    epoch=payload.get("epoch", request.epoch),
+                    pop_size=payload.get("pop_size", request.pop_size),
+                    runs=payload.get("runs", request.runs),
+                    workers=payload.get("workers", request.workers),
+                    seed_base=payload.get("seed_base", request.seed_base),
+                    template_id=resolved["template_id"],
+                    template_name=resolved["template_name"],
+                    variant_label=resolved["variant_label"],
+                    variant_spec=resolved["variant_spec"],
+                    effective_specification=resolved["effective_specification"],
                 )
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/workspaces/{workspace_id}/lab-templates")
+    def workspace_lab_templates(
+        workspace_id: str,
+        template_scope: str = "workspace",
+        workflow_type: str = "",
+        family: str = "",
+        method: str = "",
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                rows = list_lab_templates(
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    template_scope=template_scope,
+                    workflow_type=workflow_type,
+                    family=family,
+                    method=method,
+                )
+                return {"items": [serialize_lab_template(item) for item in rows]}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/lab-templates")
+    def add_workspace_lab_template(
+        workspace_id: str,
+        request: LabTemplateCreateRequest,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                template = create_lab_template(
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    template_scope=request.template_scope,
+                    workflow_type=request.workflow_type,
+                    family=request.family,
+                    method=request.method,
+                    name=request.name,
+                    description=request.description,
+                    specification=request.specification,
+                    metadata=request.metadata,
+                    is_default=request.is_default,
+                )
+                return {"template": serialize_lab_template(template)}
         except Exception as exc:
             _raise_http_error(exc)
 
