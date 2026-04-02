@@ -772,6 +772,10 @@ function shouldLockExperience() {
   return detectPageMode() !== "home" && !state.user;
 }
 
+function hasPendingSessionRestore() {
+  return Boolean(state.token) && !state.user;
+}
+
 function renderPrivateNavigationState() {
   const shouldHide = !state.user;
   document.querySelectorAll("[data-private-nav]").forEach((element) => {
@@ -780,7 +784,7 @@ function renderPrivateNavigationState() {
 }
 
 function renderHomeSessionSections() {
-  const show = detectPageMode() === "home" && Boolean(state.user);
+  const show = detectPageMode() === "home" && (Boolean(state.user) || hasPendingSessionRestore());
   document.querySelectorAll("[data-home-session-only]").forEach((element) => {
     element.classList.toggle("hidden", !show);
   });
@@ -789,15 +793,21 @@ function renderHomeSessionSections() {
 function renderAuthSurface() {
   const pageMode = detectPageMode();
   const hasAuthForms = Boolean(document.getElementById("register-form") || document.getElementById("login-form"));
-  const showHomeForms = pageMode === "home" && !state.user;
+  const pendingSession = hasPendingSessionRestore();
+  const showHomeForms = pageMode === "home" && !state.user && !pendingSession;
   renderHomeSessionSections();
   document.querySelectorAll("[data-auth-form]").forEach((element) => {
     element.classList.toggle("hidden", !showHomeForms);
   });
-  toggleHidden(dom.workspaceBox, !state.user);
+  toggleHidden(dom.workspaceBox, !state.user && !pendingSession);
   toggleHidden(dom.sessionSignoutButton, !state.user);
   dom.authGrid?.classList.toggle("auth-grid-logged-in", Boolean(state.user));
   if (!dom.authPanelTitle || !dom.authPanelCopy) {
+    return;
+  }
+  if (pendingSession) {
+    dom.authPanelTitle.textContent = "Restoring Workspace Session";
+    dom.authPanelCopy.textContent = "An active session was found. Loading your private workspace and hiding the sign-in forms while the session refresh completes.";
     return;
   }
   if (!state.user) {
@@ -4119,8 +4129,15 @@ function renderSession() {
     return;
   }
   if (!state.user) {
-    dom.sessionIndicator.textContent = "Signed out";
-    dom.userSummary.textContent = "Register or log in to access your private workspace.";
+    if (hasPendingSessionRestore()) {
+      dom.sessionIndicator.textContent = "Restoring session";
+      dom.userSummary.textContent = "An existing session is being restored. Private workspace modules will appear automatically once the refresh completes.";
+    } else {
+      dom.sessionIndicator.textContent = "Signed out";
+      dom.userSummary.textContent = detectPageMode() === "home"
+        ? "Register or log in to access your private workspace."
+        : "Return to the homepage to sign in, then come back to continue.";
+    }
     applyAccessGateState();
     renderLabContext();
     renderWorkspaceCockpit();
