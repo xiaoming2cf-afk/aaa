@@ -1373,12 +1373,564 @@ button.secondary.danger,
   z-index: 20;
 }
 
+/* 2026 visual refresh: research terminal / mathematical surface */
+:root {
+  --bg: #060d15;
+  --bg-deep: #040911;
+  --paper: rgba(10, 18, 30, 0.82);
+  --paper-strong: rgba(8, 14, 24, 0.96);
+  --ink: #edf6ff;
+  --muted: #93a9bf;
+  --line: rgba(123, 160, 201, 0.18);
+  --line-strong: rgba(87, 230, 203, 0.34);
+  --accent: #6effd0;
+  --accent-strong: #47c7ff;
+  --accent-soft: rgba(110, 255, 208, 0.12);
+  --danger: #ff8a8a;
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+}
+
+body {
+  color: var(--ink);
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(71, 199, 255, 0.14), transparent 34%),
+    radial-gradient(circle at top right, rgba(110, 255, 208, 0.1), transparent 28%),
+    linear-gradient(180deg, #06101a 0%, #08131e 42%, #060d15 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.42;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 44px 44px, 44px 44px;
+}
+
+.page-bg {
+  background:
+    radial-gradient(circle at 16% 14%, rgba(71, 199, 255, 0.2), transparent 24%),
+    radial-gradient(circle at 82% 18%, rgba(110, 255, 208, 0.12), transparent 24%),
+    radial-gradient(circle at 60% 74%, rgba(255, 196, 107, 0.08), transparent 26%);
+  opacity: 1;
+}
+
+.hero {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 2.8rem 2rem 1.5rem;
+  grid-template-columns: minmax(0, 1.32fr) minmax(280px, 380px);
+  align-items: stretch;
+  isolation: isolate;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0.9rem 1.2rem 0;
+  border-radius: 1.8rem;
+  border: 1px solid rgba(123, 160, 201, 0.18);
+  background:
+    linear-gradient(135deg, rgba(10, 18, 30, 0.9), rgba(6, 12, 20, 0.86)),
+    linear-gradient(90deg, rgba(71, 199, 255, 0.08), transparent 35%, rgba(110, 255, 208, 0.06));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), var(--shadow);
+  z-index: 0;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0.9rem 1.2rem 0;
+  border-radius: 1.8rem;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(71, 199, 255, 0.12), transparent 26%),
+    linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.03) 48%, transparent 58%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.shell {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 0 1.8rem 3rem;
+}
+
+.eyebrow {
+  color: var(--accent-strong);
+  font-family: "IBM Plex Mono", "Consolas", monospace;
+  font-size: 0.76rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+
+h1 {
+  max-width: 12ch;
+  font-size: clamp(2.9rem, 4.8vw, 5.4rem);
+  line-height: 0.9;
+  text-wrap: balance;
+}
+
+h2 {
+  font-size: clamp(1.55rem, 2.1vw, 2.35rem);
+  line-height: 1;
+}
+
+h3 {
+  font-size: 1.16rem;
+}
+
+.hero-copy {
+  max-width: 66ch;
+  color: #a7bdd2;
+  font-size: 1.04rem;
+  line-height: 1.75;
+}
+
+.hero-signal-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-top: 1.35rem;
+}
+
+.signal-pill {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(15, 27, 42, 0.84), rgba(8, 14, 24, 0.92));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.signal-pill span {
+  color: var(--accent-strong);
+  font-family: "IBM Plex Mono", "Consolas", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.signal-pill strong {
+  font-size: 0.96rem;
+  line-height: 1.35;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 1.2rem;
+}
+
+.hero-actions .button-link,
+.hero-actions button {
+  width: auto;
+  min-width: 12rem;
+}
+
+.meta-card,
+.panel,
+.card,
+.guide-card,
+.snapshot-card,
+.action-deck-card,
+.run-design-card,
+.platform-nav-card,
+.public-current-card,
+.public-dates-card,
+.workflow-step-card,
+.lab-status-card,
+.summary-page-card,
+.cluster-card,
+.reading-card,
+.source-panel-card,
+.review-card,
+.result-output-card,
+.method-card,
+.cockpit-stat-card,
+.knowledge-summary-card {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(12, 21, 34, 0.92), rgba(8, 14, 24, 0.95)),
+    linear-gradient(135deg, rgba(71, 199, 255, 0.04), transparent 38%);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025), var(--shadow);
+  color: var(--ink);
+}
+
+.meta-card::before,
+.panel::before,
+.card::before,
+.guide-card::before,
+.snapshot-card::before,
+.action-deck-card::before,
+.run-design-card::before,
+.platform-nav-card::before,
+.public-current-card::before,
+.public-dates-card::before,
+.workflow-step-card::before,
+.lab-status-card::before,
+.summary-page-card::before,
+.cluster-card::before,
+.reading-card::before,
+.source-panel-card::before,
+.review-card::before,
+.result-output-card::before,
+.method-card::before,
+.cockpit-stat-card::before,
+.knowledge-summary-card::before {
+  content: "";
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(110, 255, 208, 0.55), rgba(71, 199, 255, 0.4), transparent);
+  opacity: 0.75;
+}
+
+.panel {
+  border-radius: 1.35rem;
+  padding: 1.2rem;
+}
+
+.meta-card {
+  min-height: 108px;
+  border-radius: 1.2rem;
+}
+
+.meta-card span {
+  color: var(--accent-strong);
+  font-family: "IBM Plex Mono", "Consolas", monospace;
+  font-size: 0.74rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.meta-card strong {
+  font-size: 1.32rem;
+  line-height: 1.2;
+}
+
+.panel-head > div:first-child,
+.panel-head-inline > div:first-child {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.muted,
+.platform-nav-card p,
+.guide-card p,
+.snapshot-card p,
+.action-deck-card p,
+.run-design-card p,
+.summary-page-card p,
+.cluster-card p,
+.reading-card p,
+.source-panel-card p,
+.review-card p,
+.workflow-step-card p,
+.lab-status-card p,
+.cockpit-stat-card p,
+.knowledge-summary-card p,
+.report-prose p,
+.report-prose ul,
+.preview-copy {
+  color: var(--muted);
+}
+
+.platform-nav-grid,
+.guide-grid,
+.snapshot-grid,
+.action-deck-grid,
+.lab-design-grid,
+.public-entry-grid {
+  gap: 1.05rem;
+}
+
+.platform-nav-card,
+.guide-card,
+.snapshot-card,
+.action-deck-card,
+.run-design-card,
+.summary-page-card,
+.cluster-card,
+.reading-card,
+.source-panel-card,
+.review-card,
+.card,
+.workflow-step-card,
+.lab-status-card {
+  border-radius: 1.12rem;
+}
+
+.platform-nav-card {
+  gap: 0.7rem;
+  padding: 1.1rem;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.platform-nav-card:hover,
+.platform-nav-card:focus-visible,
+.summary-page-card:hover,
+.summary-page-card:focus-visible,
+.cluster-card:hover,
+.reading-card:hover,
+.source-panel-card:hover,
+.review-card:hover,
+.public-section-nav a:hover,
+.public-section-nav a:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
+}
+
+.platform-nav-card h3,
+.summary-page-card h4,
+.cluster-card h4,
+.reading-card h4,
+.source-panel-card h4,
+.review-card h4,
+.guide-card h4,
+.snapshot-card strong,
+.action-deck-card h4,
+.run-design-card h4,
+.workflow-step-card h4,
+.lab-status-card h4 {
+  color: var(--ink);
+}
+
+.public-current-card,
+.public-dates-card,
+.access-gate-card {
+  border-radius: 1.25rem;
+}
+
+.public-current-card h3,
+.public-dates-card h3 {
+  font-size: 1.42rem;
+}
+
+.public-section-nav a,
+.cluster-links a,
+.cluster-links span,
+.reading-links a,
+.source-list-row,
+.date-pill {
+  background: rgba(14, 23, 37, 0.9);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.public-section-nav a {
+  font-family: "IBM Plex Mono", "Consolas", monospace;
+  font-size: 0.83rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.public-sidebar-note,
+.access-gate-card {
+  border: 1px solid var(--line);
+  border-radius: 1.1rem;
+  background: linear-gradient(180deg, rgba(13, 23, 38, 0.92), rgba(8, 15, 26, 0.96));
+}
+
+input,
+select,
+textarea,
+button,
+.button-link {
+  border-color: rgba(123, 160, 201, 0.18);
+  background: rgba(8, 14, 24, 0.92);
+  color: var(--ink);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6f849a;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+button:focus,
+.button-link:focus {
+  outline: 0;
+  border-color: var(--line-strong);
+  box-shadow: 0 0 0 4px rgba(110, 255, 208, 0.08);
+}
+
+button,
+.button-link {
+  background: linear-gradient(135deg, rgba(110, 255, 208, 0.92), rgba(71, 199, 255, 0.92));
+  color: #031018;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+button:hover,
+.button-link:hover {
+  box-shadow: 0 16px 32px rgba(71, 199, 255, 0.24);
+}
+
+button.secondary,
+.button-link.secondary-link {
+  background: rgba(11, 21, 35, 0.82);
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+button.secondary.danger,
+.button-link.secondary-link.danger {
+  background: rgba(44, 11, 16, 0.88);
+  border-color: rgba(255, 138, 138, 0.22);
+  color: #ffd9d9;
+}
+
+.chip-button,
+.topic-chip {
+  border-color: rgba(71, 199, 255, 0.22);
+  background: rgba(13, 28, 45, 0.92);
+  color: var(--accent);
+  font-family: "IBM Plex Mono", "Consolas", monospace;
+  font-size: 0.76rem;
+  letter-spacing: 0.05em;
+}
+
+.chip-button.is-active {
+  background: linear-gradient(135deg, rgba(110, 255, 208, 0.92), rgba(71, 199, 255, 0.92));
+  color: #031018;
+  border-color: transparent;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(71, 199, 255, 0.2);
+  background: rgba(11, 21, 35, 0.9);
+  color: var(--accent-strong);
+  padding: 0.4rem 0.72rem;
+  font-family: "IBM Plex Mono", "Consolas", monospace;
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.workflow-step-card.is-active,
+.summary-page-card.is-active,
+.panel.is-spotlit {
+  border-color: var(--line-strong);
+  box-shadow:
+    inset 0 0 0 1px rgba(110, 255, 208, 0.08),
+    0 18px 36px rgba(0, 0, 0, 0.22);
+}
+
+.workflow-step-card.is-complete {
+  background:
+    linear-gradient(180deg, rgba(11, 29, 37, 0.96), rgba(8, 17, 28, 0.98)),
+    linear-gradient(135deg, rgba(110, 255, 208, 0.06), transparent);
+}
+
+.workspace-box {
+  border-left-color: var(--line);
+}
+
+.report-prose h2,
+.report-prose h3,
+.report-prose h4,
+.report-prose strong {
+  color: var(--ink);
+}
+
+.report-prose a,
+.inline-link,
+.action-link {
+  color: var(--accent);
+}
+
+.report-view,
+.markdown-body,
+.knowledge-preview pre {
+  color: var(--muted);
+}
+
+.figure-preview-box,
+.plot-preview img,
+.result-figure-frame {
+  background: rgba(5, 10, 16, 0.92);
+  border-color: var(--line);
+}
+
+.page-home .hero::before {
+  background:
+    linear-gradient(135deg, rgba(9, 18, 31, 0.94), rgba(6, 13, 22, 0.9)),
+    linear-gradient(90deg, rgba(71, 199, 255, 0.1), transparent 36%, rgba(110, 255, 208, 0.08));
+}
+
+.page-home #home-daily-report-panel .public-preview-grid {
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.8fr);
+}
+
+.page-data-lab .hero h1 {
+  max-width: 13ch;
+}
+
+.page-data-lab .public-toolbar-grid {
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+}
+
+.page-data-lab #optimization-module,
+.page-monitor #source-panel,
+.page-home #workspace-cockpit-panel {
+  border-color: rgba(71, 199, 255, 0.22);
+}
+
+.page-monitor .hero h1 {
+  max-width: 13ch;
+}
+
+.page-monitor .public-summary-rail {
+  top: 0.9rem;
+}
+
+.page-home .platform-nav-card:first-child,
+.page-home .platform-nav-card:nth-child(2),
+.page-data-lab .platform-nav-card:nth-child(2),
+.page-monitor .platform-nav-card:nth-child(4),
+.page-monitor .platform-nav-card:nth-child(5) {
+  border-color: rgba(71, 199, 255, 0.24);
+}
+
 .hidden {
   display: none;
 }
 
 @media (max-width: 1080px) {
   .hero,
+  .hero-signal-strip,
   .auth-grid,
   .dashboard-grid,
   .cockpit-meta-grid,
@@ -1416,6 +1968,17 @@ button.secondary.danger,
   .shell {
     padding-left: 1rem;
     padding-right: 1rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-actions .button-link,
+  .hero-actions button {
+    width: 100%;
+    min-width: 0;
   }
 
   .workspace-box {
