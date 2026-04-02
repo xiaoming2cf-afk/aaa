@@ -11,7 +11,6 @@ requires-python = ">=3.11"
 dependencies = [
     "arch>=8.0.0",
     "arviz>=0.22.0",
-    "catboost>=1.2.0",
     "causalpy>=0.8.0",
     "cryptography>=45.0.0",
     "fastapi>=0.115.0",
@@ -39,6 +38,12 @@ dependencies = [
     "supabase>=2.0.0",
     "typer>=0.12.0",
     "uvicorn>=0.35.0",
+]
+
+[project.optional-dependencies]
+quant-tree = [
+    "catboost>=1.2.0",
+    "lightgbm>=4.0.0",
 ]
 
 [project.scripts]

@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from catboost import CatBoostRegressor
-import lightgbm as lgb
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -11,6 +9,28 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 
 import research_agent.model_engine_extensions as base
+
+
+def _require_lightgbm() -> Any:
+    try:
+        import lightgbm as lgb
+    except Exception as exc:  # pragma: no cover - optional dependency resolution
+        raise ImportError(
+            "Quant LightGBM requires the optional dependency 'lightgbm'. "
+            "Install the project with the 'quant-tree' extra or add lightgbm to the runtime environment."
+        ) from exc
+    return lgb
+
+
+def _require_catboost() -> Any:
+    try:
+        from catboost import CatBoostRegressor
+    except Exception as exc:  # pragma: no cover - optional dependency resolution
+        raise ImportError(
+            "Quant CatBoost requires the optional dependency 'catboost'. "
+            "Install the project with the 'quant-tree' extra or add catboost to the runtime environment."
+        ) from exc
+    return CatBoostRegressor
 
 
 def _load_quant_sample(settings: Any, db: Any, *, user: Any, workspace: Any, asset_id: str, dependent: str, feature_columns: list[str], time_column: str) -> tuple[Any, pd.DataFrame]:
@@ -109,6 +129,7 @@ def run_quant_linear_model_analysis(settings: Any, db: Any, **kwargs: Any) -> di
 
 
 def run_quant_lightgbm_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[str, Any]:
+    lgb = _require_lightgbm()
     dependent = kwargs["dependent"]
     feature_columns = list(base._spec_option(kwargs, "feature_columns", kwargs.get("independents") or []))
     time_column = kwargs.get("time_column") or "date"
@@ -136,7 +157,7 @@ def run_quant_lightgbm_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[s
     return base._nonregression_payload(
         model_type="quant_lightgbm",
         model_label="Quant LightGBM",
-        engine="qlib",
+        engine="lightgbm",
         asset=asset,
         sample=test.reset_index(drop=True),
         narrative_lines=["Gradient-boosted alpha model evaluated with IC metrics and a strategy curve."],
@@ -200,6 +221,7 @@ def run_quant_backtest_report_analysis(settings: Any, db: Any, **kwargs: Any) ->
 
 
 def run_quant_catboost_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[str, Any]:
+    CatBoostRegressor = _require_catboost()
     dependent = kwargs["dependent"]
     feature_columns = list(base._spec_option(kwargs, "feature_columns", kwargs.get("independents") or []))
     time_column = kwargs.get("time_column") or "date"
@@ -262,7 +284,7 @@ def run_quant_catboost_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[s
     return base._nonregression_payload(
         model_type="quant_catboost",
         model_label="Quant CatBoost",
-        engine="qlib",
+        engine="catboost",
         asset=asset,
         sample=test.reset_index(drop=True),
         narrative_lines=["CatBoost alpha model evaluated with IC metrics and a simple long-short strategy curve."],
