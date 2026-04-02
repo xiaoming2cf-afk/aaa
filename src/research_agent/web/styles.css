@@ -2384,20 +2384,19 @@ body.page-home {
 }
 
 .home-auth-form,
-.home-workspace-box {
+.home-session-card {
   padding: 1.15rem;
   border-radius: 16px;
   border: 1px solid rgba(216, 225, 236, 0.96);
   background: var(--surface-muted);
 }
 
-.home-workspace-box {
-  border-left: 0;
-  padding-left: 1.15rem;
+.home-session-card {
+  gap: 1rem;
 }
 
 .home-auth-form h3,
-.home-workspace-box h3,
+.home-session-card h3,
 .home-summary-card h3,
 .private-module-card h3,
 .home-footer__item strong,
@@ -2522,6 +2521,17 @@ body.page-home {
   border-color: #d8e1ec;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+.home-session-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.home-session-card__top h3 {
+  margin: 0.2rem 0 0;
 }
 
 .skeleton-block {

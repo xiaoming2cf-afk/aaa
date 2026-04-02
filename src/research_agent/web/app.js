@@ -243,6 +243,8 @@ const dom = {
   signalRiskValue: document.getElementById("signal-risk-value"),
   authPanelTitle: document.getElementById("auth-panel-title"),
   authPanelCopy: document.getElementById("auth-panel-copy"),
+  homeWorkspaceName: document.getElementById("home-workspace-name"),
+  homeWorkspaceStatus: document.getElementById("home-workspace-status"),
   publicCurrentTitle: document.getElementById("public-current-title"),
   publicCurrentMeta: document.getElementById("public-current-meta"),
   publicDateSwitcher: document.getElementById("public-date-switcher"),
@@ -748,6 +750,9 @@ function detectPageMode() {
   if (window.location.pathname === "/data-lab") {
     return "data-lab";
   }
+  if (window.location.pathname === "/data-lab/optimization") {
+    return "optimization-lab";
+  }
   if (extractDataLabTeachingRoute()) {
     return "data-lab-teaching";
   }
@@ -814,10 +819,24 @@ function renderHomePrivateModuleCards() {
     }
     const button = card.querySelector("[data-private-link]");
     if (button) {
-      button.textContent = locked ? "Sign in to open" : "Open workspace";
+      button.textContent = locked ? "Sign in to open" : "Open module";
       button.setAttribute("aria-disabled", locked ? "true" : "false");
     }
   });
+}
+
+function renderHomeWorkspaceSummary() {
+  if (detectPageMode() !== "home" || !dom.homeWorkspaceName || !dom.homeWorkspaceStatus) {
+    return;
+  }
+  if (!state.user) {
+    dom.homeWorkspaceName.textContent = "No workspace selected";
+    dom.homeWorkspaceStatus.textContent = "Open the private workspace to switch workspaces, connect providers, and manage research assets.";
+    return;
+  }
+  const currentWorkspace = state.workspaces.find((workspace) => workspace.id === state.selectedWorkspaceId) || state.workspaces[0] || null;
+  dom.homeWorkspaceName.textContent = currentWorkspace?.name || "Open private workspace";
+  dom.homeWorkspaceStatus.textContent = currentWorkspace?.description || "Private workspace ready for providers, papers, notes, and schedules.";
 }
 
 function renderAuthSurface() {
@@ -827,6 +846,7 @@ function renderAuthSurface() {
   const showHomeForms = pageMode === "home" && !state.user && !pendingSession;
   renderHomeSessionSections();
   renderHomePrivateModuleCards();
+  renderHomeWorkspaceSummary();
   document.querySelectorAll("[data-auth-form]").forEach((element) => {
     element.classList.toggle("hidden", !showHomeForms);
   });
@@ -857,7 +877,7 @@ function renderAuthSurface() {
   dom.authPanelTitle.textContent = pageMode === "home" ? "Private workspace ready" : "Private workspace session";
   dom.authPanelCopy.textContent =
     pageMode === "home"
-      ? "Your session is active. Choose a workspace and continue into the private research modules."
+      ? "Your session is active. Continue into the private workspace for providers, papers, schedules, and notes."
       : "You are signed in. Select a workspace, create a new one if needed, and continue into the private modules.";
 }
 
@@ -3852,13 +3872,13 @@ function renderOptimizationCatalog() {
       <article class="panel public-section nested-panel">
         <div class="panel-head panel-head-wrap">
           <div>
-            <h4>Catalog Explorer</h4>
+            <h4>Library Browser</h4>
             <span class="muted">Browse the available libraries by family before you add items into the suite builder.</span>
           </div>
         </div>
         <div class="catalog-explorer-grid">
           <div class="catalog-group-column">
-            <h5>Mealpy families</h5>
+            <h5>Mealpy library</h5>
             ${optimizerGroups.map((group) => `
               <article class="catalog-group-card">
                 <p class="eyebrow eyebrow-compact">${escapeHtml(group.title)}</p>
@@ -3874,7 +3894,7 @@ function renderOptimizationCatalog() {
             `).join("")}
           </div>
           <div class="catalog-group-column">
-            <h5>Opfunu families</h5>
+            <h5>Opfunu library</h5>
             ${functionGroups.map((group) => `
               <article class="catalog-group-card">
                 <p class="eyebrow eyebrow-compact">${escapeHtml(group.title)}</p>
@@ -4226,6 +4246,7 @@ function renderSession() {
         : "Return to the homepage to sign in, then come back to continue.";
     }
     applyAccessGateState();
+    renderHomeWorkspaceSummary();
     renderLabContext();
     renderWorkspaceCockpit();
     return;
@@ -4233,17 +4254,20 @@ function renderSession() {
   dom.sessionIndicator.textContent = "Signed in";
   dom.userSummary.textContent = `${state.user.full_name || state.user.email} | ${state.user.email}`;
   applyAccessGateState();
+  renderHomeWorkspaceSummary();
   renderLabContext();
   renderWorkspaceCockpit();
 }
 
 function renderWorkspaceOptions() {
   if (!dom.workspaceSelect) {
+    renderHomeWorkspaceSummary();
     return;
   }
   dom.workspaceSelect.innerHTML = "";
   if (!state.workspaces.length) {
     dom.workspaceSelect.innerHTML = `<option value="">No workspace yet</option>`;
+    renderHomeWorkspaceSummary();
     renderLabContext();
     return;
   }
@@ -4254,6 +4278,7 @@ function renderWorkspaceOptions() {
     option.selected = workspace.id === state.selectedWorkspaceId;
     dom.workspaceSelect.appendChild(option);
   }
+  renderHomeWorkspaceSummary();
   renderLabContext();
   renderWorkspaceCockpit();
 }

@@ -664,9 +664,17 @@ def create_app() -> FastAPI:
     ) -> Response:
         return _private_page_or_home(request, DATA_LAB_WEB_FILE, authorization, x_session_token)
 
+    @app.get("/data-lab/optimization")
+    def data_lab_optimization_page(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, OPTIMIZATION_LAB_WEB_FILE, authorization, x_session_token)
+
     @app.get("/optimization-lab")
     def optimization_lab_page() -> RedirectResponse:
-        return RedirectResponse(url="/data-lab#optimization-module", status_code=307)
+        return RedirectResponse(url="/data-lab/optimization", status_code=307)
 
     @app.get("/optimization-lab/results/{record_id}")
     def optimization_lab_result_page(record_id: str) -> RedirectResponse:

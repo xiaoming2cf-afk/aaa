@@ -24,12 +24,12 @@
     </header>
 
     <main class="home-shell">
-      <section class="home-hero">
+      <section class="home-hero" aria-label="Homepage hero">
         <div class="home-hero__grid">
           <div class="home-hero__content">
             <p class="eyebrow">Research Terminal</p>
             <h1>Research workflows for macro, markets, and literature.</h1>
-            <p class="home-hero__copy">Read the public briefing first, then sign in for the private research workspace.</p>
+            <p class="home-hero__copy">Public macro briefing first. Private research workspace after sign-in.</p>
 
             <div class="edition-bar" aria-label="Edition status">
               <div class="edition-bar__item">
@@ -81,13 +81,13 @@
 
             <div class="flow-lane" aria-label="Research flow">
               <span class="flow-pill flow-pill--active">Public Report</span>
-              <span class="flow-separator">→</span>
+              <span class="flow-separator">&rarr;</span>
               <span class="flow-pill">Sign in</span>
-              <span class="flow-separator">→</span>
+              <span class="flow-separator">&rarr;</span>
               <span class="flow-pill">Workspace</span>
-              <span class="flow-separator">→</span>
+              <span class="flow-separator">&rarr;</span>
               <span class="flow-pill">Data Lab</span>
-              <span class="flow-separator">→</span>
+              <span class="flow-separator">&rarr;</span>
               <span class="flow-pill">Note</span>
             </div>
           </div>
@@ -96,7 +96,7 @@
             <div class="home-auth-card__header">
               <p class="eyebrow eyebrow-compact">Private Workspace</p>
               <h2 id="auth-panel-title">Sign in to access the private workspace</h2>
-              <p class="muted" id="auth-panel-copy">Use your account to open workspace tools, notes, schedules, and research modules.</p>
+              <p class="muted" id="auth-panel-copy">Use your account to enter the private research workspace.</p>
             </div>
 
             <div class="status-row home-session-status">
@@ -120,17 +120,20 @@
                 <button type="submit">Log in</button>
               </form>
 
-              <div class="stack workspace-box home-workspace-box hidden" id="workspace-box">
-                <h3>Current workspace</h3>
-                <select id="workspace-select" aria-label="Current workspace"></select>
-                <form id="workspace-form" class="stack compact">
-                  <input name="name" type="text" placeholder="New workspace name" required />
-                  <input name="description" type="text" placeholder="Description (optional)" />
-                  <button type="submit">Create workspace</button>
-                </form>
-                <p class="muted">The homepage stays minimal. Open the private workspace to manage providers, papers, notes, and schedules.</p>
+              <div class="stack home-session-card hidden" id="workspace-box">
+                <div class="home-session-card__top">
+                  <div>
+                    <p class="eyebrow eyebrow-compact">Workspace Ready</p>
+                    <h3 id="home-workspace-name">No workspace selected</h3>
+                  </div>
+                  <span class="status-pill status-pill--ready">Private</span>
+                </div>
+                <p class="muted" id="home-workspace-status">
+                  Open the private workspace to switch workspaces, connect providers, and manage research assets.
+                </p>
                 <div class="actions compact-actions">
                   <a href="/workspace" class="button-link">Open private workspace</a>
+                  <a href="/data-lab" class="button-link secondary-link">Open Data Lab</a>
                   <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
                 </div>
               </div>
@@ -202,7 +205,7 @@
           <div>
             <p class="eyebrow eyebrow-compact">Private Modules</p>
             <h2>Private tools after sign-in</h2>
-            <p class="muted">Homepage cards show capability only. Search, editing, creation, and execution stay inside the private pages.</p>
+            <p class="muted">Homepage cards only preview capability. Search, editing, creation, and execution stay inside the private workspace.</p>
           </div>
         </div>
 
@@ -211,7 +214,7 @@
             <span class="status-pill status-pill--locked">Locked</span>
             <h3>Data Lab</h3>
             <p>Models, processing, charts.</p>
-            <span class="module-availability">Sign-in required</span>
+            <span class="module-availability">Available after sign-in</span>
             <button type="button" class="secondary" data-private-link="/data-lab">Sign in to open</button>
           </article>
 
@@ -219,7 +222,7 @@
             <span class="status-pill status-pill--locked">Locked</span>
             <h3>Provider Center</h3>
             <p>Model and data connections.</p>
-            <span class="module-availability">Sign-in required</span>
+            <span class="module-availability">Available after sign-in</span>
             <button type="button" class="secondary" data-private-link="/workspace#provider-center-panel">Sign in to open</button>
           </article>
 
@@ -227,7 +230,7 @@
             <span class="status-pill status-pill--locked">Locked</span>
             <h3>Paper Library</h3>
             <p>Search, import, relate.</p>
-            <span class="module-availability">Sign-in required</span>
+            <span class="module-availability">Available after sign-in</span>
             <button type="button" class="secondary" data-private-link="/workspace#paper-library-panel">Sign in to open</button>
           </article>
 
@@ -235,7 +238,7 @@
             <span class="status-pill status-pill--locked">Locked</span>
             <h3>Knowledge Base</h3>
             <p>Notes, cases, summaries.</p>
-            <span class="module-availability">Sign-in required</span>
+            <span class="module-availability">Available after sign-in</span>
             <button type="button" class="secondary" data-private-link="/workspace#knowledge-base-panel">Sign in to open</button>
           </article>
 
@@ -243,7 +246,7 @@
             <span class="status-pill status-pill--locked">Locked</span>
             <h3>Daily Monitor</h3>
             <p>Private tracking workspace.</p>
-            <span class="module-availability">Sign-in required</span>
+            <span class="module-availability">Available after sign-in</span>
             <button type="button" class="secondary" data-private-link="/public-monitor">Sign in to open</button>
           </article>
 
@@ -251,7 +254,7 @@
             <span class="status-pill status-pill--locked">Locked</span>
             <h3>Schedules</h3>
             <p>Recurring research tasks.</p>
-            <span class="module-availability">Sign-in required</span>
+            <span class="module-availability">Available after sign-in</span>
             <button type="button" class="secondary" data-private-link="/workspace#schedule-panel">Sign in to open</button>
           </article>
         </div>
@@ -270,7 +273,7 @@
         </article>
         <article class="home-footer__item">
           <span>Docs</span>
-          <strong>Use the private workspace after sign-in to continue research operations.</strong>
+          <strong>Use the private workspace after sign-in. Need help? Start from Data Lab.</strong>
         </article>
       </div>
     </footer>
