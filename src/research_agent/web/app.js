@@ -6243,7 +6243,8 @@ async function refreshWorkspaceData() {
 
 async function handleRegister(event) {
   event.preventDefault();
-  const payload = Object.fromEntries(new FormData(event.currentTarget).entries());
+  const form = event.currentTarget;
+  const payload = Object.fromEntries(new FormData(form).entries());
   const response = await api(
     "/api/auth/register",
     {
@@ -6255,13 +6256,14 @@ async function handleRegister(event) {
   );
   setSession(response);
   await refreshWorkspaceData();
-  event.currentTarget.reset();
+  form?.reset();
   showToast("Account created.");
 }
 
 async function handleLogin(event) {
   event.preventDefault();
-  const payload = Object.fromEntries(new FormData(event.currentTarget).entries());
+  const form = event.currentTarget;
+  const payload = Object.fromEntries(new FormData(form).entries());
   const response = await api(
     "/api/auth/login",
     {
@@ -6273,14 +6275,15 @@ async function handleLogin(event) {
   );
   setSession(response);
   await refreshWorkspaceData();
-  event.currentTarget.reset();
+  form?.reset();
   showToast("Signed in.");
 }
 
 async function handleCreateWorkspace(event) {
   event.preventDefault();
   ensureSignedIn();
-  const payload = Object.fromEntries(new FormData(event.currentTarget).entries());
+  const form = event.currentTarget;
+  const payload = Object.fromEntries(new FormData(form).entries());
   const response = await api("/api/workspaces", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -6291,14 +6294,15 @@ async function handleCreateWorkspace(event) {
   localStorage.setItem(storageKeys.workspaceId, state.selectedWorkspaceId);
   renderWorkspaceOptions();
   await refreshWorkspaceData();
-  event.currentTarget.reset();
+  form?.reset();
   showToast("Workspace created.");
 }
 
 async function handleIntegration(event) {
   event.preventDefault();
   ensureSignedIn();
-  const formData = new FormData(event.currentTarget);
+  const form = event.currentTarget;
+  const formData = new FormData(form);
   const payload = Object.fromEntries(formData.entries());
   payload.is_default = formData.get("is_default") === "on";
   const response = await api("/api/integrations", {
@@ -6307,7 +6311,7 @@ async function handleIntegration(event) {
     body: JSON.stringify(payload),
   });
   await refreshWorkspaceData();
-  event.currentTarget.reset();
+  form?.reset();
   showToast(`Saved connection: ${response.integration.label}`);
 }
 
@@ -6377,14 +6381,15 @@ async function handleBulkLiteratureKnowledgeImport() {
 async function handleUpload(event) {
   event.preventDefault();
   ensureWorkspace();
-  const formData = new FormData(event.currentTarget);
+  const form = event.currentTarget;
+  const formData = new FormData(form);
   await api(`/api/workspaces/${state.selectedWorkspaceId}/assets/upload`, {
     method: "POST",
     body: formData,
   });
   state.assetProfiles = {};
   await refreshWorkspaceData();
-  event.currentTarget.reset();
+  form?.reset();
   showToast("File uploaded.");
 }
 
@@ -6476,7 +6481,8 @@ function resetKnowledgeFilters() {
 async function handleSchedule(event) {
   event.preventDefault();
   ensureWorkspace();
-  const formData = new FormData(event.currentTarget);
+  const form = event.currentTarget;
+  const formData = new FormData(form);
   const payload = {
     name: formData.get("name"),
     local_time: formData.get("local_time"),
@@ -6493,7 +6499,7 @@ async function handleSchedule(event) {
     body: JSON.stringify(payload),
   });
   await refreshWorkspaceData();
-  event.currentTarget.reset();
+  form?.reset();
   showToast("Private daily job created.");
 }
 
