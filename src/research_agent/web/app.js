@@ -235,8 +235,14 @@ const KNOWLEDGE_TEMPLATES = {
 const dom = {
   publicPanel: document.getElementById("public-panel"),
   toast: document.getElementById("toast"),
+  editionDate: document.getElementById("edition-date"),
   healthStatus: document.getElementById("health-status"),
   publicStatus: document.getElementById("public-status"),
+  signalMacroValue: document.getElementById("signal-macro-value"),
+  signalRatesValue: document.getElementById("signal-rates-value"),
+  signalRiskValue: document.getElementById("signal-risk-value"),
+  authPanelTitle: document.getElementById("auth-panel-title"),
+  authPanelCopy: document.getElementById("auth-panel-copy"),
   publicCurrentTitle: document.getElementById("public-current-title"),
   publicCurrentMeta: document.getElementById("public-current-meta"),
   publicDateSwitcher: document.getElementById("public-date-switcher"),
@@ -264,6 +270,9 @@ const dom = {
   copyPublicLinkButton: document.getElementById("copy-public-link"),
   sessionIndicator: document.getElementById("session-indicator"),
   userSummary: document.getElementById("user-summary"),
+  authGrid: document.getElementById("auth-grid"),
+  workspaceBox: document.getElementById("workspace-box"),
+  sessionSignoutButton: document.getElementById("session-signout-button"),
   workspaceSelect: document.getElementById("workspace-select"),
   cockpitWorkspaceName: document.getElementById("cockpit-workspace-name"),
   cockpitWorkspaceMeta: document.getElementById("cockpit-workspace-meta"),
@@ -733,6 +742,9 @@ function detectPageMode() {
   if (window.location.pathname === "/") {
     return "home";
   }
+  if (window.location.pathname === "/workspace") {
+    return "workspace";
+  }
   if (window.location.pathname === "/data-lab") {
     return "data-lab";
   }
@@ -790,12 +802,31 @@ function renderHomeSessionSections() {
   });
 }
 
+function renderHomePrivateModuleCards() {
+  document.querySelectorAll("[data-private-card]").forEach((card) => {
+    const locked = !state.user;
+    card.classList.toggle("is-locked", locked);
+    const pill = card.querySelector(".status-pill");
+    if (pill) {
+      pill.textContent = locked ? "Locked" : "Ready";
+      pill.classList.toggle("status-pill--locked", locked);
+      pill.classList.toggle("status-pill--ready", !locked);
+    }
+    const button = card.querySelector("[data-private-link]");
+    if (button) {
+      button.textContent = locked ? "Sign in to open" : "Open workspace";
+      button.setAttribute("aria-disabled", locked ? "true" : "false");
+    }
+  });
+}
+
 function renderAuthSurface() {
   const pageMode = detectPageMode();
   const hasAuthForms = Boolean(document.getElementById("register-form") || document.getElementById("login-form"));
   const pendingSession = hasPendingSessionRestore();
   const showHomeForms = pageMode === "home" && !state.user && !pendingSession;
   renderHomeSessionSections();
+  renderHomePrivateModuleCards();
   document.querySelectorAll("[data-auth-form]").forEach((element) => {
     element.classList.toggle("hidden", !showHomeForms);
   });
@@ -806,14 +837,14 @@ function renderAuthSurface() {
     return;
   }
   if (pendingSession) {
-    dom.authPanelTitle.textContent = "Restoring Workspace Session";
-    dom.authPanelCopy.textContent = "An active session was found. Loading your private workspace and hiding the sign-in forms while the session refresh completes.";
+    dom.authPanelTitle.textContent = "Restoring private workspace";
+    dom.authPanelCopy.textContent = "A saved session was found. Restoring the private workspace now.";
     return;
   }
   if (!state.user) {
     if (pageMode === "home") {
-      dom.authPanelTitle.textContent = "Private Workspace Access";
-      dom.authPanelCopy.textContent = "Sign in to unlock Data Lab, Provider Center, Paper Library, the Private Knowledge Base, and all other private modules.";
+      dom.authPanelTitle.textContent = "Sign in to access private workspace";
+      dom.authPanelCopy.textContent = "Read the public briefing first, then sign in to enter the private research workspace.";
     } else {
       dom.authPanelTitle.textContent = "Workspace Session";
       dom.authPanelCopy.textContent = "Return to the homepage to sign in, then come back here to use the private workspace.";
@@ -823,8 +854,11 @@ function renderAuthSurface() {
     }
     return;
   }
-  dom.authPanelTitle.textContent = pageMode === "home" ? "Workspace Session" : "Private Workspace Session";
-  dom.authPanelCopy.textContent = "You are signed in. Select a workspace, create a new one if needed, and continue into the private modules without re-entering credentials.";
+  dom.authPanelTitle.textContent = pageMode === "home" ? "Private workspace ready" : "Private workspace session";
+  dom.authPanelCopy.textContent =
+    pageMode === "home"
+      ? "Your session is active. Choose a workspace and continue into the private research modules."
+      : "You are signed in. Select a workspace, create a new one if needed, and continue into the private modules.";
 }
 
 function applyAccessGateState() {
@@ -853,6 +887,59 @@ function prettyDate(value) {
     return new Date(value).toLocaleString();
   } catch {
     return value;
+  }
+}
+
+function formatTimeOnly(value) {
+  if (!value) {
+    return "";
+  }
+  try {
+    return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return value;
+  }
+}
+
+function inferRatesRegime(briefing) {
+  const haystack = [
+    ...(briefing?.top_themes || []).map((item) => `${item?.theme || ""}`.toLowerCase()),
+    `${briefing?.title || ""}`.toLowerCase(),
+    `${briefing?.summary_markdown || ""}`.toLowerCase(),
+  ].join(" ");
+  if (haystack.includes("rate") || haystack.includes("central bank") || haystack.includes("yield")) {
+    return "Tight";
+  }
+  if (haystack.includes("inflation") || haystack.includes("prices")) {
+    return "Watch";
+  }
+  return "Mixed";
+}
+
+function inferRiskTone(briefing) {
+  const mediaCount = Number(briefing?.source_panel?.type_breakdown?.media || 0);
+  const officialCount = Number(briefing?.source_panel?.type_breakdown?.official || 0);
+  if (officialCount > mediaCount) {
+    return "Measured";
+  }
+  if (mediaCount > officialCount * 2 && mediaCount > 0) {
+    return "Active";
+  }
+  return "Neutral";
+}
+
+function renderHomeSignals(briefing) {
+  if (dom.editionDate) {
+    dom.editionDate.textContent = briefing?.briefing_date || "Loading latest edition";
+  }
+  if (dom.signalMacroValue) {
+    dom.signalMacroValue.textContent = briefing ? `${briefing.headline_count} lines` : "Tracking";
+  }
+  if (dom.signalRatesValue) {
+    dom.signalRatesValue.textContent = briefing ? inferRatesRegime(briefing) : "Scanning";
+  }
+  if (dom.signalRiskValue) {
+    dom.signalRiskValue.textContent = briefing ? inferRiskTone(briefing) : "Neutral";
   }
 }
 
@@ -3182,8 +3269,8 @@ function renderLabContext() {
       : "No active case selected. Choose one if you want to organize Data Lab outputs inside a private case file.";
   }
   if (dom.labCaseHomeLink) {
-    dom.labCaseHomeLink.href = activeCase ? "/#knowledge-base-panel" : "/#knowledge-base-panel";
-    dom.labCaseHomeLink.textContent = activeCase ? "Open active case on homepage" : "Open case workspace on homepage";
+    dom.labCaseHomeLink.href = activeCase ? "/workspace#knowledge-base-panel" : "/workspace#knowledge-base-panel";
+    dom.labCaseHomeLink.textContent = activeCase ? "Open active case workspace" : "Open case workspace";
   }
   dom.labContextNextAction && (dom.labContextNextAction.textContent = nextLabAction());
   if (dom.labContextDetailLink) {
@@ -4131,11 +4218,11 @@ function renderSession() {
   if (!state.user) {
     if (hasPendingSessionRestore()) {
       dom.sessionIndicator.textContent = "Restoring session";
-      dom.userSummary.textContent = "An existing session is being restored. Private workspace modules will appear automatically once the refresh completes.";
+      dom.userSummary.textContent = "A saved session is being restored. Private modules will appear once the refresh completes.";
     } else {
       dom.sessionIndicator.textContent = "Signed out";
       dom.userSummary.textContent = detectPageMode() === "home"
-        ? "Register or log in to access your private workspace."
+        ? "Register or sign in to access the private workspace."
         : "Return to the homepage to sign in, then come back to continue.";
     }
     applyAccessGateState();
@@ -4144,7 +4231,7 @@ function renderSession() {
     return;
   }
   dom.sessionIndicator.textContent = "Signed in";
-  dom.userSummary.textContent = `${state.user.full_name} | ${state.user.email}`;
+  dom.userSummary.textContent = `${state.user.full_name || state.user.email} | ${state.user.email}`;
   applyAccessGateState();
   renderLabContext();
   renderWorkspaceCockpit();
@@ -5112,14 +5199,22 @@ function renderPublicLatest(briefing) {
   }
   if (!briefing) {
     state.selectedPublicBriefing = null;
+    renderHomeSignals(null);
     if (dom.publicCurrentTitle) {
       dom.publicCurrentTitle.textContent = "No public edition yet";
     }
     if (dom.publicCurrentMeta) {
-      dom.publicCurrentMeta.textContent = "Waiting for the first scheduled public briefing.";
+      dom.publicCurrentMeta.textContent = "Temporarily unavailable";
     }
-    dom.publicLatestMeta.textContent = "No public briefing has been published yet.";
-    dom.publicLatestView.innerHTML = `<p class="muted">The public daily monitor will appear here after the first scheduled collection.</p>`;
+    if (dom.publicLatestMeta) {
+      dom.publicLatestMeta.textContent = "No public briefing has been published yet.";
+    }
+    if (dom.publicLatestView) {
+      dom.publicLatestView.innerHTML = `<p class="muted">The public daily monitor will appear here after the first scheduled collection.</p>`;
+    }
+    if (dom.publicStatus) {
+      dom.publicStatus.textContent = "Temporarily unavailable";
+    }
     renderPublicDateSwitcher(state.publicBriefings || [], "");
     renderPublicThemes([]);
     renderPublicSourcePanel(null);
@@ -5130,14 +5225,22 @@ function renderPublicLatest(briefing) {
     return;
   }
   state.selectedPublicBriefing = briefing;
+  renderHomeSignals(briefing);
   if (dom.publicCurrentTitle) {
     dom.publicCurrentTitle.textContent = briefing.title;
   }
   if (dom.publicCurrentMeta) {
     dom.publicCurrentMeta.textContent = `${briefing.briefing_date} | ${briefing.headline_count} headlines | ${briefing.timezone_name}`;
   }
-  dom.publicLatestMeta.textContent = `${briefing.title} | ${briefing.briefing_date} | ${briefing.headline_count} headlines`;
-  dom.publicLatestView.innerHTML = markdownToHtml(briefing.summary_markdown);
+  if (dom.publicLatestMeta) {
+    dom.publicLatestMeta.textContent = `${briefing.title} | ${briefing.briefing_date} | ${briefing.headline_count} headlines`;
+  }
+  if (dom.publicLatestView) {
+    dom.publicLatestView.innerHTML = markdownToHtml(briefing.summary_markdown);
+  }
+  if (dom.publicStatus) {
+    dom.publicStatus.textContent = briefing.updated_at ? `Updated ${formatTimeOnly(briefing.updated_at)}` : "Ready";
+  }
   renderPublicDateSwitcher(state.publicBriefings || [], briefing.slug);
   renderPublicThemes(briefing.top_themes || []);
   renderPublicSourcePanel(briefing.source_panel || null);
@@ -5778,8 +5881,8 @@ function renderResultExportBoard(target, payload, result, route) {
           ? `This model result is designed to stay reusable inside the private workspace as ${payload.record?.title || "a knowledge note"}.`
           : "This processing output can feed the next Data Lab step or move back into the main workspace case and knowledge surfaces.",
       controls: [
-        `<a href="/#workspace-cockpit-panel" class="button-link secondary-link">Workspace cockpit</a>`,
-        `<a href="/#knowledge-base-panel" class="button-link secondary-link">Knowledge base</a>`,
+        `<a href="/workspace#workspace-cockpit-panel" class="button-link secondary-link">Workspace cockpit</a>`,
+        `<a href="/workspace#knowledge-base-panel" class="button-link secondary-link">Knowledge base</a>`,
         `<a href="/data-lab" class="button-link secondary-link">Data Lab</a>`,
       ].join(""),
     },
@@ -5965,14 +6068,15 @@ function renderPublicBriefingList(items) {
   if (!dom.publicBriefingList) {
     return;
   }
-  if (!items.length) {
+  const displayItems = detectPageMode() === "home" ? items.slice(0, 3) : items;
+  if (!displayItems.length) {
     dom.publicBriefingList.innerHTML = emptyCard("No public briefings have been published yet.");
     return;
   }
-  dom.publicBriefingList.innerHTML = items
+  dom.publicBriefingList.innerHTML = displayItems
     .map(
       (item) => `
-        <div class="card">
+        <div class="card edition-card">
           <h4>${escapeHtml(item.title)}</h4>
           <p>${escapeHtml(item.briefing_date)} | ${escapeHtml(item.headline_count)} headlines</p>
           <p>${escapeHtml(item.summary_excerpt)}</p>
@@ -5982,7 +6086,7 @@ function renderPublicBriefingList(items) {
               .map((theme) => `<span class="topic-chip">${escapeHtml(theme.theme)}</span>`)
               .join("")}
           </div>
-          <div class="actions">
+          <div class="actions compact-actions">
             <button type="button" class="secondary" data-public-slug="${item.slug}">Open</button>
             <button type="button" class="secondary" data-copy-public-url="${escapeHtml(item.share_url || item.detail_path || "")}">Copy link</button>
           </div>
@@ -6003,12 +6107,12 @@ async function fetchHealth() {
     applyIntegrationProviderPreset(integrationKind.value);
   }
   if (dom.healthStatus) {
-    dom.healthStatus.textContent = `${health.status} | ${bootstrap.supported_llm_kinds.length} provider types`;
+    dom.healthStatus.textContent = health.status === "ok" ? "Ready" : String(health.status || "Unavailable");
   }
   if (dom.publicStatus) {
     dom.publicStatus.textContent = bootstrap.public_digest_enabled
-      ? `Daily after ${bootstrap.public_digest_local_time} ${bootstrap.public_digest_timezone}`
-      : "Disabled";
+      ? `Updated ${bootstrap.public_digest_local_time}`
+      : "Temporarily unavailable";
   }
 }
 
@@ -6838,6 +6942,21 @@ function scrollToTarget(targetId) {
   }
   const target = document.getElementById(targetId);
   if (!target) {
+    const legacyTargetMap = {
+      "provider-center-panel": "/workspace#provider-center-panel",
+      "private-briefing-panel": "/workspace#private-briefing-panel",
+      "paper-library-panel": "/workspace#paper-library-panel",
+      "knowledge-base-panel": "/workspace#knowledge-base-panel",
+      "schedule-panel": "/workspace#schedule-panel",
+      "workspace-cockpit-panel": "/workspace#workspace-cockpit-panel",
+      "data-lab-entry-panel": "/data-lab",
+      "auth-panel": "/#auth-panel",
+    };
+    const nextLocation = legacyTargetMap[targetId];
+    if (nextLocation) {
+      window.location.assign(nextLocation);
+      return true;
+    }
     return false;
   }
   document.querySelectorAll(".panel.is-spotlit").forEach((node) => node.classList.remove("is-spotlit"));
@@ -6948,8 +7067,17 @@ function applyKnowledgeTemplate(templateKey) {
 }
 
 async function handleWorkbenchActions(event) {
-  const target = event.target.closest("[data-scroll-target], [data-knowledge-template], [data-select-knowledge], [data-open-knowledge-record], [data-copy-knowledge-markdown], [data-download-knowledge-markdown], [data-edit-knowledge], [data-archive-knowledge], [data-restore-knowledge], [data-delete-knowledge], [data-import-briefing-knowledge], [data-import-literature-knowledge], [data-create-workspace-digest], [data-select-knowledge-case], [data-edit-knowledge-case], [data-delete-knowledge-case], [data-add-case-item], [data-remove-case-item], [data-download-result-json]");
+  const target = event.target.closest("[data-scroll-target], [data-private-link], [data-knowledge-template], [data-select-knowledge], [data-open-knowledge-record], [data-copy-knowledge-markdown], [data-download-knowledge-markdown], [data-edit-knowledge], [data-archive-knowledge], [data-restore-knowledge], [data-delete-knowledge], [data-import-briefing-knowledge], [data-import-literature-knowledge], [data-create-workspace-digest], [data-select-knowledge-case], [data-edit-knowledge-case], [data-delete-knowledge-case], [data-add-case-item], [data-remove-case-item], [data-download-result-json]");
   if (!target) {
+    return;
+  }
+  const privateLink = target.getAttribute("data-private-link");
+  if (privateLink) {
+    if (state.user) {
+      window.location.assign(privateLink);
+    } else {
+      scrollToTarget("auth-panel");
+    }
     return;
   }
   const scrollTarget = target.getAttribute("data-scroll-target");

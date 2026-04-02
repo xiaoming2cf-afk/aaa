@@ -9,514 +9,273 @@
   </head>
   <body class="page-home">
     <div class="page-bg"></div>
-    <header class="hero">
-      <div>
-        <p class="eyebrow">Economic Research Platform</p>
-        <h1>Research workflows for macro, markets, and literature.</h1>
-        <p class="hero-copy">
-          Use the main platform for private workspaces, model providers, literature, and scheduled research jobs.
-          The public daily monitor and the full Data Lab now each live in their own standalone pages.
-        </p>
-        <div class="hero-signal-strip" aria-label="Research platform signals">
-          <div class="signal-pill">
-            <span>Research Stack</span>
-            <strong>Signal / Inference / Allocation</strong>
-          </div>
-          <div class="signal-pill">
-            <span>Core Form</span>
-            <strong>Y_t = a + bX_t + e_t</strong>
-          </div>
-          <div class="signal-pill">
-            <span>Region Focus</span>
-            <strong>US / CN / DM</strong>
-          </div>
-        </div>
-        <div class="hero-actions">
-          <a class="button-link" href="#home-daily-report-panel">Read daily report</a>
-          <a class="button-link secondary-link" href="#auth-panel">Open private workspace</a>
-        </div>
-      </div>
-      <div class="hero-meta">
-        <div class="meta-card">
-          <span>Platform status</span>
-          <strong id="health-status">Checking...</strong>
-        </div>
-        <div class="meta-card">
-          <span>Public daily digest</span>
-          <strong id="public-status">Loading...</strong>
-        </div>
+
+    <header class="home-nav">
+      <div class="home-nav__inner">
+        <a class="home-nav__brand" href="/">
+          <span class="home-nav__mark">ERP</span>
+          <span class="home-nav__label">Economic Research Platform</span>
+        </a>
+        <nav class="home-nav__links" aria-label="Primary">
+          <a href="#public-report-panel">Public Report</a>
+          <a href="#auth-panel">Sign in</a>
+        </nav>
       </div>
     </header>
 
-    <main class="shell">
-      <section class="panel platform-nav-panel access-guarded">
-        <div class="panel-head panel-head-wrap">
+    <main class="home-shell">
+      <section class="home-hero">
+        <div class="home-hero__grid">
+          <div class="home-hero__content">
+            <p class="eyebrow">Research Terminal</p>
+            <h1>Research workflows for macro, markets, and literature.</h1>
+            <p class="home-hero__copy">Read the public briefing first, then sign in for the private research workspace.</p>
+
+            <div class="edition-bar" aria-label="Edition status">
+              <div class="edition-bar__item">
+                <span>Edition</span>
+                <strong id="edition-date">Loading latest edition</strong>
+              </div>
+              <div class="edition-bar__item">
+                <span>Platform</span>
+                <strong id="health-status">Loading latest edition</strong>
+              </div>
+              <div class="edition-bar__item">
+                <span>Digest</span>
+                <strong id="public-status">Loading latest edition</strong>
+              </div>
+              <div class="edition-bar__item">
+                <span>Access</span>
+                <strong>Public</strong>
+              </div>
+            </div>
+
+            <div class="home-hero__actions">
+              <a class="button-link" href="#public-report-panel">Read today's briefing</a>
+              <a class="button-link secondary-link" href="#auth-panel">Sign in to workspace</a>
+            </div>
+
+            <div class="signal-card-grid" aria-label="Signal summary">
+              <article class="signal-card">
+                <span>Macro Pulse</span>
+                <strong id="signal-macro-value">Tracking</strong>
+                <div class="sparkline sparkline-up" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+              </article>
+              <article class="signal-card">
+                <span>Rates Regime</span>
+                <strong id="signal-rates-value">Scanning</strong>
+                <div class="sparkline sparkline-flat" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+              </article>
+              <article class="signal-card">
+                <span>Risk Tone</span>
+                <strong id="signal-risk-value">Neutral</strong>
+                <div class="sparkline sparkline-soft" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+              </article>
+            </div>
+
+            <div class="flow-lane" aria-label="Research flow">
+              <span class="flow-pill flow-pill--active">Public Report</span>
+              <span class="flow-separator">→</span>
+              <span class="flow-pill">Sign in</span>
+              <span class="flow-separator">→</span>
+              <span class="flow-pill">Workspace</span>
+              <span class="flow-separator">→</span>
+              <span class="flow-pill">Data Lab</span>
+              <span class="flow-separator">→</span>
+              <span class="flow-pill">Note</span>
+            </div>
+          </div>
+
+          <section class="home-auth-card" id="auth-panel" aria-label="Private workspace">
+            <div class="home-auth-card__header">
+              <p class="eyebrow eyebrow-compact">Private Workspace</p>
+              <h2 id="auth-panel-title">Sign in to access the private workspace</h2>
+              <p class="muted" id="auth-panel-copy">Use your account to open workspace tools, notes, schedules, and research modules.</p>
+            </div>
+
+            <div class="status-row home-session-status">
+              <span class="pill" id="session-indicator">Signed out</span>
+              <span class="muted" id="user-summary">Register or sign in to unlock the private modules.</span>
+            </div>
+
+            <div class="auth-grid home-auth-grid" id="auth-grid">
+              <form id="register-form" class="stack home-auth-form" data-auth-form>
+                <h3>Create account</h3>
+                <input name="full_name" type="text" placeholder="Full name" autocomplete="name" required />
+                <input name="email" type="email" placeholder="Email" autocomplete="email" required />
+                <input name="password" type="password" placeholder="Password (8+ characters)" autocomplete="new-password" required />
+                <button type="submit">Register</button>
+              </form>
+
+              <form id="login-form" class="stack home-auth-form" data-auth-form>
+                <h3>Sign in</h3>
+                <input name="email" type="email" placeholder="Email" autocomplete="username" required />
+                <input name="password" type="password" placeholder="Password" autocomplete="current-password" required />
+                <button type="submit">Log in</button>
+              </form>
+
+              <div class="stack workspace-box home-workspace-box hidden" id="workspace-box">
+                <h3>Current workspace</h3>
+                <select id="workspace-select" aria-label="Current workspace"></select>
+                <form id="workspace-form" class="stack compact">
+                  <input name="name" type="text" placeholder="New workspace name" required />
+                  <input name="description" type="text" placeholder="Description (optional)" />
+                  <button type="submit">Create workspace</button>
+                </form>
+                <p class="muted">The homepage stays minimal. Open the private workspace to manage providers, papers, notes, and schedules.</p>
+                <div class="actions compact-actions">
+                  <a href="/workspace" class="button-link">Open private workspace</a>
+                  <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="home-public-panel" id="public-report-panel">
+        <div class="section-head">
           <div>
-            <h2>Platform Navigation</h2>
-            <p class="muted">
-              Move across the public monitor, the standalone Data Lab, and the main private workspace modules without
-              hunting through the homepage.
-            </p>
+            <p class="eyebrow eyebrow-compact">Latest Public Briefing</p>
+            <h2 id="public-current-title">Loading latest edition</h2>
+            <p class="muted" id="public-current-meta">Loading latest edition</p>
           </div>
         </div>
-        <div class="platform-nav-grid">
-          <a class="platform-nav-card" href="/public-monitor">
-            <span class="eyebrow eyebrow-compact">Public</span>
-            <h3>Public Daily Monitor</h3>
-            <p>Open the public macro page with official-first monitoring and regional views.</p>
-          </a>
-          <a class="platform-nav-card" href="/data-lab">
-            <span class="eyebrow eyebrow-compact">Private</span>
+
+        <div class="home-public-grid">
+          <article class="home-briefing-card">
+            <div class="home-public-meta" id="public-latest-meta">Loading latest edition</div>
+            <div id="public-latest-view" class="report-copy">
+              <div class="skeleton-block skeleton-block-title"></div>
+              <div class="skeleton-block"></div>
+              <div class="skeleton-block"></div>
+              <div class="skeleton-block skeleton-block-short"></div>
+            </div>
+          </article>
+
+          <article class="home-summary-card">
+            <div class="section-head section-head--compact">
+              <div>
+                <p class="eyebrow eyebrow-compact">Rolling Summary</p>
+                <h3 id="public-summary-title">Rolling Summary</h3>
+                <p class="muted" id="public-summary-meta">Loading latest edition</p>
+              </div>
+            </div>
+            <div id="public-summary-view" class="report-copy">
+              <div class="skeleton-block"></div>
+              <div class="skeleton-block"></div>
+              <div class="skeleton-block skeleton-block-short"></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="section-head section-head--compact">
+          <div>
+            <p class="eyebrow eyebrow-compact">Recent Editions</p>
+            <h3>Recent editions</h3>
+          </div>
+        </div>
+        <div id="public-briefing-list" class="home-edition-list">
+          <article class="edition-card">
+            <div class="skeleton-block skeleton-block-title"></div>
+            <div class="skeleton-block skeleton-block-short"></div>
+          </article>
+          <article class="edition-card">
+            <div class="skeleton-block skeleton-block-title"></div>
+            <div class="skeleton-block skeleton-block-short"></div>
+          </article>
+          <article class="edition-card">
+            <div class="skeleton-block skeleton-block-title"></div>
+            <div class="skeleton-block skeleton-block-short"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="home-modules-panel" aria-label="Private modules">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow eyebrow-compact">Private Modules</p>
+            <h2>Private tools after sign-in</h2>
+            <p class="muted">Homepage cards show capability only. Search, editing, creation, and execution stay inside the private pages.</p>
+          </div>
+        </div>
+
+        <div class="private-module-grid">
+          <article class="private-module-card is-locked" data-private-card>
+            <span class="status-pill status-pill--locked">Locked</span>
             <h3>Data Lab</h3>
-            <p>Run transparent data processing, model estimation, optimization suites, charting, and manual verification.</p>
-          </a>
-          <a class="platform-nav-card" href="#provider-center-panel">
-            <span class="eyebrow eyebrow-compact">Workspace</span>
+            <p>Models, processing, charts.</p>
+            <span class="module-availability">Sign-in required</span>
+            <button type="button" class="secondary" data-private-link="/data-lab">Sign in to open</button>
+          </article>
+
+          <article class="private-module-card is-locked" data-private-card>
+            <span class="status-pill status-pill--locked">Locked</span>
             <h3>Provider Center</h3>
-            <p>Connect OpenAI, DeepSeek, Gemini, Anthropic, Kimi, compatible APIs, and FRED.</p>
-          </a>
-          <a class="platform-nav-card" href="#paper-library-panel">
-            <span class="eyebrow eyebrow-compact">Workspace</span>
+            <p>Model and data connections.</p>
+            <span class="module-availability">Sign-in required</span>
+            <button type="button" class="secondary" data-private-link="/workspace#provider-center-panel">Sign in to open</button>
+          </article>
+
+          <article class="private-module-card is-locked" data-private-card>
+            <span class="status-pill status-pill--locked">Locked</span>
             <h3>Paper Library</h3>
-            <p>Search OpenAlex, import OA PDFs, and send literature outputs into the private workspace.</p>
-          </a>
-          <a class="platform-nav-card" href="#knowledge-base-panel">
-            <span class="eyebrow eyebrow-compact">Workspace</span>
-            <h3>Private Knowledge Base</h3>
-            <p>Manage notes, cases, digests, and linked outputs from Data Lab and literature workflows.</p>
-          </a>
-          <a class="platform-nav-card" href="/summaries/weekly">
-            <span class="eyebrow eyebrow-compact">Public</span>
-            <h3>Roundup Pages</h3>
-            <p>Jump directly into weekly and monthly public macro summary pages.</p>
-          </a>
-        </div>
-      </section>
-
-      <section class="panel access-gate-panel hidden" id="access-gate-panel" data-access-gate>
-        <div class="access-gate-card">
-          <p class="eyebrow eyebrow-compact" id="access-gate-eyebrow">Access Control</p>
-          <h2 id="access-gate-title">Sign in to unlock the private platform</h2>
-          <p class="muted" id="access-gate-copy">
-            On public hosts, only Platform Navigation stays open before login. Sign in below to continue into the rest of the workspace.
-          </p>
-          <div class="actions compact-actions" id="access-gate-actions">
-            <button type="button" class="secondary" data-scroll-target="auth-panel">Open sign-in</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel public-entry-panel access-guarded" data-home-session-only>
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2>Standalone Research Pages</h2>
-            <p class="muted">
-              Open dedicated pages for the public macro monitor and the full Data Lab. Optimization now lives inside Data Lab as a module, so the homepage stays focused
-              on private workspace access and core platform modules.
-            </p>
-          </div>
-          <div class="actions">
-            <a href="/public-monitor" class="button-link">Open Public Daily Monitor</a>
-            <a href="/data-lab" class="button-link secondary-link">Open Data Lab</a>
-          </div>
-        </div>
-
-        <div class="public-entry-grid">
-          <article class="card">
-            <h3>Standalone Public Page</h3>
-            <p>
-              A dedicated public interface for visitors who only need the open macro monitor, without the private
-              workspace UI.
-            </p>
-            <div class="actions">
-              <a href="/public-monitor" class="button-link secondary-link">Enter monitor</a>
-            </div>
+            <p>Search, import, relate.</p>
+            <span class="module-availability">Sign-in required</span>
+            <button type="button" class="secondary" data-private-link="/workspace#paper-library-panel">Sign in to open</button>
           </article>
 
-          <article class="card">
-            <h3>Data Lab</h3>
-            <p>
-              A dedicated private workspace page for dataset profiling, transparent data processing methods, model
-              families, and downloadable charts.
-            </p>
-            <div class="actions">
-              <a href="/data-lab" class="button-link secondary-link">Enter Data Lab</a>
-            </div>
+          <article class="private-module-card is-locked" data-private-card>
+            <span class="status-pill status-pill--locked">Locked</span>
+            <h3>Knowledge Base</h3>
+            <p>Notes, cases, summaries.</p>
+            <span class="module-availability">Sign-in required</span>
+            <button type="button" class="secondary" data-private-link="/workspace#knowledge-base-panel">Sign in to open</button>
           </article>
 
-          <article class="card">
-            <h3>Roundup Views</h3>
-            <p>Direct links to the public weekly and monthly summary pages.</p>
-            <div class="actions">
-              <a href="/summaries/weekly" class="button-link secondary-link">Weekly page</a>
-              <a href="/summaries/monthly" class="button-link secondary-link">Monthly page</a>
-            </div>
+          <article class="private-module-card is-locked" data-private-card>
+            <span class="status-pill status-pill--locked">Locked</span>
+            <h3>Daily Monitor</h3>
+            <p>Private tracking workspace.</p>
+            <span class="module-availability">Sign-in required</span>
+            <button type="button" class="secondary" data-private-link="/public-monitor">Sign in to open</button>
           </article>
-        </div>
-      </section>
 
-      <section class="panel public-entry-panel access-guarded" data-home-session-only>
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2>Display Surface Guide</h2>
-            <p class="muted">
-              The platform now separates public pages, private workspaces, and result-detail surfaces. Use this guide to choose the right page before you start.
-            </p>
-          </div>
-        </div>
-        <div class="guide-grid">
-          <article class="guide-card">
-            <p class="eyebrow eyebrow-compact">Homepage</p>
-            <h4>Private workspace control</h4>
-            <p>Use the homepage for login, workspace selection, Provider Center, Paper Library, Private Knowledge Base, and cockpit-level coordination.</p>
-          </article>
-          <article class="guide-card">
-            <p class="eyebrow eyebrow-compact">Standalone Page</p>
-            <h4>Public Daily Monitor</h4>
-            <p>Use the public page when you only need the open macro note, source panel, clusters, and rolling public summaries.</p>
-          </article>
-          <article class="guide-card">
-            <p class="eyebrow eyebrow-compact">Standalone Page</p>
-            <h4>Data Lab</h4>
-            <p>Use the Data Lab page for data processing, econometric workflows, optimization suites, chart outputs, and detailed result pages with audit metadata.</p>
+          <article class="private-module-card is-locked" data-private-card>
+            <span class="status-pill status-pill--locked">Locked</span>
+            <h3>Schedules</h3>
+            <p>Recurring research tasks.</p>
+            <span class="module-availability">Sign-in required</span>
+            <button type="button" class="secondary" data-private-link="/workspace#schedule-panel">Sign in to open</button>
           </article>
         </div>
-      </section>
-
-      <section class="panel auth-panel" id="auth-panel">
-        <div>
-          <h2>Private Workspace Access</h2>
-          <p class="muted">
-            Sign in to manage your own workspaces, providers, literature, private data assets, and scheduled research jobs.
-          </p>
-          <div class="status-row">
-            <span class="pill" id="session-indicator">Signed out</span>
-            <span class="muted" id="user-summary">Register or log in to access your private workspace.</span>
-          </div>
-        </div>
-        <div class="auth-grid">
-          <form id="register-form" class="stack">
-            <h3>Create account</h3>
-            <input name="full_name" type="text" placeholder="Full name" autocomplete="name" required />
-            <input name="email" type="email" placeholder="Email" autocomplete="email" required />
-            <input name="password" type="password" placeholder="Password (8+ characters)" autocomplete="new-password" required />
-            <button type="submit">Register</button>
-          </form>
-
-          <form id="login-form" class="stack">
-            <h3>Sign in</h3>
-            <input name="email" type="email" placeholder="Email" autocomplete="username" required />
-            <input name="password" type="password" placeholder="Password" autocomplete="current-password" required />
-            <button type="submit">Log in</button>
-          </form>
-
-          <div class="stack workspace-box">
-            <h3>Workspace</h3>
-            <select id="workspace-select"></select>
-            <form id="workspace-form" class="stack compact">
-              <input name="name" type="text" placeholder="New workspace name" required />
-              <input name="description" type="text" placeholder="Description (optional)" />
-              <button type="submit">Create workspace</button>
-            </form>
-            <div class="session-launchpad">
-              <p class="eyebrow eyebrow-compact">Workspace launchpad</p>
-              <div class="actions compact-actions">
-                <a href="/data-lab" class="button-link">Open Data Lab</a>
-                <a href="/public-monitor" class="button-link secondary-link">Open Daily Monitor Workspace</a>
-                <button type="button" class="secondary" data-scroll-target="workspace-cockpit-panel">Open workspace cockpit</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel cockpit-panel access-guarded" id="workspace-cockpit-panel" data-home-session-only>
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2>Workspace Cockpit</h2>
-            <p class="muted">
-              A single control surface for the current workspace: status, next steps, quick actions, and the latest private outputs.
-            </p>
-          </div>
-          <div class="actions compact-actions" id="cockpit-header-actions">
-            <button type="button" class="secondary" data-scroll-target="provider-center-panel">Connect provider</button>
-            <button type="button" class="secondary" data-scroll-target="paper-library-panel">Import papers</button>
-            <button type="button" class="secondary" data-scroll-target="knowledge-base-panel">Open knowledge base</button>
-            <a href="/data-lab" class="button-link secondary-link">Open Data Lab</a>
-          </div>
-        </div>
-
-        <div class="cockpit-meta-grid">
-          <article class="meta-card cockpit-meta-card">
-            <span>Current workspace</span>
-            <strong id="cockpit-workspace-name">Sign in to begin</strong>
-            <p class="muted" id="cockpit-workspace-meta">Private workspace controls will appear after login.</p>
-          </article>
-          <article class="meta-card cockpit-meta-card">
-            <span>Recommended next action</span>
-            <strong id="cockpit-next-action-title">Create or select a workspace</strong>
-            <p class="muted" id="cockpit-next-action-copy">The cockpit will guide you from provider setup to research outputs.</p>
-          </article>
-        </div>
-
-        <div id="cockpit-stat-grid" class="cockpit-stat-grid"></div>
-        <div id="cockpit-step-grid" class="cockpit-step-grid"></div>
-
-        <div class="panel-head panel-head-wrap panel-head-inline">
-          <div>
-            <h3>Cross-Module Surface Map</h3>
-            <p class="muted">See how provider setup, literature, briefings, Data Lab, knowledge notes, and case workspaces connect inside the current workspace.</p>
-          </div>
-        </div>
-        <div id="cockpit-linkage-grid" class="guide-grid">
-          <article class="guide-card">
-            <p class="eyebrow eyebrow-compact">Workspace</p>
-            <h4>Cross-module map</h4>
-            <p>The cockpit linkage cards appear after you sign in and load a workspace.</p>
-          </article>
-        </div>
-
-        <div class="cockpit-layout">
-          <article class="card">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <h3>Quick Actions</h3>
-                <p class="muted">Jump directly into the next module instead of scanning the whole homepage.</p>
-              </div>
-            </div>
-            <div id="cockpit-action-list" class="cockpit-action-list"></div>
-          </article>
-
-          <article class="card">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <h3>Recent Workspace Activity</h3>
-                <p class="muted">The most recent private outputs from your current workspace.</p>
-              </div>
-            </div>
-            <div id="cockpit-activity-list" class="card-list card-list-inline"></div>
-          </article>
-
-          <article class="card">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <h3>Research Flow Lane</h3>
-                <p class="muted">Move the latest private briefing, paper, note, and dataset through the next useful step.</p>
-              </div>
-            </div>
-            <div id="cockpit-flow-list" class="card-list card-list-inline"></div>
-          </article>
-        </div>
-      </section>
-
-      <section class="dashboard-grid access-guarded" data-home-session-only>
-        <section class="panel" id="provider-center-panel">
-          <div class="panel-head">
-            <h2>Provider Center</h2>
-            <span class="muted">OpenAI, DeepSeek, Gemini, Anthropic, Kimi, OpenAI-compatible, and FRED</span>
-          </div>
-          <form id="integration-form" class="stack">
-            <input name="label" type="text" placeholder="Connection label" required />
-            <div class="split">
-              <select name="category">
-                <option value="llm">LLM</option>
-                <option value="data_source">Data Source</option>
-              </select>
-              <select name="kind">
-                <option value="openai">OpenAI</option>
-                <option value="deepseek">DeepSeek</option>
-                <option value="gemini">Gemini</option>
-                <option value="anthropic">Anthropic</option>
-                <option value="kimi">Kimi (Moonshot AI)</option>
-                <option value="openai_compatible">OpenAI Compatible</option>
-                <option value="fred">FRED</option>
-              </select>
-            </div>
-            <input name="model" type="text" placeholder="Default model (optional)" />
-            <input name="base_url" type="text" placeholder="Base URL for compatible providers" />
-            <input name="api_key" type="password" placeholder="API key" required />
-            <div id="integration-provider-hint" class="muted compact-note"></div>
-            <a id="integration-provider-docs" class="inline-link" href="#" target="_blank" rel="noreferrer" hidden>Open official docs</a>
-            <label class="checkbox"><input name="is_default" type="checkbox" /> Set as default connection</label>
-            <button type="submit">Save connection</button>
-          </form>
-          <div id="integration-list" class="card-list"></div>
-        </section>
-
-        <section class="panel" id="private-briefing-panel">
-          <div class="panel-head">
-            <h2>Private Daily Briefing</h2>
-            <span class="muted">Generate private macro notes inside your workspace</span>
-          </div>
-          <form id="briefing-form" class="stack">
-            <input name="title" type="text" placeholder="Briefing title (optional)" />
-            <textarea name="query_text" rows="4" placeholder="Focus area, for example: global inflation, central banks, energy prices, trade risk"></textarea>
-            <button type="submit">Generate private briefing</button>
-          </form>
-          <div id="briefing-list" class="card-list tall"></div>
-        </section>
-
-        <section class="panel" id="paper-library-panel">
-          <div class="panel-head">
-            <h2>Paper Library</h2>
-            <span class="muted">OpenAlex search and import</span>
-          </div>
-          <form id="openalex-form" class="stack">
-            <input name="query" type="text" placeholder="Search economics literature, for example: monetary policy transmission" required />
-            <label class="checkbox"><input name="open_access_only" type="checkbox" /> Open access only</label>
-            <button type="submit">Search literature</button>
-          </form>
-          <div class="actions">
-            <button id="import-openalex" type="button" class="secondary">Import current results</button>
-            <button id="import-literature-pdfs" type="button" class="secondary">Import all OA PDFs</button>
-            <button id="import-literature-knowledge" type="button" class="secondary">Save all to knowledge base</button>
-          </div>
-          <div id="openalex-results" class="card-list"></div>
-          <div id="literature-list" class="card-list"></div>
-        </section>
-        <section class="panel" id="data-lab-entry-panel">
-          <div class="panel-head panel-head-wrap">
-            <div>
-              <h2>Data Lab</h2>
-              <span class="muted">Open the dedicated page for separated data processing methods, model families, and chart workflows.</span>
-            </div>
-            <div class="actions">
-              <a href="/data-lab" class="button-link">Open standalone Data Lab</a>
-            </div>
-          </div>
-          <div class="public-entry-grid">
-            <article class="card">
-              <h3>Data Processing Methods</h3>
-              <p>Sample preparation, cleaning and transforms, time-series feature engineering, and visualization are now grouped on the dedicated page.</p>
-            </article>
-            <article class="card">
-              <h3>Model Methods</h3>
-              <p>Econometrics, time-series finance, corporate finance, risk, derivatives, macro finance, portfolio, and asset pricing now sit in their own catalog.</p>
-            </article>
-            <article class="card">
-              <h3>Standalone Workflow</h3>
-              <p>Use a separate page with method catalogs, workspace access, dataset profiling, transparent outputs, and downloadable charts.</p>
-            </article>
-          </div>
-        </section>
-        <section class="panel panel-span-full" id="knowledge-base-panel">
-          <div class="panel-head panel-head-wrap">
-            <h2>Private Knowledge Base</h2>
-            <span class="muted">Manage case workspaces, store reusable notes, and connect outputs from Data Lab, Paper Library, and private briefings.</span>
-          </div>
-          <div class="panel-head panel-head-wrap panel-head-inline">
-            <div>
-              <h3>Case Workspace</h3>
-              <p class="muted">Create user-owned case files that group notes, papers, briefings, datasets, and Data Lab outputs inside the current workspace.</p>
-            </div>
-            <div class="actions compact-actions">
-              <label class="muted" for="active-case-select">Active case</label>
-              <select id="active-case-select">
-                <option value="">No active case</option>
-              </select>
-            </div>
-          </div>
-          <div id="knowledge-case-summary-grid" class="knowledge-summary-grid"></div>
-          <div class="knowledge-layout">
-            <div class="knowledge-column">
-              <form id="knowledge-case-form" class="stack">
-                <div class="panel-head panel-head-wrap panel-head-inline">
-                  <div>
-                    <h3 id="knowledge-case-form-title">Create case</h3>
-                    <p class="muted" id="knowledge-case-form-status">Create a private case file to group notes, papers, briefings, datasets, and Data Lab outputs.</p>
-                  </div>
-                </div>
-                <input name="case_id" type="hidden" />
-                <input name="title" type="text" placeholder="Case title" required />
-                <input name="tags" type="text" placeholder="Tags, comma separated" />
-                <textarea name="description" rows="4" placeholder="Describe the case scope, research question, and intended linked materials"></textarea>
-                <div class="actions compact-actions">
-                  <button id="knowledge-case-submit-button" type="submit">Save case</button>
-                  <button id="knowledge-case-cancel-button" type="button" class="secondary hidden">Cancel edit</button>
-                </div>
-              </form>
-              <div id="knowledge-case-list" class="card-list tall"></div>
-            </div>
-            <aside id="knowledge-case-preview" class="knowledge-preview"></aside>
-          </div>
-          <div id="knowledge-summary-grid" class="knowledge-summary-grid"></div>
-          <div class="panel-head panel-head-wrap panel-head-inline">
-            <div>
-              <h3>Knowledge Linkage Board</h3>
-              <p class="muted">Track which notes come from literature, briefings, Data Lab results, manual authoring, and workspace digests.</p>
-            </div>
-          </div>
-          <div id="knowledge-linkage-grid" class="guide-grid">
-            <article class="guide-card">
-              <p class="eyebrow eyebrow-compact">Knowledge</p>
-              <h4>Linkage board</h4>
-              <p>Cross-module source counts will appear here once notes are loaded into the current workspace.</p>
-            </article>
-          </div>
-          <div class="knowledge-toolbar">
-            <form id="knowledge-search-form" class="knowledge-search-form">
-              <input id="knowledge-search-input" name="q" type="text" placeholder="Search title, body, citation, or tags" />
-              <select id="knowledge-status-filter" name="status">
-                <option value="active">Active only</option>
-                <option value="archived">Archived only</option>
-                <option value="all">All notes</option>
-              </select>
-              <select id="knowledge-type-filter" name="type"></select>
-              <select id="knowledge-tag-filter" name="tag"></select>
-              <button type="submit" class="secondary">Apply filters</button>
-              <button type="button" id="knowledge-reset-button" class="secondary">Reset</button>
-            </form>
-            <div class="knowledge-template-bar">
-              <span class="muted">Templates:</span>
-              <button type="button" class="secondary" data-knowledge-template="research_memo">Research memo</button>
-              <button type="button" class="secondary" data-knowledge-template="reading_note">Reading note</button>
-              <button type="button" class="secondary" data-knowledge-template="hypothesis_log">Hypothesis log</button>
-              <button type="button" class="secondary" data-knowledge-template="meeting_takeaway">Meeting takeaway</button>
-              <button type="button" class="secondary" data-create-workspace-digest="true">Build workspace digest</button>
-            </div>
-          </div>
-          <div class="knowledge-layout">
-            <div class="knowledge-column">
-              <form id="knowledge-form" class="stack">
-                <div class="panel-head panel-head-wrap panel-head-inline">
-                  <div>
-                    <h3 id="knowledge-form-title">Create note</h3>
-                    <p class="muted" id="knowledge-form-status">Save a new private workspace note or use a template as a starting point.</p>
-                  </div>
-                </div>
-                <input name="record_id" type="hidden" />
-                <input name="title" type="text" placeholder="Record title" required />
-                <input name="tags" type="text" placeholder="Tags, comma separated" />
-                <textarea name="content" rows="5" placeholder="Write your research note or internal summary" required></textarea>
-                <div class="actions compact-actions">
-                  <button id="knowledge-submit-button" type="submit">Save note</button>
-                  <button id="knowledge-cancel-button" type="button" class="secondary hidden">Cancel edit</button>
-                </div>
-              </form>
-              <div id="knowledge-list" class="card-list tall"></div>
-            </div>
-            <aside id="knowledge-preview" class="knowledge-preview"></aside>
-          </div>
-        </section>
-
-        <section class="panel" id="schedule-panel">
-          <div class="panel-head">
-            <h2>Schedules</h2>
-            <span class="muted">Create private recurring briefing jobs in your workspace</span>
-          </div>
-          <form id="schedule-form" class="stack">
-            <input name="name" type="text" placeholder="Job name" required />
-            <input name="local_time" type="time" value="08:00" required />
-            <input name="query_text" type="text" placeholder="Daily focus topic" />
-            <button type="submit">Create daily job</button>
-          </form>
-          <div id="schedule-list" class="card-list"></div>
-        </section>
       </section>
     </main>
 
-    <div id="toast" class="toast hidden"></div>
+    <footer class="home-footer">
+      <div class="home-footer__inner">
+        <article class="home-footer__item">
+          <span>Platform status</span>
+          <strong>Public digest and sign-in entry are live.</strong>
+        </article>
+        <article class="home-footer__item">
+          <span>Sources</span>
+          <strong>Official releases, market reporting, literature, and workspace outputs.</strong>
+        </article>
+        <article class="home-footer__item">
+          <span>Docs</span>
+          <strong>Use the private workspace after sign-in to continue research operations.</strong>
+        </article>
+      </div>
+    </footer>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
     <script src="/assets/app.js" defer></script>
   </body>
 </html>
-

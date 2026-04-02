@@ -128,6 +128,7 @@ from .platform_research import (
 WEB_DIR = Path(__file__).with_name("web")
 PUBLIC_WEB_FILE = WEB_DIR / "public.html"
 DATA_LAB_WEB_FILE = WEB_DIR / "data_lab.html"
+WORKSPACE_WEB_FILE = WEB_DIR / "workspace.html"
 DATA_LAB_DETAIL_WEB_FILE = WEB_DIR / "data_lab_detail.html"
 DATA_LAB_METHOD_WEB_FILE = WEB_DIR / "data_lab_method.html"
 DATA_LAB_TEACHING_WEB_FILE = WEB_DIR / "data_lab_teaching.html"
@@ -629,6 +630,14 @@ def create_app() -> FastAPI:
     @app.get("/")
     def index() -> FileResponse:
         return FileResponse(WEB_DIR / "index.html")
+
+    @app.get("/workspace")
+    def workspace_page(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, WORKSPACE_WEB_FILE, authorization, x_session_token)
 
     @app.get("/public-monitor")
     def public_monitor_page(
