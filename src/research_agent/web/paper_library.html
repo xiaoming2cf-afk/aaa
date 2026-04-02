@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Paper Library | Economic Research Platform</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body class="page-module">
+    <div class="page-bg"></div>
+
+    <header class="module-header">
+      <div class="module-header__inner">
+        <div>
+          <p class="eyebrow">Paper Library</p>
+          <h1>Search, import, and connect literature.</h1>
+          <p class="module-header__copy">Use OpenAlex search, import private copies, and route literature into your notes and cases.</p>
+        </div>
+        <nav class="module-header__nav" aria-label="Module navigation">
+          <a href="/workspace">Workspace</a>
+          <a href="/knowledge-base">Knowledge Base</a>
+          <a href="/data-lab">Data Lab</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="shell module-shell">
+      <section class="panel module-session-panel" id="auth-panel">
+        <div class="module-session-panel__copy">
+          <div>
+            <h2 id="auth-panel-title">Private workspace session</h2>
+            <p class="muted" id="auth-panel-copy">Paper imports and private PDFs are stored in the selected workspace.</p>
+          </div>
+          <div class="status-row">
+            <span class="pill" id="session-indicator">Signed out</span>
+            <span class="muted" id="user-summary">Sign in from the homepage to continue.</span>
+            <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
+          </div>
+        </div>
+        <div class="auth-grid workspace-auth-grid" id="auth-grid">
+          <div class="stack workspace-box workspace-box--read-only" id="workspace-box">
+            <h3>Workspace</h3>
+            <select id="workspace-select"></select>
+            <p class="muted">Switch the active workspace here. Create or manage workspaces from the private workspace hub.</p>
+            <a href="/workspace" class="button-link secondary-link">Manage workspaces</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel module-panel">
+        <div class="panel-head">
+          <h2>OpenAlex search</h2>
+          <span class="muted">Search economics and finance literature, then import the papers you need.</span>
+        </div>
+        <form id="openalex-form" class="stack">
+          <input name="query" type="text" placeholder="Search economics literature, for example: monetary policy transmission" required />
+          <label class="checkbox"><input name="open_access_only" type="checkbox" /> Open access only</label>
+          <button type="submit">Search literature</button>
+        </form>
+        <div class="actions compact-actions">
+          <button id="import-openalex" type="button" class="secondary">Import current results</button>
+          <button id="import-literature-pdfs" type="button" class="secondary">Import all OA PDFs</button>
+          <button id="import-literature-knowledge" type="button" class="secondary">Save all to knowledge base</button>
+        </div>
+        <div id="openalex-results" class="card-list"></div>
+      </section>
+
+      <section class="panel module-panel">
+        <div class="panel-head">
+          <h2>Imported literature</h2>
+          <span class="muted">Private paper records, private PDFs, and note-generation actions.</span>
+        </div>
+        <div id="literature-list" class="card-list"></div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>

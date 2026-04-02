@@ -122,6 +122,10 @@ WEB_DIR = Path(__file__).with_name("web")
 PUBLIC_WEB_FILE = WEB_DIR / "public.html"
 DATA_LAB_WEB_FILE = WEB_DIR / "data_lab.html"
 WORKSPACE_WEB_FILE = WEB_DIR / "workspace.html"
+PROVIDER_CENTER_WEB_FILE = WEB_DIR / "provider_center.html"
+PAPER_LIBRARY_WEB_FILE = WEB_DIR / "paper_library.html"
+KNOWLEDGE_BASE_WEB_FILE = WEB_DIR / "knowledge_base.html"
+SCHEDULES_WEB_FILE = WEB_DIR / "schedules.html"
 DATA_LAB_DETAIL_WEB_FILE = WEB_DIR / "data_lab_detail.html"
 DATA_LAB_METHOD_WEB_FILE = WEB_DIR / "data_lab_method.html"
 DATA_LAB_TEACHING_WEB_FILE = WEB_DIR / "data_lab_teaching.html"
@@ -650,6 +654,38 @@ def create_app() -> FastAPI:
     ) -> Response:
         return _private_page_or_home(request, WORKSPACE_WEB_FILE, authorization, x_session_token)
 
+    @app.get("/provider-center")
+    def provider_center_page(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, PROVIDER_CENTER_WEB_FILE, authorization, x_session_token)
+
+    @app.get("/paper-library")
+    def paper_library_page(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, PAPER_LIBRARY_WEB_FILE, authorization, x_session_token)
+
+    @app.get("/knowledge-base")
+    def knowledge_base_page(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, KNOWLEDGE_BASE_WEB_FILE, authorization, x_session_token)
+
+    @app.get("/schedules")
+    def schedules_page(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, SCHEDULES_WEB_FILE, authorization, x_session_token)
+
     @app.get("/public-monitor")
     def public_monitor_page(
         request: Request,
@@ -669,6 +705,38 @@ def create_app() -> FastAPI:
 
     @app.get("/data-lab")
     def data_lab_page(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, DATA_LAB_WEB_FILE, authorization, x_session_token)
+
+    @app.get("/data-lab/preparation")
+    def data_lab_preparation_page(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, DATA_LAB_WEB_FILE, authorization, x_session_token)
+
+    @app.get("/data-lab/model")
+    def data_lab_model_page(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, DATA_LAB_WEB_FILE, authorization, x_session_token)
+
+    @app.get("/data-lab/results")
+    def data_lab_results_page(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_page_or_home(request, DATA_LAB_WEB_FILE, authorization, x_session_token)
+
+    @app.get("/data-lab/history")
+    def data_lab_history_page(
         request: Request,
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),

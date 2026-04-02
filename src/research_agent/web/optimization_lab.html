@@ -3,193 +3,156 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Optimization Lab | Economic Research Platform</title>
+    <title>Data Lab Optimization | Economic Research Platform</title>
     <link rel="icon" href="/favicon.ico" />
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
-  <body>
+  <body class="page-optimization">
     <div class="page-bg"></div>
-    <header class="hero">
-      <div>
-        <p class="eyebrow">Optimization Lab</p>
-        <h1>Parallel benchmark suites across Mealpy optimizers and Opfunu test functions.</h1>
-        <p class="hero-copy">
-          Build a private optimization experiment, run it in parallel, then export statistical tables, convergence
-          curves, radar charts, ranking plots, and raw process data in one result package.
-        </p>
-      </div>
-      <div class="hero-meta">
-        <div class="meta-card">
-          <span>Catalog status</span>
-          <strong id="optimization-health-status">Loading...</strong>
+
+    <header class="lab-app-bar">
+      <div class="lab-app-bar__inner">
+        <div>
+          <p class="eyebrow">Data Lab</p>
+          <h1>Optimization Suite</h1>
+          <p class="lab-app-bar__copy">Parallel benchmark suites across Mealpy optimizers and Opfunu test functions, inside the Data Lab workflow.</p>
         </div>
-        <div class="meta-card">
-          <span>Execution style</span>
-          <strong>Parallel task runner</strong>
+        <div class="lab-app-bar__actions">
+          <a href="/data-lab" class="button-link secondary-link">Back to Data Lab</a>
+          <button id="optimization-defaults-button" type="button" class="button-link">Use defaults</button>
         </div>
       </div>
     </header>
 
-    <main class="shell public-shell">
-      <section class="panel platform-nav-panel">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2>Platform Navigation</h2>
-            <p class="muted">Move between the Optimization Lab, Data Lab, public monitor, and the main private workspace.</p>
-          </div>
-        </div>
-        <div class="platform-nav-grid">
-          <a class="platform-nav-card" href="/"><span class="eyebrow eyebrow-compact">Main</span><h3>Main Platform</h3><p>Return to Provider Center, Paper Library, cases, and the private workspace cockpit.</p></a>
-          <a class="platform-nav-card" href="/data-lab"><span class="eyebrow eyebrow-compact">Private</span><h3>Data Lab</h3><p>Switch to econometric data processing and model workflows.</p></a>
-          <a class="platform-nav-card" href="/public-monitor"><span class="eyebrow eyebrow-compact">Public</span><h3>Public Daily Monitor</h3><p>Open the macro news surface without leaving the standalone tool pages.</p></a>
-          <a class="platform-nav-card" href="/workspace#knowledge-base-panel"><span class="eyebrow eyebrow-compact">Workspace</span><h3>Private Knowledge Base</h3><p>Review private notes and cases after exporting optimization outputs.</p></a>
-        </div>
-      </section>
-
-      <section class="panel access-gate-panel hidden" id="access-gate-panel" data-access-gate>
-        <div class="access-gate-card">
-          <p class="eyebrow eyebrow-compact" id="access-gate-eyebrow">Access Control</p>
-          <h2 id="access-gate-title">Sign in to unlock Optimization Lab</h2>
-          <p class="muted" id="access-gate-copy">
-            On public hosts, only Platform Navigation stays open before login. Return to the main platform, sign in, then come back to run suites.
-          </p>
-          <div class="actions compact-actions" id="access-gate-actions">
-            <a href="/" class="button-link">Go to sign-in</a>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel auth-panel access-guarded" id="optimization-auth-panel">
-        <div>
-          <h2>Workspace Session</h2>
-          <p class="muted">Optimization results are private. Sign in, then choose the workspace that should own the result package.</p>
-          <div class="status-row">
-            <span class="pill" id="session-indicator">Signed out</span>
-            <span class="muted" id="user-summary">Sign in on the main platform or keep using the same browser session.</span>
-          </div>
-        </div>
-        <div class="auth-grid">
-          <div class="stack workspace-box">
-            <h3>Workspace</h3>
-            <select id="workspace-select"></select>
-            <p class="muted">The selected workspace will own the exported tables, charts, and optimization summary record.</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel public-section access-guarded">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h3>Catalog Snapshot</h3>
-            <span class="muted">The platform exposes the full Mealpy optimizer catalog and the full concrete Opfunu benchmark catalog.</span>
-          </div>
-        </div>
-        <div class="snapshot-grid" id="optimization-snapshot-grid">
-          <article class="snapshot-card"><span>Loading...</span><strong>Catalog summary</strong><p>Optimizer and benchmark counts will appear here.</p></article>
-        </div>
-      </section>
-
-      <div class="public-layout access-guarded">
-        <aside class="panel public-sidebar">
-          <div class="stack">
+    <main class="optimization-shell">
+      <aside class="optimization-sidebar panel">
+        <section class="lab-inspector-card">
+          <div class="module-session-panel__copy">
             <div>
-              <p class="eyebrow eyebrow-compact">Navigate</p>
-              <h3>Optimization Sections</h3>
+              <h2 id="auth-panel-title">Private workspace session</h2>
+              <p class="muted" id="auth-panel-copy">Optimization outputs stay inside the selected workspace.</p>
             </div>
-            <nav class="public-section-nav">
-              <a href="#optimization-run-form">Suite builder</a>
-              <a href="#optimization-optimizer-catalog">Optimizer catalog</a>
-              <a href="#optimization-function-catalog">Benchmark catalog</a>
-              <a href="#optimization-results-panel">Result history</a>
-            </nav>
-            <div class="public-sidebar-note">
-              <p class="muted">Every suite stores raw run tables, process curves, statistical tests, and exported figures inside your workspace.</p>
+            <div class="status-row">
+              <span class="pill" id="session-indicator">Signed out</span>
+              <span class="muted" id="user-summary">Sign in from the homepage to continue.</span>
+              <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
             </div>
           </div>
-        </aside>
-
-        <section class="public-main">
-          <article class="panel public-section" id="optimization-run-form">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <h3>Optimization Suite Builder</h3>
-                <span class="muted">Choose algorithms, benchmarks, and run controls. The suite will generate all core outputs in one run.</span>
-              </div>
-              <div class="actions compact-actions">
-                <button type="button" class="secondary" id="optimization-defaults-button">Use defaults</button>
-              </div>
+          <div class="auth-grid workspace-auth-grid" id="auth-grid">
+            <div class="stack workspace-box workspace-box--read-only" id="workspace-box">
+              <h3>Workspace</h3>
+              <select id="workspace-select"></select>
+              <p class="muted">Switch the active workspace here. Create or manage workspaces from the private workspace hub.</p>
+              <a href="/workspace" class="button-link secondary-link">Manage workspaces</a>
             </div>
-            <form id="optimization-suite-form" class="stack">
-              <div class="form-grid">
-                <input id="optimization-suite-label" name="suite_label" type="text" value="Optimization Suite" placeholder="Suite label" required />
-                <input id="optimization-dimension" name="dimension" type="number" min="2" value="30" />
-                <input id="optimization-epoch" name="epoch" type="number" min="2" value="50" />
-                <input id="optimization-pop-size" name="pop_size" type="number" min="4" value="30" />
-                <input id="optimization-runs" name="runs" type="number" min="1" value="5" />
-                <input id="optimization-workers" name="workers" type="number" min="0" value="0" />
-              </div>
-              <label for="optimization-optimizer-select">Mealpy algorithms</label>
-              <select id="optimization-optimizer-select" name="optimizer_names" multiple size="12"></select>
-              <label for="optimization-function-select">Opfunu benchmark functions</label>
-              <select id="optimization-function-select" name="function_names" multiple size="12"></select>
-              <div class="actions">
-                <button type="submit">Run optimization suite</button>
-                <button type="button" class="secondary" id="optimization-clear-selection">Clear selection</button>
-              </div>
-              <p class="muted">Safety caps are applied before execution to prevent unusable suite sizes.</p>
-            </form>
-            <div class="card-list" id="optimization-run-summary">
-              <div class="card"><p>No suite has been run in this session yet.</p></div>
-            </div>
-          </article>
-
-          <article class="panel public-section" id="optimization-optimizer-catalog">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <h3>Optimizer Catalog</h3>
-                <span class="muted">All Mealpy algorithms discovered locally, with availability and parameter override notes.</span>
-              </div>
-            </div>
-            <div class="table-scroll">
-              <table class="data-table" id="optimization-optimizer-table">
-                <thead>
-                  <tr><th>Optimizer</th><th>Module</th><th>Status</th><th>Notes</th></tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </article>
-
-          <article class="panel public-section" id="optimization-function-catalog">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <h3>Benchmark Catalog</h3>
-                <span class="muted">All concrete Opfunu functions discovered locally, with resolved dimension and availability notes.</span>
-              </div>
-            </div>
-            <div class="table-scroll">
-              <table class="data-table" id="optimization-function-table">
-                <thead>
-                  <tr><th>Function</th><th>Module</th><th>Dimension</th><th>Status</th><th>Notes</th></tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </article>
-
-          <article class="panel public-section" id="optimization-results-panel">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <h3>Recent Optimization Results</h3>
-                <span class="muted">Open previous suites, inspect the private summary, or download the exported figures and tables again.</span>
-              </div>
-            </div>
-            <div class="card-list" id="optimization-results-list">
-              <div class="card"><p>Sign in and run a suite to populate the result history.</p></div>
-            </div>
-          </article>
+          </div>
         </section>
-      </div>
+
+        <section class="panel lab-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Status</h3>
+              <span class="muted">Catalog health and strict suite rules.</span>
+            </div>
+          </div>
+          <div class="context-grid">
+            <p><strong>Catalog:</strong> <span id="optimization-health-status">Loading latest edition</span></p>
+            <p><strong>Mode:</strong> <span>Basic by default</span></p>
+          </div>
+          <div id="optimization-snapshot-grid" class="snapshot-grid">
+            <article class="snapshot-card">
+              <span>Loading</span>
+              <strong>Catalog summary</strong>
+              <p>Optimizer and benchmark counts will appear here.</p>
+            </article>
+          </div>
+          <div id="optimization-suite-requirements" class="stack"></div>
+        </section>
+
+        <section class="panel lab-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Catalog Explorer</h3>
+              <span class="muted">Searchable grouped explorer instead of raw catalog tables.</span>
+            </div>
+          </div>
+          <div id="optimization-catalog-explorer" class="card-list card-list-inline">
+            <div class="card"><p>Catalog explorer will appear here.</p></div>
+          </div>
+        </section>
+      </aside>
+
+      <section class="optimization-main">
+        <section class="panel optimization-stage">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Basic mode</p>
+              <h2>Suite Builder</h2>
+              <p class="muted">Choose algorithms, benchmark functions, and run settings. Advanced configuration stays collapsed until needed.</p>
+            </div>
+          </div>
+
+          <form id="optimization-suite-form" class="stack">
+            <div class="form-grid">
+              <input id="optimization-suite-label" name="suite_label" type="text" value="Optimization Suite" placeholder="Suite label" required />
+              <input id="optimization-dimension" name="dimension" type="number" min="2" value="30" />
+              <input id="optimization-epoch" name="epoch" type="number" min="2" value="50" />
+              <input id="optimization-pop-size" name="pop_size" type="number" min="4" value="30" />
+              <input id="optimization-runs" name="runs" type="number" min="1" value="5" />
+              <input id="optimization-workers" name="workers" type="number" min="0" value="0" />
+            </div>
+
+            <div class="optimization-pickers">
+              <div class="stack compact">
+                <label for="optimization-optimizer-select">Algorithms</label>
+                <select id="optimization-optimizer-select" name="optimizer_names" multiple size="12"></select>
+              </div>
+              <div class="stack compact">
+                <label for="optimization-function-select">Benchmark functions</label>
+                <select id="optimization-function-select" name="function_names" multiple size="12"></select>
+              </div>
+            </div>
+
+            <details class="advanced-config-toggle">
+              <summary>Advanced mode</summary>
+              <div id="optimization-validation-export-board" class="card-list card-list-inline">
+                <div class="card">
+                  <p>Validation, export packaging, JSON specifications, and preset guidance will appear here.</p>
+                </div>
+              </div>
+            </details>
+
+            <div class="actions">
+              <button type="submit">Run optimization suite</button>
+              <button type="button" class="secondary" id="optimization-clear-selection">Clear selection</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel optimization-stage">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h2>Run Summary</h2>
+              <span class="muted">The latest suite result appears here first, before you open the full result page.</span>
+            </div>
+          </div>
+          <div id="optimization-run-summary" class="card-list">
+            <div class="card"><p>No suite has been run in this session yet.</p></div>
+          </div>
+        </section>
+      </section>
+
+      <aside class="optimization-inspector panel">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h2>Recent Runs</h2>
+            <span class="muted">Open previous suites and reuse exported assets.</span>
+          </div>
+        </div>
+        <div id="optimization-results-list" class="card-list card-list-inline">
+          <div class="card"><p>No optimization suites have been saved in this workspace yet.</p></div>
+        </div>
+      </aside>
     </main>
 
     <div id="toast" class="toast hidden"></div>

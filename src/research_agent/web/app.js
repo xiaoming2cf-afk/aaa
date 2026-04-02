@@ -741,17 +741,36 @@ function extractOptimizationResultRoute() {
 }
 
 function detectPageMode() {
+  const pathname = window.location.pathname;
   if (window.location.pathname === "/") {
     return "home";
   }
   if (window.location.pathname === "/workspace") {
     return "workspace";
   }
-  if (window.location.pathname === "/data-lab") {
+  if (
+    pathname === "/data-lab" ||
+    pathname === "/data-lab/preparation" ||
+    pathname === "/data-lab/model" ||
+    pathname === "/data-lab/results" ||
+    pathname === "/data-lab/history"
+  ) {
     return "data-lab";
   }
   if (window.location.pathname === "/data-lab/optimization") {
     return "optimization-lab";
+  }
+  if (pathname === "/provider-center") {
+    return "provider-center";
+  }
+  if (pathname === "/paper-library") {
+    return "paper-library";
+  }
+  if (pathname === "/knowledge-base") {
+    return "knowledge-base";
+  }
+  if (pathname === "/schedules") {
+    return "schedules";
   }
   if (extractDataLabTeachingRoute()) {
     return "data-lab-teaching";
@@ -778,6 +797,23 @@ function detectPageMode() {
     return "summary";
   }
   return "home";
+}
+
+function currentDataLabShellStep() {
+  const pathname = window.location.pathname;
+  if (pathname === "/data-lab/preparation") {
+    return "preparation";
+  }
+  if (pathname === "/data-lab/model") {
+    return "model";
+  }
+  if (pathname === "/data-lab/results") {
+    return "results";
+  }
+  if (pathname === "/data-lab/history") {
+    return "history";
+  }
+  return "dataset";
 }
 
 function isTrustedLocalHost() {
@@ -3289,7 +3325,7 @@ function renderLabContext() {
       : "No active case selected. Choose one if you want to organize Data Lab outputs inside a private case file.";
   }
   if (dom.labCaseHomeLink) {
-    dom.labCaseHomeLink.href = activeCase ? "/workspace#knowledge-base-panel" : "/workspace#knowledge-base-panel";
+    dom.labCaseHomeLink.href = "/knowledge-base";
     dom.labCaseHomeLink.textContent = activeCase ? "Open active case workspace" : "Open case workspace";
   }
   dom.labContextNextAction && (dom.labContextNextAction.textContent = nextLabAction());
@@ -3400,6 +3436,13 @@ function initializeDataLabFromLocation() {
   if (detectPageMode() !== "data-lab") {
     return;
   }
+  const step = currentDataLabShellStep();
+  if (step === "preparation") {
+    dom.labWorkflowType && (dom.labWorkflowType.value = "data_processing");
+  }
+  if (step === "model") {
+    dom.labWorkflowType && (dom.labWorkflowType.value = "model");
+  }
   const workflow = dataLabQueryValue("workflow");
   const processingFamily = dataLabQueryValue("processing_family");
   const modelFamily = dataLabQueryValue("model_family");
@@ -3415,6 +3458,80 @@ function initializeDataLabFromLocation() {
     if (modelType && dom.modelType) {
       dom.modelType.value = modelType;
     }
+  }
+}
+
+function applyWorkspaceLegacyHashRedirect() {
+  if (window.location.pathname !== "/workspace") {
+    return;
+  }
+  const targetMap = {
+    "#provider-center-panel": "/provider-center",
+    "#paper-library-panel": "/paper-library",
+    "#knowledge-base-panel": "/knowledge-base",
+    "#schedule-panel": "/schedules",
+  };
+  const nextPath = targetMap[window.location.hash || ""];
+  if (nextPath) {
+    window.location.replace(nextPath);
+  }
+}
+
+function applyDataLabShellStep() {
+  if (detectPageMode() !== "data-lab") {
+    return;
+  }
+  const step = currentDataLabShellStep();
+  document.querySelectorAll("[data-lab-shell-link]").forEach((link) => {
+    link.classList.toggle("is-active", link.getAttribute("data-lab-shell-link") === step);
+  });
+  document.querySelectorAll("[data-lab-stage]").forEach((section) => {
+    const stages = (section.getAttribute("data-lab-stage") || "")
+      .split(/\s+/)
+      .filter(Boolean);
+    const visible = stages.includes(step);
+    section.classList.toggle("hidden", !visible);
+  });
+  const stepLabelMap = {
+    dataset: "Dataset",
+    preparation: "Preparation",
+    model: "Model",
+    results: "Results",
+    history: "History",
+  };
+  const stepTitle = document.getElementById("data-lab-step-title");
+  const stepCopy = document.getElementById("data-lab-step-copy");
+  const runButton = document.getElementById("data-lab-run-link");
+  if (stepTitle) {
+    stepTitle.textContent = stepLabelMap[step] || "Dataset";
+  }
+  if (stepCopy) {
+    stepCopy.textContent =
+      {
+        dataset: "Upload or select a dataset, inspect the profile, and ask for variable guidance before estimation.",
+        preparation: "Choose the preparation family, review the template, and build the analysis-ready sample.",
+        model: "Select the model family, configure the specification, and run the chosen estimation path.",
+        results: "Review the latest outputs, download figures or assets, and route results into notes or cases.",
+        history: "Inspect previous processing and model runs inside the current workspace.",
+      }[step] || "Work through the current Data Lab step.";
+  }
+  if (runButton) {
+    const hrefMap = {
+      dataset: "#analysis-asset-select",
+      preparation: "#prepare-form",
+      model: "#model-form",
+      results: "#prepare-result-summary",
+      history: "#data-lab-history",
+    };
+    runButton.setAttribute("href", hrefMap[step] || "#analysis-asset-select");
+    runButton.textContent =
+      {
+        dataset: "Inspect dataset",
+        preparation: "Prepare sample",
+        model: "Run model",
+        results: "Review outputs",
+        history: "Open history",
+      }[step] || "Run current step";
   }
 }
 
@@ -5906,8 +6023,8 @@ function renderResultExportBoard(target, payload, result, route) {
           ? `This model result is designed to stay reusable inside the private workspace as ${payload.record?.title || "a knowledge note"}.`
           : "This processing output can feed the next Data Lab step or move back into the main workspace case and knowledge surfaces.",
       controls: [
-        `<a href="/workspace#workspace-cockpit-panel" class="button-link secondary-link">Workspace cockpit</a>`,
-        `<a href="/workspace#knowledge-base-panel" class="button-link secondary-link">Knowledge base</a>`,
+        `<a href="/workspace" class="button-link secondary-link">Workspace hub</a>`,
+        `<a href="/knowledge-base" class="button-link secondary-link">Knowledge base</a>`,
         `<a href="/data-lab" class="button-link secondary-link">Data Lab</a>`,
       ].join(""),
     },
@@ -6387,6 +6504,9 @@ async function handleRegister(event) {
   await refreshWorkspaceData();
   form?.reset();
   showToast("Account created.");
+  if (detectPageMode() === "home") {
+    window.location.assign("/workspace");
+  }
 }
 
 async function handleLogin(event) {
@@ -6406,6 +6526,9 @@ async function handleLogin(event) {
   await refreshWorkspaceData();
   form?.reset();
   showToast("Signed in.");
+  if (detectPageMode() === "home") {
+    window.location.assign("/workspace");
+  }
 }
 
 async function handleCreateWorkspace(event) {
@@ -6968,12 +7091,12 @@ function scrollToTarget(targetId) {
   const target = document.getElementById(targetId);
   if (!target) {
     const legacyTargetMap = {
-      "provider-center-panel": "/workspace#provider-center-panel",
-      "private-briefing-panel": "/workspace#private-briefing-panel",
-      "paper-library-panel": "/workspace#paper-library-panel",
-      "knowledge-base-panel": "/workspace#knowledge-base-panel",
-      "schedule-panel": "/workspace#schedule-panel",
-      "workspace-cockpit-panel": "/workspace#workspace-cockpit-panel",
+      "provider-center-panel": "/provider-center",
+      "private-briefing-panel": "/public-monitor",
+      "paper-library-panel": "/paper-library",
+      "knowledge-base-panel": "/knowledge-base",
+      "schedule-panel": "/schedules",
+      "workspace-cockpit-panel": "/workspace",
       "data-lab-entry-panel": "/data-lab",
       "auth-panel": "/#auth-panel",
     };
@@ -7595,8 +7718,10 @@ function bind() {
   if (integrationKind) {
     applyIntegrationProviderPreset(integrationKind.value);
   }
+  applyWorkspaceLegacyHashRedirect();
   initializeDataLabFromLocation();
   updateWorkflowVisibility();
+  applyDataLabShellStep();
 }
 
 async function init() {
@@ -7616,12 +7741,13 @@ async function init() {
     }
     if (!isExperienceLocked() && (
       pageMode === "data-lab" ||
+      pageMode === "optimization-lab" ||
       pageMode === "data-lab-method-detail" ||
       pageMode === "data-lab-model-method" ||
       pageMode === "data-lab-teaching"
     )) {
       await loadDataLabCatalog();
-      if (pageMode === "data-lab" && hasOptimizationLabUI()) {
+      if ((pageMode === "data-lab" || pageMode === "optimization-lab") && hasOptimizationLabUI()) {
         try {
           await loadOptimizationCatalog();
           renderOptimizationCatalog();
@@ -7631,7 +7757,7 @@ async function init() {
         }
       }
     }
-    if (pageMode === "data-lab" && !isExperienceLocked()) {
+    if ((pageMode === "data-lab" || pageMode === "optimization-lab") && !isExperienceLocked()) {
       renderLabContext();
       renderProcessingHistory([]);
       renderModelHistory([]);
