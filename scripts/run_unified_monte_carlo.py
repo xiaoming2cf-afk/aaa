@@ -17,133 +17,188 @@ if str(SRC_ROOT) not in sys.path:
 if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
+from compare_model_engines import run_comparison  # noqa: E402
 from verify_access_gate import run_verification as run_access_gate_verification  # noqa: E402
 from verify_data_lab_full import run_verification as run_data_lab_full_verification  # noqa: E402
+from verify_model_upgrade import run_verification as run_model_upgrade_verification  # noqa: E402
 from verify_optimization_lab import run_verification as run_optimization_verification  # noqa: E402
+from research_agent.model_engine_selection import WINNER_FILE, write_model_engine_winners  # noqa: E402
 
 
 FINAL_OUTPUT_ROOT = REPO_ROOT / "蒙特卡洛"
 
 
-def _ensure_dir(path: Path) -> Path:
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
 def _write_json(path: Path, payload: Any) -> None:
-    _ensure_dir(path.parent)
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _write_text(path: Path, content: str) -> None:
-    _ensure_dir(path.parent)
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
 
 
+def _status_ok(report: dict[str, Any]) -> bool:
+    return str(report.get("status", "")).lower() == "passed"
+
+
 def _build_notes(report: dict[str, Any]) -> str:
-    access = report["steps"]["site_access"]["report"]
-    data_lab = report["steps"]["data_lab_full"]["report"]
-    optimization = report["steps"]["optimization"]["report"]
-    lines = [
-        "# Unified Monte Carlo Final Verification",
-        "",
-        "This directory contains the final successful unified Monte Carlo verification run.",
-        "",
-        "## Rule",
-        "The repository only writes to `蒙特卡洛/` after the entire unified verification succeeds.",
-        "Any failed intermediate run stays outside the final directory and is not treated as deliverable output.",
-        "",
-        "## Included verification scopes",
-        "- `site_access/`: deployed-host access control and login gate checks.",
-        "- `country_panel/`: country-level panel Monte Carlo inputs and model outputs.",
-        "- `macro_finance_ts/`: macro-finance time-series Monte Carlo inputs and model outputs.",
-        "- `model_anchor/`: Data Lab method pages, result pages, and complex-output anchoring records.",
-        "- `optimization/`: multi-algorithm, multi-function, multi-run optimization validation assets.",
-        "",
-        "## Final successful run summary",
-        f"- Finished at: {report['completed_at']}",
-        f"- Site access status: {access['status']}",
-        f"- Data Lab full status: {data_lab['status']}",
-        f"- Data Lab model count: {data_lab['model_count']}",
-        f"- Data Lab processing run count: {data_lab['processing_run_count']}",
-        f"- Optimization status: {optimization['status']}",
-        f"- Optimization task success count: {optimization['standard_suite']['success_count']}",
-        f"- Optimization task failure count: {optimization['standard_suite']['failure_count']}",
-        f"- Optimization figures: {optimization['standard_suite']['figure_count']}",
-        f"- Optimization tables: {optimization['standard_suite']['table_count']}",
-        "",
-        "## Review order",
-        "1. Open `verification_report.json` at the root.",
-        "2. Review `site_access/verification_report.json`.",
-        "3. Review `model_anchor/model_anchor_report.json` and the model result bundles under `country_panel/` and `macro_finance_ts/`.",
-        "4. Review `optimization/verification_report.json`, then inspect `optimization/figures/` and `optimization/tables/`.",
-        "",
-        "## Acceptance rule that this run satisfied",
-        "- Anonymous deployed-host access is limited to the homepage public daily report surfaces.",
-        "- Data Lab produced complex research outputs for all verified models.",
-        "- Optimization produced multi-algorithm, multi-function, multi-run outputs and associated statistical tables/figures.",
-    ]
-    return "\n".join(lines)
+    steps = report["steps"]
+    return "\n".join(
+        [
+            "# Unified Monte Carlo Final Verification",
+            "",
+            "This directory stores only the final successful unified Monte Carlo run.",
+            "",
+            "## Execution order",
+            "1. Compare baseline vs candidate engines on overlapping models.",
+            "2. Pick winners using the quality-first rule: accuracy > completeness > stability > speed.",
+            "3. Re-run the full Data Lab baseline suite with winners enabled.",
+            "4. Run the model-upgrade suite for all newly added methods.",
+            "5. Run strict site-access checks and strict optimization validation.",
+            "6. Persist the final results here only after every step passes.",
+            "",
+            "## Final successful summary",
+            f"- Completed at: {report['completed_at']}",
+            f"- Compared overlap methods: {steps['comparison']['report']['model_count']}",
+            f"- Winner file updated: {steps['comparison']['winner_file_updated']}",
+            f"- Core Data Lab status: {steps['data_lab_full']['report']['status']}",
+            f"- Core Data Lab model count: {steps['data_lab_full']['report']['model_count']}",
+            f"- Upgrade suite status: {steps['model_upgrade']['report']['status']}",
+            f"- Upgrade suite model count: {steps['model_upgrade']['report']['model_count']}",
+            f"- Site access status: {steps['site_access']['report']['status']}",
+            f"- Optimization status: {steps['optimization']['report']['status']}",
+            f"- Optimization success count: {steps['optimization']['report']['standard_suite']['success_count']}",
+            "",
+            "## Review order",
+            "1. Open `comparison_report.json` and `verification_report.json` at the root.",
+            "2. Review `country_panel/` and `macro_finance_ts/` result bundles.",
+            "3. Review `model_anchor/` for the upgrade and anchoring outputs.",
+            "4. Review `site_access/verification_report.json`.",
+            "5. Review `optimization/verification_report.json`, then inspect `optimization/figures/` and `optimization/tables/`.",
+        ]
+    )
 
 
-def _build_root_readme() -> str:
+def _build_readme() -> str:
     return "\n".join(
         [
             "# 蒙特卡洛",
             "",
-            "This folder stores only the final successful unified Monte Carlo verification run.",
+            "This folder contains only the final successful unified Monte Carlo verification run.",
             "",
-            "## Structure",
-            "- `verification_report.json`: top-level final verification summary.",
-            "- `notes.md`: explanation of the successful run and review order.",
-            "- `site_access/`: deployed-host access-control checks.",
-            "- `country_panel/`: Monte Carlo panel data inputs and result bundles.",
-            "- `macro_finance_ts/`: Monte Carlo time-series inputs and result bundles.",
-            "- `model_anchor/`: Data Lab catalog/method/result anchoring artifacts.",
-            "- `optimization/`: optimization suite figures, tables, raw processes, and result detail.",
+            "## Included outputs",
+            "- `comparison_report.json`: overlap model baseline-vs-candidate comparison.",
+            "- `verification_report.json`: final top-level status summary.",
+            "- `notes.md`: review guide for the successful run.",
+            "- `country_panel/`: country-level panel Monte Carlo inputs and result bundles.",
+            "- `macro_finance_ts/`: macro-finance time-series inputs and result bundles.",
+            "- `model_anchor/`: anchoring outputs for method pages and model-upgrade coverage.",
+            "- `site_access/`: deployed-host access-control verification.",
+            "- `optimization/`: strict multi-algorithm, multi-function, multi-run optimization outputs.",
             "",
-            "No partial or failed intermediate run is written here.",
+            "No failed intermediate run is written here.",
         ]
     )
 
 
 def run_final_verification() -> dict[str, Any]:
-    temp_root = Path(tempfile.mkdtemp(prefix="erp-unified-mc-"))
-    site_access_dir = temp_root / "site_access"
-    optimization_dir = temp_root / "optimization"
-    data_lab_root = temp_root
+    staging_root = Path(tempfile.mkdtemp(prefix="erp-unified-mc-"))
+    compare_dir = staging_root / "_comparison_tmp"
+    winner_backup_exists = WINNER_FILE.exists()
+    winner_backup = WINNER_FILE.read_text(encoding="utf-8") if winner_backup_exists else ""
+    winner_file_updated = False
+    try:
+        print("[run_unified_monte_carlo] START comparison", flush=True)
+        comparison_report = run_comparison(output_dir=compare_dir)
+        print("[run_unified_monte_carlo] PASS comparison", flush=True)
+        winners = comparison_report["winners"]
+        write_model_engine_winners(
+            winners,
+            metadata={
+                "generated_at": datetime.now().astimezone().isoformat(),
+                "source": "scripts/run_unified_monte_carlo.py",
+            },
+        )
+        winner_file_updated = True
 
-    access_report = run_access_gate_verification(output_dir=site_access_dir)
-    data_lab_report = run_data_lab_full_verification(output_dir=data_lab_root)
-    optimization_report = run_optimization_verification(output_dir=optimization_dir)
+        print("[run_unified_monte_carlo] START site_access", flush=True)
+        site_access_report = run_access_gate_verification(output_dir=staging_root / "site_access")
+        print("[run_unified_monte_carlo] PASS site_access", flush=True)
 
-    if data_lab_root.joinpath("verification_report.json").exists():
-        data_lab_root.joinpath("verification_report.json").replace(temp_root / "model_anchor" / "data_lab_full_verification_report.json")
+        print("[run_unified_monte_carlo] START data_lab_full", flush=True)
+        data_lab_full_report = run_data_lab_full_verification(output_dir=staging_root)
+        print("[run_unified_monte_carlo] PASS data_lab_full", flush=True)
 
-    final_report = {
-        "status": "passed",
-        "completed_at": datetime.now().astimezone().isoformat(),
-        "steps": {
-            "site_access": {"status": access_report["status"], "report": access_report},
-            "data_lab_full": {"status": data_lab_report["status"], "report": data_lab_report},
-            "optimization": {"status": optimization_report["status"], "report": optimization_report},
-        },
-        "paths": {
-            "site_access": "site_access",
-            "country_panel": "country_panel",
-            "macro_finance_ts": "macro_finance_ts",
-            "model_anchor": "model_anchor",
-            "optimization": "optimization",
-        },
-    }
-    _write_json(temp_root / "verification_report.json", final_report)
-    _write_text(temp_root / "notes.md", _build_notes(final_report))
-    _write_text(temp_root / "README.md", _build_root_readme())
+        print("[run_unified_monte_carlo] START model_upgrade", flush=True)
+        model_upgrade_report = run_model_upgrade_verification(output_dir=staging_root)
+        print("[run_unified_monte_carlo] PASS model_upgrade", flush=True)
 
-    if FINAL_OUTPUT_ROOT.exists():
-        shutil.rmtree(FINAL_OUTPUT_ROOT)
-    shutil.move(str(temp_root), str(FINAL_OUTPUT_ROOT))
-    return final_report
+        print("[run_unified_monte_carlo] START optimization", flush=True)
+        optimization_report = run_optimization_verification(output_dir=staging_root / "optimization")
+        print("[run_unified_monte_carlo] PASS optimization", flush=True)
+
+        failed_steps = [
+            name
+            for name, payload in {
+                "comparison": comparison_report,
+                "site_access": site_access_report,
+                "data_lab_full": data_lab_full_report,
+                "model_upgrade": model_upgrade_report,
+                "optimization": optimization_report,
+            }.items()
+            if not _status_ok(payload)
+        ]
+        if failed_steps:
+            raise AssertionError(f"Unified Monte Carlo failed: {', '.join(failed_steps)}")
+
+        final_report = {
+            "status": "passed",
+            "completed_at": datetime.now().astimezone().isoformat(),
+            "steps": {
+                "comparison": {
+                    "report": {
+                        "status": comparison_report["status"],
+                        "model_count": len(comparison_report["models"]),
+                        "winners": comparison_report["winners"],
+                    },
+                    "winner_file_updated": winner_file_updated,
+                },
+                "site_access": {"report": site_access_report},
+                "data_lab_full": {"report": data_lab_full_report},
+                "model_upgrade": {"report": model_upgrade_report},
+                "optimization": {"report": optimization_report},
+            },
+            "paths": {
+                "comparison_report": "comparison_report.json",
+                "verification_report": "verification_report.json",
+                "country_panel": "country_panel",
+                "macro_finance_ts": "macro_finance_ts",
+                "model_anchor": "model_anchor",
+                "site_access": "site_access",
+                "optimization": "optimization",
+            },
+        }
+
+        _write_json(staging_root / "comparison_report.json", comparison_report)
+        _write_json(staging_root / "verification_report.json", final_report)
+        _write_text(staging_root / "notes.md", _build_notes(final_report))
+        _write_text(staging_root / "README.md", _build_readme())
+        shutil.rmtree(compare_dir, ignore_errors=True)
+
+        if FINAL_OUTPUT_ROOT.exists():
+            shutil.rmtree(FINAL_OUTPUT_ROOT)
+        shutil.move(str(staging_root), str(FINAL_OUTPUT_ROOT))
+        return final_report
+    except Exception:
+        if winner_backup_exists:
+            WINNER_FILE.write_text(winner_backup, encoding="utf-8")
+        elif WINNER_FILE.exists():
+            WINNER_FILE.unlink()
+        raise
+    finally:
+        if staging_root.exists():
+            shutil.rmtree(staging_root, ignore_errors=True)
 
 
 def main() -> None:

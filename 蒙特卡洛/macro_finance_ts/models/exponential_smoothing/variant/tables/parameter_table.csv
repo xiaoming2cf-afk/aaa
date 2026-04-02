@@ -1,0 +1,11 @@
+term,coefficient
+smoothing_level,0.6009793819314525
+smoothing_trend,0.6009793819314525
+smoothing_seasonal,
+damping_trend,
+initial_level,2.225344023807537
+initial_trend,0.03825318436581858
+initial_seasons,
+use_boxcox,0.0
+lamda,
+remove_bias,0.0

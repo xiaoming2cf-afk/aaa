@@ -1,0 +1,3100 @@
+{
+  "record": {
+    "id": "f0dbc8ed-0a04-4a63-ade9-f402021c41bb",
+    "title": "Staggered DID summary for upgrade_panel.csv",
+    "content": "Staggered DID estimated with cohort-specific event-time indicators.\nEvent window: [-5, 5] omitting -1.",
+    "content_excerpt": "Staggered DID estimated with cohort-specific event-time indicators. Event window: [-5, 5] omitting -1.",
+    "content_length": 102,
+    "tags": [
+      "staggered_did",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "staggered_did",
+      "model_label": "Staggered DID",
+      "asset": {
+        "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "kind": "dataset_csv",
+        "title": "upgrade_panel.csv",
+        "filename": "upgrade_panel.csv",
+        "description": "upgrade_panel.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 289095,
+          "original_filename": "upgrade_panel.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T02:57:26.995002",
+        "updated_at": "2026-04-02T02:57:27.013674"
+      },
+      "dependent": "outcome_y",
+      "regressors": [
+        "event_m5",
+        "event_m4",
+        "event_m3",
+        "event_m2",
+        "event_p0",
+        "event_p1",
+        "event_p2",
+        "event_p3",
+        "event_p4",
+        "event_p5",
+        "size",
+        "leverage"
+      ],
+      "observations": 648,
+      "r_squared": 0.7258859231161396,
+      "adj_r_squared": 0.6957944978664534,
+      "pseudo_r_squared": null,
+      "aic": 1892.3212427216458,
+      "bic": 2183.1241379845437,
+      "log_likelihood": -881.1606213608229,
+      "coefficients": [
+        {
+          "term": "Intercept",
+          "coefficient": 3.6122277068078454,
+          "std_error": 1.4358400907601934,
+          "t_stat": 2.5157590528729297,
+          "p_value": 0.011877635286918162
+        },
+        {
+          "term": "C(firm_id)[T.firm_02]",
+          "coefficient": -0.5822015282335813,
+          "std_error": 0.23822150233048373,
+          "t_stat": -2.443950367779544,
+          "p_value": 0.014527424928029376
+        },
+        {
+          "term": "C(firm_id)[T.firm_03]",
+          "coefficient": -0.3997452569441628,
+          "std_error": 0.25359873821986567,
+          "t_stat": -1.576290401719549,
+          "p_value": 0.11495889263845359
+        },
+        {
+          "term": "C(firm_id)[T.firm_04]",
+          "coefficient": 0.38971349690767815,
+          "std_error": 0.23622845976531262,
+          "t_stat": 1.649731354532173,
+          "p_value": 0.09899789426326186
+        },
+        {
+          "term": "C(firm_id)[T.firm_05]",
+          "coefficient": -0.11195942366630904,
+          "std_error": 0.2603390129569218,
+          "t_stat": -0.43005242431657725,
+          "p_value": 0.6671575067468976
+        },
+        {
+          "term": "C(firm_id)[T.firm_06]",
+          "coefficient": -0.5794178915986005,
+          "std_error": 0.2722526493016463,
+          "t_stat": -2.1282360082991367,
+          "p_value": 0.033317520727166636
+        },
+        {
+          "term": "C(firm_id)[T.firm_07]",
+          "coefficient": 0.12729799675763592,
+          "std_error": 0.2792613269978684,
+          "t_stat": 0.45583825775707065,
+          "p_value": 0.648506290827239
+        },
+        {
+          "term": "C(firm_id)[T.firm_08]",
+          "coefficient": -0.6178746312655072,
+          "std_error": 0.2724783289921957,
+          "t_stat": -2.2676101749112103,
+          "p_value": 0.02335297697558268
+        },
+        {
+          "term": "C(firm_id)[T.firm_09]",
+          "coefficient": 0.5596583947829594,
+          "std_error": 0.2750662830354832,
+          "t_stat": 2.0346310300443626,
+          "p_value": 0.04188801269218294
+        },
+        {
+          "term": "C(firm_id)[T.firm_10]",
+          "coefficient": -0.9798580096653149,
+          "std_error": 0.2937727210596554,
+          "t_stat": -3.335428851701784,
+          "p_value": 0.0008516794455345345
+        },
+        {
+          "term": "C(firm_id)[T.firm_11]",
+          "coefficient": -1.054998982387977,
+          "std_error": 0.2941230081855088,
+          "t_stat": -3.5869311581451315,
+          "p_value": 0.00033459261261324386
+        },
+        {
+          "term": "C(firm_id)[T.firm_12]",
+          "coefficient": 0.1755884773197589,
+          "std_error": 0.3152407051952795,
+          "t_stat": 0.5569981110497408,
+          "p_value": 0.5775287197886314
+        },
+        {
+          "term": "C(firm_id)[T.firm_13]",
+          "coefficient": 0.11014015284185896,
+          "std_error": 0.36097249141572557,
+          "t_stat": 0.3051206268097934,
+          "p_value": 0.7602742818807021
+        },
+        {
+          "term": "C(firm_id)[T.firm_14]",
+          "coefficient": -0.7862425911719445,
+          "std_error": 0.3521736724503157,
+          "t_stat": -2.232542216178487,
+          "p_value": 0.0255791483082507
+        },
+        {
+          "term": "C(firm_id)[T.firm_15]",
+          "coefficient": -0.9128171636245811,
+          "std_error": 0.38434950079438984,
+          "t_stat": -2.3749664348150104,
+          "p_value": 0.01755054607158304
+        },
+        {
+          "term": "C(firm_id)[T.firm_16]",
+          "coefficient": -0.9308423858894972,
+          "std_error": 0.3897998095683191,
+          "t_stat": -2.3880011304273125,
+          "p_value": 0.016940289676523366
+        },
+        {
+          "term": "C(firm_id)[T.firm_17]",
+          "coefficient": 0.23299502840242897,
+          "std_error": 0.4216909221703346,
+          "t_stat": 0.5525255967172913,
+          "p_value": 0.5805883022438089
+        },
+        {
+          "term": "C(firm_id)[T.firm_18]",
+          "coefficient": 0.1952868846894441,
+          "std_error": 0.4128666871172612,
+          "t_stat": 0.47300228084030255,
+          "p_value": 0.6362115519349647
+        },
+        {
+          "term": "C(month_index)[T.2]",
+          "coefficient": 0.19187720421929733,
+          "std_error": 0.3185500923290963,
+          "t_stat": 0.6023454672901731,
+          "p_value": 0.5469442014878023
+        },
+        {
+          "term": "C(month_index)[T.3]",
+          "coefficient": 0.49025810099515876,
+          "std_error": 0.2547942503525816,
+          "t_stat": 1.9241332970298382,
+          "p_value": 0.05433787739413579
+        },
+        {
+          "term": "C(month_index)[T.4]",
+          "coefficient": 0.6945085344760891,
+          "std_error": 0.37317140364055645,
+          "t_stat": 1.861097950434189,
+          "p_value": 0.06273034560892195
+        },
+        {
+          "term": "C(month_index)[T.5]",
+          "coefficient": 0.40591594372987383,
+          "std_error": 0.31507748438239147,
+          "t_stat": 1.2883051434968198,
+          "p_value": 0.19763976337713007
+        },
+        {
+          "term": "C(month_index)[T.6]",
+          "coefficient": 0.6758416770820332,
+          "std_error": 0.26355244147776175,
+          "t_stat": 2.5643536948188737,
+          "p_value": 0.010336814835160427
+        },
+        {
+          "term": "C(month_index)[T.7]",
+          "coefficient": 1.0847543219759215,
+          "std_error": 0.29914124847937373,
+          "t_stat": 3.626227835479255,
+          "p_value": 0.0002875916316928274
+        },
+        {
+          "term": "C(month_index)[T.8]",
+          "coefficient": 0.6239223870873571,
+          "std_error": 0.34560364956020334,
+          "t_stat": 1.8053119169352734,
+          "p_value": 0.07102588587614299
+        },
+        {
+          "term": "C(month_index)[T.9]",
+          "coefficient": 1.1016419960169035,
+          "std_error": 0.2668145410956279,
+          "t_stat": 4.128867907623028,
+          "p_value": 3.645537525509503e-05
+        },
+        {
+          "term": "C(month_index)[T.10]",
+          "coefficient": 1.1615705452101608,
+          "std_error": 0.32155712983084367,
+          "t_stat": 3.6123302438394362,
+          "p_value": 0.00030345775888507146
+        },
+        {
+          "term": "C(month_index)[T.11]",
+          "coefficient": 1.2518850656355092,
+          "std_error": 0.3171696483561103,
+          "t_stat": 3.9470519077850836,
+          "p_value": 7.911940816573554e-05
+        },
+        {
+          "term": "C(month_index)[T.12]",
+          "coefficient": 1.234956424918729,
+          "std_error": 0.35034838609177604,
+          "t_stat": 3.524938244171686,
+          "p_value": 0.0004235815273488348
+        },
+        {
+          "term": "C(month_index)[T.13]",
+          "coefficient": 1.563826573753551,
+          "std_error": 0.3341822367654588,
+          "t_stat": 4.6795622319420325,
+          "p_value": 2.8748809033771085e-06
+        },
+        {
+          "term": "C(month_index)[T.14]",
+          "coefficient": 1.447076948095095,
+          "std_error": 0.3334049024327892,
+          "t_stat": 4.340298950423532,
+          "p_value": 1.4228900294816663e-05
+        },
+        {
+          "term": "C(month_index)[T.15]",
+          "coefficient": 1.9743346674353937,
+          "std_error": 0.2760549127230083,
+          "t_stat": 7.151963527692869,
+          "p_value": 8.55453010733738e-13
+        },
+        {
+          "term": "C(month_index)[T.16]",
+          "coefficient": 2.0503142439560955,
+          "std_error": 0.30040679948650423,
+          "t_stat": 6.825125954075503,
+          "p_value": 8.784820530594425e-12
+        },
+        {
+          "term": "C(month_index)[T.17]",
+          "coefficient": 1.9501841143102792,
+          "std_error": 0.3178382213705023,
+          "t_stat": 6.13577594884965,
+          "p_value": 8.474452371532922e-10
+        },
+        {
+          "term": "C(month_index)[T.18]",
+          "coefficient": 1.686106225029044,
+          "std_error": 0.3321949952327526,
+          "t_stat": 5.075652099597927,
+          "p_value": 3.861693018701385e-07
+        },
+        {
+          "term": "C(month_index)[T.19]",
+          "coefficient": 2.268557327907014,
+          "std_error": 0.3368619417387143,
+          "t_stat": 6.734382982529418,
+          "p_value": 1.6462703066462395e-11
+        },
+        {
+          "term": "C(month_index)[T.20]",
+          "coefficient": 2.2813036760096885,
+          "std_error": 0.34165865963897213,
+          "t_stat": 6.677142849007027,
+          "p_value": 2.4364544094204023e-11
+        },
+        {
+          "term": "C(month_index)[T.21]",
+          "coefficient": 2.3981981958012897,
+          "std_error": 0.35119295134742695,
+          "t_stat": 6.828719615812586,
+          "p_value": 8.56758359791457e-12
+        },
+        {
+          "term": "C(month_index)[T.22]",
+          "coefficient": 2.4379552035488405,
+          "std_error": 0.325048714242889,
+          "t_stat": 7.50027641003713,
+          "p_value": 6.368339872894902e-14
+        },
+        {
+          "term": "C(month_index)[T.23]",
+          "coefficient": 2.621547915689601,
+          "std_error": 0.3295998529474596,
+          "t_stat": 7.953729020951637,
+          "p_value": 1.8097974934515082e-15
+        },
+        {
+          "term": "C(month_index)[T.24]",
+          "coefficient": 3.079671812052604,
+          "std_error": 0.3152412831996294,
+          "t_stat": 9.769252874479559,
+          "p_value": 1.5257302053501132e-22
+        },
+        {
+          "term": "C(month_index)[T.25]",
+          "coefficient": 2.8090314567374834,
+          "std_error": 0.36545069204333375,
+          "t_stat": 7.686485531143553,
+          "p_value": 1.512317801463643e-14
+        },
+        {
+          "term": "C(month_index)[T.26]",
+          "coefficient": 3.043026755156035,
+          "std_error": 0.32786742057245016,
+          "t_stat": 9.281272136899021,
+          "p_value": 1.6746697333569978e-20
+        },
+        {
+          "term": "C(month_index)[T.27]",
+          "coefficient": 3.1793514678750143,
+          "std_error": 0.3784421027151874,
+          "t_stat": 8.401156861417636,
+          "p_value": 4.421013674843498e-17
+        },
+        {
+          "term": "C(month_index)[T.28]",
+          "coefficient": 3.1934944492577593,
+          "std_error": 0.3415954515058271,
+          "t_stat": 9.348761627767995,
+          "p_value": 8.867990068102571e-21
+        },
+        {
+          "term": "C(month_index)[T.29]",
+          "coefficient": 3.619366341220954,
+          "std_error": 0.38557621311098134,
+          "t_stat": 9.386902558169954,
+          "p_value": 6.17906374700137e-21
+        },
+        {
+          "term": "C(month_index)[T.30]",
+          "coefficient": 3.5646491423632902,
+          "std_error": 0.3256059455708591,
+          "t_stat": 10.947739716833713,
+          "p_value": 6.81263855571807e-28
+        },
+        {
+          "term": "C(month_index)[T.31]",
+          "coefficient": 3.501392518225179,
+          "std_error": 0.37407020401035096,
+          "t_stat": 9.360255055567835,
+          "p_value": 7.954443899515903e-21
+        },
+        {
+          "term": "C(month_index)[T.32]",
+          "coefficient": 3.3710202251958803,
+          "std_error": 0.34081414028020374,
+          "t_stat": 9.89108087599993,
+          "p_value": 4.5508742844332575e-23
+        },
+        {
+          "term": "C(month_index)[T.33]",
+          "coefficient": 3.981190831353005,
+          "std_error": 0.4098731318523665,
+          "t_stat": 9.713227147533551,
+          "p_value": 2.6481712177969107e-22
+        },
+        {
+          "term": "C(month_index)[T.34]",
+          "coefficient": 3.82627978925714,
+          "std_error": 0.33925360197838333,
+          "t_stat": 11.278523697151325,
+          "p_value": 1.6753382651564754e-29
+        },
+        {
+          "term": "C(month_index)[T.35]",
+          "coefficient": 4.11491164175117,
+          "std_error": 0.37445751148967227,
+          "t_stat": 10.98899478710193,
+          "p_value": 4.317072600271343e-28
+        },
+        {
+          "term": "C(month_index)[T.36]",
+          "coefficient": 3.794036483451201,
+          "std_error": 0.38121939848251557,
+          "t_stat": 9.95236994380078,
+          "p_value": 2.462478473495316e-23
+        },
+        {
+          "term": "event_m5",
+          "coefficient": -0.7367052644031893,
+          "std_error": 0.375523708376481,
+          "t_stat": -1.961807598215892,
+          "p_value": 0.04978488873934579
+        },
+        {
+          "term": "event_m4",
+          "coefficient": -0.4191935092611766,
+          "std_error": 0.22457153726302004,
+          "t_stat": -1.8666368604415515,
+          "p_value": 0.06195231647694299
+        },
+        {
+          "term": "event_m3",
+          "coefficient": -0.12090671290032107,
+          "std_error": 0.3297337130284372,
+          "t_stat": -0.366679863547631,
+          "p_value": 0.7138578284670751
+        },
+        {
+          "term": "event_m2",
+          "coefficient": -0.5971515683962832,
+          "std_error": 0.38649252319724936,
+          "t_stat": -1.545053351760501,
+          "p_value": 0.12233335905003243
+        },
+        {
+          "term": "event_p0",
+          "coefficient": -0.12431876953047405,
+          "std_error": 0.3962010164677456,
+          "t_stat": -0.31377700804206476,
+          "p_value": 0.7536904080346467
+        },
+        {
+          "term": "event_p1",
+          "coefficient": 1.2237566665998965,
+          "std_error": 0.44678011969972214,
+          "t_stat": 2.7390580123000436,
+          "p_value": 0.006161550015623399
+        },
+        {
+          "term": "event_p2",
+          "coefficient": 0.5914007239723729,
+          "std_error": 0.2639977793853217,
+          "t_stat": 2.240173100506219,
+          "p_value": 0.02507968727353445
+        },
+        {
+          "term": "event_p3",
+          "coefficient": 0.7229710150215178,
+          "std_error": 0.32677046668027093,
+          "t_stat": 2.2124735517451457,
+          "p_value": 0.026933961696034237
+        },
+        {
+          "term": "event_p4",
+          "coefficient": 0.727406067700994,
+          "std_error": 0.27657742482651154,
+          "t_stat": 2.630026901715761,
+          "p_value": 0.008537811172619255
+        },
+        {
+          "term": "event_p5",
+          "coefficient": 0.405873507415398,
+          "std_error": 0.4001019459578428,
+          "t_stat": 1.0144252271598881,
+          "p_value": 0.3103798917926648
+        },
+        {
+          "term": "size",
+          "coefficient": 0.5261991834310982,
+          "std_error": 0.16854857552728134,
+          "t_stat": 3.1219438181839,
+          "p_value": 0.0017966122053509432
+        },
+        {
+          "term": "leverage",
+          "coefficient": -1.8364681654884802,
+          "std_error": 1.4032187939730716,
+          "t_stat": -1.3087539686442675,
+          "p_value": 0.19061770403145162
+        }
+      ],
+      "narrative": [
+        "Staggered DID estimated with cohort-specific event-time indicators.",
+        "Event window: [-5, 5] omitting -1."
+      ],
+      "sample_columns": [
+        "outcome_y",
+        "event_m5",
+        "event_m4",
+        "event_m3",
+        "event_m2",
+        "event_p0",
+        "event_p1",
+        "event_p2",
+        "event_p3",
+        "event_p4",
+        "event_p5",
+        "size",
+        "leverage"
+      ],
+      "sample_preview": [
+        {
+          "outcome_y": 8.281342947667275,
+          "event_m5": 0,
+          "event_m4": 0,
+          "event_m3": 0,
+          "event_m2": 0,
+          "event_p0": 0,
+          "event_p1": 0,
+          "event_p2": 0,
+          "event_p3": 0,
+          "event_p4": 0,
+          "event_p5": 0,
+          "size": 8.519775911467494,
+          "leverage": 0.3577590135791016
+        },
+        {
+          "outcome_y": 7.161166663415577,
+          "event_m5": 0,
+          "event_m4": 0,
+          "event_m3": 0,
+          "event_m2": 0,
+          "event_p0": 0,
+          "event_p1": 0,
+          "event_p2": 0,
+          "event_p3": 0,
+          "event_p4": 0,
+          "event_p5": 0,
+          "size": 7.55721041465215,
+          "leverage": 0.3378183221465689
+        },
+        {
+          "outcome_y": 7.582391886802917,
+          "event_m5": 0,
+          "event_m4": 0,
+          "event_m3": 0,
+          "event_m2": 0,
+          "event_p0": 0,
+          "event_p1": 0,
+          "event_p2": 0,
+          "event_p3": 0,
+          "event_p4": 0,
+          "event_p5": 0,
+          "size": 7.823590785770317,
+          "leverage": 0.3343232278441892
+        },
+        {
+          "outcome_y": 8.19643779930995,
+          "event_m5": 0,
+          "event_m4": 0,
+          "event_m3": 0,
+          "event_m2": 0,
+          "event_p0": 0,
+          "event_p1": 0,
+          "event_p2": 0,
+          "event_p3": 0,
+          "event_p4": 0,
+          "event_p5": 0,
+          "size": 8.058331858128255,
+          "leverage": 0.3581110765958445
+        },
+        {
+          "outcome_y": 6.775339604671813,
+          "event_m5": 0,
+          "event_m4": 0,
+          "event_m3": 0,
+          "event_m2": 0,
+          "event_p0": 0,
+          "event_p1": 0,
+          "event_p2": 0,
+          "event_p3": 0,
+          "event_p4": 0,
+          "event_p5": 0,
+          "size": 7.790582349444769,
+          "leverage": 0.3323010132904619
+        }
+      ],
+      "specification": {
+        "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "model_family": "causal_inference",
+        "model_type": "staggered_did",
+        "dependent": "outcome_y",
+        "controls": [
+          "size",
+          "leverage"
+        ],
+        "treatment_column": "treated",
+        "lead_window": 5,
+        "lag_window": 5,
+        "entity_column": "firm_id",
+        "time_column": "month_index",
+        "treatment_time_column": "treatment_time",
+        "engine": "causalpy",
+        "treated_column": "treated",
+        "variant_label": "staggered_wide"
+      },
+      "audit_trail": {
+        "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "sample_title": "upgrade_panel.csv",
+        "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+        "rows_used": 648,
+        "sample_columns": [
+          "outcome_y",
+          "event_m5",
+          "event_m4",
+          "event_m3",
+          "event_m2",
+          "event_p0",
+          "event_p1",
+          "event_p2",
+          "event_p3",
+          "event_p4",
+          "event_p5",
+          "size",
+          "leverage"
+        ],
+        "covariance_type": "HC1",
+        "manual_checklist": [
+          "Download the prepared sample asset referenced in sample_asset_id.",
+          "Rebuild any derived regressors listed in derived_columns before estimation.",
+          "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+          "Compare the reproduced coefficient table with the coefficients array term by term."
+        ],
+        "engine": "causalpy",
+        "derived_columns": [
+          "_event_time",
+          "event_m5",
+          "event_m4",
+          "event_m3",
+          "event_m2",
+          "event_p0",
+          "event_p1",
+          "event_p2",
+          "event_p3",
+          "event_p4",
+          "event_p5"
+        ],
+        "filters": [
+          "Rows without dependent variable are excluded."
+        ]
+      },
+      "engine": "causalpy",
+      "primary_tables": [
+        "dynamic_effect_table",
+        "cohort_time_table"
+      ],
+      "robustness_tables": [
+        "event_window_audit"
+      ],
+      "tables": {
+        "dynamic_effect_table": [
+          {
+            "event_time": -5,
+            "coefficient": -0.7367052644031893,
+            "std_error": 0.375523708376481,
+            "pvalue": 0.04978488873934579
+          },
+          {
+            "event_time": -4,
+            "coefficient": -0.4191935092611766,
+            "std_error": 0.22457153726302004,
+            "pvalue": 0.06195231647694299
+          },
+          {
+            "event_time": -3,
+            "coefficient": -0.12090671290032107,
+            "std_error": 0.3297337130284372,
+            "pvalue": 0.7138578284670751
+          },
+          {
+            "event_time": -2,
+            "coefficient": -0.5971515683962832,
+            "std_error": 0.38649252319724936,
+            "pvalue": 0.12233335905003243
+          },
+          {
+            "event_time": 0,
+            "coefficient": -0.12431876953047405,
+            "std_error": 0.3962010164677456,
+            "pvalue": 0.7536904080346467
+          },
+          {
+            "event_time": 1,
+            "coefficient": 1.2237566665998965,
+            "std_error": 0.44678011969972214,
+            "pvalue": 0.006161550015623399
+          },
+          {
+            "event_time": 2,
+            "coefficient": 0.5914007239723729,
+            "std_error": 0.2639977793853217,
+            "pvalue": 0.02507968727353445
+          },
+          {
+            "event_time": 3,
+            "coefficient": 0.7229710150215178,
+            "std_error": 0.32677046668027093,
+            "pvalue": 0.026933961696034237
+          },
+          {
+            "event_time": 4,
+            "coefficient": 0.727406067700994,
+            "std_error": 0.27657742482651154,
+            "pvalue": 0.008537811172619255
+          },
+          {
+            "event_time": 5,
+            "coefficient": 0.405873507415398,
+            "std_error": 0.4001019459578428,
+            "pvalue": 0.3103798917926648
+          }
+        ],
+        "cohort_time_table": [
+          {
+            "treatment_time": 18.0,
+            "_event_time": -17.0,
+            "mean_outcome": 7.638311487978222
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -16.0,
+            "mean_outcome": 7.4801457790208365
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -15.0,
+            "mean_outcome": 7.793508288236026
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -14.0,
+            "mean_outcome": 7.986330754509307
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -13.0,
+            "mean_outcome": 6.7909689305451515
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -12.0,
+            "mean_outcome": 7.876489661183577
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -11.0,
+            "mean_outcome": 9.333582087099686
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -10.0,
+            "mean_outcome": 7.443825126303224
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -9.0,
+            "mean_outcome": 8.429828895346015
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -8.0,
+            "mean_outcome": 8.350758026119296
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -7.0,
+            "mean_outcome": 7.946365692840241
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -6.0,
+            "mean_outcome": 8.569597207606263
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -5.0,
+            "mean_outcome": 9.452504136577877
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -4.0,
+            "mean_outcome": 9.048003706932198
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -3.0,
+            "mean_outcome": 9.8925177764944
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -2.0,
+            "mean_outcome": 8.719240216801415
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": -1.0,
+            "mean_outcome": 9.186134277434897
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 0.0,
+            "mean_outcome": 8.668461256888017
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 1.0,
+            "mean_outcome": 11.643072738139082
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 2.0,
+            "mean_outcome": 10.200239921974708
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 3.0,
+            "mean_outcome": 11.330742863796592
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 4.0,
+            "mean_outcome": 11.198237025738488
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 5.0,
+            "mean_outcome": 11.38259571465836
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 6.0,
+            "mean_outcome": 11.23865758781569
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 7.0,
+            "mean_outcome": 11.828798007735342
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 8.0,
+            "mean_outcome": 11.09579536777472
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 9.0,
+            "mean_outcome": 10.733147954220206
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 10.0,
+            "mean_outcome": 11.934070510279362
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 11.0,
+            "mean_outcome": 11.235118868336533
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 12.0,
+            "mean_outcome": 11.727737163380567
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 13.0,
+            "mean_outcome": 12.213453884414504
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 14.0,
+            "mean_outcome": 11.957093100008862
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 15.0,
+            "mean_outcome": 12.814425299117476
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 16.0,
+            "mean_outcome": 11.561902095377766
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 17.0,
+            "mean_outcome": 12.644248328548287
+          },
+          {
+            "treatment_time": 18.0,
+            "_event_time": 18.0,
+            "mean_outcome": 11.832661625805036
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -18.0,
+            "mean_outcome": 6.06807879720867
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -17.0,
+            "mean_outcome": 6.488414666319924
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -16.0,
+            "mean_outcome": 7.211374287401114
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -15.0,
+            "mean_outcome": 7.569528055711226
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -14.0,
+            "mean_outcome": 7.2456017327768105
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -13.0,
+            "mean_outcome": 7.640384585304346
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -12.0,
+            "mean_outcome": 6.825849972951212
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -11.0,
+            "mean_outcome": 6.633457322785061
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -10.0,
+            "mean_outcome": 7.94364407134503
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -9.0,
+            "mean_outcome": 7.318000767536203
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -8.0,
+            "mean_outcome": 7.607073360545034
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -7.0,
+            "mean_outcome": 7.31902360120166
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -6.0,
+            "mean_outcome": 8.455843142860212
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -5.0,
+            "mean_outcome": 6.947632985426861
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -4.0,
+            "mean_outcome": 9.1200404620886
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -3.0,
+            "mean_outcome": 8.620094066658982
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -2.0,
+            "mean_outcome": 8.015561314403898
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": -1.0,
+            "mean_outcome": 8.864741039275696
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 0.0,
+            "mean_outcome": 10.431088276239343
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 1.0,
+            "mean_outcome": 11.158084198901973
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 2.0,
+            "mean_outcome": 10.862011283251523
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 3.0,
+            "mean_outcome": 9.535827616160237
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 4.0,
+            "mean_outcome": 10.002497969099121
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 5.0,
+            "mean_outcome": 9.18795706376956
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 6.0,
+            "mean_outcome": 11.077110120548898
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 7.0,
+            "mean_outcome": 10.348116393248809
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 8.0,
+            "mean_outcome": 11.669632727181968
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 9.0,
+            "mean_outcome": 11.269788537493628
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 10.0,
+            "mean_outcome": 11.882337102295175
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 11.0,
+            "mean_outcome": 11.03878499829069
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 12.0,
+            "mean_outcome": 11.443155278840543
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 13.0,
+            "mean_outcome": 11.231603700839244
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 14.0,
+            "mean_outcome": 10.88570448923784
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 15.0,
+            "mean_outcome": 11.205053883717836
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 16.0,
+            "mean_outcome": 10.603386783460017
+          },
+          {
+            "treatment_time": 19.0,
+            "_event_time": 17.0,
+            "mean_outcome": 12.553000480847555
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -19.0,
+            "mean_outcome": 7.39954514282368
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -18.0,
+            "mean_outcome": 7.195336953292955
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -17.0,
+            "mean_outcome": 7.027600704910036
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -16.0,
+            "mean_outcome": 6.448900597179806
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -15.0,
+            "mean_outcome": 7.192996481596966
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -14.0,
+            "mean_outcome": 8.100466173184948
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -13.0,
+            "mean_outcome": 8.818871948459464
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -12.0,
+            "mean_outcome": 8.138022546047877
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -11.0,
+            "mean_outcome": 8.85859583734411
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -10.0,
+            "mean_outcome": 9.714129285361675
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -9.0,
+            "mean_outcome": 8.70641959136633
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -8.0,
+            "mean_outcome": 7.117955143413974
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -7.0,
+            "mean_outcome": 8.164706133616583
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -6.0,
+            "mean_outcome": 7.621817898970379
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -5.0,
+            "mean_outcome": 8.274414462280495
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -4.0,
+            "mean_outcome": 8.825334738900775
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -3.0,
+            "mean_outcome": 9.554433841356053
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -2.0,
+            "mean_outcome": 8.694604459155672
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": -1.0,
+            "mean_outcome": 9.228712955147987
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 0.0,
+            "mean_outcome": 9.61891562217534
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 1.0,
+            "mean_outcome": 10.388862676720297
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 2.0,
+            "mean_outcome": 10.784419971917131
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 3.0,
+            "mean_outcome": 11.126031021562653
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 4.0,
+            "mean_outcome": 11.968939608276553
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 5.0,
+            "mean_outcome": 11.407519750697638
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 6.0,
+            "mean_outcome": 10.904048531845271
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 7.0,
+            "mean_outcome": 11.460914290137904
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 8.0,
+            "mean_outcome": 10.313103483600468
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 9.0,
+            "mean_outcome": 11.875084591865544
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 10.0,
+            "mean_outcome": 12.006804137296118
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 11.0,
+            "mean_outcome": 11.69019927188864
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 12.0,
+            "mean_outcome": 11.348285434588641
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 13.0,
+            "mean_outcome": 12.80656754815166
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 14.0,
+            "mean_outcome": 12.08702378208914
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 15.0,
+            "mean_outcome": 12.193158600660983
+          },
+          {
+            "treatment_time": 20.0,
+            "_event_time": 16.0,
+            "mean_outcome": 13.052211607743715
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -20.0,
+            "mean_outcome": 6.29196114192297
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -19.0,
+            "mean_outcome": 7.114054270770344
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -18.0,
+            "mean_outcome": 7.744114030221981
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -17.0,
+            "mean_outcome": 6.8057446177015635
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -16.0,
+            "mean_outcome": 7.524099059473356
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -15.0,
+            "mean_outcome": 8.27380490097727
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -14.0,
+            "mean_outcome": 7.736160317761848
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -13.0,
+            "mean_outcome": 6.750762034880761
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -12.0,
+            "mean_outcome": 8.082557832425444
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -11.0,
+            "mean_outcome": 7.473744166694866
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -10.0,
+            "mean_outcome": 7.592413925079389
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -9.0,
+            "mean_outcome": 9.539293029368633
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -8.0,
+            "mean_outcome": 9.347779316284129
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -7.0,
+            "mean_outcome": 9.668878527024837
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -6.0,
+            "mean_outcome": 9.74587064989697
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -5.0,
+            "mean_outcome": 8.77345465290816
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -4.0,
+            "mean_outcome": 8.809225871683548
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -3.0,
+            "mean_outcome": 8.797786430437792
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -2.0,
+            "mean_outcome": 10.446048725698034
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": -1.0,
+            "mean_outcome": 10.67721395388101
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 0.0,
+            "mean_outcome": 9.830765281336049
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 1.0,
+            "mean_outcome": 11.381125764570001
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 2.0,
+            "mean_outcome": 10.731809092444854
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 3.0,
+            "mean_outcome": 11.55254843470962
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 4.0,
+            "mean_outcome": 10.949517568277724
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 5.0,
+            "mean_outcome": 10.902123594348236
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 6.0,
+            "mean_outcome": 10.984002920209953
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 7.0,
+            "mean_outcome": 11.453909825006177
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 8.0,
+            "mean_outcome": 12.649500052163265
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 9.0,
+            "mean_outcome": 11.055207672742347
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 10.0,
+            "mean_outcome": 10.395791444154858
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 11.0,
+            "mean_outcome": 11.723641139741666
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 12.0,
+            "mean_outcome": 12.505743526936815
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 13.0,
+            "mean_outcome": 12.457589273436291
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 14.0,
+            "mean_outcome": 13.64172591388197
+          },
+          {
+            "treatment_time": 21.0,
+            "_event_time": 15.0,
+            "mean_outcome": 12.043305131844965
+          }
+        ],
+        "event_window_audit": [
+          {
+            "lead_window": 5,
+            "lag_window": 5
+          }
+        ]
+      },
+      "figures": [
+        {
+          "asset_id": "3853f29d-c300-4f16-ba4e-489c1079d937",
+          "title": "Staggered DID dynamic effects",
+          "summary": "Dynamic treatment effects by event time with 95% confidence bands.",
+          "download_url": "/api/assets/3853f29d-c300-4f16-ba4e-489c1079d937/download",
+          "asset": {
+            "id": "3853f29d-c300-4f16-ba4e-489c1079d937",
+            "kind": "chart_png",
+            "title": "upgrade_panel-staggered_did_dynamic.png",
+            "filename": "upgrade_panel-staggered_did_dynamic.png",
+            "description": "Dynamic treatment effects by event time with 95% confidence bands.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 75572,
+              "original_filename": "upgrade_panel-staggered_did_dynamic.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "Staggered DID dynamic effects",
+              "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+              "summary": "Dynamic treatment effects by event time with 95% confidence bands."
+            },
+            "created_at": "2026-04-02T02:57:57.323335+00:00",
+            "updated_at": "2026-04-02T02:57:57.331901+00:00"
+          }
+        }
+      ],
+      "metrics": {},
+      "paper_output_contract": {
+        "primary_tables": [
+          "dynamic_effect_table",
+          "cohort_time_table"
+        ],
+        "robustness_tables": [
+          "event_window_audit"
+        ],
+        "figure_count": 1
+      },
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "Staggered DID estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+              "Supporting tables included: dynamic_effect_table, cohort_time_table, event_window_audit.",
+              "Figures included: Staggered DID dynamic effects."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "dynamic_effect_table",
+          "cohort_time_table",
+          "event_window_audit",
+          "Staggered DID dynamic effects"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "staggered_wide",
+      "variant_spec": {},
+      "result_record_id": "f0dbc8ed-0a04-4a63-ade9-f402021c41bb",
+      "result_detail_path": "/data-lab/results/models/f0dbc8ed-0a04-4a63-ade9-f402021c41bb"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T02:57:57.364456",
+    "updated_at": "2026-04-02T02:57:57.367276"
+  },
+  "result": {
+    "model_type": "staggered_did",
+    "model_label": "Staggered DID",
+    "asset": {
+      "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "kind": "dataset_csv",
+      "title": "upgrade_panel.csv",
+      "filename": "upgrade_panel.csv",
+      "description": "upgrade_panel.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 289095,
+        "original_filename": "upgrade_panel.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T02:57:26.995002",
+      "updated_at": "2026-04-02T02:57:27.013674"
+    },
+    "dependent": "outcome_y",
+    "regressors": [
+      "event_m5",
+      "event_m4",
+      "event_m3",
+      "event_m2",
+      "event_p0",
+      "event_p1",
+      "event_p2",
+      "event_p3",
+      "event_p4",
+      "event_p5",
+      "size",
+      "leverage"
+    ],
+    "observations": 648,
+    "r_squared": 0.7258859231161396,
+    "adj_r_squared": 0.6957944978664534,
+    "pseudo_r_squared": null,
+    "aic": 1892.3212427216458,
+    "bic": 2183.1241379845437,
+    "log_likelihood": -881.1606213608229,
+    "coefficients": [
+      {
+        "term": "Intercept",
+        "coefficient": 3.6122277068078454,
+        "std_error": 1.4358400907601934,
+        "t_stat": 2.5157590528729297,
+        "p_value": 0.011877635286918162
+      },
+      {
+        "term": "C(firm_id)[T.firm_02]",
+        "coefficient": -0.5822015282335813,
+        "std_error": 0.23822150233048373,
+        "t_stat": -2.443950367779544,
+        "p_value": 0.014527424928029376
+      },
+      {
+        "term": "C(firm_id)[T.firm_03]",
+        "coefficient": -0.3997452569441628,
+        "std_error": 0.25359873821986567,
+        "t_stat": -1.576290401719549,
+        "p_value": 0.11495889263845359
+      },
+      {
+        "term": "C(firm_id)[T.firm_04]",
+        "coefficient": 0.38971349690767815,
+        "std_error": 0.23622845976531262,
+        "t_stat": 1.649731354532173,
+        "p_value": 0.09899789426326186
+      },
+      {
+        "term": "C(firm_id)[T.firm_05]",
+        "coefficient": -0.11195942366630904,
+        "std_error": 0.2603390129569218,
+        "t_stat": -0.43005242431657725,
+        "p_value": 0.6671575067468976
+      },
+      {
+        "term": "C(firm_id)[T.firm_06]",
+        "coefficient": -0.5794178915986005,
+        "std_error": 0.2722526493016463,
+        "t_stat": -2.1282360082991367,
+        "p_value": 0.033317520727166636
+      },
+      {
+        "term": "C(firm_id)[T.firm_07]",
+        "coefficient": 0.12729799675763592,
+        "std_error": 0.2792613269978684,
+        "t_stat": 0.45583825775707065,
+        "p_value": 0.648506290827239
+      },
+      {
+        "term": "C(firm_id)[T.firm_08]",
+        "coefficient": -0.6178746312655072,
+        "std_error": 0.2724783289921957,
+        "t_stat": -2.2676101749112103,
+        "p_value": 0.02335297697558268
+      },
+      {
+        "term": "C(firm_id)[T.firm_09]",
+        "coefficient": 0.5596583947829594,
+        "std_error": 0.2750662830354832,
+        "t_stat": 2.0346310300443626,
+        "p_value": 0.04188801269218294
+      },
+      {
+        "term": "C(firm_id)[T.firm_10]",
+        "coefficient": -0.9798580096653149,
+        "std_error": 0.2937727210596554,
+        "t_stat": -3.335428851701784,
+        "p_value": 0.0008516794455345345
+      },
+      {
+        "term": "C(firm_id)[T.firm_11]",
+        "coefficient": -1.054998982387977,
+        "std_error": 0.2941230081855088,
+        "t_stat": -3.5869311581451315,
+        "p_value": 0.00033459261261324386
+      },
+      {
+        "term": "C(firm_id)[T.firm_12]",
+        "coefficient": 0.1755884773197589,
+        "std_error": 0.3152407051952795,
+        "t_stat": 0.5569981110497408,
+        "p_value": 0.5775287197886314
+      },
+      {
+        "term": "C(firm_id)[T.firm_13]",
+        "coefficient": 0.11014015284185896,
+        "std_error": 0.36097249141572557,
+        "t_stat": 0.3051206268097934,
+        "p_value": 0.7602742818807021
+      },
+      {
+        "term": "C(firm_id)[T.firm_14]",
+        "coefficient": -0.7862425911719445,
+        "std_error": 0.3521736724503157,
+        "t_stat": -2.232542216178487,
+        "p_value": 0.0255791483082507
+      },
+      {
+        "term": "C(firm_id)[T.firm_15]",
+        "coefficient": -0.9128171636245811,
+        "std_error": 0.38434950079438984,
+        "t_stat": -2.3749664348150104,
+        "p_value": 0.01755054607158304
+      },
+      {
+        "term": "C(firm_id)[T.firm_16]",
+        "coefficient": -0.9308423858894972,
+        "std_error": 0.3897998095683191,
+        "t_stat": -2.3880011304273125,
+        "p_value": 0.016940289676523366
+      },
+      {
+        "term": "C(firm_id)[T.firm_17]",
+        "coefficient": 0.23299502840242897,
+        "std_error": 0.4216909221703346,
+        "t_stat": 0.5525255967172913,
+        "p_value": 0.5805883022438089
+      },
+      {
+        "term": "C(firm_id)[T.firm_18]",
+        "coefficient": 0.1952868846894441,
+        "std_error": 0.4128666871172612,
+        "t_stat": 0.47300228084030255,
+        "p_value": 0.6362115519349647
+      },
+      {
+        "term": "C(month_index)[T.2]",
+        "coefficient": 0.19187720421929733,
+        "std_error": 0.3185500923290963,
+        "t_stat": 0.6023454672901731,
+        "p_value": 0.5469442014878023
+      },
+      {
+        "term": "C(month_index)[T.3]",
+        "coefficient": 0.49025810099515876,
+        "std_error": 0.2547942503525816,
+        "t_stat": 1.9241332970298382,
+        "p_value": 0.05433787739413579
+      },
+      {
+        "term": "C(month_index)[T.4]",
+        "coefficient": 0.6945085344760891,
+        "std_error": 0.37317140364055645,
+        "t_stat": 1.861097950434189,
+        "p_value": 0.06273034560892195
+      },
+      {
+        "term": "C(month_index)[T.5]",
+        "coefficient": 0.40591594372987383,
+        "std_error": 0.31507748438239147,
+        "t_stat": 1.2883051434968198,
+        "p_value": 0.19763976337713007
+      },
+      {
+        "term": "C(month_index)[T.6]",
+        "coefficient": 0.6758416770820332,
+        "std_error": 0.26355244147776175,
+        "t_stat": 2.5643536948188737,
+        "p_value": 0.010336814835160427
+      },
+      {
+        "term": "C(month_index)[T.7]",
+        "coefficient": 1.0847543219759215,
+        "std_error": 0.29914124847937373,
+        "t_stat": 3.626227835479255,
+        "p_value": 0.0002875916316928274
+      },
+      {
+        "term": "C(month_index)[T.8]",
+        "coefficient": 0.6239223870873571,
+        "std_error": 0.34560364956020334,
+        "t_stat": 1.8053119169352734,
+        "p_value": 0.07102588587614299
+      },
+      {
+        "term": "C(month_index)[T.9]",
+        "coefficient": 1.1016419960169035,
+        "std_error": 0.2668145410956279,
+        "t_stat": 4.128867907623028,
+        "p_value": 3.645537525509503e-05
+      },
+      {
+        "term": "C(month_index)[T.10]",
+        "coefficient": 1.1615705452101608,
+        "std_error": 0.32155712983084367,
+        "t_stat": 3.6123302438394362,
+        "p_value": 0.00030345775888507146
+      },
+      {
+        "term": "C(month_index)[T.11]",
+        "coefficient": 1.2518850656355092,
+        "std_error": 0.3171696483561103,
+        "t_stat": 3.9470519077850836,
+        "p_value": 7.911940816573554e-05
+      },
+      {
+        "term": "C(month_index)[T.12]",
+        "coefficient": 1.234956424918729,
+        "std_error": 0.35034838609177604,
+        "t_stat": 3.524938244171686,
+        "p_value": 0.0004235815273488348
+      },
+      {
+        "term": "C(month_index)[T.13]",
+        "coefficient": 1.563826573753551,
+        "std_error": 0.3341822367654588,
+        "t_stat": 4.6795622319420325,
+        "p_value": 2.8748809033771085e-06
+      },
+      {
+        "term": "C(month_index)[T.14]",
+        "coefficient": 1.447076948095095,
+        "std_error": 0.3334049024327892,
+        "t_stat": 4.340298950423532,
+        "p_value": 1.4228900294816663e-05
+      },
+      {
+        "term": "C(month_index)[T.15]",
+        "coefficient": 1.9743346674353937,
+        "std_error": 0.2760549127230083,
+        "t_stat": 7.151963527692869,
+        "p_value": 8.55453010733738e-13
+      },
+      {
+        "term": "C(month_index)[T.16]",
+        "coefficient": 2.0503142439560955,
+        "std_error": 0.30040679948650423,
+        "t_stat": 6.825125954075503,
+        "p_value": 8.784820530594425e-12
+      },
+      {
+        "term": "C(month_index)[T.17]",
+        "coefficient": 1.9501841143102792,
+        "std_error": 0.3178382213705023,
+        "t_stat": 6.13577594884965,
+        "p_value": 8.474452371532922e-10
+      },
+      {
+        "term": "C(month_index)[T.18]",
+        "coefficient": 1.686106225029044,
+        "std_error": 0.3321949952327526,
+        "t_stat": 5.075652099597927,
+        "p_value": 3.861693018701385e-07
+      },
+      {
+        "term": "C(month_index)[T.19]",
+        "coefficient": 2.268557327907014,
+        "std_error": 0.3368619417387143,
+        "t_stat": 6.734382982529418,
+        "p_value": 1.6462703066462395e-11
+      },
+      {
+        "term": "C(month_index)[T.20]",
+        "coefficient": 2.2813036760096885,
+        "std_error": 0.34165865963897213,
+        "t_stat": 6.677142849007027,
+        "p_value": 2.4364544094204023e-11
+      },
+      {
+        "term": "C(month_index)[T.21]",
+        "coefficient": 2.3981981958012897,
+        "std_error": 0.35119295134742695,
+        "t_stat": 6.828719615812586,
+        "p_value": 8.56758359791457e-12
+      },
+      {
+        "term": "C(month_index)[T.22]",
+        "coefficient": 2.4379552035488405,
+        "std_error": 0.325048714242889,
+        "t_stat": 7.50027641003713,
+        "p_value": 6.368339872894902e-14
+      },
+      {
+        "term": "C(month_index)[T.23]",
+        "coefficient": 2.621547915689601,
+        "std_error": 0.3295998529474596,
+        "t_stat": 7.953729020951637,
+        "p_value": 1.8097974934515082e-15
+      },
+      {
+        "term": "C(month_index)[T.24]",
+        "coefficient": 3.079671812052604,
+        "std_error": 0.3152412831996294,
+        "t_stat": 9.769252874479559,
+        "p_value": 1.5257302053501132e-22
+      },
+      {
+        "term": "C(month_index)[T.25]",
+        "coefficient": 2.8090314567374834,
+        "std_error": 0.36545069204333375,
+        "t_stat": 7.686485531143553,
+        "p_value": 1.512317801463643e-14
+      },
+      {
+        "term": "C(month_index)[T.26]",
+        "coefficient": 3.043026755156035,
+        "std_error": 0.32786742057245016,
+        "t_stat": 9.281272136899021,
+        "p_value": 1.6746697333569978e-20
+      },
+      {
+        "term": "C(month_index)[T.27]",
+        "coefficient": 3.1793514678750143,
+        "std_error": 0.3784421027151874,
+        "t_stat": 8.401156861417636,
+        "p_value": 4.421013674843498e-17
+      },
+      {
+        "term": "C(month_index)[T.28]",
+        "coefficient": 3.1934944492577593,
+        "std_error": 0.3415954515058271,
+        "t_stat": 9.348761627767995,
+        "p_value": 8.867990068102571e-21
+      },
+      {
+        "term": "C(month_index)[T.29]",
+        "coefficient": 3.619366341220954,
+        "std_error": 0.38557621311098134,
+        "t_stat": 9.386902558169954,
+        "p_value": 6.17906374700137e-21
+      },
+      {
+        "term": "C(month_index)[T.30]",
+        "coefficient": 3.5646491423632902,
+        "std_error": 0.3256059455708591,
+        "t_stat": 10.947739716833713,
+        "p_value": 6.81263855571807e-28
+      },
+      {
+        "term": "C(month_index)[T.31]",
+        "coefficient": 3.501392518225179,
+        "std_error": 0.37407020401035096,
+        "t_stat": 9.360255055567835,
+        "p_value": 7.954443899515903e-21
+      },
+      {
+        "term": "C(month_index)[T.32]",
+        "coefficient": 3.3710202251958803,
+        "std_error": 0.34081414028020374,
+        "t_stat": 9.89108087599993,
+        "p_value": 4.5508742844332575e-23
+      },
+      {
+        "term": "C(month_index)[T.33]",
+        "coefficient": 3.981190831353005,
+        "std_error": 0.4098731318523665,
+        "t_stat": 9.713227147533551,
+        "p_value": 2.6481712177969107e-22
+      },
+      {
+        "term": "C(month_index)[T.34]",
+        "coefficient": 3.82627978925714,
+        "std_error": 0.33925360197838333,
+        "t_stat": 11.278523697151325,
+        "p_value": 1.6753382651564754e-29
+      },
+      {
+        "term": "C(month_index)[T.35]",
+        "coefficient": 4.11491164175117,
+        "std_error": 0.37445751148967227,
+        "t_stat": 10.98899478710193,
+        "p_value": 4.317072600271343e-28
+      },
+      {
+        "term": "C(month_index)[T.36]",
+        "coefficient": 3.794036483451201,
+        "std_error": 0.38121939848251557,
+        "t_stat": 9.95236994380078,
+        "p_value": 2.462478473495316e-23
+      },
+      {
+        "term": "event_m5",
+        "coefficient": -0.7367052644031893,
+        "std_error": 0.375523708376481,
+        "t_stat": -1.961807598215892,
+        "p_value": 0.04978488873934579
+      },
+      {
+        "term": "event_m4",
+        "coefficient": -0.4191935092611766,
+        "std_error": 0.22457153726302004,
+        "t_stat": -1.8666368604415515,
+        "p_value": 0.06195231647694299
+      },
+      {
+        "term": "event_m3",
+        "coefficient": -0.12090671290032107,
+        "std_error": 0.3297337130284372,
+        "t_stat": -0.366679863547631,
+        "p_value": 0.7138578284670751
+      },
+      {
+        "term": "event_m2",
+        "coefficient": -0.5971515683962832,
+        "std_error": 0.38649252319724936,
+        "t_stat": -1.545053351760501,
+        "p_value": 0.12233335905003243
+      },
+      {
+        "term": "event_p0",
+        "coefficient": -0.12431876953047405,
+        "std_error": 0.3962010164677456,
+        "t_stat": -0.31377700804206476,
+        "p_value": 0.7536904080346467
+      },
+      {
+        "term": "event_p1",
+        "coefficient": 1.2237566665998965,
+        "std_error": 0.44678011969972214,
+        "t_stat": 2.7390580123000436,
+        "p_value": 0.006161550015623399
+      },
+      {
+        "term": "event_p2",
+        "coefficient": 0.5914007239723729,
+        "std_error": 0.2639977793853217,
+        "t_stat": 2.240173100506219,
+        "p_value": 0.02507968727353445
+      },
+      {
+        "term": "event_p3",
+        "coefficient": 0.7229710150215178,
+        "std_error": 0.32677046668027093,
+        "t_stat": 2.2124735517451457,
+        "p_value": 0.026933961696034237
+      },
+      {
+        "term": "event_p4",
+        "coefficient": 0.727406067700994,
+        "std_error": 0.27657742482651154,
+        "t_stat": 2.630026901715761,
+        "p_value": 0.008537811172619255
+      },
+      {
+        "term": "event_p5",
+        "coefficient": 0.405873507415398,
+        "std_error": 0.4001019459578428,
+        "t_stat": 1.0144252271598881,
+        "p_value": 0.3103798917926648
+      },
+      {
+        "term": "size",
+        "coefficient": 0.5261991834310982,
+        "std_error": 0.16854857552728134,
+        "t_stat": 3.1219438181839,
+        "p_value": 0.0017966122053509432
+      },
+      {
+        "term": "leverage",
+        "coefficient": -1.8364681654884802,
+        "std_error": 1.4032187939730716,
+        "t_stat": -1.3087539686442675,
+        "p_value": 0.19061770403145162
+      }
+    ],
+    "narrative": [
+      "Staggered DID estimated with cohort-specific event-time indicators.",
+      "Event window: [-5, 5] omitting -1."
+    ],
+    "sample_columns": [
+      "outcome_y",
+      "event_m5",
+      "event_m4",
+      "event_m3",
+      "event_m2",
+      "event_p0",
+      "event_p1",
+      "event_p2",
+      "event_p3",
+      "event_p4",
+      "event_p5",
+      "size",
+      "leverage"
+    ],
+    "sample_preview": [
+      {
+        "outcome_y": 8.281342947667275,
+        "event_m5": 0,
+        "event_m4": 0,
+        "event_m3": 0,
+        "event_m2": 0,
+        "event_p0": 0,
+        "event_p1": 0,
+        "event_p2": 0,
+        "event_p3": 0,
+        "event_p4": 0,
+        "event_p5": 0,
+        "size": 8.519775911467494,
+        "leverage": 0.3577590135791016
+      },
+      {
+        "outcome_y": 7.161166663415577,
+        "event_m5": 0,
+        "event_m4": 0,
+        "event_m3": 0,
+        "event_m2": 0,
+        "event_p0": 0,
+        "event_p1": 0,
+        "event_p2": 0,
+        "event_p3": 0,
+        "event_p4": 0,
+        "event_p5": 0,
+        "size": 7.55721041465215,
+        "leverage": 0.3378183221465689
+      },
+      {
+        "outcome_y": 7.582391886802917,
+        "event_m5": 0,
+        "event_m4": 0,
+        "event_m3": 0,
+        "event_m2": 0,
+        "event_p0": 0,
+        "event_p1": 0,
+        "event_p2": 0,
+        "event_p3": 0,
+        "event_p4": 0,
+        "event_p5": 0,
+        "size": 7.823590785770317,
+        "leverage": 0.3343232278441892
+      },
+      {
+        "outcome_y": 8.19643779930995,
+        "event_m5": 0,
+        "event_m4": 0,
+        "event_m3": 0,
+        "event_m2": 0,
+        "event_p0": 0,
+        "event_p1": 0,
+        "event_p2": 0,
+        "event_p3": 0,
+        "event_p4": 0,
+        "event_p5": 0,
+        "size": 8.058331858128255,
+        "leverage": 0.3581110765958445
+      },
+      {
+        "outcome_y": 6.775339604671813,
+        "event_m5": 0,
+        "event_m4": 0,
+        "event_m3": 0,
+        "event_m2": 0,
+        "event_p0": 0,
+        "event_p1": 0,
+        "event_p2": 0,
+        "event_p3": 0,
+        "event_p4": 0,
+        "event_p5": 0,
+        "size": 7.790582349444769,
+        "leverage": 0.3323010132904619
+      }
+    ],
+    "specification": {
+      "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "model_family": "causal_inference",
+      "model_type": "staggered_did",
+      "dependent": "outcome_y",
+      "controls": [
+        "size",
+        "leverage"
+      ],
+      "treatment_column": "treated",
+      "lead_window": 5,
+      "lag_window": 5,
+      "entity_column": "firm_id",
+      "time_column": "month_index",
+      "treatment_time_column": "treatment_time",
+      "engine": "causalpy",
+      "treated_column": "treated",
+      "variant_label": "staggered_wide"
+    },
+    "audit_trail": {
+      "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "sample_title": "upgrade_panel.csv",
+      "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+      "rows_used": 648,
+      "sample_columns": [
+        "outcome_y",
+        "event_m5",
+        "event_m4",
+        "event_m3",
+        "event_m2",
+        "event_p0",
+        "event_p1",
+        "event_p2",
+        "event_p3",
+        "event_p4",
+        "event_p5",
+        "size",
+        "leverage"
+      ],
+      "covariance_type": "HC1",
+      "manual_checklist": [
+        "Download the prepared sample asset referenced in sample_asset_id.",
+        "Rebuild any derived regressors listed in derived_columns before estimation.",
+        "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+        "Compare the reproduced coefficient table with the coefficients array term by term."
+      ],
+      "engine": "causalpy",
+      "derived_columns": [
+        "_event_time",
+        "event_m5",
+        "event_m4",
+        "event_m3",
+        "event_m2",
+        "event_p0",
+        "event_p1",
+        "event_p2",
+        "event_p3",
+        "event_p4",
+        "event_p5"
+      ],
+      "filters": [
+        "Rows without dependent variable are excluded."
+      ]
+    },
+    "engine": "causalpy",
+    "primary_tables": [
+      "dynamic_effect_table",
+      "cohort_time_table"
+    ],
+    "robustness_tables": [
+      "event_window_audit"
+    ],
+    "tables": {
+      "dynamic_effect_table": [
+        {
+          "event_time": -5,
+          "coefficient": -0.7367052644031893,
+          "std_error": 0.375523708376481,
+          "pvalue": 0.04978488873934579
+        },
+        {
+          "event_time": -4,
+          "coefficient": -0.4191935092611766,
+          "std_error": 0.22457153726302004,
+          "pvalue": 0.06195231647694299
+        },
+        {
+          "event_time": -3,
+          "coefficient": -0.12090671290032107,
+          "std_error": 0.3297337130284372,
+          "pvalue": 0.7138578284670751
+        },
+        {
+          "event_time": -2,
+          "coefficient": -0.5971515683962832,
+          "std_error": 0.38649252319724936,
+          "pvalue": 0.12233335905003243
+        },
+        {
+          "event_time": 0,
+          "coefficient": -0.12431876953047405,
+          "std_error": 0.3962010164677456,
+          "pvalue": 0.7536904080346467
+        },
+        {
+          "event_time": 1,
+          "coefficient": 1.2237566665998965,
+          "std_error": 0.44678011969972214,
+          "pvalue": 0.006161550015623399
+        },
+        {
+          "event_time": 2,
+          "coefficient": 0.5914007239723729,
+          "std_error": 0.2639977793853217,
+          "pvalue": 0.02507968727353445
+        },
+        {
+          "event_time": 3,
+          "coefficient": 0.7229710150215178,
+          "std_error": 0.32677046668027093,
+          "pvalue": 0.026933961696034237
+        },
+        {
+          "event_time": 4,
+          "coefficient": 0.727406067700994,
+          "std_error": 0.27657742482651154,
+          "pvalue": 0.008537811172619255
+        },
+        {
+          "event_time": 5,
+          "coefficient": 0.405873507415398,
+          "std_error": 0.4001019459578428,
+          "pvalue": 0.3103798917926648
+        }
+      ],
+      "cohort_time_table": [
+        {
+          "treatment_time": 18.0,
+          "_event_time": -17.0,
+          "mean_outcome": 7.638311487978222
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -16.0,
+          "mean_outcome": 7.4801457790208365
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -15.0,
+          "mean_outcome": 7.793508288236026
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -14.0,
+          "mean_outcome": 7.986330754509307
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -13.0,
+          "mean_outcome": 6.7909689305451515
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -12.0,
+          "mean_outcome": 7.876489661183577
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -11.0,
+          "mean_outcome": 9.333582087099686
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -10.0,
+          "mean_outcome": 7.443825126303224
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -9.0,
+          "mean_outcome": 8.429828895346015
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -8.0,
+          "mean_outcome": 8.350758026119296
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -7.0,
+          "mean_outcome": 7.946365692840241
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -6.0,
+          "mean_outcome": 8.569597207606263
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -5.0,
+          "mean_outcome": 9.452504136577877
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -4.0,
+          "mean_outcome": 9.048003706932198
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -3.0,
+          "mean_outcome": 9.8925177764944
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -2.0,
+          "mean_outcome": 8.719240216801415
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": -1.0,
+          "mean_outcome": 9.186134277434897
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 0.0,
+          "mean_outcome": 8.668461256888017
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 1.0,
+          "mean_outcome": 11.643072738139082
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 2.0,
+          "mean_outcome": 10.200239921974708
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 3.0,
+          "mean_outcome": 11.330742863796592
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 4.0,
+          "mean_outcome": 11.198237025738488
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 5.0,
+          "mean_outcome": 11.38259571465836
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 6.0,
+          "mean_outcome": 11.23865758781569
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 7.0,
+          "mean_outcome": 11.828798007735342
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 8.0,
+          "mean_outcome": 11.09579536777472
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 9.0,
+          "mean_outcome": 10.733147954220206
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 10.0,
+          "mean_outcome": 11.934070510279362
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 11.0,
+          "mean_outcome": 11.235118868336533
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 12.0,
+          "mean_outcome": 11.727737163380567
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 13.0,
+          "mean_outcome": 12.213453884414504
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 14.0,
+          "mean_outcome": 11.957093100008862
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 15.0,
+          "mean_outcome": 12.814425299117476
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 16.0,
+          "mean_outcome": 11.561902095377766
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 17.0,
+          "mean_outcome": 12.644248328548287
+        },
+        {
+          "treatment_time": 18.0,
+          "_event_time": 18.0,
+          "mean_outcome": 11.832661625805036
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -18.0,
+          "mean_outcome": 6.06807879720867
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -17.0,
+          "mean_outcome": 6.488414666319924
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -16.0,
+          "mean_outcome": 7.211374287401114
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -15.0,
+          "mean_outcome": 7.569528055711226
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -14.0,
+          "mean_outcome": 7.2456017327768105
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -13.0,
+          "mean_outcome": 7.640384585304346
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -12.0,
+          "mean_outcome": 6.825849972951212
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -11.0,
+          "mean_outcome": 6.633457322785061
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -10.0,
+          "mean_outcome": 7.94364407134503
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -9.0,
+          "mean_outcome": 7.318000767536203
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -8.0,
+          "mean_outcome": 7.607073360545034
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -7.0,
+          "mean_outcome": 7.31902360120166
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -6.0,
+          "mean_outcome": 8.455843142860212
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -5.0,
+          "mean_outcome": 6.947632985426861
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -4.0,
+          "mean_outcome": 9.1200404620886
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -3.0,
+          "mean_outcome": 8.620094066658982
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -2.0,
+          "mean_outcome": 8.015561314403898
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": -1.0,
+          "mean_outcome": 8.864741039275696
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 0.0,
+          "mean_outcome": 10.431088276239343
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 1.0,
+          "mean_outcome": 11.158084198901973
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 2.0,
+          "mean_outcome": 10.862011283251523
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 3.0,
+          "mean_outcome": 9.535827616160237
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 4.0,
+          "mean_outcome": 10.002497969099121
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 5.0,
+          "mean_outcome": 9.18795706376956
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 6.0,
+          "mean_outcome": 11.077110120548898
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 7.0,
+          "mean_outcome": 10.348116393248809
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 8.0,
+          "mean_outcome": 11.669632727181968
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 9.0,
+          "mean_outcome": 11.269788537493628
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 10.0,
+          "mean_outcome": 11.882337102295175
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 11.0,
+          "mean_outcome": 11.03878499829069
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 12.0,
+          "mean_outcome": 11.443155278840543
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 13.0,
+          "mean_outcome": 11.231603700839244
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 14.0,
+          "mean_outcome": 10.88570448923784
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 15.0,
+          "mean_outcome": 11.205053883717836
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 16.0,
+          "mean_outcome": 10.603386783460017
+        },
+        {
+          "treatment_time": 19.0,
+          "_event_time": 17.0,
+          "mean_outcome": 12.553000480847555
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -19.0,
+          "mean_outcome": 7.39954514282368
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -18.0,
+          "mean_outcome": 7.195336953292955
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -17.0,
+          "mean_outcome": 7.027600704910036
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -16.0,
+          "mean_outcome": 6.448900597179806
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -15.0,
+          "mean_outcome": 7.192996481596966
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -14.0,
+          "mean_outcome": 8.100466173184948
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -13.0,
+          "mean_outcome": 8.818871948459464
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -12.0,
+          "mean_outcome": 8.138022546047877
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -11.0,
+          "mean_outcome": 8.85859583734411
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -10.0,
+          "mean_outcome": 9.714129285361675
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -9.0,
+          "mean_outcome": 8.70641959136633
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -8.0,
+          "mean_outcome": 7.117955143413974
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -7.0,
+          "mean_outcome": 8.164706133616583
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -6.0,
+          "mean_outcome": 7.621817898970379
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -5.0,
+          "mean_outcome": 8.274414462280495
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -4.0,
+          "mean_outcome": 8.825334738900775
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -3.0,
+          "mean_outcome": 9.554433841356053
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -2.0,
+          "mean_outcome": 8.694604459155672
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": -1.0,
+          "mean_outcome": 9.228712955147987
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 0.0,
+          "mean_outcome": 9.61891562217534
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 1.0,
+          "mean_outcome": 10.388862676720297
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 2.0,
+          "mean_outcome": 10.784419971917131
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 3.0,
+          "mean_outcome": 11.126031021562653
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 4.0,
+          "mean_outcome": 11.968939608276553
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 5.0,
+          "mean_outcome": 11.407519750697638
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 6.0,
+          "mean_outcome": 10.904048531845271
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 7.0,
+          "mean_outcome": 11.460914290137904
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 8.0,
+          "mean_outcome": 10.313103483600468
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 9.0,
+          "mean_outcome": 11.875084591865544
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 10.0,
+          "mean_outcome": 12.006804137296118
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 11.0,
+          "mean_outcome": 11.69019927188864
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 12.0,
+          "mean_outcome": 11.348285434588641
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 13.0,
+          "mean_outcome": 12.80656754815166
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 14.0,
+          "mean_outcome": 12.08702378208914
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 15.0,
+          "mean_outcome": 12.193158600660983
+        },
+        {
+          "treatment_time": 20.0,
+          "_event_time": 16.0,
+          "mean_outcome": 13.052211607743715
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -20.0,
+          "mean_outcome": 6.29196114192297
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -19.0,
+          "mean_outcome": 7.114054270770344
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -18.0,
+          "mean_outcome": 7.744114030221981
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -17.0,
+          "mean_outcome": 6.8057446177015635
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -16.0,
+          "mean_outcome": 7.524099059473356
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -15.0,
+          "mean_outcome": 8.27380490097727
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -14.0,
+          "mean_outcome": 7.736160317761848
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -13.0,
+          "mean_outcome": 6.750762034880761
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -12.0,
+          "mean_outcome": 8.082557832425444
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -11.0,
+          "mean_outcome": 7.473744166694866
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -10.0,
+          "mean_outcome": 7.592413925079389
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -9.0,
+          "mean_outcome": 9.539293029368633
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -8.0,
+          "mean_outcome": 9.347779316284129
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -7.0,
+          "mean_outcome": 9.668878527024837
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -6.0,
+          "mean_outcome": 9.74587064989697
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -5.0,
+          "mean_outcome": 8.77345465290816
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -4.0,
+          "mean_outcome": 8.809225871683548
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -3.0,
+          "mean_outcome": 8.797786430437792
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -2.0,
+          "mean_outcome": 10.446048725698034
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": -1.0,
+          "mean_outcome": 10.67721395388101
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 0.0,
+          "mean_outcome": 9.830765281336049
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 1.0,
+          "mean_outcome": 11.381125764570001
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 2.0,
+          "mean_outcome": 10.731809092444854
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 3.0,
+          "mean_outcome": 11.55254843470962
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 4.0,
+          "mean_outcome": 10.949517568277724
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 5.0,
+          "mean_outcome": 10.902123594348236
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 6.0,
+          "mean_outcome": 10.984002920209953
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 7.0,
+          "mean_outcome": 11.453909825006177
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 8.0,
+          "mean_outcome": 12.649500052163265
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 9.0,
+          "mean_outcome": 11.055207672742347
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 10.0,
+          "mean_outcome": 10.395791444154858
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 11.0,
+          "mean_outcome": 11.723641139741666
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 12.0,
+          "mean_outcome": 12.505743526936815
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 13.0,
+          "mean_outcome": 12.457589273436291
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 14.0,
+          "mean_outcome": 13.64172591388197
+        },
+        {
+          "treatment_time": 21.0,
+          "_event_time": 15.0,
+          "mean_outcome": 12.043305131844965
+        }
+      ],
+      "event_window_audit": [
+        {
+          "lead_window": 5,
+          "lag_window": 5
+        }
+      ]
+    },
+    "figures": [
+      {
+        "asset_id": "3853f29d-c300-4f16-ba4e-489c1079d937",
+        "title": "Staggered DID dynamic effects",
+        "summary": "Dynamic treatment effects by event time with 95% confidence bands.",
+        "download_url": "/api/assets/3853f29d-c300-4f16-ba4e-489c1079d937/download",
+        "asset": {
+          "id": "3853f29d-c300-4f16-ba4e-489c1079d937",
+          "kind": "chart_png",
+          "title": "upgrade_panel-staggered_did_dynamic.png",
+          "filename": "upgrade_panel-staggered_did_dynamic.png",
+          "description": "Dynamic treatment effects by event time with 95% confidence bands.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 75572,
+            "original_filename": "upgrade_panel-staggered_did_dynamic.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "Staggered DID dynamic effects",
+            "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+            "summary": "Dynamic treatment effects by event time with 95% confidence bands."
+          },
+          "created_at": "2026-04-02T02:57:57.323335+00:00",
+          "updated_at": "2026-04-02T02:57:57.331901+00:00"
+        }
+      }
+    ],
+    "metrics": {},
+    "paper_output_contract": {
+      "primary_tables": [
+        "dynamic_effect_table",
+        "cohort_time_table"
+      ],
+      "robustness_tables": [
+        "event_window_audit"
+      ],
+      "figure_count": 1
+    },
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "Staggered DID estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+            "Supporting tables included: dynamic_effect_table, cohort_time_table, event_window_audit.",
+            "Figures included: Staggered DID dynamic effects."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "dynamic_effect_table",
+        "cohort_time_table",
+        "event_window_audit",
+        "Staggered DID dynamic effects"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "staggered_wide",
+    "variant_spec": {},
+    "result_record_id": "f0dbc8ed-0a04-4a63-ade9-f402021c41bb",
+    "result_detail_path": "/data-lab/results/models/f0dbc8ed-0a04-4a63-ade9-f402021c41bb"
+  },
+  "workspace_id": "1127ef60-f949-49b8-b32e-bae8138f3568"
+}

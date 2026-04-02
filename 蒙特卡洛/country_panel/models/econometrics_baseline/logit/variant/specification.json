@@ -1,0 +1,33 @@
+{
+  "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "model_family": "econometrics_baseline",
+  "model_type": "logit",
+  "dependent": "binary_outcome",
+  "independents": [
+    "size",
+    "leverage"
+  ],
+  "controls": [
+    "treated"
+  ],
+  "model_label": "Logit",
+  "regressors": [
+    "size",
+    "leverage",
+    "treated"
+  ],
+  "covariance_type": "HC1",
+  "equation": "binary_outcome ~ size + leverage + treated",
+  "variant_label": "post_policy_binary",
+  "variant_spec": {
+    "controls": [
+      "treated",
+      "post"
+    ],
+    "independents": [
+      "size",
+      "leverage",
+      "endogenous_x"
+    ]
+  }
+}

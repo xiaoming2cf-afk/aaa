@@ -1,0 +1,252 @@
+{
+  "model_type": "absorbing_ls",
+  "model_label": "Absorbing Least Squares",
+  "asset": {
+    "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "kind": "dataset_csv",
+    "title": "upgrade_panel.csv",
+    "filename": "upgrade_panel.csv",
+    "description": "upgrade_panel.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 289095,
+      "original_filename": "upgrade_panel.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:26.995002",
+    "updated_at": "2026-04-02T02:57:27.013674"
+  },
+  "dependent": "outcome_y",
+  "regressors": [
+    "size",
+    "leverage",
+    "post",
+    "treated"
+  ],
+  "observations": 648,
+  "r_squared": 0.7134955411889723,
+  "adj_r_squared": 0.6874057591050001,
+  "pseudo_r_squared": null,
+  "aic": null,
+  "bic": null,
+  "log_likelihood": null,
+  "coefficients": [
+    {
+      "term": "size",
+      "coefficient": 0.5492020528994684,
+      "std_error": 0.16000254039957162,
+      "t_stat": 3.432458331773705,
+      "p_value": 0.000598135786005205
+    },
+    {
+      "term": "leverage",
+      "coefficient": -1.437613504551792,
+      "std_error": 1.330969666301936,
+      "t_stat": -1.0801249201615264,
+      "p_value": 0.28008655610793687
+    }
+  ],
+  "narrative": [
+    "Absorbing least squares estimated with linearmodels on upgrade_panel.csv.",
+    "Absorbed effects: firm_id, date."
+  ],
+  "sample_columns": [
+    "outcome_y",
+    "size",
+    "leverage",
+    "post",
+    "treated",
+    "firm_id",
+    "date"
+  ],
+  "sample_preview": [
+    {
+      "outcome_y": 8.281342947667275,
+      "size": 8.519775911467494,
+      "leverage": 0.3577590135791016,
+      "post": 0,
+      "treated": 1,
+      "firm_id": "firm_01",
+      "date": "2018-01-31"
+    },
+    {
+      "outcome_y": 7.161166663415577,
+      "size": 7.55721041465215,
+      "leverage": 0.3378183221465689,
+      "post": 0,
+      "treated": 1,
+      "firm_id": "firm_01",
+      "date": "2018-02-28"
+    },
+    {
+      "outcome_y": 7.582391886802917,
+      "size": 7.823590785770317,
+      "leverage": 0.3343232278441892,
+      "post": 0,
+      "treated": 1,
+      "firm_id": "firm_01",
+      "date": "2018-03-31"
+    },
+    {
+      "outcome_y": 8.19643779930995,
+      "size": 8.058331858128255,
+      "leverage": 0.3581110765958445,
+      "post": 0,
+      "treated": 1,
+      "firm_id": "firm_01",
+      "date": "2018-04-30"
+    },
+    {
+      "outcome_y": 6.775339604671813,
+      "size": 7.790582349444769,
+      "leverage": 0.3323010132904619,
+      "post": 0,
+      "treated": 1,
+      "firm_id": "firm_01",
+      "date": "2018-05-31"
+    }
+  ],
+  "specification": {
+    "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "model_family": "econometrics_baseline",
+    "model_type": "absorbing_ls",
+    "dependent": "outcome_y",
+    "independents": [
+      "size",
+      "leverage"
+    ],
+    "controls": [
+      "post",
+      "treated"
+    ],
+    "entity_column": "firm_id",
+    "time_column": "date",
+    "engine": "linearmodels",
+    "absorb_columns": [
+      "firm_id",
+      "date"
+    ],
+    "variant_label": "absorbing_treated"
+  },
+  "audit_trail": {
+    "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "sample_title": "upgrade_panel.csv",
+    "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+    "rows_used": 648,
+    "sample_columns": [
+      "outcome_y",
+      "size",
+      "leverage",
+      "post",
+      "treated",
+      "firm_id",
+      "date"
+    ],
+    "covariance_type": "robust",
+    "manual_checklist": [
+      "Download the prepared sample asset referenced in sample_asset_id.",
+      "Rebuild any derived regressors listed in derived_columns before estimation.",
+      "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+      "Compare the reproduced coefficient table with the coefficients array term by term."
+    ],
+    "engine": "linearmodels",
+    "derived_columns": [],
+    "filters": [
+      "Rows with missing dependent, regressors, or absorbed effects are dropped."
+    ]
+  },
+  "engine": "linearmodels",
+  "primary_tables": [
+    "absorbed_effects_audit"
+  ],
+  "robustness_tables": [],
+  "tables": {
+    "absorbed_effects_audit": [
+      {
+        "absorbed_dimension": "firm_id",
+        "levels": 18
+      },
+      {
+        "absorbed_dimension": "date",
+        "levels": 36
+      }
+    ]
+  },
+  "figures": [
+    {
+      "asset_id": "541d24da-3e84-4d75-a14c-0be9186e88cc",
+      "title": "Absorbing LS Residual by Group",
+      "summary": "Observed dependent variable against absorbed-model fitted values.",
+      "download_url": "/api/assets/541d24da-3e84-4d75-a14c-0be9186e88cc/download",
+      "asset": {
+        "id": "541d24da-3e84-4d75-a14c-0be9186e88cc",
+        "kind": "chart_png",
+        "title": "upgrade_panel-absorbing_ls_residual_by_group.png",
+        "filename": "upgrade_panel-absorbing_ls_residual_by_group.png",
+        "description": "Observed dependent variable against absorbed-model fitted values.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 136376,
+          "original_filename": "upgrade_panel-absorbing_ls_residual_by_group.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Absorbing LS Residual by Group",
+          "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+          "summary": "Observed dependent variable against absorbed-model fitted values."
+        },
+        "created_at": "2026-04-02T02:57:39.698821+00:00",
+        "updated_at": "2026-04-02T02:57:39.712841+00:00"
+      }
+    }
+  ],
+  "metrics": {},
+  "paper_output_contract": {
+    "primary_tables": [
+      "absorbed_effects_audit"
+    ],
+    "robustness_tables": [],
+    "figure_count": 1
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "Absorbing Least Squares estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+          "Supporting tables included: absorbed_effects_audit.",
+          "Figures included: Absorbing LS Residual by Group."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "absorbed_effects_audit",
+      "Absorbing LS Residual by Group"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "absorbing_treated",
+  "variant_spec": {},
+  "result_record_id": "5bf1e2a7-473f-4cbf-8905-8424c7a3fe6b",
+  "result_detail_path": "/data-lab/results/models/5bf1e2a7-473f-4cbf-8905-8424c7a3fe6b"
+}

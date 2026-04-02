@@ -1,0 +1,756 @@
+{
+  "record": {
+    "id": "b53e28f1-6ae9-4850-9309-8fad777d9c92",
+    "title": "BK Connectedness summary for timeseries_dataset.csv",
+    "content": "BK connectedness run on timeseries_dataset.csv.\nSeries: return_a, return_b, return_c.\nFrequency bands use short horizon 5 and medium horizon 20.\nEach heatmap is normalized within its band so spillover structure can be compared directly.",
+    "content_excerpt": "BK connectedness run on timeseries_dataset.csv. Series: return_a, return_b, return_c. Frequency bands use short horizon 5 and medium horizon 20. Each heatmap is normalized within its band so spillover structure can be...",
+    "content_length": 236,
+    "tags": [
+      "bk_connectedness",
+      "time_series_finance",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "bk_connectedness",
+      "model_label": "BK Connectedness",
+      "asset": {
+        "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "kind": "dataset_csv",
+        "title": "timeseries_dataset.csv",
+        "filename": "timeseries_dataset.csv",
+        "description": "timeseries_dataset.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 93948,
+          "original_filename": "timeseries_dataset.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T03:16:14.454310",
+        "updated_at": "2026-04-02T03:16:14.458473"
+      },
+      "observations": 240,
+      "narrative": [
+        "BK connectedness run on timeseries_dataset.csv.",
+        "Series: return_a, return_b, return_c.",
+        "Frequency bands use short horizon 5 and medium horizon 20.",
+        "Each heatmap is normalized within its band so spillover structure can be compared directly."
+      ],
+      "specification": {
+        "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "model_family": "time_series_finance",
+        "model_type": "bk_connectedness",
+        "series_columns": [
+          "return_a",
+          "return_b",
+          "return_c"
+        ],
+        "time_column": "date",
+        "var_lags": 2,
+        "bk_short_horizon": 5,
+        "bk_medium_horizon": 20,
+        "lags": 2,
+        "short_horizon": 5,
+        "medium_horizon": 20,
+        "truncation_horizon": 80,
+        "identification": "Barunik-Krehlik style frequency connectedness decomposition"
+      },
+      "audit_trail": {
+        "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "sample_title": "timeseries_dataset.csv",
+        "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+        "rows_used": 240,
+        "sample_columns": [
+          "date",
+          "return_a",
+          "return_b",
+          "return_c"
+        ],
+        "manual_checklist": [
+          "Re-estimate the VAR with the same lag order and coefficient matrices.",
+          "Rebuild the frequency-band connectedness decomposition using the documented short and medium horizons.",
+          "Compare the band matrices, total connectedness values, and heatmap labels band by band."
+        ],
+        "derived_columns": [],
+        "filters": [
+          "Rows with missing selected series values are dropped."
+        ]
+      },
+      "metrics": {
+        "lag_order": 2,
+        "short_horizon": 5,
+        "medium_horizon": 20,
+        "truncation_horizon": 80
+      },
+      "tables": {
+        "band_total_connectedness": [
+          {
+            "band": "Short (<= 5)",
+            "total_connectedness_index": 2.7094768327026992,
+            "band_variance_share": 0.3073169246889984
+          },
+          {
+            "band": "Medium (6-20)",
+            "total_connectedness_index": 9.898532436871148,
+            "band_variance_share": 0.4060932949107892
+          },
+          {
+            "band": "Long (> 20)",
+            "total_connectedness_index": 15.28663064557166,
+            "band_variance_share": 0.3063137302242194
+          }
+        ],
+        "short_connectedness_matrix": [
+          {
+            "variable": "return_a",
+            "return_a": 98.0605965193589,
+            "return_b": 1.3866369926828395,
+            "return_c": 0.5527664879582472
+          },
+          {
+            "variable": "return_b",
+            "return_a": 2.8789508576973257,
+            "return_b": 96.56162013757557,
+            "return_c": 0.559429004727097
+          },
+          {
+            "variable": "return_c",
+            "return_a": 0.13481786677258556,
+            "return_b": 2.615829288269996,
+            "return_c": 97.24935284495743
+          }
+        ],
+        "short_directional_spillovers": [
+          {
+            "variable": "return_a",
+            "from_others": 1.9394034806410887,
+            "to_others": 3.0137687244699007,
+            "net": 1.074365243828812,
+            "own_share": 98.0605965193589
+          },
+          {
+            "variable": "return_b",
+            "from_others": 3.4383798624244233,
+            "to_others": 4.002466280952833,
+            "net": 0.5640864185284094,
+            "own_share": 96.56162013757557
+          },
+          {
+            "variable": "return_c",
+            "from_others": 2.7506471550425737,
+            "to_others": 1.1121954926853417,
+            "net": -1.638451662357232,
+            "own_share": 97.24935284495743
+          }
+        ],
+        "medium_connectedness_matrix": [
+          {
+            "variable": "return_a",
+            "return_a": 93.86894796232575,
+            "return_b": 3.7253439369608947,
+            "return_c": 2.405708100713364
+          },
+          {
+            "variable": "return_b",
+            "return_a": 6.391735944143032,
+            "return_b": 85.8814765528553,
+            "return_c": 7.726787503001666
+          },
+          {
+            "variable": "return_c",
+            "return_a": 0.350391269206256,
+            "return_b": 9.095630556588228,
+            "return_c": 90.55397817420553
+          }
+        ],
+        "medium_directional_spillovers": [
+          {
+            "variable": "return_a",
+            "from_others": 6.131052037674256,
+            "to_others": 6.742127213349303,
+            "net": 0.6110751756750465,
+            "own_share": 93.86894796232575
+          },
+          {
+            "variable": "return_b",
+            "from_others": 14.118523447144693,
+            "to_others": 12.82097449354912,
+            "net": -1.297548953595573,
+            "own_share": 85.8814765528553
+          },
+          {
+            "variable": "return_c",
+            "from_others": 9.446021825794482,
+            "to_others": 10.13249560371503,
+            "net": 0.6864737779205488,
+            "own_share": 90.55397817420553
+          }
+        ],
+        "long_connectedness_matrix": [
+          {
+            "variable": "return_a",
+            "return_a": 86.88640918093067,
+            "return_b": 6.282162022865911,
+            "return_c": 6.8314287962034355
+          },
+          {
+            "variable": "return_b",
+            "return_a": 5.2004884059695025,
+            "return_b": 78.08861943527793,
+            "return_c": 16.710892158752554
+          },
+          {
+            "variable": "return_c",
+            "return_a": 0.35023823625222766,
+            "return_b": 10.484682316671352,
+            "return_c": 89.16507944707642
+          }
+        ],
+        "long_directional_spillovers": [
+          {
+            "variable": "return_a",
+            "from_others": 13.113590819069355,
+            "to_others": 5.550726642221737,
+            "net": -7.562864176847618,
+            "own_share": 86.88640918093067
+          },
+          {
+            "variable": "return_b",
+            "from_others": 21.91138056472206,
+            "to_others": 16.76684433953727,
+            "net": -5.14453622518479,
+            "own_share": 78.08861943527793
+          },
+          {
+            "variable": "return_c",
+            "from_others": 10.834920552923577,
+            "to_others": 23.542320954955997,
+            "net": 12.70740040203242,
+            "own_share": 89.16507944707642
+          }
+        ]
+      },
+      "sample_columns": [
+        "date",
+        "return_a",
+        "return_b",
+        "return_c"
+      ],
+      "sample_preview": [
+        {
+          "date": "2005-01-31",
+          "return_a": 1.1688157461773752,
+          "return_b": 0.3374757548649373,
+          "return_c": 0.8996990649038376
+        },
+        {
+          "date": "2005-02-28",
+          "return_a": 0.5343520409140631,
+          "return_b": 0.562932504678913,
+          "return_c": 0.3807846207439792
+        },
+        {
+          "date": "2005-03-31",
+          "return_a": 0.3152683060245842,
+          "return_b": 0.4289423809695991,
+          "return_c": 0.2694936932673371
+        },
+        {
+          "date": "2005-04-30",
+          "return_a": 0.2563147569235233,
+          "return_b": 0.2318914039278177,
+          "return_c": 0.1440411095196035
+        },
+        {
+          "date": "2005-05-31",
+          "return_a": 0.1639044786851478,
+          "return_b": 0.1299938142922835,
+          "return_c": 0.0690812146746108
+        }
+      ],
+      "figures": [
+        {
+          "asset_id": "056710a0-32fe-42e2-9f10-f5dbdfa2c92b",
+          "title": "BK frequency connectedness",
+          "summary": "Frequency-domain connectedness heatmaps across short, medium, and long horizons.",
+          "download_url": "/api/assets/056710a0-32fe-42e2-9f10-f5dbdfa2c92b/download",
+          "asset": {
+            "id": "056710a0-32fe-42e2-9f10-f5dbdfa2c92b",
+            "kind": "chart_png",
+            "title": "timeseries_dataset-bk-connectedness.png",
+            "filename": "timeseries_dataset-bk-connectedness.png",
+            "description": "Frequency-domain connectedness heatmaps across short, medium, and long horizons.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 66042,
+              "original_filename": "timeseries_dataset-bk-connectedness.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "BK frequency connectedness",
+              "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+              "summary": "Frequency-domain connectedness heatmaps across short, medium, and long horizons."
+            },
+            "created_at": "2026-04-02T03:16:36.101919+00:00",
+            "updated_at": "2026-04-02T03:16:36.107308+00:00"
+          }
+        },
+        {
+          "asset_id": "e9e6e2b1-22ce-434c-9c69-d47ea585603f",
+          "title": "BK band connectedness summary",
+          "summary": "Band-level total connectedness index across short, medium, and long frequencies.",
+          "download_url": "/api/assets/e9e6e2b1-22ce-434c-9c69-d47ea585603f/download",
+          "asset": {
+            "id": "e9e6e2b1-22ce-434c-9c69-d47ea585603f",
+            "kind": "chart_png",
+            "title": "timeseries_dataset-bk-band-summary.png",
+            "filename": "timeseries_dataset-bk-band-summary.png",
+            "description": "Band-level total connectedness index across short, medium, and long frequencies.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 38655,
+              "original_filename": "timeseries_dataset-bk-band-summary.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "BK band connectedness summary",
+              "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+              "summary": "Band-level total connectedness index across short, medium, and long frequencies."
+            },
+            "created_at": "2026-04-02T03:16:36.272774+00:00",
+            "updated_at": "2026-04-02T03:16:36.275074+00:00"
+          }
+        }
+      ],
+      "workflow_type": "model",
+      "model_family": "time_series_finance",
+      "interpretation": {
+        "headline": "BK Connectedness estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Supporting tables included: band_total_connectedness, short_connectedness_matrix, short_directional_spillovers, medium_connectedness_matrix, medium_directional_spillovers, long_connectedness_matrix, long_directional_spillovers.",
+              "Figures included: BK frequency connectedness, BK band connectedness summary."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Each band isolates spillovers at a different horizon segment; compare short-, medium-, and long-run connectedness rather than collapsing everything into one number.",
+              "The band-total connectedness chart summarizes how much spillover intensity sits in each frequency range.",
+              "Band-specific matrices remain normalized within band, so they are for structural comparison rather than direct level comparison across bands."
+            ]
+          },
+          {
+            "title": "What a normal paper should report",
+            "items": [
+              "Band-specific connectedness matrices.",
+              "A summary table of total connectedness by frequency band.",
+              "A figure showing how connectedness is distributed across short, medium, and long horizons."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Rebuild the VAR with the same lag order before moving to the frequency decomposition.",
+              "Use the documented short and medium horizon cutoffs exactly when reconstructing the bands.",
+              "Check each band's total connectedness against the band summary chart and table."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "band_total_connectedness",
+          "short_connectedness_matrix",
+          "short_directional_spillovers",
+          "medium_connectedness_matrix",
+          "medium_directional_spillovers",
+          "long_connectedness_matrix",
+          "long_directional_spillovers",
+          "BK frequency connectedness",
+          "BK band connectedness summary"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "",
+      "variant_spec": {},
+      "result_record_id": "b53e28f1-6ae9-4850-9309-8fad777d9c92",
+      "result_detail_path": "/data-lab/results/models/b53e28f1-6ae9-4850-9309-8fad777d9c92"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:16:36.279105",
+    "updated_at": "2026-04-02T03:16:36.280574"
+  },
+  "result": {
+    "model_type": "bk_connectedness",
+    "model_label": "BK Connectedness",
+    "asset": {
+      "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "kind": "dataset_csv",
+      "title": "timeseries_dataset.csv",
+      "filename": "timeseries_dataset.csv",
+      "description": "timeseries_dataset.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 93948,
+        "original_filename": "timeseries_dataset.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T03:16:14.454310",
+      "updated_at": "2026-04-02T03:16:14.458473"
+    },
+    "observations": 240,
+    "narrative": [
+      "BK connectedness run on timeseries_dataset.csv.",
+      "Series: return_a, return_b, return_c.",
+      "Frequency bands use short horizon 5 and medium horizon 20.",
+      "Each heatmap is normalized within its band so spillover structure can be compared directly."
+    ],
+    "specification": {
+      "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "model_family": "time_series_finance",
+      "model_type": "bk_connectedness",
+      "series_columns": [
+        "return_a",
+        "return_b",
+        "return_c"
+      ],
+      "time_column": "date",
+      "var_lags": 2,
+      "bk_short_horizon": 5,
+      "bk_medium_horizon": 20,
+      "lags": 2,
+      "short_horizon": 5,
+      "medium_horizon": 20,
+      "truncation_horizon": 80,
+      "identification": "Barunik-Krehlik style frequency connectedness decomposition"
+    },
+    "audit_trail": {
+      "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "sample_title": "timeseries_dataset.csv",
+      "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+      "rows_used": 240,
+      "sample_columns": [
+        "date",
+        "return_a",
+        "return_b",
+        "return_c"
+      ],
+      "manual_checklist": [
+        "Re-estimate the VAR with the same lag order and coefficient matrices.",
+        "Rebuild the frequency-band connectedness decomposition using the documented short and medium horizons.",
+        "Compare the band matrices, total connectedness values, and heatmap labels band by band."
+      ],
+      "derived_columns": [],
+      "filters": [
+        "Rows with missing selected series values are dropped."
+      ]
+    },
+    "metrics": {
+      "lag_order": 2,
+      "short_horizon": 5,
+      "medium_horizon": 20,
+      "truncation_horizon": 80
+    },
+    "tables": {
+      "band_total_connectedness": [
+        {
+          "band": "Short (<= 5)",
+          "total_connectedness_index": 2.7094768327026992,
+          "band_variance_share": 0.3073169246889984
+        },
+        {
+          "band": "Medium (6-20)",
+          "total_connectedness_index": 9.898532436871148,
+          "band_variance_share": 0.4060932949107892
+        },
+        {
+          "band": "Long (> 20)",
+          "total_connectedness_index": 15.28663064557166,
+          "band_variance_share": 0.3063137302242194
+        }
+      ],
+      "short_connectedness_matrix": [
+        {
+          "variable": "return_a",
+          "return_a": 98.0605965193589,
+          "return_b": 1.3866369926828395,
+          "return_c": 0.5527664879582472
+        },
+        {
+          "variable": "return_b",
+          "return_a": 2.8789508576973257,
+          "return_b": 96.56162013757557,
+          "return_c": 0.559429004727097
+        },
+        {
+          "variable": "return_c",
+          "return_a": 0.13481786677258556,
+          "return_b": 2.615829288269996,
+          "return_c": 97.24935284495743
+        }
+      ],
+      "short_directional_spillovers": [
+        {
+          "variable": "return_a",
+          "from_others": 1.9394034806410887,
+          "to_others": 3.0137687244699007,
+          "net": 1.074365243828812,
+          "own_share": 98.0605965193589
+        },
+        {
+          "variable": "return_b",
+          "from_others": 3.4383798624244233,
+          "to_others": 4.002466280952833,
+          "net": 0.5640864185284094,
+          "own_share": 96.56162013757557
+        },
+        {
+          "variable": "return_c",
+          "from_others": 2.7506471550425737,
+          "to_others": 1.1121954926853417,
+          "net": -1.638451662357232,
+          "own_share": 97.24935284495743
+        }
+      ],
+      "medium_connectedness_matrix": [
+        {
+          "variable": "return_a",
+          "return_a": 93.86894796232575,
+          "return_b": 3.7253439369608947,
+          "return_c": 2.405708100713364
+        },
+        {
+          "variable": "return_b",
+          "return_a": 6.391735944143032,
+          "return_b": 85.8814765528553,
+          "return_c": 7.726787503001666
+        },
+        {
+          "variable": "return_c",
+          "return_a": 0.350391269206256,
+          "return_b": 9.095630556588228,
+          "return_c": 90.55397817420553
+        }
+      ],
+      "medium_directional_spillovers": [
+        {
+          "variable": "return_a",
+          "from_others": 6.131052037674256,
+          "to_others": 6.742127213349303,
+          "net": 0.6110751756750465,
+          "own_share": 93.86894796232575
+        },
+        {
+          "variable": "return_b",
+          "from_others": 14.118523447144693,
+          "to_others": 12.82097449354912,
+          "net": -1.297548953595573,
+          "own_share": 85.8814765528553
+        },
+        {
+          "variable": "return_c",
+          "from_others": 9.446021825794482,
+          "to_others": 10.13249560371503,
+          "net": 0.6864737779205488,
+          "own_share": 90.55397817420553
+        }
+      ],
+      "long_connectedness_matrix": [
+        {
+          "variable": "return_a",
+          "return_a": 86.88640918093067,
+          "return_b": 6.282162022865911,
+          "return_c": 6.8314287962034355
+        },
+        {
+          "variable": "return_b",
+          "return_a": 5.2004884059695025,
+          "return_b": 78.08861943527793,
+          "return_c": 16.710892158752554
+        },
+        {
+          "variable": "return_c",
+          "return_a": 0.35023823625222766,
+          "return_b": 10.484682316671352,
+          "return_c": 89.16507944707642
+        }
+      ],
+      "long_directional_spillovers": [
+        {
+          "variable": "return_a",
+          "from_others": 13.113590819069355,
+          "to_others": 5.550726642221737,
+          "net": -7.562864176847618,
+          "own_share": 86.88640918093067
+        },
+        {
+          "variable": "return_b",
+          "from_others": 21.91138056472206,
+          "to_others": 16.76684433953727,
+          "net": -5.14453622518479,
+          "own_share": 78.08861943527793
+        },
+        {
+          "variable": "return_c",
+          "from_others": 10.834920552923577,
+          "to_others": 23.542320954955997,
+          "net": 12.70740040203242,
+          "own_share": 89.16507944707642
+        }
+      ]
+    },
+    "sample_columns": [
+      "date",
+      "return_a",
+      "return_b",
+      "return_c"
+    ],
+    "sample_preview": [
+      {
+        "date": "2005-01-31",
+        "return_a": 1.1688157461773752,
+        "return_b": 0.3374757548649373,
+        "return_c": 0.8996990649038376
+      },
+      {
+        "date": "2005-02-28",
+        "return_a": 0.5343520409140631,
+        "return_b": 0.562932504678913,
+        "return_c": 0.3807846207439792
+      },
+      {
+        "date": "2005-03-31",
+        "return_a": 0.3152683060245842,
+        "return_b": 0.4289423809695991,
+        "return_c": 0.2694936932673371
+      },
+      {
+        "date": "2005-04-30",
+        "return_a": 0.2563147569235233,
+        "return_b": 0.2318914039278177,
+        "return_c": 0.1440411095196035
+      },
+      {
+        "date": "2005-05-31",
+        "return_a": 0.1639044786851478,
+        "return_b": 0.1299938142922835,
+        "return_c": 0.0690812146746108
+      }
+    ],
+    "figures": [
+      {
+        "asset_id": "056710a0-32fe-42e2-9f10-f5dbdfa2c92b",
+        "title": "BK frequency connectedness",
+        "summary": "Frequency-domain connectedness heatmaps across short, medium, and long horizons.",
+        "download_url": "/api/assets/056710a0-32fe-42e2-9f10-f5dbdfa2c92b/download",
+        "asset": {
+          "id": "056710a0-32fe-42e2-9f10-f5dbdfa2c92b",
+          "kind": "chart_png",
+          "title": "timeseries_dataset-bk-connectedness.png",
+          "filename": "timeseries_dataset-bk-connectedness.png",
+          "description": "Frequency-domain connectedness heatmaps across short, medium, and long horizons.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 66042,
+            "original_filename": "timeseries_dataset-bk-connectedness.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "BK frequency connectedness",
+            "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+            "summary": "Frequency-domain connectedness heatmaps across short, medium, and long horizons."
+          },
+          "created_at": "2026-04-02T03:16:36.101919+00:00",
+          "updated_at": "2026-04-02T03:16:36.107308+00:00"
+        }
+      },
+      {
+        "asset_id": "e9e6e2b1-22ce-434c-9c69-d47ea585603f",
+        "title": "BK band connectedness summary",
+        "summary": "Band-level total connectedness index across short, medium, and long frequencies.",
+        "download_url": "/api/assets/e9e6e2b1-22ce-434c-9c69-d47ea585603f/download",
+        "asset": {
+          "id": "e9e6e2b1-22ce-434c-9c69-d47ea585603f",
+          "kind": "chart_png",
+          "title": "timeseries_dataset-bk-band-summary.png",
+          "filename": "timeseries_dataset-bk-band-summary.png",
+          "description": "Band-level total connectedness index across short, medium, and long frequencies.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 38655,
+            "original_filename": "timeseries_dataset-bk-band-summary.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "BK band connectedness summary",
+            "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+            "summary": "Band-level total connectedness index across short, medium, and long frequencies."
+          },
+          "created_at": "2026-04-02T03:16:36.272774+00:00",
+          "updated_at": "2026-04-02T03:16:36.275074+00:00"
+        }
+      }
+    ],
+    "workflow_type": "model",
+    "model_family": "time_series_finance",
+    "interpretation": {
+      "headline": "BK Connectedness estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Supporting tables included: band_total_connectedness, short_connectedness_matrix, short_directional_spillovers, medium_connectedness_matrix, medium_directional_spillovers, long_connectedness_matrix, long_directional_spillovers.",
+            "Figures included: BK frequency connectedness, BK band connectedness summary."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Each band isolates spillovers at a different horizon segment; compare short-, medium-, and long-run connectedness rather than collapsing everything into one number.",
+            "The band-total connectedness chart summarizes how much spillover intensity sits in each frequency range.",
+            "Band-specific matrices remain normalized within band, so they are for structural comparison rather than direct level comparison across bands."
+          ]
+        },
+        {
+          "title": "What a normal paper should report",
+          "items": [
+            "Band-specific connectedness matrices.",
+            "A summary table of total connectedness by frequency band.",
+            "A figure showing how connectedness is distributed across short, medium, and long horizons."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Rebuild the VAR with the same lag order before moving to the frequency decomposition.",
+            "Use the documented short and medium horizon cutoffs exactly when reconstructing the bands.",
+            "Check each band's total connectedness against the band summary chart and table."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "band_total_connectedness",
+        "short_connectedness_matrix",
+        "short_directional_spillovers",
+        "medium_connectedness_matrix",
+        "medium_directional_spillovers",
+        "long_connectedness_matrix",
+        "long_directional_spillovers",
+        "BK frequency connectedness",
+        "BK band connectedness summary"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "",
+    "variant_spec": {},
+    "result_record_id": "b53e28f1-6ae9-4850-9309-8fad777d9c92",
+    "result_detail_path": "/data-lab/results/models/b53e28f1-6ae9-4850-9309-8fad777d9c92"
+  },
+  "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4"
+}

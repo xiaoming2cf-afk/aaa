@@ -1,0 +1,16 @@
+{
+  "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+  "model_family": "quant_research",
+  "model_type": "quant_linear_model",
+  "dependent": "asset_return",
+  "time_column": "date",
+  "feature_columns": [
+    "market_return",
+    "smb",
+    "hml",
+    "output_gap"
+  ],
+  "split_ratio": 0.75,
+  "engine": "qlib",
+  "variant_label": "quant_linear_alt"
+}

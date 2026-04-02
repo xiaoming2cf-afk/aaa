@@ -1,0 +1,9 @@
+term,coefficient_baseline,std_error_baseline,t_stat_baseline,p_value_baseline,coefficient_variant,std_error_variant,t_stat_variant,p_value_variant
+alpha,,,,,0.031477306988952396,,,
+const,2.53624083008781,,,,2.512871457576916,,,
+inflate_const,0.038273954717125684,,,,-0.09794349736198008,,,
+inflate_post,-0.11067435816212057,,,,-0.16892391543592733,,,
+inflate_size,-0.6586337087458061,,,,-0.9160531079379091,,,
+leverage,-1.3224514833431589,,,,-1.3184120911787567,,,
+post,0.548135290079344,,,,0.5480041754921243,,,
+size,-0.09317144042849877,,,,-0.09107869975897934,,,

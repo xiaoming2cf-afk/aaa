@@ -1,0 +1,209 @@
+{
+  "model_type": "ppml",
+  "model_label": "PPML",
+  "asset": {
+    "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+    "kind": "dataset_csv",
+    "title": "panel_dataset.csv",
+    "filename": "panel_dataset.csv",
+    "description": "panel_dataset.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 289095,
+      "original_filename": "panel_dataset.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T03:16:14.412741",
+    "updated_at": "2026-04-02T03:16:14.426020"
+  },
+  "dependent": "export_flow",
+  "regressors": [
+    "size",
+    "leverage",
+    "post"
+  ],
+  "observations": 648,
+  "r_squared": null,
+  "adj_r_squared": null,
+  "pseudo_r_squared": null,
+  "aic": 6454.5793504131725,
+  "bic": -1798.030472757533,
+  "log_likelihood": -3223.2896752065863,
+  "coefficients": [
+    {
+      "term": "const",
+      "coefficient": 3.6387272013455467,
+      "std_error": 0.13435021470523542,
+      "t_stat": 27.083895692529556,
+      "p_value": 1.524105589571816e-161
+    },
+    {
+      "term": "size",
+      "coefficient": 0.07427421450280758,
+      "std_error": 0.011168925597327576,
+      "t_stat": 6.650076934936284,
+      "p_value": 2.9293985483887375e-11
+    },
+    {
+      "term": "leverage",
+      "coefficient": -0.004607464082997642,
+      "std_error": 0.23699729448666637,
+      "t_stat": -0.019440998653496702,
+      "p_value": 0.984489304384786
+    },
+    {
+      "term": "post",
+      "coefficient": 0.24944271901114734,
+      "std_error": 0.017170605800526786,
+      "t_stat": 14.527310329580484,
+      "p_value": 8.13525056182968e-48
+    }
+  ],
+  "narrative": [
+    "PPML run on panel_dataset.csv.",
+    "Outcome variable: export_flow.",
+    "Regressors: size, leverage, post.",
+    "Observations used: 648."
+  ],
+  "sample_columns": [
+    "export_flow",
+    "size",
+    "leverage",
+    "post"
+  ],
+  "sample_preview": [
+    {
+      "export_flow": 49.40883917797032,
+      "size": 8.519775911467494,
+      "leverage": 0.3577590135791016,
+      "post": 0
+    },
+    {
+      "export_flow": 91.97699374857942,
+      "size": 7.55721041465215,
+      "leverage": 0.3378183221465689,
+      "post": 0
+    },
+    {
+      "export_flow": 57.07600314125128,
+      "size": 7.823590785770317,
+      "leverage": 0.3343232278441892,
+      "post": 0
+    },
+    {
+      "export_flow": 62.46581320633146,
+      "size": 8.058331858128255,
+      "leverage": 0.3581110765958445,
+      "post": 0
+    },
+    {
+      "export_flow": 66.27852765987814,
+      "size": 7.790582349444769,
+      "leverage": 0.3323010132904619,
+      "post": 0
+    }
+  ],
+  "specification": {
+    "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+    "model_family": "econometrics_baseline",
+    "model_type": "ppml",
+    "dependent": "export_flow",
+    "independents": [
+      "size",
+      "leverage"
+    ],
+    "controls": [
+      "post"
+    ],
+    "model_label": "PPML",
+    "regressors": [
+      "size",
+      "leverage",
+      "post"
+    ],
+    "covariance_type": "HC1",
+    "equation": "export_flow ~ size + leverage + post",
+    "variant_label": "trade_controls",
+    "variant_spec": {
+      "controls": [
+        "post",
+        "treated"
+      ],
+      "independents": [
+        "size",
+        "leverage",
+        "distance_km"
+      ]
+    }
+  },
+  "audit_trail": {
+    "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+    "sample_title": "panel_dataset.csv",
+    "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+    "rows_used": 648,
+    "sample_columns": [
+      "export_flow",
+      "size",
+      "leverage",
+      "post"
+    ],
+    "covariance_type": "HC1",
+    "manual_checklist": [
+      "Download the prepared sample asset referenced in sample_asset_id.",
+      "Rebuild any derived regressors listed in derived_columns before estimation.",
+      "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+      "Compare the reproduced coefficient table with the coefficients array term by term."
+    ],
+    "derived_columns": [],
+    "filters": [
+      "Rows with missing dependent or regressor values are dropped."
+    ]
+  },
+  "mean_prediction": 88.42262962142593,
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "PPML estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": []
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "trade_controls",
+  "variant_spec": {
+    "controls": [
+      "post",
+      "treated"
+    ],
+    "independents": [
+      "size",
+      "leverage",
+      "distance_km"
+    ]
+  },
+  "result_record_id": "2025091c-ff84-4e63-839f-1aba10e5dbf5",
+  "result_detail_path": "/data-lab/results/models/2025091c-ff84-4e63-839f-1aba10e5dbf5"
+}

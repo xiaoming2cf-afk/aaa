@@ -1,0 +1,282 @@
+{
+  "model_type": "dupont",
+  "model_label": "DuPont Analysis",
+  "asset": {
+    "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+    "kind": "dataset_csv",
+    "title": "panel_dataset.csv",
+    "filename": "panel_dataset.csv",
+    "description": "panel_dataset.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 289095,
+      "original_filename": "panel_dataset.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T03:16:14.412741",
+    "updated_at": "2026-04-02T03:16:14.426020"
+  },
+  "observations": 648,
+  "narrative": [
+    "DuPont analysis computed on panel_dataset.csv.",
+    "Latest ROE decomposition: 0.1053."
+  ],
+  "specification": {
+    "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+    "model_family": "corporate_finance",
+    "model_type": "dupont",
+    "total_assets_column": "total_assets",
+    "net_income_column": "net_income",
+    "revenue_column": "revenue",
+    "equity_column": "equity",
+    "report_variant": "margin_focus",
+    "equation": "ROE = (NetIncome/Revenue) * (Revenue/Assets) * (Assets/Equity)",
+    "input_columns": {
+      "net_income": "net_income",
+      "revenue": "revenue",
+      "total_assets": "total_assets",
+      "equity": "equity"
+    },
+    "variant_label": "dupont_margin_focus",
+    "variant_spec": {
+      "report_variant": "margin_focus"
+    }
+  },
+  "audit_trail": {
+    "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+    "sample_title": "panel_dataset.csv",
+    "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+    "rows_used": 648,
+    "sample_columns": [
+      "net_income",
+      "revenue",
+      "total_assets",
+      "equity"
+    ],
+    "manual_checklist": [
+      "Compute profit margin, asset turnover, and equity multiplier from the listed accounting columns.",
+      "Multiply the three terms to reproduce roe_dupont.",
+      "Compare the latest-row decomposition with the preview table."
+    ],
+    "derived_columns": [
+      "profit_margin",
+      "asset_turnover",
+      "equity_multiplier",
+      "roe_dupont"
+    ],
+    "filters": [
+      "Rows with missing inputs are dropped.",
+      "Rows with zero revenue, assets, or equity are removed."
+    ]
+  },
+  "metrics": {
+    "latest_roe": 0.10533090278274418,
+    "mean_roe": 0.10722221405559307
+  },
+  "tables": {
+    "dupont_preview": [
+      {
+        "net_income": 26375.54605689663,
+        "revenue": 383648.0257341592,
+        "total_assets": 501293.02907292894,
+        "equity": 287920.9566687462,
+        "profit_margin": 0.0687493334715425,
+        "asset_turnover": 0.7653168974714497,
+        "equity_multiplier": 1.7410786448923476,
+        "roe_dupont": 0.09160689920616569
+      },
+      {
+        "net_income": 15525.445856681252,
+        "revenue": 143429.89314427826,
+        "total_assets": 191449.74034320377,
+        "equity": 106592.15325240216,
+        "profit_margin": 0.10824414294908506,
+        "asset_turnover": 0.7491777888398158,
+        "equity_multiplier": 1.7960960023939592,
+        "roe_dupont": 0.1456528026028161
+      },
+      {
+        "net_income": 11302.34191159805,
+        "revenue": 188846.9724500364,
+        "total_assets": 249886.2196283108,
+        "equity": 142152.92014548602,
+        "profit_margin": 0.05984920893867299,
+        "asset_turnover": 0.7557318395985733,
+        "equity_multiplier": 1.7578690565945845,
+        "roe_dupont": 0.07950833440516523
+      },
+      {
+        "net_income": 12788.568799857552,
+        "revenue": 240381.6312641816,
+        "total_assets": 316001.4382922193,
+        "equity": 176103.68988143018,
+        "profit_margin": 0.05320110664280666,
+        "asset_turnover": 0.7606979023997068,
+        "equity_multiplier": 1.7944055488274075,
+        "roe_dupont": 0.07261953913894728
+      },
+      {
+        "net_income": 16352.727029225927,
+        "revenue": 184913.84896508945,
+        "total_assets": 241772.51332008973,
+        "equity": 136200.64384329203,
+        "profit_margin": 0.08843430127460716,
+        "asset_turnover": 0.7648257712417316,
+        "equity_multiplier": 1.7751201939857584,
+        "roe_dupont": 0.12006350754142421
+      },
+      {
+        "net_income": 28293.973187214026,
+        "revenue": 321302.196893001,
+        "total_assets": 436901.5219072232,
+        "equity": 242073.7887832827,
+        "profit_margin": 0.08806031661413256,
+        "asset_turnover": 0.73541102692984,
+        "equity_multiplier": 1.8048278754308282,
+        "roe_dupont": 0.11688160593274428
+      },
+      {
+        "net_income": 27036.3524134082,
+        "revenue": 290960.9783879348,
+        "total_assets": 395840.464240584,
+        "equity": 222013.1705116637,
+        "profit_margin": 0.09292088775341192,
+        "asset_turnover": 0.7350460720233353,
+        "equity_multiplier": 1.7829593772671612,
+        "roe_dupont": 0.12177814654463401
+      },
+      {
+        "net_income": 18256.826160179706,
+        "revenue": 197118.2582333428,
+        "total_assets": 266313.1771380505,
+        "equity": 148355.78378142117,
+        "profit_margin": 0.09261864590223708,
+        "asset_turnover": 0.7401746333083674,
+        "equity_multiplier": 1.7950980430289185,
+        "roe_dupont": 0.12306110146051508
+      },
+      {
+        "net_income": 23601.090052602456,
+        "revenue": 237833.45919777435,
+        "total_assets": 318334.0559034731,
+        "equity": 183149.83380955333,
+        "profit_margin": 0.09923368281405931,
+        "asset_turnover": 0.7471191183826447,
+        "equity_multiplier": 1.7381072604984718,
+        "roe_dupont": 0.12886219747894412
+      },
+      {
+        "net_income": 19757.09788768875,
+        "revenue": 324429.1798411912,
+        "total_assets": 438701.2188112944,
+        "equity": 244380.46596636056,
+        "profit_margin": 0.060898029879309534,
+        "asset_turnover": 0.7395219478082716,
+        "equity_multiplier": 1.7951566508252852,
+        "roe_dupont": 0.0808456511021153
+      }
+    ]
+  },
+  "sample_columns": [
+    "net_income",
+    "revenue",
+    "total_assets",
+    "equity",
+    "profit_margin",
+    "asset_turnover",
+    "equity_multiplier",
+    "roe_dupont"
+  ],
+  "sample_preview": [
+    {
+      "net_income": 26375.54605689663,
+      "revenue": 383648.0257341592,
+      "total_assets": 501293.02907292894,
+      "equity": 287920.9566687462,
+      "profit_margin": 0.0687493334715425,
+      "asset_turnover": 0.7653168974714497,
+      "equity_multiplier": 1.7410786448923476,
+      "roe_dupont": 0.09160689920616569
+    },
+    {
+      "net_income": 15525.445856681252,
+      "revenue": 143429.89314427826,
+      "total_assets": 191449.74034320377,
+      "equity": 106592.15325240216,
+      "profit_margin": 0.10824414294908506,
+      "asset_turnover": 0.7491777888398158,
+      "equity_multiplier": 1.7960960023939592,
+      "roe_dupont": 0.1456528026028161
+    },
+    {
+      "net_income": 11302.34191159805,
+      "revenue": 188846.9724500364,
+      "total_assets": 249886.2196283108,
+      "equity": 142152.92014548602,
+      "profit_margin": 0.05984920893867299,
+      "asset_turnover": 0.7557318395985733,
+      "equity_multiplier": 1.7578690565945845,
+      "roe_dupont": 0.07950833440516523
+    },
+    {
+      "net_income": 12788.568799857552,
+      "revenue": 240381.6312641816,
+      "total_assets": 316001.4382922193,
+      "equity": 176103.68988143018,
+      "profit_margin": 0.05320110664280666,
+      "asset_turnover": 0.7606979023997068,
+      "equity_multiplier": 1.7944055488274075,
+      "roe_dupont": 0.07261953913894728
+    },
+    {
+      "net_income": 16352.727029225927,
+      "revenue": 184913.84896508945,
+      "total_assets": 241772.51332008973,
+      "equity": 136200.64384329203,
+      "profit_margin": 0.08843430127460716,
+      "asset_turnover": 0.7648257712417316,
+      "equity_multiplier": 1.7751201939857584,
+      "roe_dupont": 0.12006350754142421
+    }
+  ],
+  "workflow_type": "model",
+  "model_family": "corporate_finance",
+  "interpretation": {
+    "headline": "DuPont Analysis estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: dupont_preview."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "dupont_preview"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "dupont_margin_focus",
+  "variant_spec": {
+    "report_variant": "margin_focus"
+  },
+  "result_record_id": "1d42641e-b29c-43bd-9724-05335996291d",
+  "result_detail_path": "/data-lab/results/models/1d42641e-b29c-43bd-9724-05335996291d"
+}

@@ -1,0 +1,30 @@
+{
+  "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "sample_title": "panel_dataset.csv",
+  "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+  "rows_used": 648,
+  "sample_columns": [
+    "ln_flow",
+    "ln_origin_mass",
+    "ln_destination_mass",
+    "ln_distance",
+    "post"
+  ],
+  "covariance_type": "HC1",
+  "manual_checklist": [
+    "Download the prepared sample asset referenced in sample_asset_id.",
+    "Rebuild any derived regressors listed in derived_columns before estimation.",
+    "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+    "Compare the reproduced coefficient table with the coefficients array term by term."
+  ],
+  "derived_columns": [
+    "ln_flow",
+    "ln_origin_mass",
+    "ln_destination_mass",
+    "ln_distance"
+  ],
+  "filters": [
+    "Rows with missing flow, mass, distance, or selected controls are dropped.",
+    "Rows with negative flow or nonpositive mass/distance are excluded before log transforms."
+  ]
+}

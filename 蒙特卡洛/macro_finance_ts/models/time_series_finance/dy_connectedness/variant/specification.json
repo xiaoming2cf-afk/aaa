@@ -1,0 +1,21 @@
+{
+  "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "model_family": "time_series_finance",
+  "model_type": "dy_connectedness",
+  "series_columns": [
+    "return_a",
+    "return_b",
+    "return_c"
+  ],
+  "time_column": "date",
+  "var_lags": 2,
+  "irf_horizon": 10,
+  "lags": 2,
+  "horizon": 10,
+  "identification": "Generalized FEVD",
+  "variant_label": "dy_longer_horizon",
+  "variant_spec": {
+    "var_lags": 3,
+    "irf_horizon": 12
+  }
+}

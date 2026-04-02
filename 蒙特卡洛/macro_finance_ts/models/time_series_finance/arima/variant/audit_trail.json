@@ -1,0 +1,10 @@
+{
+  "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "sample_title": "timeseries_dataset.csv",
+  "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+  "engine": "statsmodels",
+  "derived_columns": [],
+  "filters": [
+    "Rows with missing series values are dropped."
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "model_family": "econometrics_baseline",
+  "model_type": "between_ols",
+  "dependent": "outcome_y",
+  "independents": [
+    "size",
+    "leverage"
+  ],
+  "controls": [],
+  "entity_column": "firm_id",
+  "time_column": "month_index",
+  "engine": "linearmodels"
+}

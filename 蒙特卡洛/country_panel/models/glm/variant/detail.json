@@ -1,0 +1,524 @@
+{
+  "record": {
+    "id": "c2642e65-b06a-4d86-957d-5c981ad73d54",
+    "title": "Generalized Linear Model summary for upgrade_panel.csv",
+    "content": "GLM estimated with statsmodels on upgrade_panel.csv.\nFamily: negative_binomial.",
+    "content_excerpt": "GLM estimated with statsmodels on upgrade_panel.csv. Family: negative_binomial.",
+    "content_length": 79,
+    "tags": [
+      "glm",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "glm",
+      "model_label": "Generalized Linear Model",
+      "asset": {
+        "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "kind": "dataset_csv",
+        "title": "upgrade_panel.csv",
+        "filename": "upgrade_panel.csv",
+        "description": "upgrade_panel.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 289095,
+          "original_filename": "upgrade_panel.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T02:57:26.995002",
+        "updated_at": "2026-04-02T02:57:27.013674"
+      },
+      "dependent": "count_outcome",
+      "regressors": [
+        "const",
+        "size",
+        "leverage",
+        "post"
+      ],
+      "observations": 648,
+      "r_squared": null,
+      "adj_r_squared": null,
+      "pseudo_r_squared": null,
+      "aic": 3305.2163998574115,
+      "bic": -3988.709990224441,
+      "log_likelihood": -1648.6081999287057,
+      "coefficients": [
+        {
+          "term": "const",
+          "coefficient": 2.4068542734958633,
+          "std_error": 0.7327796372005612,
+          "t_stat": 3.284553979543934,
+          "p_value": 0.0010214392958801382
+        },
+        {
+          "term": "size",
+          "coefficient": -0.08776222506782391,
+          "std_error": 0.0630504709706477,
+          "t_stat": -1.3919360746516936,
+          "p_value": 0.16394175656182253
+        },
+        {
+          "term": "leverage",
+          "coefficient": -1.1098340991409006,
+          "std_error": 1.333351121249442,
+          "t_stat": -0.8323644698336545,
+          "p_value": 0.4052032506782923
+        },
+        {
+          "term": "post",
+          "coefficient": 0.5428864330656369,
+          "std_error": 0.09498993999499429,
+          "t_stat": 5.715199242090747,
+          "p_value": 1.0957556096412028e-08
+        }
+      ],
+      "narrative": [
+        "GLM estimated with statsmodels on upgrade_panel.csv.",
+        "Family: negative_binomial."
+      ],
+      "sample_columns": [
+        "count_outcome",
+        "size",
+        "leverage",
+        "post"
+      ],
+      "sample_preview": [
+        {
+          "count_outcome": 1,
+          "size": 8.519775911467494,
+          "leverage": 0.3577590135791016,
+          "post": 0
+        },
+        {
+          "count_outcome": 3,
+          "size": 7.55721041465215,
+          "leverage": 0.3378183221465689,
+          "post": 0
+        },
+        {
+          "count_outcome": 3,
+          "size": 7.823590785770317,
+          "leverage": 0.3343232278441892,
+          "post": 0
+        },
+        {
+          "count_outcome": 1,
+          "size": 8.058331858128255,
+          "leverage": 0.3581110765958445,
+          "post": 0
+        },
+        {
+          "count_outcome": 3,
+          "size": 7.790582349444769,
+          "leverage": 0.3323010132904619,
+          "post": 0
+        }
+      ],
+      "specification": {
+        "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "model_family": "econometrics_baseline",
+        "model_type": "glm",
+        "dependent": "count_outcome",
+        "independents": [
+          "size",
+          "leverage"
+        ],
+        "controls": [
+          "post"
+        ],
+        "glm_family": "negative_binomial",
+        "engine": "statsmodels",
+        "variant_label": "glm_nb"
+      },
+      "audit_trail": {
+        "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "sample_title": "upgrade_panel.csv",
+        "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+        "rows_used": 648,
+        "sample_columns": [
+          "count_outcome",
+          "size",
+          "leverage",
+          "post"
+        ],
+        "covariance_type": "nonrobust",
+        "manual_checklist": [
+          "Download the prepared sample asset referenced in sample_asset_id.",
+          "Rebuild any derived regressors listed in derived_columns before estimation.",
+          "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+          "Compare the reproduced coefficient table with the coefficients array term by term."
+        ],
+        "engine": "statsmodels",
+        "derived_columns": [],
+        "filters": [
+          "Rows with missing dependent or regressors are dropped."
+        ]
+      },
+      "engine": "statsmodels",
+      "primary_tables": [
+        "family_link_audit"
+      ],
+      "robustness_tables": [
+        "alternative_family_table"
+      ],
+      "tables": {
+        "family_link_audit": [
+          {
+            "family": "negative_binomial",
+            "link": "Log"
+          }
+        ],
+        "alternative_family_table": [
+          {
+            "family": "gaussian",
+            "aic": 2888.4774547937386,
+            "deviance": 3233.0941127558617
+          },
+          {
+            "family": "poisson",
+            "aic": 2813.5447257268124,
+            "deviance": 773.5167323879818
+          }
+        ]
+      },
+      "figures": [
+        {
+          "asset_id": "b83f9ae0-3482-495a-94ab-16957a2bee1a",
+          "title": "GLM Fitted vs Actual",
+          "summary": "Observed dependent variable versus fitted GLM values.",
+          "download_url": "/api/assets/b83f9ae0-3482-495a-94ab-16957a2bee1a/download",
+          "asset": {
+            "id": "b83f9ae0-3482-495a-94ab-16957a2bee1a",
+            "kind": "chart_png",
+            "title": "upgrade_panel-glm_fitted_vs_actual.png",
+            "filename": "upgrade_panel-glm_fitted_vs_actual.png",
+            "description": "Observed dependent variable versus fitted GLM values.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 86099,
+              "original_filename": "upgrade_panel-glm_fitted_vs_actual.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "GLM Fitted vs Actual",
+              "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+              "summary": "Observed dependent variable versus fitted GLM values."
+            },
+            "created_at": "2026-04-02T02:57:45.787904+00:00",
+            "updated_at": "2026-04-02T02:57:45.796382+00:00"
+          }
+        }
+      ],
+      "metrics": {},
+      "paper_output_contract": {
+        "primary_tables": [
+          "family_link_audit"
+        ],
+        "robustness_tables": [
+          "alternative_family_table"
+        ],
+        "figure_count": 1
+      },
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "Generalized Linear Model estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+              "Supporting tables included: family_link_audit, alternative_family_table.",
+              "Figures included: GLM Fitted vs Actual."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "family_link_audit",
+          "alternative_family_table",
+          "GLM Fitted vs Actual"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "glm_nb",
+      "variant_spec": {},
+      "result_record_id": "c2642e65-b06a-4d86-957d-5c981ad73d54",
+      "result_detail_path": "/data-lab/results/models/c2642e65-b06a-4d86-957d-5c981ad73d54"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T02:57:45.840694",
+    "updated_at": "2026-04-02T02:57:45.842561"
+  },
+  "result": {
+    "model_type": "glm",
+    "model_label": "Generalized Linear Model",
+    "asset": {
+      "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "kind": "dataset_csv",
+      "title": "upgrade_panel.csv",
+      "filename": "upgrade_panel.csv",
+      "description": "upgrade_panel.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 289095,
+        "original_filename": "upgrade_panel.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T02:57:26.995002",
+      "updated_at": "2026-04-02T02:57:27.013674"
+    },
+    "dependent": "count_outcome",
+    "regressors": [
+      "const",
+      "size",
+      "leverage",
+      "post"
+    ],
+    "observations": 648,
+    "r_squared": null,
+    "adj_r_squared": null,
+    "pseudo_r_squared": null,
+    "aic": 3305.2163998574115,
+    "bic": -3988.709990224441,
+    "log_likelihood": -1648.6081999287057,
+    "coefficients": [
+      {
+        "term": "const",
+        "coefficient": 2.4068542734958633,
+        "std_error": 0.7327796372005612,
+        "t_stat": 3.284553979543934,
+        "p_value": 0.0010214392958801382
+      },
+      {
+        "term": "size",
+        "coefficient": -0.08776222506782391,
+        "std_error": 0.0630504709706477,
+        "t_stat": -1.3919360746516936,
+        "p_value": 0.16394175656182253
+      },
+      {
+        "term": "leverage",
+        "coefficient": -1.1098340991409006,
+        "std_error": 1.333351121249442,
+        "t_stat": -0.8323644698336545,
+        "p_value": 0.4052032506782923
+      },
+      {
+        "term": "post",
+        "coefficient": 0.5428864330656369,
+        "std_error": 0.09498993999499429,
+        "t_stat": 5.715199242090747,
+        "p_value": 1.0957556096412028e-08
+      }
+    ],
+    "narrative": [
+      "GLM estimated with statsmodels on upgrade_panel.csv.",
+      "Family: negative_binomial."
+    ],
+    "sample_columns": [
+      "count_outcome",
+      "size",
+      "leverage",
+      "post"
+    ],
+    "sample_preview": [
+      {
+        "count_outcome": 1,
+        "size": 8.519775911467494,
+        "leverage": 0.3577590135791016,
+        "post": 0
+      },
+      {
+        "count_outcome": 3,
+        "size": 7.55721041465215,
+        "leverage": 0.3378183221465689,
+        "post": 0
+      },
+      {
+        "count_outcome": 3,
+        "size": 7.823590785770317,
+        "leverage": 0.3343232278441892,
+        "post": 0
+      },
+      {
+        "count_outcome": 1,
+        "size": 8.058331858128255,
+        "leverage": 0.3581110765958445,
+        "post": 0
+      },
+      {
+        "count_outcome": 3,
+        "size": 7.790582349444769,
+        "leverage": 0.3323010132904619,
+        "post": 0
+      }
+    ],
+    "specification": {
+      "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "model_family": "econometrics_baseline",
+      "model_type": "glm",
+      "dependent": "count_outcome",
+      "independents": [
+        "size",
+        "leverage"
+      ],
+      "controls": [
+        "post"
+      ],
+      "glm_family": "negative_binomial",
+      "engine": "statsmodels",
+      "variant_label": "glm_nb"
+    },
+    "audit_trail": {
+      "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "sample_title": "upgrade_panel.csv",
+      "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+      "rows_used": 648,
+      "sample_columns": [
+        "count_outcome",
+        "size",
+        "leverage",
+        "post"
+      ],
+      "covariance_type": "nonrobust",
+      "manual_checklist": [
+        "Download the prepared sample asset referenced in sample_asset_id.",
+        "Rebuild any derived regressors listed in derived_columns before estimation.",
+        "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+        "Compare the reproduced coefficient table with the coefficients array term by term."
+      ],
+      "engine": "statsmodels",
+      "derived_columns": [],
+      "filters": [
+        "Rows with missing dependent or regressors are dropped."
+      ]
+    },
+    "engine": "statsmodels",
+    "primary_tables": [
+      "family_link_audit"
+    ],
+    "robustness_tables": [
+      "alternative_family_table"
+    ],
+    "tables": {
+      "family_link_audit": [
+        {
+          "family": "negative_binomial",
+          "link": "Log"
+        }
+      ],
+      "alternative_family_table": [
+        {
+          "family": "gaussian",
+          "aic": 2888.4774547937386,
+          "deviance": 3233.0941127558617
+        },
+        {
+          "family": "poisson",
+          "aic": 2813.5447257268124,
+          "deviance": 773.5167323879818
+        }
+      ]
+    },
+    "figures": [
+      {
+        "asset_id": "b83f9ae0-3482-495a-94ab-16957a2bee1a",
+        "title": "GLM Fitted vs Actual",
+        "summary": "Observed dependent variable versus fitted GLM values.",
+        "download_url": "/api/assets/b83f9ae0-3482-495a-94ab-16957a2bee1a/download",
+        "asset": {
+          "id": "b83f9ae0-3482-495a-94ab-16957a2bee1a",
+          "kind": "chart_png",
+          "title": "upgrade_panel-glm_fitted_vs_actual.png",
+          "filename": "upgrade_panel-glm_fitted_vs_actual.png",
+          "description": "Observed dependent variable versus fitted GLM values.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 86099,
+            "original_filename": "upgrade_panel-glm_fitted_vs_actual.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "GLM Fitted vs Actual",
+            "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+            "summary": "Observed dependent variable versus fitted GLM values."
+          },
+          "created_at": "2026-04-02T02:57:45.787904+00:00",
+          "updated_at": "2026-04-02T02:57:45.796382+00:00"
+        }
+      }
+    ],
+    "metrics": {},
+    "paper_output_contract": {
+      "primary_tables": [
+        "family_link_audit"
+      ],
+      "robustness_tables": [
+        "alternative_family_table"
+      ],
+      "figure_count": 1
+    },
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "Generalized Linear Model estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+            "Supporting tables included: family_link_audit, alternative_family_table.",
+            "Figures included: GLM Fitted vs Actual."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "family_link_audit",
+        "alternative_family_table",
+        "GLM Fitted vs Actual"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "glm_nb",
+    "variant_spec": {},
+    "result_record_id": "c2642e65-b06a-4d86-957d-5c981ad73d54",
+    "result_detail_path": "/data-lab/results/models/c2642e65-b06a-4d86-957d-5c981ad73d54"
+  },
+  "workspace_id": "1127ef60-f949-49b8-b32e-bae8138f3568"
+}

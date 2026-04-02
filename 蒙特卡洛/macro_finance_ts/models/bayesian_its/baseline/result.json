@@ -1,0 +1,277 @@
+{
+  "model_type": "bayesian_its",
+  "model_label": "Bayesian ITS",
+  "asset": {
+    "id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "kind": "dataset_csv",
+    "title": "upgrade_ts.csv",
+    "filename": "upgrade_ts.csv",
+    "description": "upgrade_ts.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 93948,
+      "original_filename": "upgrade_ts.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:27.052169",
+    "updated_at": "2026-04-02T02:57:27.059647"
+  },
+  "observations": 240,
+  "narrative": [
+    "Bayesian interrupted time-series with posterior level and slope changes."
+  ],
+  "specification": {
+    "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "model_family": "bayesian",
+    "model_type": "bayesian_its",
+    "dependent": "policy_rate",
+    "time_column": "date",
+    "treatment_index": 18,
+    "draws": 100,
+    "tune": 100,
+    "chains": 1,
+    "engine": "pymc"
+  },
+  "audit_trail": {
+    "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "sample_title": "upgrade_ts.csv",
+    "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+    "engine": "pymc",
+    "derived_columns": [
+      "_time_index",
+      "post_treatment",
+      "time_after_treatment",
+      "_posterior_mean"
+    ],
+    "filters": []
+  },
+  "metrics": {},
+  "tables": {
+    "posterior_intervention_table": [
+      {
+        "term": "alpha",
+        "mean": 0.0151,
+        "sd": 0.6947,
+        "hdi_3%": -1.3115,
+        "hdi_97%": 1.1934,
+        "mcse_mean": 0.0241,
+        "mcse_sd": 0.0152,
+        "ess_bulk": 833.6552,
+        "ess_tail": 966.2907,
+        "r_hat": null
+      },
+      {
+        "term": "beta[0]",
+        "mean": -0.0067,
+        "sd": 0.5607,
+        "hdi_3%": -1.0275,
+        "hdi_97%": 1.0392,
+        "mcse_mean": 0.0184,
+        "mcse_sd": 0.0129,
+        "ess_bulk": 926.9466,
+        "ess_tail": 901.0663,
+        "r_hat": null
+      },
+      {
+        "term": "beta[1]",
+        "mean": -0.0417,
+        "sd": 0.6714,
+        "hdi_3%": -1.2798,
+        "hdi_97%": 1.1522,
+        "mcse_mean": 0.0224,
+        "mcse_sd": 0.0133,
+        "ess_bulk": 894.7249,
+        "ess_tail": 855.0125,
+        "r_hat": null
+      },
+      {
+        "term": "beta[2]",
+        "mean": -0.0153,
+        "sd": 0.5944,
+        "hdi_3%": -1.0825,
+        "hdi_97%": 1.0945,
+        "mcse_mean": 0.0187,
+        "mcse_sd": 0.0137,
+        "ess_bulk": 1016.1852,
+        "ess_tail": 943.7586,
+        "r_hat": null
+      },
+      {
+        "term": "sigma",
+        "mean": 1.708,
+        "sd": 1.1304,
+        "hdi_3%": 0.281,
+        "hdi_97%": 3.587,
+        "mcse_mean": 0.0367,
+        "mcse_sd": 0.0682,
+        "ess_bulk": 871.6952,
+        "ess_tail": 902.4734,
+        "r_hat": null
+      }
+    ],
+    "slope_change_posterior_table": [
+      {
+        "cutoff_index": 18,
+        "post_periods": 222
+      }
+    ]
+  },
+  "sample_columns": [
+    "policy_rate",
+    "date",
+    "_time_index",
+    "post_treatment",
+    "time_after_treatment",
+    "_posterior_mean"
+  ],
+  "sample_preview": [
+    {
+      "policy_rate": 2.4984724687964475,
+      "date": "2005-01-31",
+      "_time_index": 0,
+      "post_treatment": 0,
+      "time_after_treatment": 0,
+      "_posterior_mean": -0.006809662925588579
+    },
+    {
+      "policy_rate": 1.6212191346234608,
+      "date": "2005-02-28",
+      "_time_index": 1,
+      "post_treatment": 0,
+      "time_after_treatment": 0,
+      "_posterior_mean": 0.03355585297916481
+    },
+    {
+      "policy_rate": 1.2044706806320091,
+      "date": "2005-03-31",
+      "_time_index": 2,
+      "post_treatment": 0,
+      "time_after_treatment": 0,
+      "_posterior_mean": 0.03122769130965516
+    },
+    {
+      "policy_rate": 0.9502435898913666,
+      "date": "2005-04-30",
+      "_time_index": 3,
+      "post_treatment": 0,
+      "time_after_treatment": 0,
+      "_posterior_mean": -0.0015509047086449286
+    },
+    {
+      "policy_rate": 0.6420261781796007,
+      "date": "2005-05-31",
+      "_time_index": 4,
+      "post_treatment": 0,
+      "time_after_treatment": 0,
+      "_posterior_mean": 0.013929234332404622
+    }
+  ],
+  "engine": "pymc",
+  "figures": [
+    {
+      "asset_id": "b7b1b584-3124-40b4-8f82-9bd25aae958f",
+      "title": "Bayesian ITS trace",
+      "summary": "Trace plots for the Bayesian interrupted time-series model.",
+      "download_url": "/api/assets/b7b1b584-3124-40b4-8f82-9bd25aae958f/download",
+      "asset": {
+        "id": "b7b1b584-3124-40b4-8f82-9bd25aae958f",
+        "kind": "chart_png",
+        "title": "upgrade_ts-bayes_its_trace.png",
+        "filename": "upgrade_ts-bayes_its_trace.png",
+        "description": "Trace plots for the Bayesian interrupted time-series model.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 136299,
+          "original_filename": "upgrade_ts-bayes_its_trace.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Bayesian ITS trace",
+          "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+          "summary": "Trace plots for the Bayesian interrupted time-series model."
+        },
+        "created_at": "2026-04-02T03:06:28.343479+00:00",
+        "updated_at": "2026-04-02T03:06:28.351761+00:00"
+      }
+    },
+    {
+      "asset_id": "27f6c6b8-927e-4520-afe2-f5e3e3220071",
+      "title": "Bayesian ITS path",
+      "summary": "Observed and posterior-predictive interrupted time-series path.",
+      "download_url": "/api/assets/27f6c6b8-927e-4520-afe2-f5e3e3220071/download",
+      "asset": {
+        "id": "27f6c6b8-927e-4520-afe2-f5e3e3220071",
+        "kind": "chart_png",
+        "title": "upgrade_ts-bayes_its_predictive.png",
+        "filename": "upgrade_ts-bayes_its_predictive.png",
+        "description": "Observed and posterior-predictive interrupted time-series path.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 99568,
+          "original_filename": "upgrade_ts-bayes_its_predictive.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Bayesian ITS path",
+          "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+          "summary": "Observed and posterior-predictive interrupted time-series path."
+        },
+        "created_at": "2026-04-02T03:06:28.653487+00:00",
+        "updated_at": "2026-04-02T03:06:28.657752+00:00"
+      }
+    }
+  ],
+  "primary_tables": [
+    "posterior_intervention_table",
+    "slope_change_posterior_table"
+  ],
+  "paper_output_contract": {
+    "primary_tables": [
+      "posterior_intervention_table",
+      "slope_change_posterior_table"
+    ],
+    "figure_count": 2
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "Bayesian ITS estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: posterior_intervention_table, slope_change_posterior_table.",
+          "Figures included: Bayesian ITS trace, Bayesian ITS path."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "posterior_intervention_table",
+      "slope_change_posterior_table",
+      "Bayesian ITS trace",
+      "Bayesian ITS path"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "",
+  "variant_spec": {},
+  "result_record_id": "85a6c916-ba4b-46e3-8fe5-181b36ef8e11",
+  "result_detail_path": "/data-lab/results/models/85a6c916-ba4b-46e3-8fe5-181b36ef8e11"
+}

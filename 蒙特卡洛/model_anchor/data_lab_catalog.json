@@ -1,0 +1,4625 @@
+{
+  "processing_families": [
+    {
+      "slug": "sample_preparation",
+      "title": "Sample Preparation",
+      "category": "data_processing",
+      "category_label": "Data Processing",
+      "summary": "Build an analysis-ready sample before cleaning, plotting, or model estimation.",
+      "description": "Use this family when the main question is whether the sample itself is well-formed. It focuses on variable inclusion, required fields, numeric and binary coercion, date parsing, and row eligibility rules.",
+      "key_inputs": [
+        "Keep columns and required columns",
+        "Force numeric, binary, or date parsing",
+        "Duplicate-row removal and missing-value drop rules"
+      ],
+      "manual_checks": [
+        "Confirm every required field survives after type coercion.",
+        "Recount dropped rows against the raw file before moving to modeling.",
+        "Verify binary and date columns against the original labels in the preview table."
+      ],
+      "methods": [
+        {
+          "slug": "column_selection",
+          "name": "Column Selection",
+          "description": "Restrict the working sample to the columns needed for the research design."
+        },
+        {
+          "slug": "required_fields",
+          "name": "Required Field Filter",
+          "description": "Drop observations that do not contain the minimum fields required for identification."
+        },
+        {
+          "slug": "type_coercion",
+          "name": "Type Coercion",
+          "description": "Force variables into numeric, binary, or date types before downstream transformations."
+        },
+        {
+          "slug": "duplicate_and_missing_rules",
+          "name": "Duplicate and Missing Rules",
+          "description": "Apply explicit duplicate-row removal and missing-value policies before saving the prepared sample."
+        }
+      ],
+      "default_workbench_query": {
+        "workflow": "data_processing",
+        "processing_family": "sample_preparation"
+      },
+      "detail_path": "/data-lab/processing/sample_preparation",
+      "workbench_path": "/data-lab?workflow=data_processing&processing_family=sample_preparation#data-lab-workbench",
+      "variant_presets": [
+        {
+          "label": "Strict row eligibility",
+          "description": "Keep duplicate removal and required-field filtering on so the prepared sample is maximally clean before modeling.",
+          "spec": {
+            "drop_duplicates": true,
+            "drop_missing_required": true
+          }
+        },
+        {
+          "label": "Loose eligibility review",
+          "description": "Temporarily keep duplicate and missing-row rules off so you can inspect borderline rows before imposing final eligibility filters.",
+          "spec": {
+            "drop_duplicates": false,
+            "drop_missing_required": false
+          }
+        }
+      ]
+    },
+    {
+      "slug": "cleaning_transforms",
+      "title": "Cleaning & Transforms",
+      "category": "data_processing",
+      "category_label": "Data Processing",
+      "summary": "Normalize variables, cap extremes, and generate transformed regressors with explicit thresholds.",
+      "description": "Use this family when the raw sample already exists but its scale, outliers, or missingness would distort inference. The point is to make every cleaning step explicit and reproducible.",
+      "key_inputs": [
+        "Imputation method and target columns",
+        "Winsorization bounds and columns",
+        "Log transform, standardization, min-max scaling, and outlier thresholds"
+      ],
+      "manual_checks": [
+        "Recompute each transformed column from the downloaded prepared sample.",
+        "Check that winsorized variables do not exceed the declared quantile bounds.",
+        "Compare the transformed preview rows against a manual spreadsheet calculation."
+      ],
+      "methods": [
+        {
+          "slug": "imputation",
+          "name": "Imputation",
+          "description": "Fill missing values with mean, median, zero, forward-fill, or backward-fill rules."
+        },
+        {
+          "slug": "winsorization",
+          "name": "Winsorization",
+          "description": "Clip tail observations using transparent lower and upper quantile thresholds."
+        },
+        {
+          "slug": "transformations",
+          "name": "Log, Standardize, Min-Max",
+          "description": "Generate comparable scales for regression and charting workflows."
+        },
+        {
+          "slug": "outlier_filters",
+          "name": "Outlier Filters",
+          "description": "Remove extreme values using IQR or z-score rules with explicit cutoffs."
+        }
+      ],
+      "default_workbench_query": {
+        "workflow": "data_processing",
+        "processing_family": "cleaning_transforms"
+      },
+      "detail_path": "/data-lab/processing/cleaning_transforms",
+      "workbench_path": "/data-lab?workflow=data_processing&processing_family=cleaning_transforms#data-lab-workbench",
+      "variant_presets": [
+        {
+          "label": "Median + conservative tails",
+          "description": "Median imputation with conservative winsor bounds and IQR outlier filtering.",
+          "spec": {
+            "impute_method": "median",
+            "winsor_lower_quantile": 0.02,
+            "winsor_upper_quantile": 0.98,
+            "outlier_method": "iqr",
+            "outlier_threshold": 1.5
+          }
+        },
+        {
+          "label": "Mean + z-score trim",
+          "description": "Mean imputation with wider tails and z-score outlier trimming for a looser robustness pass.",
+          "spec": {
+            "impute_method": "mean",
+            "winsor_lower_quantile": 0.01,
+            "winsor_upper_quantile": 0.99,
+            "outlier_method": "zscore",
+            "outlier_threshold": 3.0
+          }
+        }
+      ]
+    },
+    {
+      "slug": "time_series_features",
+      "title": "Time-Series Features",
+      "category": "data_processing",
+      "category_label": "Data Processing",
+      "summary": "Generate differences, returns, lags, leads, and rolling diagnostics before time-series or finance models.",
+      "description": "Use this family when the identification or forecasting logic depends on ordered observations. It exposes the exact sort variable, grouping variable, and transformation windows used to construct derived series.",
+      "key_inputs": [
+        "Sort column and optional panel/time grouping column",
+        "Difference, return, lag, and lead targets",
+        "Rolling mean and rolling volatility windows"
+      ],
+      "manual_checks": [
+        "Verify the sort order before recomputing returns or lags.",
+        "Rebuild at least one derived series by hand to confirm the grouping logic.",
+        "Check that rolling windows use the documented horizon and missing-value behavior."
+      ],
+      "methods": [
+        {
+          "slug": "differences",
+          "name": "Differences",
+          "description": "Create first differences or grouped differences for trend-stationary analysis."
+        },
+        {
+          "slug": "returns",
+          "name": "Simple and Log Returns",
+          "description": "Construct finance-style return series from prices or levels using transparent formulas."
+        },
+        {
+          "slug": "lags_and_leads",
+          "name": "Lags and Leads",
+          "description": "Create dynamic explanatory variables for event studies, ARIMA, VAR, and panel models."
+        },
+        {
+          "slug": "rolling_statistics",
+          "name": "Rolling Statistics",
+          "description": "Compute rolling means and volatility windows for macro-finance diagnostics."
+        }
+      ],
+      "default_workbench_query": {
+        "workflow": "data_processing",
+        "processing_family": "time_series_features"
+      },
+      "detail_path": "/data-lab/processing/time_series_features",
+      "workbench_path": "/data-lab?workflow=data_processing&processing_family=time_series_features#data-lab-workbench",
+      "variant_presets": [
+        {
+          "label": "Short-horizon returns",
+          "description": "Use log returns with one-step lags/leads and a short rolling window for monthly-style macro-finance panels.",
+          "spec": {
+            "return_method": "log",
+            "lag_periods": 1,
+            "lead_periods": 1,
+            "rolling_window": 5
+          }
+        },
+        {
+          "label": "Longer smoothing window",
+          "description": "Keep simple returns but use longer dynamic windows for slower-moving macro variables.",
+          "spec": {
+            "return_method": "simple",
+            "lag_periods": 2,
+            "lead_periods": 2,
+            "rolling_window": 12
+          }
+        }
+      ]
+    },
+    {
+      "slug": "visualization",
+      "title": "Visualization",
+      "category": "data_processing",
+      "category_label": "Data Processing",
+      "summary": "Render line, scatter, bar, and histogram charts and export them as PNG assets.",
+      "description": "Use this family when the immediate goal is to inspect the shape of the data, validate a transformation, or produce a transparent figure that can be downloaded and checked independently.",
+      "key_inputs": [
+        "Chart type, x-variable, and y-variable selection",
+        "Optional group/color dimension",
+        "Exportable PNG output with direct download"
+      ],
+      "manual_checks": [
+        "Confirm plotted columns match the selected variables in the chart form.",
+        "Compare chart points against the downloaded source sample or prepared sample.",
+        "Download the PNG and verify its title, axes, and grouping choices before reuse."
+      ],
+      "methods": [
+        {
+          "slug": "line_chart",
+          "name": "Line Chart",
+          "description": "Inspect trajectories, trends, and series comovement over ordered observations."
+        },
+        {
+          "slug": "scatter_chart",
+          "name": "Scatter Chart",
+          "description": "Check bivariate relationships, clustering, and possible nonlinear patterns."
+        },
+        {
+          "slug": "bar_chart",
+          "name": "Bar Chart",
+          "description": "Compare grouped levels, shares, or event counts across categories."
+        },
+        {
+          "slug": "histogram",
+          "name": "Histogram",
+          "description": "Inspect empirical distributions before choosing transformations or tail-risk models."
+        }
+      ],
+      "default_workbench_query": {
+        "workflow": "data_processing",
+        "processing_family": "visualization"
+      },
+      "detail_path": "/data-lab/processing/visualization",
+      "workbench_path": "/data-lab?workflow=data_processing&processing_family=visualization#data-lab-workbench",
+      "variant_presets": [
+        {
+          "label": "High-resolution export",
+          "description": "Use a denser chart output budget so diagnostics retain more points before export.",
+          "spec": {
+            "max_points": 800
+          }
+        },
+        {
+          "label": "Compact review chart",
+          "description": "Keep chart exports lighter for quick manual review and notebook-style iteration.",
+          "spec": {
+            "max_points": 200
+          }
+        }
+      ]
+    }
+  ],
+  "model_families": [
+    {
+      "slug": "econometrics_baseline",
+      "title": "Econometrics Baseline",
+      "category": "model",
+      "category_label": "Model",
+      "summary": "Classical empirical economics workflows for treatment effects, structural breaks, and panel-style identification.",
+      "description": "This family groups the baseline empirical designs most users need first: linear regression, binary response models, treatment-effect estimators, fixed effects, gravity, and IV designs.",
+      "key_inputs": [
+        "Outcome variable and explanatory variables",
+        "Treatment, post, running, entity, time, endogenous, and instrument fields when applicable",
+        "Robust covariance toggle and transparent coefficient output"
+      ],
+      "manual_checks": [
+        "Rebuild the design matrix from the prepared sample and compare term order with the coefficient table.",
+        "Check treatment, post, running, or instrument fields directly in the downloaded sample.",
+        "Re-estimate at least one specification externally using the same covariance setting."
+      ],
+      "methods": [
+        {
+          "slug": "ols",
+          "name": "OLS",
+          "description": "Baseline linear model for average partial effects.",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "detail_path": "/data-lab/models/econometrics_baseline/ols",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/ols",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=ols#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Robust covariance",
+              "description": "Use heteroskedasticity-robust covariance as the default empirical baseline.",
+              "spec": {
+                "robust_covariance": true
+              }
+            },
+            {
+              "label": "Classical covariance",
+              "description": "Re-run the same design with classical covariance for a direct table-to-table comparison.",
+              "spec": {
+                "robust_covariance": false
+              }
+            }
+          ]
+        },
+        {
+          "slug": "ppml",
+          "name": "PPML",
+          "description": "Poisson pseudo-maximum likelihood for nonnegative outcomes and flow data.",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "detail_path": "/data-lab/models/econometrics_baseline/ppml",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/ppml",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=ppml#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Robust covariance",
+              "description": "Use heteroskedasticity-robust covariance as the default empirical baseline.",
+              "spec": {
+                "robust_covariance": true
+              }
+            },
+            {
+              "label": "Classical covariance",
+              "description": "Re-run the same design with classical covariance for a direct table-to-table comparison.",
+              "spec": {
+                "robust_covariance": false
+              }
+            }
+          ]
+        },
+        {
+          "slug": "logit",
+          "name": "Logit",
+          "description": "Binary response model with logistic link.",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "detail_path": "/data-lab/models/econometrics_baseline/logit",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/logit",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=logit#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Robust covariance",
+              "description": "Use heteroskedasticity-robust covariance as the default empirical baseline.",
+              "spec": {
+                "robust_covariance": true
+              }
+            },
+            {
+              "label": "Classical covariance",
+              "description": "Re-run the same design with classical covariance for a direct table-to-table comparison.",
+              "spec": {
+                "robust_covariance": false
+              }
+            }
+          ]
+        },
+        {
+          "slug": "probit",
+          "name": "Probit",
+          "description": "Binary response model with normal link.",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "detail_path": "/data-lab/models/econometrics_baseline/probit",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/probit",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=probit#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Robust covariance",
+              "description": "Use heteroskedasticity-robust covariance as the default empirical baseline.",
+              "spec": {
+                "robust_covariance": true
+              }
+            },
+            {
+              "label": "Classical covariance",
+              "description": "Re-run the same design with classical covariance for a direct table-to-table comparison.",
+              "spec": {
+                "robust_covariance": false
+              }
+            }
+          ]
+        },
+        {
+          "slug": "did",
+          "name": "Difference-in-Differences",
+          "description": "Two-group/two-period style treatment-effect estimation.",
+          "engine": "causalpy",
+          "engine_label": "CausalPy",
+          "engine_available": true,
+          "engine_version": "0.8.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "causalpy",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "treatment_column",
+              "post_column",
+              "event_time_column",
+              "running_column",
+              "cutoff",
+              "bandwidth",
+              "entity_column",
+              "time_column",
+              "include_time_effects",
+              "donor_pool",
+              "placebo_checks",
+              "pretrend_checks"
+            ]
+          },
+          "detail_path": "/data-lab/models/econometrics_baseline/did",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/did",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=did#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Robust DID baseline",
+              "description": "Keep robust covariance for the main DID table.",
+              "spec": {
+                "robust_covariance": true
+              }
+            },
+            {
+              "label": "Classical DID comparison",
+              "description": "Turn robust covariance off for a table-to-table comparison against the baseline.",
+              "spec": {
+                "robust_covariance": false
+              }
+            }
+          ]
+        },
+        {
+          "slug": "event_study",
+          "name": "Event Study",
+          "description": "Dynamic treatment effects around an event window.",
+          "engine": "causalpy",
+          "engine_label": "CausalPy",
+          "engine_available": true,
+          "engine_version": "0.8.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "causalpy",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "treatment_column",
+              "post_column",
+              "event_time_column",
+              "running_column",
+              "cutoff",
+              "bandwidth",
+              "entity_column",
+              "time_column",
+              "include_time_effects",
+              "donor_pool",
+              "placebo_checks",
+              "pretrend_checks"
+            ]
+          },
+          "detail_path": "/data-lab/models/econometrics_baseline/event_study",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/event_study",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=event_study#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Narrow event window",
+              "description": "Use a tighter lead-lag window for compact treatment dynamics.",
+              "spec": {
+                "lead_window": 2,
+                "lag_window": 4,
+                "omitted_period": -1
+              }
+            },
+            {
+              "label": "Wide event window",
+              "description": "Use a wider event window to inspect longer-run anticipation and adjustment paths.",
+              "spec": {
+                "lead_window": 4,
+                "lag_window": 8,
+                "omitted_period": -1
+              }
+            }
+          ]
+        },
+        {
+          "slug": "rdd",
+          "name": "Regression Discontinuity",
+          "description": "Local identification around an observed cutoff.",
+          "engine": "causalpy",
+          "engine_label": "CausalPy",
+          "engine_available": true,
+          "engine_version": "0.8.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "causalpy",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "treatment_column",
+              "post_column",
+              "event_time_column",
+              "running_column",
+              "cutoff",
+              "bandwidth",
+              "entity_column",
+              "time_column",
+              "include_time_effects",
+              "donor_pool",
+              "placebo_checks",
+              "pretrend_checks"
+            ]
+          },
+          "detail_path": "/data-lab/models/econometrics_baseline/rdd",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/rdd",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=rdd#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Local linear RDD",
+              "description": "Estimate the discontinuity with a local linear specification.",
+              "spec": {
+                "rdd_polynomial_order": 1,
+                "rdd_bandwidth": 1.0,
+                "treat_above_cutoff": true
+              }
+            },
+            {
+              "label": "Quadratic bandwidth check",
+              "description": "Expand the bandwidth and fit a quadratic polynomial for robustness.",
+              "spec": {
+                "rdd_polynomial_order": 2,
+                "rdd_bandwidth": 2.0,
+                "treat_above_cutoff": true
+              }
+            }
+          ]
+        },
+        {
+          "slug": "fixed_effects",
+          "name": "Fixed Effects",
+          "description": "Entity and optional time fixed-effects estimation.",
+          "engine": "linearmodels",
+          "engine_label": "linearmodels",
+          "engine_available": true,
+          "engine_version": "7.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "linearmodels",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "detail_path": "/data-lab/models/econometrics_baseline/fixed_effects",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/fixed_effects",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=fixed_effects#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Entity effects only",
+              "description": "Estimate with entity effects only.",
+              "spec": {
+                "include_time_effects": false
+              }
+            },
+            {
+              "label": "Two-way effects",
+              "description": "Add time effects for a two-way fixed-effects robustness check.",
+              "spec": {
+                "include_time_effects": true
+              }
+            }
+          ]
+        },
+        {
+          "slug": "gravity",
+          "name": "Gravity Model",
+          "description": "Trade- and flow-style models using mass and distance terms.",
+          "detail_path": "/data-lab/models/econometrics_baseline/gravity",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/gravity",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=gravity#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Robust gravity",
+              "description": "Run the gravity model with robust covariance.",
+              "spec": {
+                "robust_covariance": true
+              }
+            },
+            {
+              "label": "Classical gravity",
+              "description": "Run the same gravity design with classical covariance for comparison.",
+              "spec": {
+                "robust_covariance": false
+              }
+            }
+          ]
+        },
+        {
+          "slug": "iv_2sls",
+          "name": "IV-2SLS",
+          "description": "Instrumental-variables regression for endogeneity correction.",
+          "detail_path": "/data-lab/models/econometrics_baseline/iv_2sls",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/iv_2sls",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=iv_2sls#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Robust IV",
+              "description": "Use robust covariance in the 2SLS baseline.",
+              "spec": {
+                "robust_covariance": true
+              }
+            },
+            {
+              "label": "Classical IV",
+              "description": "Turn robust covariance off to compare with conventional 2SLS output.",
+              "spec": {
+                "robust_covariance": false
+              }
+            }
+          ]
+        },
+        {
+          "slug": "panel_iv",
+          "name": "Panel IV",
+          "description": "Panel-style IV with entity and time structure.",
+          "engine": "linearmodels",
+          "engine_label": "linearmodels",
+          "engine_available": true,
+          "engine_version": "7.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "linearmodels",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "detail_path": "/data-lab/models/econometrics_baseline/panel_iv",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/panel_iv",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=panel_iv#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Entity IV",
+              "description": "Use panel IV without time effects.",
+              "spec": {
+                "include_time_effects": false
+              }
+            },
+            {
+              "label": "Two-way panel IV",
+              "description": "Add time effects to the panel IV setup.",
+              "spec": {
+                "include_time_effects": true
+              }
+            }
+          ]
+        },
+        {
+          "slug": "random_effects",
+          "name": "Random Effects",
+          "description": "Panel random-effects estimator for partially pooled entity variation.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Random-effects main table",
+              "Variance decomposition table"
+            ],
+            "robustness_tables": [
+              "Hausman-style comparison table"
+            ],
+            "figures": [
+              "Residual distribution plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "linearmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "linearmodels",
+          "engine_label": "linearmodels",
+          "engine_available": true,
+          "engine_version": "7.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/random_effects",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/random_effects",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=random_effects#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "first_difference",
+          "name": "First Difference",
+          "description": "Panel first-difference estimator that removes time-invariant heterogeneity.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "First-difference main table",
+              "Differenced sample audit table"
+            ],
+            "robustness_tables": [
+              "Alternative lag/lead specification table"
+            ],
+            "figures": [
+              "Differenced outcome diagnostic plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "linearmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "linearmodels",
+          "engine_label": "linearmodels",
+          "engine_available": true,
+          "engine_version": "7.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/first_difference",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/first_difference",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=first_difference#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "between_ols",
+          "name": "Between OLS",
+          "description": "Between estimator using unit-level averages across time.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Between-estimator main table",
+              "Entity-average sample audit table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Entity-average comparison plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "linearmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "linearmodels",
+          "engine_label": "linearmodels",
+          "engine_available": true,
+          "engine_version": "7.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/between_ols",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/between_ols",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=between_ols#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "pooled_ols",
+          "name": "Pooled OLS",
+          "description": "Pooled panel regression benchmark without fixed effects.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Pooled OLS table",
+              "Model comparison table"
+            ],
+            "robustness_tables": [
+              "Robust covariance comparison table"
+            ],
+            "figures": [
+              "Residual diagnostic plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "linearmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "linearmodels",
+          "engine_label": "linearmodels",
+          "engine_available": true,
+          "engine_version": "7.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/pooled_ols",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/pooled_ols",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=pooled_ols#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "fama_macbeth",
+          "name": "Fama-MacBeth",
+          "description": "Cross-sectional asset-pricing regression with time-series aggregation of coefficients.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Fama-MacBeth coefficient table",
+              "Period-by-period summary table"
+            ],
+            "robustness_tables": [
+              "Alternative factor specification table"
+            ],
+            "figures": [
+              "Factor premium path plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "linearmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "linearmodels",
+          "engine_label": "linearmodels",
+          "engine_available": true,
+          "engine_version": "7.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/fama_macbeth",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/fama_macbeth",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=fama_macbeth#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "iv_liml",
+          "name": "IV-LIML",
+          "description": "Limited-information maximum likelihood estimator for weak-instrument settings.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "IV-LIML main table",
+              "Weak-instrument diagnostic table"
+            ],
+            "robustness_tables": [
+              "2SLS vs LIML comparison table"
+            ],
+            "figures": [
+              "First-stage fit plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "linearmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "linearmodels",
+          "engine_label": "linearmodels",
+          "engine_available": true,
+          "engine_version": "7.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/iv_liml",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/iv_liml",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=iv_liml#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "iv_gmm",
+          "name": "IV-GMM",
+          "description": "Generalized-method-of-moments IV estimator with over-identification diagnostics.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "IV-GMM main table",
+              "Over-identification diagnostic table"
+            ],
+            "robustness_tables": [
+              "Alternative weighting matrix table"
+            ],
+            "figures": [
+              "Moment-condition diagnostic plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "linearmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "linearmodels",
+          "engine_label": "linearmodels",
+          "engine_available": true,
+          "engine_version": "7.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/iv_gmm",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/iv_gmm",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=iv_gmm#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "absorbing_ls",
+          "name": "Absorbing Least Squares",
+          "description": "High-dimensional fixed-effects regression using absorbed dummies.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Absorbing-LS main table",
+              "Absorbed-effects audit table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Residual by group plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "linearmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "linearmodels",
+          "engine_label": "linearmodels",
+          "engine_available": true,
+          "engine_version": "7.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/absorbing_ls",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/absorbing_ls",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=absorbing_ls#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "sur",
+          "name": "SUR",
+          "description": "Seemingly unrelated regression for correlated system equations.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "SUR system table",
+              "Equation covariance table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "System residual correlation heatmap"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "linearmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "linearmodels",
+          "engine_label": "linearmodels",
+          "engine_available": true,
+          "engine_version": "7.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/sur",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/sur",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=sur#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "iv_3sls",
+          "name": "IV-3SLS",
+          "description": "Three-stage least squares for simultaneous-equation systems with instruments.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "3SLS system table",
+              "Instrument validity table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Equation residual plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "linearmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "linearmodels",
+          "engine_label": "linearmodels",
+          "engine_available": true,
+          "engine_version": "7.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/iv_3sls",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/iv_3sls",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=iv_3sls#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "system_gmm",
+          "name": "System GMM",
+          "description": "System-GMM style estimator for dynamic panel equations.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "System-GMM main table",
+              "Serial-correlation and Hansen table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Dynamic fit plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "linearmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "linearmodels",
+          "engine_label": "linearmodels",
+          "engine_available": true,
+          "engine_version": "7.0",
+          "engine_note": "",
+          "async_only": true,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/system_gmm",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/system_gmm",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=system_gmm#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "glm",
+          "name": "GLM",
+          "description": "Generalized linear model with configurable family and link.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "GLM coefficient table",
+              "Family/link audit table"
+            ],
+            "robustness_tables": [
+              "Alternative family table"
+            ],
+            "figures": [
+              "Fitted vs actual plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/glm",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/glm",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=glm#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "quantile_regression",
+          "name": "Quantile Regression",
+          "description": "Estimate conditional quantiles instead of the conditional mean.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Quantile coefficient table",
+              "Quantile comparison table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Coefficient path by quantile"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/quantile_regression",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/quantile_regression",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=quantile_regression#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "gee",
+          "name": "GEE",
+          "description": "Generalized estimating equations for correlated outcomes.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "GEE coefficient table",
+              "Working-correlation summary table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Cluster diagnostic plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/gee",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/gee",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=gee#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "mnlogit",
+          "name": "Multinomial Logit",
+          "description": "Multinomial discrete-choice model for outcomes with more than two categories.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "MNLogit coefficient table",
+              "Class probability table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Predicted class distribution plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/mnlogit",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/mnlogit",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=mnlogit#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "negative_binomial",
+          "name": "Negative Binomial",
+          "description": "Over-dispersed count model with explicit dispersion parameter.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Negative-binomial main table",
+              "Dispersion summary table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Predicted vs observed count plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/negative_binomial",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/negative_binomial",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=negative_binomial#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "zero_inflated_count",
+          "name": "Zero-Inflated Count",
+          "description": "Zero-inflated Poisson or negative-binomial count specification.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Zero-inflated count table",
+              "Inflation probability table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Observed vs fitted count plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/zero_inflated_count",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/zero_inflated_count",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=zero_inflated_count#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "mixedlm",
+          "name": "Mixed Linear Model",
+          "description": "Linear mixed-effects model with group-specific random structure.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "MixedLM coefficient table",
+              "Random-effect variance table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Fitted vs actual grouped plot"
+            ],
+            "diagnostics": [
+              "Random-effect summary table"
+            ]
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/econometrics_baseline/mixedlm",
+          "teaching_path": "/data-lab/learn/models/econometrics_baseline/mixedlm",
+          "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=mixedlm#data-lab-workbench",
+          "variant_presets": []
+        }
+      ],
+      "default_workbench_query": {
+        "workflow": "model",
+        "model_family": "econometrics_baseline",
+        "model_type": "ols"
+      },
+      "detail_path": "/data-lab/models/econometrics_baseline",
+      "workbench_path": "/data-lab?workflow=model&model_family=econometrics_baseline&model_type=ols#data-lab-workbench",
+      "variant_presets": [
+        {
+          "label": "Robust covariance",
+          "description": "Use heteroskedasticity-robust covariance as the default empirical baseline.",
+          "spec": {
+            "robust_covariance": true
+          }
+        },
+        {
+          "label": "Classical covariance",
+          "description": "Re-run the same design with classical covariance for a direct table-to-table comparison.",
+          "spec": {
+            "robust_covariance": false
+          }
+        }
+      ]
+    },
+    {
+      "slug": "time_series_finance",
+      "title": "Time Series & Econometric Finance",
+      "category": "model",
+      "category_label": "Model",
+      "summary": "Forecasting, volatility, impulse-response, and connectedness models for ordered macro-finance data.",
+      "description": "Use this family when time ordering is central to the question. These models cover univariate forecasting, volatility clustering, multivariate dynamic interactions, recursive structural impulse responses, and spillover-connectedness diagnostics.",
+      "key_inputs": [
+        "Time column",
+        "Series variable or multivariate series selection",
+        "Lag order, ARIMA / ARCH / GARCH order, horizon, and optional recursive shock ordering"
+      ],
+      "manual_checks": [
+        "Confirm the time column sorts correctly before estimation.",
+        "Recompute lagged design terms or volatility recursions in the downloaded sample.",
+        "Verify forecast horizons, lag order, and recursive ordering assumptions against the model specification panel."
+      ],
+      "methods": [
+        {
+          "slug": "arima",
+          "name": "ARIMA Forecast",
+          "description": "Univariate forecasting with explicit ARIMA(p,d,q) inputs.",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "detail_path": "/data-lab/models/time_series_finance/arima",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/arima",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=arima#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "ARIMA short-memory",
+              "description": "Use a compact ARIMA(1,0,1) configuration with short forecast steps.",
+              "spec": {
+                "arima_p": 1,
+                "arima_d": 0,
+                "arima_q": 1,
+                "forecast_steps": 4
+              }
+            },
+            {
+              "label": "ARIMA differenced trend",
+              "description": "Difference once and extend the forecast horizon for persistence checks.",
+              "spec": {
+                "arima_p": 2,
+                "arima_d": 1,
+                "arima_q": 1,
+                "forecast_steps": 8
+              }
+            }
+          ]
+        },
+        {
+          "slug": "arch",
+          "name": "ARCH",
+          "description": "Conditional heteroskedasticity model for volatility clustering in return series.",
+          "engine": "arch",
+          "engine_label": "arch",
+          "engine_available": true,
+          "engine_version": "8.0.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "arch",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "detail_path": "/data-lab/models/time_series_finance/arch",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/arch",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=arch#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "ARCH(1) baseline",
+              "description": "A simple ARCH-style volatility specification.",
+              "spec": {
+                "garch_p": 1,
+                "garch_q": 0,
+                "forecast_steps": 6
+              }
+            },
+            {
+              "label": "ARCH(2) check",
+              "description": "Increase ARCH order for a sensitivity pass on short volatility clustering.",
+              "spec": {
+                "garch_p": 2,
+                "garch_q": 0,
+                "forecast_steps": 8
+              }
+            }
+          ]
+        },
+        {
+          "slug": "garch",
+          "name": "GARCH",
+          "description": "Generalized ARCH model for persistent conditional variance dynamics.",
+          "engine": "arch",
+          "engine_label": "arch",
+          "engine_available": true,
+          "engine_version": "8.0.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "arch",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "detail_path": "/data-lab/models/time_series_finance/garch",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/garch",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=garch#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "GARCH(1,1) benchmark",
+              "description": "Use the canonical GARCH(1,1) specification.",
+              "spec": {
+                "garch_p": 1,
+                "garch_q": 1,
+                "forecast_steps": 6
+              }
+            },
+            {
+              "label": "GARCH(2,1) persistence check",
+              "description": "Increase the ARCH order and forecast horizon for a persistence comparison.",
+              "spec": {
+                "garch_p": 2,
+                "garch_q": 1,
+                "forecast_steps": 10
+              }
+            }
+          ]
+        },
+        {
+          "slug": "var",
+          "name": "Vector Autoregression",
+          "description": "Multivariate dynamic system for macro-finance spillovers.",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "detail_path": "/data-lab/models/time_series_finance/var",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/var",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=var#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "VAR short lag",
+              "description": "Use one lag and a shorter forecast window.",
+              "spec": {
+                "var_lags": 1,
+                "forecast_steps": 4
+              }
+            },
+            {
+              "label": "VAR longer lag",
+              "description": "Use two lags and extend the forecast horizon for a richer dynamic comparison.",
+              "spec": {
+                "var_lags": 2,
+                "forecast_steps": 8
+              }
+            }
+          ]
+        },
+        {
+          "slug": "svar_irf",
+          "name": "SVAR IRF",
+          "description": "Recursive-identified structural impulse responses and cumulative response paths.",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "detail_path": "/data-lab/models/time_series_finance/svar_irf",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/svar_irf",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=svar_irf#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "SVAR compact IRF",
+              "description": "Use a shorter horizon for compact impulse-response tables and figures.",
+              "spec": {
+                "var_lags": 1,
+                "irf_horizon": 8
+              }
+            },
+            {
+              "label": "SVAR extended IRF",
+              "description": "Use more lags and a longer horizon to inspect persistent structural responses.",
+              "spec": {
+                "var_lags": 2,
+                "irf_horizon": 16
+              }
+            }
+          ]
+        },
+        {
+          "slug": "virf",
+          "name": "VIRF",
+          "description": "Volatility impulse response path implied by a fitted GARCH(1,1) process.",
+          "detail_path": "/data-lab/models/time_series_finance/virf",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/virf",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=virf#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "One-sigma shock",
+              "description": "Trace the volatility impulse response from a one-sigma shock.",
+              "spec": {
+                "virf_shock_size": 1.0,
+                "forecast_steps": 6
+              }
+            },
+            {
+              "label": "Two-sigma shock",
+              "description": "Increase the shock size to inspect stronger volatility propagation.",
+              "spec": {
+                "virf_shock_size": 2.0,
+                "forecast_steps": 10
+              }
+            }
+          ]
+        },
+        {
+          "slug": "dy_connectedness",
+          "name": "DY Connectedness",
+          "description": "Diebold-Yilmaz spillover table and total connectedness index from generalized FEVD.",
+          "detail_path": "/data-lab/models/time_series_finance/dy_connectedness",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/dy_connectedness",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=dy_connectedness#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Short spillover window",
+              "description": "Use a compact connectedness horizon with one lag.",
+              "spec": {
+                "var_lags": 1,
+                "irf_horizon": 8
+              }
+            },
+            {
+              "label": "Extended spillover window",
+              "description": "Extend both lag order and horizon for longer connectedness diagnostics.",
+              "spec": {
+                "var_lags": 2,
+                "irf_horizon": 16
+              }
+            }
+          ]
+        },
+        {
+          "slug": "bk_connectedness",
+          "name": "BK Connectedness",
+          "description": "Barunik-Krehlik frequency connectedness decomposition across short, medium, and long horizons.",
+          "detail_path": "/data-lab/models/time_series_finance/bk_connectedness",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/bk_connectedness",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=bk_connectedness#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Short/medium frequency split",
+              "description": "Use tighter short and medium frequency cutoffs.",
+              "spec": {
+                "var_lags": 1,
+                "irf_horizon": 12,
+                "bk_short_horizon": 4,
+                "bk_medium_horizon": 16
+              }
+            },
+            {
+              "label": "Longer frequency split",
+              "description": "Expand the BK horizons to emphasize slower cyclical connectedness.",
+              "spec": {
+                "var_lags": 2,
+                "irf_horizon": 20,
+                "bk_short_horizon": 6,
+                "bk_medium_horizon": 24
+              }
+            }
+          ]
+        },
+        {
+          "slug": "varmax",
+          "name": "VARMAX",
+          "description": "State-space VARMAX model for multivariate dynamics with moving-average terms.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "VARMAX system table",
+              "Forecast summary table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Forecast path plot",
+              "Residual diagnostics plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/time_series_finance/varmax",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/varmax",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=varmax#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "vecm",
+          "name": "VECM",
+          "description": "Vector error-correction model for cointegrated multivariate systems.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "VECM coefficient table",
+              "Cointegration summary table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Impulse-response plot",
+              "Error-correction path plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/time_series_finance/vecm",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/vecm",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=vecm#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "markov_switching",
+          "name": "Markov Switching",
+          "description": "Regime-switching model with latent states and filtered probabilities.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Markov-switching summary table",
+              "State probability table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Smoothed state probability plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/time_series_finance/markov_switching",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/markov_switching",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=markov_switching#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "unobserved_components",
+          "name": "Unobserved Components",
+          "description": "State-space decomposition into trend, cycle, and irregular components.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Component summary table",
+              "Trend/cycle decomposition table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Trend decomposition plot",
+              "Component contribution plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/time_series_finance/unobserved_components",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/unobserved_components",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=unobserved_components#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "exponential_smoothing",
+          "name": "Exponential Smoothing",
+          "description": "ETS forecast model with level, trend, and seasonality controls.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "ETS summary table",
+              "Forecast comparison table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Forecast path plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "statsmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "statsmodels",
+          "engine_label": "statsmodels",
+          "engine_available": true,
+          "engine_version": "0.14.6",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/time_series_finance/exponential_smoothing",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/exponential_smoothing",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=exponential_smoothing#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "egarch",
+          "name": "EGARCH",
+          "description": "Exponential GARCH model for asymmetric volatility responses.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "EGARCH parameter table",
+              "Volatility forecast table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Conditional volatility plot",
+              "Forecast volatility plot"
+            ],
+            "diagnostics": [
+              "Residual diagnostic table"
+            ]
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "arch",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "arch",
+          "engine_label": "arch",
+          "engine_available": true,
+          "engine_version": "8.0.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/time_series_finance/egarch",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/egarch",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=egarch#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "gjr_garch",
+          "name": "GJR-GARCH",
+          "description": "Threshold GARCH model with leverage effects.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "GJR-GARCH parameter table",
+              "Volatility forecast table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Conditional volatility plot",
+              "Forecast volatility plot"
+            ],
+            "diagnostics": [
+              "Residual diagnostic table"
+            ]
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "arch",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "arch",
+          "engine_label": "arch",
+          "engine_available": true,
+          "engine_version": "8.0.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/time_series_finance/gjr_garch",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/gjr_garch",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=gjr_garch#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "harx",
+          "name": "HARX",
+          "description": "Heterogeneous autoregressive model with exogenous features for realized-volatility style problems.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "HARX parameter table",
+              "Forecast table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Forecast path plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "arch",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "arch",
+          "engine_label": "arch",
+          "engine_available": true,
+          "engine_version": "8.0.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/time_series_finance/harx",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/harx",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=harx#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "adf_test",
+          "name": "ADF Unit Root Test",
+          "description": "Augmented Dickey-Fuller unit root test with lag and trend options.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "ADF test table",
+              "Lag selection table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Series level plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "arch",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "arch",
+          "engine_label": "arch",
+          "engine_available": true,
+          "engine_version": "8.0.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/time_series_finance/adf_test",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/adf_test",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=adf_test#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "kpss_test",
+          "name": "KPSS Stationarity Test",
+          "description": "KPSS stationarity test with level or trend null.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "KPSS test table",
+              "Bandwidth table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Series level plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "arch",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "arch",
+          "engine_label": "arch",
+          "engine_available": true,
+          "engine_version": "8.0.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/time_series_finance/kpss_test",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/kpss_test",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=kpss_test#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "pp_test",
+          "name": "Phillips-Perron Test",
+          "description": "Phillips-Perron unit root test with heteroskedasticity-robust correction.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Phillips-Perron test table",
+              "Bandwidth table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Series level plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "arch",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "arch",
+          "engine_label": "arch",
+          "engine_available": true,
+          "engine_version": "8.0.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/time_series_finance/pp_test",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/pp_test",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=pp_test#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "zivot_andrews",
+          "name": "Zivot-Andrews Break Test",
+          "description": "Unit root test with a single endogenous structural break.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Zivot-Andrews test table",
+              "Break-date summary table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Series with break marker plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "arch",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "arch",
+          "engine_label": "arch",
+          "engine_available": true,
+          "engine_version": "8.0.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/time_series_finance/zivot_andrews",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/zivot_andrews",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=zivot_andrews#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "engle_granger",
+          "name": "Engle-Granger Cointegration",
+          "description": "Residual-based cointegration test for long-run equilibrium relationships.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Cointegration test table",
+              "Long-run regression table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Residual stationarity plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "arch",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "arch",
+          "engine_label": "arch",
+          "engine_available": true,
+          "engine_version": "8.0.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/time_series_finance/engle_granger",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/engle_granger",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=engle_granger#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "dynamic_ols",
+          "name": "Dynamic OLS",
+          "description": "Cointegration estimator with leads and lags of first differences.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Dynamic OLS main table",
+              "Lead-lag audit table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Fitted long-run relation plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "arch",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "arch",
+          "engine_label": "arch",
+          "engine_available": true,
+          "engine_version": "8.0.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/time_series_finance/dynamic_ols",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/dynamic_ols",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=dynamic_ols#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "fm_ols",
+          "name": "Fully Modified OLS",
+          "description": "Cointegration estimator robust to endogeneity and serial correlation.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "FM-OLS main table",
+              "Kernel/bandwidth audit table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Long-run fit plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "series_columns",
+              "time_column",
+              "forecast_steps",
+              "lag_order",
+              "difference_order",
+              "distribution",
+              "volatility_family",
+              "impulse_column",
+              "response_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "arch",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "arch",
+          "engine_label": "arch",
+          "engine_available": true,
+          "engine_version": "8.0.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/time_series_finance/fm_ols",
+          "teaching_path": "/data-lab/learn/models/time_series_finance/fm_ols",
+          "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=fm_ols#data-lab-workbench",
+          "variant_presets": []
+        }
+      ],
+      "default_workbench_query": {
+        "workflow": "model",
+        "model_family": "time_series_finance",
+        "model_type": "arima"
+      },
+      "detail_path": "/data-lab/models/time_series_finance",
+      "workbench_path": "/data-lab?workflow=model&model_family=time_series_finance&model_type=arima#data-lab-workbench",
+      "variant_presets": [
+        {
+          "label": "Short horizon",
+          "description": "Use a short forecast and impulse-response horizon with one lag.",
+          "spec": {
+            "forecast_steps": 4,
+            "irf_horizon": 8,
+            "var_lags": 1
+          }
+        },
+        {
+          "label": "Long horizon",
+          "description": "Stretch the dynamic horizon and lag order to inspect persistence and longer spillovers.",
+          "spec": {
+            "forecast_steps": 12,
+            "irf_horizon": 20,
+            "var_lags": 2
+          }
+        }
+      ]
+    },
+    {
+      "slug": "corporate_finance",
+      "title": "Corporate Finance",
+      "category": "model",
+      "category_label": "Model",
+      "summary": "Transparent ratio-based diagnostics for firm health and profitability structure.",
+      "description": "Use this family when the main need is interpretability rather than structural estimation. It exposes each financial ratio and lets users cross-check the accounting arithmetic directly.",
+      "key_inputs": [
+        "Working capital, retained earnings, EBIT, market equity, assets, liabilities, sales",
+        "Net income, revenue, and equity for DuPont decomposition"
+      ],
+      "manual_checks": [
+        "Recompute every ratio from the raw firm-level columns.",
+        "Check sign conventions and units before interpreting score thresholds.",
+        "Compare the displayed metrics against a manual spreadsheet calculation."
+      ],
+      "methods": [
+        {
+          "slug": "altman_z",
+          "name": "Altman Z-Score",
+          "description": "Firm distress screening using the classic Z-Score ratio combination.",
+          "detail_path": "/data-lab/models/corporate_finance/altman_z",
+          "teaching_path": "/data-lab/learn/models/corporate_finance/altman_z",
+          "workbench_path": "/data-lab?workflow=model&model_family=corporate_finance&model_type=altman_z#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Balance-sheet focus",
+              "description": "A bookkeeping-focused corporate-finance pass that keeps the emphasis on balance-sheet variables.",
+              "spec": {}
+            }
+          ]
+        },
+        {
+          "slug": "dupont",
+          "name": "DuPont Analysis",
+          "description": "Profit margin, asset turnover, and leverage decomposition of ROE.",
+          "detail_path": "/data-lab/models/corporate_finance/dupont",
+          "teaching_path": "/data-lab/learn/models/corporate_finance/dupont",
+          "workbench_path": "/data-lab?workflow=model&model_family=corporate_finance&model_type=dupont#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Balance-sheet focus",
+              "description": "A bookkeeping-focused corporate-finance pass that keeps the emphasis on balance-sheet variables.",
+              "spec": {}
+            }
+          ]
+        }
+      ],
+      "default_workbench_query": {
+        "workflow": "model",
+        "model_family": "corporate_finance",
+        "model_type": "altman_z"
+      },
+      "detail_path": "/data-lab/models/corporate_finance",
+      "workbench_path": "/data-lab?workflow=model&model_family=corporate_finance&model_type=altman_z#data-lab-workbench",
+      "variant_presets": [
+        {
+          "label": "Balance-sheet focus",
+          "description": "A bookkeeping-focused corporate-finance pass that keeps the emphasis on balance-sheet variables.",
+          "spec": {}
+        }
+      ]
+    },
+    {
+      "slug": "risk_management",
+      "title": "Risk Management",
+      "category": "model",
+      "category_label": "Model",
+      "summary": "Loss and volatility diagnostics for market risk workflows.",
+      "description": "Use this family when the focus is downside risk, volatility persistence, or stress-style tail diagnostics rather than causal inference.",
+      "key_inputs": [
+        "Return or loss series",
+        "Confidence level and holding period",
+        "EWMA decay parameter for volatility tracking"
+      ],
+      "manual_checks": [
+        "Recompute the empirical tail cutoff from the downloaded sample.",
+        "Check confidence level and holding-period scaling before comparing VaR numbers.",
+        "Verify EWMA recursion against a hand-built spreadsheet for at least several rows."
+      ],
+      "methods": [
+        {
+          "slug": "historical_var",
+          "name": "Historical VaR / ES",
+          "description": "Nonparametric tail-risk calculation from the empirical distribution.",
+          "detail_path": "/data-lab/models/risk_management/historical_var",
+          "teaching_path": "/data-lab/learn/models/risk_management/historical_var",
+          "workbench_path": "/data-lab?workflow=model&model_family=risk_management&model_type=historical_var#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Tighter confidence",
+              "description": "Estimate risk metrics at a 99 percent confidence level.",
+              "spec": {
+                "confidence_level": 0.99
+              }
+            },
+            {
+              "label": "Multi-day horizon",
+              "description": "Expand the holding period to inspect longer horizon loss aggregation.",
+              "spec": {
+                "holding_period_days": 5
+              }
+            }
+          ]
+        },
+        {
+          "slug": "parametric_var",
+          "name": "Parametric VaR / ES",
+          "description": "Normal-style VaR and expected shortfall from estimated mean and volatility.",
+          "detail_path": "/data-lab/models/risk_management/parametric_var",
+          "teaching_path": "/data-lab/learn/models/risk_management/parametric_var",
+          "workbench_path": "/data-lab?workflow=model&model_family=risk_management&model_type=parametric_var#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Tighter confidence",
+              "description": "Estimate risk metrics at a 99 percent confidence level.",
+              "spec": {
+                "confidence_level": 0.99
+              }
+            },
+            {
+              "label": "Multi-day horizon",
+              "description": "Expand the holding period to inspect longer horizon loss aggregation.",
+              "spec": {
+                "holding_period_days": 5
+              }
+            }
+          ]
+        },
+        {
+          "slug": "ewma_volatility",
+          "name": "EWMA Volatility",
+          "description": "Exponentially weighted volatility dynamics for recent-history emphasis.",
+          "detail_path": "/data-lab/models/risk_management/ewma_volatility",
+          "teaching_path": "/data-lab/learn/models/risk_management/ewma_volatility",
+          "workbench_path": "/data-lab?workflow=model&model_family=risk_management&model_type=ewma_volatility#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Baseline lambda",
+              "description": "Use the canonical RiskMetrics-style lambda.",
+              "spec": {
+                "ewma_lambda": 0.94,
+                "forecast_steps": 10
+              }
+            },
+            {
+              "label": "Faster decay",
+              "description": "Reduce lambda to emphasize recent shocks more aggressively.",
+              "spec": {
+                "ewma_lambda": 0.9,
+                "forecast_steps": 10
+              }
+            }
+          ]
+        }
+      ],
+      "default_workbench_query": {
+        "workflow": "model",
+        "model_family": "risk_management",
+        "model_type": "historical_var"
+      },
+      "detail_path": "/data-lab/models/risk_management",
+      "workbench_path": "/data-lab?workflow=model&model_family=risk_management&model_type=historical_var#data-lab-workbench",
+      "variant_presets": [
+        {
+          "label": "Tighter confidence",
+          "description": "Estimate risk metrics at a 99 percent confidence level.",
+          "spec": {
+            "confidence_level": 0.99
+          }
+        },
+        {
+          "label": "Multi-day horizon",
+          "description": "Expand the holding period to inspect longer horizon loss aggregation.",
+          "spec": {
+            "holding_period_days": 5
+          }
+        }
+      ]
+    },
+    {
+      "slug": "derivatives_pricing",
+      "title": "Derivatives Pricing",
+      "category": "model",
+      "category_label": "Model",
+      "summary": "Vanilla option-pricing workflows with transparent parameter exposure.",
+      "description": "Use this family for direct pricing of standard European-style calls and puts. The page shows all pricing inputs so the result can be checked against a calculator or spreadsheet.",
+      "key_inputs": [
+        "Spot, strike, time to maturity, rate, and volatility inputs",
+        "Option type and binomial step count"
+      ],
+      "manual_checks": [
+        "Verify the units of maturity and volatility before comparing prices.",
+        "Check the sign and scale of the risk-free rate.",
+        "Reproduce the price with an independent Black-Scholes or binomial calculator."
+      ],
+      "methods": [
+        {
+          "slug": "black_scholes",
+          "name": "Black-Scholes",
+          "description": "Closed-form pricing for European vanilla options.",
+          "detail_path": "/data-lab/models/derivatives_pricing/black_scholes",
+          "teaching_path": "/data-lab/learn/models/derivatives_pricing/black_scholes",
+          "workbench_path": "/data-lab?workflow=model&model_family=derivatives_pricing&model_type=black_scholes#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Call baseline",
+              "description": "Keep call-option pricing with a moderate binomial tree depth.",
+              "spec": {
+                "option_type": "call",
+                "option_steps": 50
+              }
+            },
+            {
+              "label": "Put robustness",
+              "description": "Re-price with a put payoff and a denser tree for a robustness comparison.",
+              "spec": {
+                "option_type": "put",
+                "option_steps": 100
+              }
+            }
+          ]
+        },
+        {
+          "slug": "binomial_option",
+          "name": "Binomial Option Pricing",
+          "description": "Discrete-time lattice pricing with user-specified step count.",
+          "detail_path": "/data-lab/models/derivatives_pricing/binomial_option",
+          "teaching_path": "/data-lab/learn/models/derivatives_pricing/binomial_option",
+          "workbench_path": "/data-lab?workflow=model&model_family=derivatives_pricing&model_type=binomial_option#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Call baseline",
+              "description": "Keep call-option pricing with a moderate binomial tree depth.",
+              "spec": {
+                "option_type": "call",
+                "option_steps": 50
+              }
+            },
+            {
+              "label": "Put robustness",
+              "description": "Re-price with a put payoff and a denser tree for a robustness comparison.",
+              "spec": {
+                "option_type": "put",
+                "option_steps": 100
+              }
+            }
+          ]
+        }
+      ],
+      "default_workbench_query": {
+        "workflow": "model",
+        "model_family": "derivatives_pricing",
+        "model_type": "black_scholes"
+      },
+      "detail_path": "/data-lab/models/derivatives_pricing",
+      "workbench_path": "/data-lab?workflow=model&model_family=derivatives_pricing&model_type=black_scholes#data-lab-workbench",
+      "variant_presets": [
+        {
+          "label": "Call baseline",
+          "description": "Keep call-option pricing with a moderate binomial tree depth.",
+          "spec": {
+            "option_type": "call",
+            "option_steps": 50
+          }
+        },
+        {
+          "label": "Put robustness",
+          "description": "Re-price with a put payoff and a denser tree for a robustness comparison.",
+          "spec": {
+            "option_type": "put",
+            "option_steps": 100
+          }
+        }
+      ]
+    },
+    {
+      "slug": "macro_finance_dsge",
+      "title": "Macro Finance & DSGE",
+      "category": "model",
+      "category_label": "Model",
+      "summary": "Policy-rule diagnostics and a lightweight dynamic general-equilibrium sandbox.",
+      "description": "Use this family when the question is macro-policy oriented. It exposes simple policy-rule and toy equilibrium parameters transparently rather than hiding them behind a black-box calibration.",
+      "key_inputs": [
+        "Inflation gap and output gap variables for Taylor-rule estimation",
+        "RBC/DSGE preference, technology, depreciation, and shock parameters"
+      ],
+      "manual_checks": [
+        "Confirm gap variables are already constructed consistently with the research design.",
+        "Recompute the Taylor-rule regression externally with the same specification.",
+        "For the toy DSGE module, verify calibration inputs and impulse horizon manually."
+      ],
+      "methods": [
+        {
+          "slug": "taylor_rule",
+          "name": "Taylor Rule",
+          "description": "Transparent reduced-form policy-rule regression.",
+          "detail_path": "/data-lab/models/macro_finance_dsge/taylor_rule",
+          "teaching_path": "/data-lab/learn/models/macro_finance_dsge/taylor_rule",
+          "workbench_path": "/data-lab?workflow=model&model_family=macro_finance_dsge&model_type=taylor_rule#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Baseline policy rule",
+              "description": "Keep the baseline Taylor-rule style specification.",
+              "spec": {
+                "robust_covariance": true
+              }
+            },
+            {
+              "label": "Classical policy rule",
+              "description": "Use classical covariance for a specification comparison.",
+              "spec": {
+                "robust_covariance": false
+              }
+            }
+          ]
+        },
+        {
+          "slug": "rbc_dsge",
+          "name": "Toy RBC / DSGE",
+          "description": "A simple calibration-style dynamic general-equilibrium sandbox.",
+          "detail_path": "/data-lab/models/macro_finance_dsge/rbc_dsge",
+          "teaching_path": "/data-lab/learn/models/macro_finance_dsge/rbc_dsge",
+          "workbench_path": "/data-lab?workflow=model&model_family=macro_finance_dsge&model_type=rbc_dsge#data-lab-workbench",
+          "variant_presets": []
+        }
+      ],
+      "default_workbench_query": {
+        "workflow": "model",
+        "model_family": "macro_finance_dsge",
+        "model_type": "taylor_rule"
+      },
+      "detail_path": "/data-lab/models/macro_finance_dsge",
+      "workbench_path": "/data-lab?workflow=model&model_family=macro_finance_dsge&model_type=taylor_rule#data-lab-workbench",
+      "variant_presets": [
+        {
+          "label": "Moderate persistence",
+          "description": "Use a moderate shock persistence and horizon suitable for a first DSGE-style impulse pass.",
+          "spec": {
+            "dsge_shock_persistence": 0.9,
+            "dsge_impulse_horizon": 12
+          }
+        },
+        {
+          "label": "High persistence",
+          "description": "Increase shock persistence and horizon to inspect more durable macro propagation.",
+          "spec": {
+            "dsge_shock_persistence": 0.97,
+            "dsge_impulse_horizon": 20
+          }
+        }
+      ]
+    },
+    {
+      "slug": "portfolio_allocation",
+      "title": "Portfolio Allocation",
+      "category": "model",
+      "category_label": "Model",
+      "summary": "Weight-construction workflows for mean-variance, minimum-variance, and risk-parity portfolios.",
+      "description": "Use this family when the output of interest is portfolio weights rather than a coefficient table. The emphasis is on explicit return inputs, risk preferences, and weight vectors that can be checked manually.",
+      "key_inputs": [
+        "Return series for each asset",
+        "Risk-aversion and long-only choice"
+      ],
+      "manual_checks": [
+        "Rebuild the sample covariance matrix from the prepared sample.",
+        "Verify the optimizer constraints, especially long-only assumptions.",
+        "Check that final weights sum to one and match the reported allocation table."
+      ],
+      "methods": [
+        {
+          "slug": "mean_variance",
+          "name": "Mean-Variance Portfolio",
+          "description": "Classic risk-return frontier allocation using expected returns and covariances.",
+          "engine": "pypfopt",
+          "engine_label": "PyPortfolioOpt",
+          "engine_available": true,
+          "engine_version": "1.6.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "pypfopt",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "series_columns",
+              "objective",
+              "weight_bounds",
+              "long_only",
+              "risk_free_rate",
+              "market_neutral",
+              "target_return",
+              "target_risk"
+            ]
+          },
+          "detail_path": "/data-lab/models/portfolio_allocation/mean_variance",
+          "teaching_path": "/data-lab/learn/models/portfolio_allocation/mean_variance",
+          "workbench_path": "/data-lab?workflow=model&model_family=portfolio_allocation&model_type=mean_variance#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Long-only benchmark",
+              "description": "Keep the portfolio constrained to long-only allocations.",
+              "spec": {
+                "long_only": true,
+                "risk_aversion": 3.0
+              }
+            },
+            {
+              "label": "Flexible allocation",
+              "description": "Relax the long-only constraint and reduce risk aversion for a more aggressive allocation design.",
+              "spec": {
+                "long_only": false,
+                "risk_aversion": 2.0
+              }
+            }
+          ]
+        },
+        {
+          "slug": "minimum_variance",
+          "name": "Minimum Variance Portfolio",
+          "description": "Variance-minimizing allocation under the chosen constraint set.",
+          "engine": "pypfopt",
+          "engine_label": "PyPortfolioOpt",
+          "engine_available": true,
+          "engine_version": "1.6.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "pypfopt",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "series_columns",
+              "objective",
+              "weight_bounds",
+              "long_only",
+              "risk_free_rate",
+              "market_neutral",
+              "target_return",
+              "target_risk"
+            ]
+          },
+          "detail_path": "/data-lab/models/portfolio_allocation/minimum_variance",
+          "teaching_path": "/data-lab/learn/models/portfolio_allocation/minimum_variance",
+          "workbench_path": "/data-lab?workflow=model&model_family=portfolio_allocation&model_type=minimum_variance#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Long-only benchmark",
+              "description": "Keep the portfolio constrained to long-only allocations.",
+              "spec": {
+                "long_only": true,
+                "risk_aversion": 3.0
+              }
+            },
+            {
+              "label": "Flexible allocation",
+              "description": "Relax the long-only constraint and reduce risk aversion for a more aggressive allocation design.",
+              "spec": {
+                "long_only": false,
+                "risk_aversion": 2.0
+              }
+            }
+          ]
+        },
+        {
+          "slug": "risk_parity",
+          "name": "Risk Parity Portfolio",
+          "description": "Allocation that balances risk contribution across assets.",
+          "engine": "pypfopt",
+          "engine_label": "PyPortfolioOpt",
+          "engine_available": true,
+          "engine_version": "1.6.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": false,
+          "baseline_engine": "baseline",
+          "candidate_engine": "pypfopt",
+          "comparison_required": true,
+          "comparison_status": "pending",
+          "variant_schema": {
+            "shared": [
+              "series_columns",
+              "objective",
+              "weight_bounds",
+              "long_only",
+              "risk_free_rate",
+              "market_neutral",
+              "target_return",
+              "target_risk"
+            ]
+          },
+          "detail_path": "/data-lab/models/portfolio_allocation/risk_parity",
+          "teaching_path": "/data-lab/learn/models/portfolio_allocation/risk_parity",
+          "workbench_path": "/data-lab?workflow=model&model_family=portfolio_allocation&model_type=risk_parity#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Long-only benchmark",
+              "description": "Keep the portfolio constrained to long-only allocations.",
+              "spec": {
+                "long_only": true,
+                "risk_aversion": 3.0
+              }
+            },
+            {
+              "label": "Flexible allocation",
+              "description": "Relax the long-only constraint and reduce risk aversion for a more aggressive allocation design.",
+              "spec": {
+                "long_only": false,
+                "risk_aversion": 2.0
+              }
+            }
+          ]
+        },
+        {
+          "slug": "efficient_frontier",
+          "name": "Efficient Frontier",
+          "description": "Mean-variance frontier and optimal portfolio under configurable objectives.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Weight table",
+              "Risk-return summary table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Efficient frontier plot",
+              "Weight allocation plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "series_columns",
+              "objective",
+              "weight_bounds",
+              "long_only",
+              "risk_free_rate",
+              "market_neutral",
+              "target_return",
+              "target_risk"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "pypfopt",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "pypfopt",
+          "engine_label": "PyPortfolioOpt",
+          "engine_available": true,
+          "engine_version": "1.6.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/portfolio_allocation/efficient_frontier",
+          "teaching_path": "/data-lab/learn/models/portfolio_allocation/efficient_frontier",
+          "workbench_path": "/data-lab?workflow=model&model_family=portfolio_allocation&model_type=efficient_frontier#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "semivariance_frontier",
+          "name": "Efficient Semivariance",
+          "description": "Downside-risk frontier using semivariance instead of total variance.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Semivariance allocation table",
+              "Downside-risk summary table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Semivariance frontier plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "series_columns",
+              "objective",
+              "weight_bounds",
+              "long_only",
+              "risk_free_rate",
+              "market_neutral",
+              "target_return",
+              "target_risk"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "pypfopt",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "pypfopt",
+          "engine_label": "PyPortfolioOpt",
+          "engine_available": true,
+          "engine_version": "1.6.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/portfolio_allocation/semivariance_frontier",
+          "teaching_path": "/data-lab/learn/models/portfolio_allocation/semivariance_frontier",
+          "workbench_path": "/data-lab?workflow=model&model_family=portfolio_allocation&model_type=semivariance_frontier#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "cvar_frontier",
+          "name": "Efficient CVaR",
+          "description": "Tail-risk-aware allocation using CVaR optimization.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "CVaR allocation table",
+              "Tail-risk summary table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "CVaR frontier plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "series_columns",
+              "objective",
+              "weight_bounds",
+              "long_only",
+              "risk_free_rate",
+              "market_neutral",
+              "target_return",
+              "target_risk"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "pypfopt",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "pypfopt",
+          "engine_label": "PyPortfolioOpt",
+          "engine_available": true,
+          "engine_version": "1.6.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/portfolio_allocation/cvar_frontier",
+          "teaching_path": "/data-lab/learn/models/portfolio_allocation/cvar_frontier",
+          "workbench_path": "/data-lab?workflow=model&model_family=portfolio_allocation&model_type=cvar_frontier#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "black_litterman",
+          "name": "Black-Litterman",
+          "description": "Bayesian portfolio combination of equilibrium returns and user views.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Black-Litterman weights table",
+              "Posterior return table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Posterior allocation plot",
+              "View impact plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "series_columns",
+              "objective",
+              "weight_bounds",
+              "long_only",
+              "risk_free_rate",
+              "market_neutral",
+              "target_return",
+              "target_risk"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "pypfopt",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "pypfopt",
+          "engine_label": "PyPortfolioOpt",
+          "engine_available": true,
+          "engine_version": "1.6.0",
+          "engine_note": "",
+          "async_only": true,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/portfolio_allocation/black_litterman",
+          "teaching_path": "/data-lab/learn/models/portfolio_allocation/black_litterman",
+          "workbench_path": "/data-lab?workflow=model&model_family=portfolio_allocation&model_type=black_litterman#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "hrp",
+          "name": "Hierarchical Risk Parity",
+          "description": "Clustering-based portfolio construction with hierarchical risk parity.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "HRP weights table",
+              "Cluster risk table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Dendrogram plot",
+              "Risk contribution plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "series_columns",
+              "objective",
+              "weight_bounds",
+              "long_only",
+              "risk_free_rate",
+              "market_neutral",
+              "target_return",
+              "target_risk"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "pypfopt",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "pypfopt",
+          "engine_label": "PyPortfolioOpt",
+          "engine_available": true,
+          "engine_version": "1.6.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/portfolio_allocation/hrp",
+          "teaching_path": "/data-lab/learn/models/portfolio_allocation/hrp",
+          "workbench_path": "/data-lab?workflow=model&model_family=portfolio_allocation&model_type=hrp#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "discrete_allocation",
+          "name": "Discrete Allocation",
+          "description": "Translate continuous weights into integer holdings for implementable portfolios.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Discrete allocation table",
+              "Cash remainder table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Allocation value plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "series_columns",
+              "objective",
+              "weight_bounds",
+              "long_only",
+              "risk_free_rate",
+              "market_neutral",
+              "target_return",
+              "target_risk"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "pypfopt",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "pypfopt",
+          "engine_label": "PyPortfolioOpt",
+          "engine_available": true,
+          "engine_version": "1.6.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/portfolio_allocation/discrete_allocation",
+          "teaching_path": "/data-lab/learn/models/portfolio_allocation/discrete_allocation",
+          "workbench_path": "/data-lab?workflow=model&model_family=portfolio_allocation&model_type=discrete_allocation#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "cdar_frontier",
+          "name": "CDaR Frontier",
+          "description": "Portfolio optimization using Conditional Drawdown at Risk as the risk objective.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Weight table",
+              "Drawdown risk table",
+              "Allocation summary table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Drawdown frontier plot",
+              "Weight allocation plot"
+            ],
+            "diagnostics": [
+              "Constraint audit table"
+            ]
+          },
+          "variant_schema": {
+            "shared": [
+              "series_columns",
+              "objective",
+              "weight_bounds",
+              "long_only",
+              "risk_free_rate",
+              "market_neutral",
+              "target_return",
+              "target_risk"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "pypfopt",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "pypfopt",
+          "engine_label": "PyPortfolioOpt",
+          "engine_available": true,
+          "engine_version": "1.6.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/portfolio_allocation/cdar_frontier",
+          "teaching_path": "/data-lab/learn/models/portfolio_allocation/cdar_frontier",
+          "workbench_path": "/data-lab?workflow=model&model_family=portfolio_allocation&model_type=cdar_frontier#data-lab-workbench",
+          "variant_presets": []
+        }
+      ],
+      "default_workbench_query": {
+        "workflow": "model",
+        "model_family": "portfolio_allocation",
+        "model_type": "mean_variance"
+      },
+      "detail_path": "/data-lab/models/portfolio_allocation",
+      "workbench_path": "/data-lab?workflow=model&model_family=portfolio_allocation&model_type=mean_variance#data-lab-workbench",
+      "variant_presets": [
+        {
+          "label": "Long-only benchmark",
+          "description": "Keep the portfolio constrained to long-only allocations.",
+          "spec": {
+            "long_only": true,
+            "risk_aversion": 3.0
+          }
+        },
+        {
+          "label": "Flexible allocation",
+          "description": "Relax the long-only constraint and reduce risk aversion for a more aggressive allocation design.",
+          "spec": {
+            "long_only": false,
+            "risk_aversion": 2.0
+          }
+        }
+      ]
+    },
+    {
+      "slug": "asset_pricing",
+      "title": "Asset Pricing",
+      "category": "model",
+      "category_label": "Model",
+      "summary": "Factor-based return regressions with exposed excess-return construction.",
+      "description": "Use this family when the focus is factor exposure and expected-return decomposition. The page keeps factor construction explicit so users can verify each excess-return series before estimation.",
+      "key_inputs": [
+        "Asset return series, market factor, and risk-free rate",
+        "SMB and HML factors for the Fama-French specification"
+      ],
+      "manual_checks": [
+        "Rebuild asset excess returns and market excess returns from the downloaded sample.",
+        "Check factor alignment and frequency before comparing alphas and betas.",
+        "Re-estimate the regression externally and compare coefficients term by term."
+      ],
+      "methods": [
+        {
+          "slug": "capm",
+          "name": "CAPM",
+          "description": "Single-factor pricing regression with market excess returns.",
+          "detail_path": "/data-lab/models/asset_pricing/capm",
+          "teaching_path": "/data-lab/learn/models/asset_pricing/capm",
+          "workbench_path": "/data-lab?workflow=model&model_family=asset_pricing&model_type=capm#data-lab-workbench",
+          "variant_presets": [
+            {
+              "label": "Robust factor regression",
+              "description": "Use robust covariance in the asset-pricing regression baseline.",
+              "spec": {
+                "robust_covariance": true
+              }
+            },
+            {
+              "label": "Classical factor regression",
+              "description": "Re-run the factor regression with classical covariance for comparison against robust inference.",
+              "spec": {
+                "robust_covariance": false
+              }
+            }
+          ]
+        },
+        {
+          "slug": "fama_french_3",
+          "name": "Fama-French 3-Factor",
+          "description": "Multi-factor pricing regression with SMB and HML exposures.",
+          "detail_path": "/data-lab/models/asset_pricing/fama_french_3",
+          "teaching_path": "/data-lab/learn/models/asset_pricing/fama_french_3",
+          "workbench_path": "/data-lab?workflow=model&model_family=asset_pricing&model_type=fama_french_3#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "traded_factor_model",
+          "name": "Traded Factor Model",
+          "description": "Linear factor model for traded factors with alpha and risk-premia diagnostics.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Risk premia table",
+              "Alpha table",
+              "Beta loading table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Factor pricing summary plot"
+            ],
+            "diagnostics": [
+              "J-test or pricing-error summary"
+            ]
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "linearmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "linearmodels",
+          "engine_label": "linearmodels",
+          "engine_available": true,
+          "engine_version": "7.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/asset_pricing/traded_factor_model",
+          "teaching_path": "/data-lab/learn/models/asset_pricing/traded_factor_model",
+          "workbench_path": "/data-lab?workflow=model&model_family=asset_pricing&model_type=traded_factor_model#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "linear_factor_gmm",
+          "name": "Linear Factor GMM",
+          "description": "GMM-based linear factor pricing model for non-traded or estimated factors.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Risk premia table",
+              "Moment condition table",
+              "Factor loading table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Pricing error comparison plot"
+            ],
+            "diagnostics": [
+              "GMM objective and over-identification table"
+            ]
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "entity_column",
+              "time_column",
+              "robust_covariance",
+              "subset_filter",
+              "lag_terms",
+              "lead_terms",
+              "log_transform_columns",
+              "interaction_terms",
+              "quadratic_terms"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "linearmodels",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "linearmodels",
+          "engine_label": "linearmodels",
+          "engine_available": true,
+          "engine_version": "7.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/asset_pricing/linear_factor_gmm",
+          "teaching_path": "/data-lab/learn/models/asset_pricing/linear_factor_gmm",
+          "workbench_path": "/data-lab?workflow=model&model_family=asset_pricing&model_type=linear_factor_gmm#data-lab-workbench",
+          "variant_presets": []
+        }
+      ],
+      "default_workbench_query": {
+        "workflow": "model",
+        "model_family": "asset_pricing",
+        "model_type": "capm"
+      },
+      "detail_path": "/data-lab/models/asset_pricing",
+      "workbench_path": "/data-lab?workflow=model&model_family=asset_pricing&model_type=capm#data-lab-workbench",
+      "variant_presets": [
+        {
+          "label": "Robust factor regression",
+          "description": "Use robust covariance in the asset-pricing regression baseline.",
+          "spec": {
+            "robust_covariance": true
+          }
+        },
+        {
+          "label": "Classical factor regression",
+          "description": "Re-run the factor regression with classical covariance for comparison against robust inference.",
+          "spec": {
+            "robust_covariance": false
+          }
+        }
+      ]
+    },
+    {
+      "slug": "causal_inference",
+      "title": "Causal Inference",
+      "category": "model",
+      "category_label": "Model",
+      "summary": "Policy-evaluation and design-based causal estimators with explicit identification checks.",
+      "description": "Use this family for quasi-experimental designs such as staggered adoption, synthetic controls, interrupted time series, and regression-kink style identification.",
+      "key_inputs": [
+        "Outcome, treatment, time, design variables",
+        "Donor pool or pre-treatment structure",
+        "Placebo and pre-trend settings"
+      ],
+      "manual_checks": [
+        "Confirm treatment timing definitions.",
+        "Inspect donor/pre-period balance.",
+        "Validate placebo or sensitivity outputs against the design narrative."
+      ],
+      "variant_schema": {
+        "shared": [
+          "dependent",
+          "treatment_column",
+          "post_column",
+          "event_time_column",
+          "running_column",
+          "cutoff",
+          "bandwidth",
+          "entity_column",
+          "time_column",
+          "include_time_effects",
+          "donor_pool",
+          "placebo_checks",
+          "pretrend_checks"
+        ]
+      },
+      "methods": [
+        {
+          "slug": "staggered_did",
+          "name": "Staggered DID",
+          "description": "Difference-in-differences with staggered adoption timing and cohort-time effects.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Main staggered DID table",
+              "Cohort-time effect table"
+            ],
+            "robustness_tables": [
+              "Placebo or alternative timing table"
+            ],
+            "figures": [
+              "Dynamic treatment effect plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "treatment_column",
+              "post_column",
+              "event_time_column",
+              "running_column",
+              "cutoff",
+              "bandwidth",
+              "entity_column",
+              "time_column",
+              "include_time_effects",
+              "donor_pool",
+              "placebo_checks",
+              "pretrend_checks"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "causalpy",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "causalpy",
+          "engine_label": "CausalPy",
+          "engine_available": true,
+          "engine_version": "0.8.0",
+          "engine_note": "",
+          "async_only": true,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/causal_inference/staggered_did",
+          "teaching_path": "/data-lab/learn/models/causal_inference/staggered_did",
+          "workbench_path": "/data-lab?workflow=model&model_family=causal_inference&model_type=staggered_did#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "synthetic_control",
+          "name": "Synthetic Control",
+          "description": "Construct a synthetic counterfactual from donor units for case-study treatment analysis.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Synthetic-control fit table",
+              "Donor weight table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Observed vs synthetic path plot",
+              "Gap plot"
+            ],
+            "diagnostics": [
+              "Pre-treatment fit diagnostics"
+            ]
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "treatment_column",
+              "post_column",
+              "event_time_column",
+              "running_column",
+              "cutoff",
+              "bandwidth",
+              "entity_column",
+              "time_column",
+              "include_time_effects",
+              "donor_pool",
+              "placebo_checks",
+              "pretrend_checks"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "causalpy",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "causalpy",
+          "engine_label": "CausalPy",
+          "engine_available": true,
+          "engine_version": "0.8.0",
+          "engine_note": "",
+          "async_only": true,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/causal_inference/synthetic_control",
+          "teaching_path": "/data-lab/learn/models/causal_inference/synthetic_control",
+          "workbench_path": "/data-lab?workflow=model&model_family=causal_inference&model_type=synthetic_control#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "interrupted_time_series",
+          "name": "Interrupted Time Series",
+          "description": "Estimate level and slope changes after a policy interruption in ordered data.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "ITS coefficient table",
+              "Pre/post slope summary table"
+            ],
+            "robustness_tables": [
+              "Alternative break-date table"
+            ],
+            "figures": [
+              "Observed vs fitted ITS plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "treatment_column",
+              "post_column",
+              "event_time_column",
+              "running_column",
+              "cutoff",
+              "bandwidth",
+              "entity_column",
+              "time_column",
+              "include_time_effects",
+              "donor_pool",
+              "placebo_checks",
+              "pretrend_checks"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "causalpy",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "causalpy",
+          "engine_label": "CausalPy",
+          "engine_available": true,
+          "engine_version": "0.8.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/causal_inference/interrupted_time_series",
+          "teaching_path": "/data-lab/learn/models/causal_inference/interrupted_time_series",
+          "workbench_path": "/data-lab?workflow=model&model_family=causal_inference&model_type=interrupted_time_series#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "regression_kink",
+          "name": "Regression Kink",
+          "description": "Causal identification from slope changes at a known kink point.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Regression kink table",
+              "Bandwidth and slope audit table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Kink diagnostic plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "treatment_column",
+              "post_column",
+              "event_time_column",
+              "running_column",
+              "cutoff",
+              "bandwidth",
+              "entity_column",
+              "time_column",
+              "include_time_effects",
+              "donor_pool",
+              "placebo_checks",
+              "pretrend_checks"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "causalpy",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "causalpy",
+          "engine_label": "CausalPy",
+          "engine_available": true,
+          "engine_version": "0.8.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/causal_inference/regression_kink",
+          "teaching_path": "/data-lab/learn/models/causal_inference/regression_kink",
+          "workbench_path": "/data-lab?workflow=model&model_family=causal_inference&model_type=regression_kink#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "instrumental_causal",
+          "name": "Instrumental Variable Causal",
+          "description": "CausalPy IV workflow with design-oriented diagnostics.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Causal IV main table",
+              "First-stage diagnostic table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Fitted treatment plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "treatment_column",
+              "post_column",
+              "event_time_column",
+              "running_column",
+              "cutoff",
+              "bandwidth",
+              "entity_column",
+              "time_column",
+              "include_time_effects",
+              "donor_pool",
+              "placebo_checks",
+              "pretrend_checks"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "causalpy",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "causalpy",
+          "engine_label": "CausalPy",
+          "engine_available": true,
+          "engine_version": "0.8.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/causal_inference/instrumental_causal",
+          "teaching_path": "/data-lab/learn/models/causal_inference/instrumental_causal",
+          "workbench_path": "/data-lab?workflow=model&model_family=causal_inference&model_type=instrumental_causal#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "inverse_propensity_weighting",
+          "name": "Inverse Propensity Weighting",
+          "description": "Reweight observational samples using estimated treatment propensities.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "IPW treatment-effect table",
+              "Propensity summary table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Propensity overlap plot"
+            ],
+            "diagnostics": [
+              "Balance diagnostic table"
+            ]
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "treatment_column",
+              "post_column",
+              "event_time_column",
+              "running_column",
+              "cutoff",
+              "bandwidth",
+              "entity_column",
+              "time_column",
+              "include_time_effects",
+              "donor_pool",
+              "placebo_checks",
+              "pretrend_checks"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "causalpy",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "causalpy",
+          "engine_label": "CausalPy",
+          "engine_available": true,
+          "engine_version": "0.8.0",
+          "engine_note": "",
+          "async_only": false,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/causal_inference/inverse_propensity_weighting",
+          "teaching_path": "/data-lab/learn/models/causal_inference/inverse_propensity_weighting",
+          "workbench_path": "/data-lab?workflow=model&model_family=causal_inference&model_type=inverse_propensity_weighting#data-lab-workbench",
+          "variant_presets": []
+        }
+      ],
+      "default_workbench_query": {
+        "workflow": "model",
+        "model_family": "causal_inference",
+        "model_type": "staggered_did"
+      },
+      "detail_path": "/data-lab/models/causal_inference",
+      "workbench_path": "/data-lab?workflow=model&model_family=causal_inference&model_type=staggered_did#data-lab-workbench",
+      "variant_presets": []
+    },
+    {
+      "slug": "bayesian",
+      "title": "Bayesian Modeling",
+      "category": "model",
+      "category_label": "Model",
+      "summary": "Bayesian regression, causal, and panel models with posterior diagnostics.",
+      "description": "Use this family when posterior uncertainty, priors, or hierarchical structure is the primary research requirement.",
+      "key_inputs": [
+        "Outcome and predictor variables",
+        "Prior settings and sampler configuration",
+        "Posterior predictive checks"
+      ],
+      "manual_checks": [
+        "Inspect trace diagnostics and divergences.",
+        "Check prior sensitivity against posterior summaries.",
+        "Verify HDI and predictive plots against posterior tables."
+      ],
+      "variant_schema": {
+        "shared": [
+          "dependent",
+          "independents",
+          "controls",
+          "priors",
+          "chains",
+          "draws",
+          "tune",
+          "target_accept",
+          "hdi_prob",
+          "posterior_predictive"
+        ]
+      },
+      "methods": [
+        {
+          "slug": "bayesian_linear_regression",
+          "name": "Bayesian Linear Regression",
+          "description": "Linear regression estimated with priors and posterior inference.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Posterior summary table",
+              "Predictor contribution table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Trace plot",
+              "Posterior predictive plot"
+            ],
+            "diagnostics": [
+              "Sampler diagnostic table"
+            ]
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "priors",
+              "chains",
+              "draws",
+              "tune",
+              "target_accept",
+              "hdi_prob",
+              "posterior_predictive"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "pymc",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "pymc",
+          "engine_label": "PyMC",
+          "engine_available": true,
+          "engine_version": "5.28.3",
+          "engine_note": "",
+          "async_only": true,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/bayesian/bayesian_linear_regression",
+          "teaching_path": "/data-lab/learn/models/bayesian/bayesian_linear_regression",
+          "workbench_path": "/data-lab?workflow=model&model_family=bayesian&model_type=bayesian_linear_regression#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "bayesian_panel",
+          "name": "Bayesian Panel",
+          "description": "Hierarchical panel regression with unit-level random structure.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Posterior coefficient table",
+              "Group-level variance table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Trace plot",
+              "Posterior predictive panel plot"
+            ],
+            "diagnostics": [
+              "Sampler diagnostic table"
+            ]
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "priors",
+              "chains",
+              "draws",
+              "tune",
+              "target_accept",
+              "hdi_prob",
+              "posterior_predictive"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "pymc",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "pymc",
+          "engine_label": "PyMC",
+          "engine_available": true,
+          "engine_version": "5.28.3",
+          "engine_note": "",
+          "async_only": true,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/bayesian/bayesian_panel",
+          "teaching_path": "/data-lab/learn/models/bayesian/bayesian_panel",
+          "workbench_path": "/data-lab?workflow=model&model_family=bayesian&model_type=bayesian_panel#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "bayesian_did",
+          "name": "Bayesian DID",
+          "description": "Bayesian treatment-effect estimation for before-after designs.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Posterior treatment-effect table",
+              "Cell-mean posterior table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Trace plot",
+              "Posterior treatment effect plot"
+            ],
+            "diagnostics": [
+              "Sampler diagnostic table"
+            ]
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "priors",
+              "chains",
+              "draws",
+              "tune",
+              "target_accept",
+              "hdi_prob",
+              "posterior_predictive"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "pymc",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "pymc",
+          "engine_label": "PyMC",
+          "engine_available": true,
+          "engine_version": "5.28.3",
+          "engine_note": "",
+          "async_only": true,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/bayesian/bayesian_did",
+          "teaching_path": "/data-lab/learn/models/bayesian/bayesian_did",
+          "workbench_path": "/data-lab?workflow=model&model_family=bayesian&model_type=bayesian_did#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "bayesian_its",
+          "name": "Bayesian ITS",
+          "description": "Bayesian interrupted time-series with posterior intervention effects.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Posterior intervention table",
+              "Slope change posterior table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Trace plot",
+              "Posterior path plot"
+            ],
+            "diagnostics": [
+              "Sampler diagnostic table"
+            ]
+          },
+          "variant_schema": {
+            "shared": [
+              "dependent",
+              "independents",
+              "controls",
+              "priors",
+              "chains",
+              "draws",
+              "tune",
+              "target_accept",
+              "hdi_prob",
+              "posterior_predictive"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "pymc",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "pymc",
+          "engine_label": "PyMC",
+          "engine_available": true,
+          "engine_version": "5.28.3",
+          "engine_note": "",
+          "async_only": true,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/bayesian/bayesian_its",
+          "teaching_path": "/data-lab/learn/models/bayesian/bayesian_its",
+          "workbench_path": "/data-lab?workflow=model&model_family=bayesian&model_type=bayesian_its#data-lab-workbench",
+          "variant_presets": []
+        }
+      ],
+      "default_workbench_query": {
+        "workflow": "model",
+        "model_family": "bayesian",
+        "model_type": "bayesian_linear_regression"
+      },
+      "detail_path": "/data-lab/models/bayesian",
+      "workbench_path": "/data-lab?workflow=model&model_family=bayesian&model_type=bayesian_linear_regression#data-lab-workbench",
+      "variant_presets": []
+    },
+    {
+      "slug": "quant_research",
+      "title": "Quant Research",
+      "category": "model",
+      "category_label": "Model",
+      "summary": "Prediction, signal evaluation, and lightweight backtest workflows inspired by qlib.",
+      "description": "Use this family for predictive alpha research and strategy diagnostics within the current workspace, without depending on qlib online services.",
+      "key_inputs": [
+        "Feature columns",
+        "Label horizon",
+        "Backtest or ranking configuration"
+      ],
+      "manual_checks": [
+        "Verify feature/label definitions.",
+        "Check train-test split dates.",
+        "Compare reported IC and return metrics against exported predictions."
+      ],
+      "variant_schema": {
+        "shared": [
+          "feature_columns",
+          "label_column",
+          "split_date",
+          "model_config",
+          "strategy_config",
+          "backtest_config"
+        ]
+      },
+      "methods": [
+        {
+          "slug": "quant_linear_model",
+          "name": "Quant Linear Model",
+          "description": "Linear predictive model for alpha research with IC diagnostics.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Prediction metric table",
+              "IC summary table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Prediction path plot",
+              "Cumulative return plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "feature_columns",
+              "label_column",
+              "split_date",
+              "holding_period"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "qlib",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "qlib",
+          "engine_label": "Qlib-style Quant",
+          "engine_available": true,
+          "engine_version": "",
+          "engine_note": "Native qlib runtime is unstable in this environment; using qlib-inspired local fallback. Import issue: No module named 'qlib'",
+          "async_only": true,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/quant_research/quant_linear_model",
+          "teaching_path": "/data-lab/learn/models/quant_research/quant_linear_model",
+          "workbench_path": "/data-lab?workflow=model&model_family=quant_research&model_type=quant_linear_model#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "quant_lightgbm",
+          "name": "Quant LightGBM",
+          "description": "Gradient-boosted alpha model with ranked-signal evaluation.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Prediction metric table",
+              "Feature importance table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Feature importance plot",
+              "Cumulative return plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "feature_columns",
+              "label_column",
+              "split_date",
+              "holding_period",
+              "num_leaves",
+              "learning_rate"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "qlib",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "qlib",
+          "engine_label": "Qlib-style Quant",
+          "engine_available": true,
+          "engine_version": "",
+          "engine_note": "Native qlib runtime is unstable in this environment; using qlib-inspired local fallback. Import issue: No module named 'qlib'",
+          "async_only": true,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/quant_research/quant_lightgbm",
+          "teaching_path": "/data-lab/learn/models/quant_research/quant_lightgbm",
+          "workbench_path": "/data-lab?workflow=model&model_family=quant_research&model_type=quant_lightgbm#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "quant_backtest_report",
+          "name": "Quant Backtest Report",
+          "description": "Signal ranking and portfolio backtest report with position analysis.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Backtest metric table",
+              "Position analysis table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Strategy equity curve",
+              "Turnover plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "prediction_asset_id",
+              "backtest_config",
+              "transaction_cost"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "qlib",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "qlib",
+          "engine_label": "Qlib-style Quant",
+          "engine_available": true,
+          "engine_version": "",
+          "engine_note": "Native qlib runtime is unstable in this environment; using qlib-inspired local fallback. Import issue: No module named 'qlib'",
+          "async_only": true,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/quant_research/quant_backtest_report",
+          "teaching_path": "/data-lab/learn/models/quant_research/quant_backtest_report",
+          "workbench_path": "/data-lab?workflow=model&model_family=quant_research&model_type=quant_backtest_report#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "quant_catboost",
+          "name": "Quant CatBoost",
+          "description": "Gradient-boosted tree alpha model using CatBoost with cross-sectional prediction diagnostics.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Prediction metric table",
+              "Feature importance table",
+              "IC summary table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Feature importance plot",
+              "Cumulative return plot",
+              "Prediction spread plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "feature_columns",
+              "label_column",
+              "split_date",
+              "holding_period",
+              "iterations",
+              "depth",
+              "learning_rate"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "catboost",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "catboost",
+          "engine_label": "CatBoost",
+          "engine_available": true,
+          "engine_version": "1.2.10",
+          "engine_note": "",
+          "async_only": true,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/quant_research/quant_catboost",
+          "teaching_path": "/data-lab/learn/models/quant_research/quant_catboost",
+          "workbench_path": "/data-lab?workflow=model&model_family=quant_research&model_type=quant_catboost#data-lab-workbench",
+          "variant_presets": []
+        },
+        {
+          "slug": "position_analysis",
+          "name": "Position Analysis",
+          "description": "Qlib-style position and contribution diagnostics for an existing prediction or backtest output.",
+          "paper_output_contract": {
+            "primary_tables": [
+              "Position analysis table",
+              "Turnover table",
+              "Contribution table"
+            ],
+            "robustness_tables": [],
+            "figures": [
+              "Position concentration plot",
+              "Turnover path plot",
+              "Contribution breakdown plot"
+            ],
+            "diagnostics": []
+          },
+          "variant_schema": {
+            "shared": [
+              "prediction_asset_id",
+              "position_weight_column",
+              "date_column",
+              "instrument_column"
+            ]
+          },
+          "baseline_engine": "baseline",
+          "candidate_engine": "qlib",
+          "comparison_required": false,
+          "comparison_status": "not_required",
+          "engine": "qlib",
+          "engine_label": "Qlib-style Quant",
+          "engine_available": true,
+          "engine_version": "",
+          "engine_note": "Native qlib runtime is unstable in this environment; using qlib-inspired local fallback. Import issue: No module named 'qlib'",
+          "async_only": true,
+          "requires_optional_dependency": true,
+          "detail_path": "/data-lab/models/quant_research/position_analysis",
+          "teaching_path": "/data-lab/learn/models/quant_research/position_analysis",
+          "workbench_path": "/data-lab?workflow=model&model_family=quant_research&model_type=position_analysis#data-lab-workbench",
+          "variant_presets": []
+        }
+      ],
+      "default_workbench_query": {
+        "workflow": "model",
+        "model_family": "quant_research",
+        "model_type": "quant_linear_model"
+      },
+      "detail_path": "/data-lab/models/quant_research",
+      "workbench_path": "/data-lab?workflow=model&model_family=quant_research&model_type=quant_linear_model#data-lab-workbench",
+      "variant_presets": []
+    }
+  ],
+  "suite_requirements": {
+    "optimization": {
+      "min_algorithms": 3,
+      "min_functions": 3,
+      "min_runs": 3
+    }
+  }
+}

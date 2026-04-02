@@ -1,0 +1,20 @@
+{
+  "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "model_family": "macro_finance_dsge",
+  "model_type": "taylor_rule",
+  "dependent": "policy_rate",
+  "inflation_gap_column": "inflation_gap",
+  "output_gap_column": "output_gap",
+  "report_variant": "output_weight_focus",
+  "model_label": "Ordinary Least Squares",
+  "regressors": [
+    "inflation_gap",
+    "output_gap"
+  ],
+  "covariance_type": "HC1",
+  "equation": "policy_rate ~ inflation_gap + output_gap",
+  "variant_label": "taylor_output_focus",
+  "variant_spec": {
+    "report_variant": "output_weight_focus"
+  }
+}

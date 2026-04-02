@@ -1,0 +1,41 @@
+{
+  "headline": "Vector Autoregression estimates are exposed in full so you can read the result and reproduce it manually.",
+  "sections": [
+    {
+      "title": "What is shown on this page",
+      "items": [
+        "Supporting tables included: coefficients, forecast.",
+        "Figures included: VAR forecast paths."
+      ]
+    },
+    {
+      "title": "How to read the main result",
+      "items": [
+        "Read the coefficient table equation by equation because each endogenous series has its own regression block.",
+        "The forecast table and figure summarize the joint path implied by the fitted system.",
+        "Use the selected lag order `2` consistently when reproducing the system."
+      ]
+    },
+    {
+      "title": "What a normal paper should report",
+      "items": [
+        "Equation-level coefficient blocks or a compact companion-form summary.",
+        "Forecast tables or dynamic plots for each series.",
+        "Lag-order choice with AIC/BIC or another stated criterion."
+      ]
+    },
+    {
+      "title": "Manual replication focus",
+      "items": [
+        "Sort the sample by the declared time column before estimation.",
+        "Re-estimate the VAR with the documented lag order and compare coefficient blocks equation by equation.",
+        "Regenerate the forecast path using the final lag_order observations from the sample."
+      ]
+    }
+  ],
+  "paper_outputs": [
+    "coefficients",
+    "forecast",
+    "VAR forecast paths"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "model_family": "time_series_finance",
+  "model_type": "var",
+  "series_columns": [
+    "return_a",
+    "return_b",
+    "return_c"
+  ],
+  "time_column": "date",
+  "forecast_steps": 5,
+  "var_lags": 2,
+  "lags": 2
+}

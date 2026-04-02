@@ -1,0 +1,12 @@
+{
+  "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+  "sample_title": "upgrade_ts.csv",
+  "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+  "engine": "pypfopt",
+  "derived_columns": [
+    "synthetic_price_paths_from_returns"
+  ],
+  "filters": [
+    "Rows with missing return observations are dropped before optimization."
+  ]
+}

@@ -1,0 +1,179 @@
+{
+  "model_type": "kpss_test",
+  "model_label": "KPSS Stationarity Test",
+  "asset": {
+    "id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "kind": "dataset_csv",
+    "title": "upgrade_ts.csv",
+    "filename": "upgrade_ts.csv",
+    "description": "upgrade_ts.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 93948,
+      "original_filename": "upgrade_ts.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:27.052169",
+    "updated_at": "2026-04-02T02:57:27.059647"
+  },
+  "observations": 240,
+  "narrative": [
+    "KPSS Stationarity Test evaluated on policy_rate.",
+    "Test statistic: 0.12553551986943243.",
+    "P-value: 0.08579234810992953."
+  ],
+  "specification": {
+    "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "model_family": "time_series_finance",
+    "model_type": "kpss_test",
+    "dependent": "policy_rate",
+    "time_column": "date",
+    "unit_root_lags": 3,
+    "trend": "ct",
+    "engine": "arch",
+    "variant_label": "kpss_ct"
+  },
+  "audit_trail": {
+    "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "sample_title": "upgrade_ts.csv",
+    "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+    "engine": "arch",
+    "derived_columns": [],
+    "filters": [
+      "Rows with missing series values are dropped before the test."
+    ]
+  },
+  "metrics": {},
+  "tables": {
+    "test_summary": [
+      {
+        "series": "policy_rate",
+        "statistic": 0.12553551986943243,
+        "p_value": 0.08579234810992953,
+        "lags": 3.0,
+        "trend": "ct"
+      }
+    ],
+    "critical_values": [
+      {
+        "level": "1%",
+        "critical_value": 0.2175
+      },
+      {
+        "level": "5%",
+        "critical_value": 0.1479
+      },
+      {
+        "level": "10%",
+        "critical_value": 0.1193
+      }
+    ]
+  },
+  "sample_columns": [
+    "date",
+    "policy_rate"
+  ],
+  "sample_preview": [
+    {
+      "date": "2005-01-31T00:00:00",
+      "policy_rate": 2.4984724687964475
+    },
+    {
+      "date": "2005-02-28T00:00:00",
+      "policy_rate": 1.6212191346234608
+    },
+    {
+      "date": "2005-03-31T00:00:00",
+      "policy_rate": 1.2044706806320091
+    },
+    {
+      "date": "2005-04-30T00:00:00",
+      "policy_rate": 0.9502435898913666
+    },
+    {
+      "date": "2005-05-31T00:00:00",
+      "policy_rate": 0.6420261781796007
+    }
+  ],
+  "engine": "arch",
+  "figures": [
+    {
+      "asset_id": "f8b7baee-619c-4935-b4fb-8dec8fa8059c",
+      "title": "KPSS Stationarity Test series path",
+      "summary": "Series path used in the KPSS Stationarity Test run.",
+      "download_url": "/api/assets/f8b7baee-619c-4935-b4fb-8dec8fa8059c/download",
+      "asset": {
+        "id": "f8b7baee-619c-4935-b4fb-8dec8fa8059c",
+        "kind": "chart_png",
+        "title": "upgrade_ts-kpss_test_series.png",
+        "filename": "upgrade_ts-kpss_test_series.png",
+        "description": "Series path used in the KPSS Stationarity Test run.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 101643,
+          "original_filename": "upgrade_ts-kpss_test_series.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "KPSS Stationarity Test series path",
+          "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+          "summary": "Series path used in the KPSS Stationarity Test run."
+        },
+        "created_at": "2026-04-02T03:05:22.830820+00:00",
+        "updated_at": "2026-04-02T03:05:22.836618+00:00"
+      }
+    }
+  ],
+  "primary_tables": [
+    "test_summary",
+    "critical_values"
+  ],
+  "paper_output_contract": {
+    "primary_tables": [
+      "test_summary",
+      "critical_values"
+    ],
+    "figure_count": 1
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "KPSS Stationarity Test estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: test_summary, critical_values.",
+          "Figures included: KPSS Stationarity Test series path."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "test_summary",
+      "critical_values",
+      "KPSS Stationarity Test series path"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "kpss_ct",
+  "variant_spec": {},
+  "result_record_id": "45adc926-2205-4ba1-b73d-8660183a9cba",
+  "result_detail_path": "/data-lab/results/models/45adc926-2205-4ba1-b73d-8660183a9cba"
+}

@@ -1,0 +1,1528 @@
+{
+  "record": {
+    "id": "16d70836-aa4f-40b0-b55a-01407dcc7909",
+    "title": "Panel IV summary for panel_dataset.csv",
+    "content": "Panel IV run on panel_dataset.csv.\nOutcome variable: outcome_y.\nEndogenous regressor: endogenous_x.\nInstruments: instrument_z.\nFixed effects: firm_id, date.",
+    "content_excerpt": "Panel IV run on panel_dataset.csv. Outcome variable: outcome_y. Endogenous regressor: endogenous_x. Instruments: instrument_z. Fixed effects: firm_id, date.",
+    "content_length": 156,
+    "tags": [
+      "panel_iv",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "panel_iv",
+      "model_label": "Panel IV",
+      "asset": {
+        "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "kind": "dataset_csv",
+        "title": "panel_dataset.csv",
+        "filename": "panel_dataset.csv",
+        "description": "panel_dataset.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 289095,
+          "original_filename": "panel_dataset.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T03:16:14.412741",
+        "updated_at": "2026-04-02T03:16:14.426020"
+      },
+      "dependent": "outcome_y",
+      "regressors": [
+        "size",
+        "leverage",
+        "fe_firm_id_firm_02",
+        "fe_firm_id_firm_03",
+        "fe_firm_id_firm_04",
+        "fe_firm_id_firm_05",
+        "fe_firm_id_firm_06",
+        "fe_firm_id_firm_07",
+        "fe_firm_id_firm_08",
+        "fe_firm_id_firm_09",
+        "fe_firm_id_firm_10",
+        "fe_firm_id_firm_11",
+        "fe_firm_id_firm_12",
+        "fe_firm_id_firm_13",
+        "fe_firm_id_firm_14",
+        "fe_firm_id_firm_15",
+        "fe_firm_id_firm_16",
+        "fe_firm_id_firm_17",
+        "fe_firm_id_firm_18",
+        "fe_date_2018-02-28",
+        "fe_date_2018-03-31",
+        "fe_date_2018-04-30",
+        "fe_date_2018-05-31",
+        "fe_date_2018-06-30",
+        "fe_date_2018-07-31",
+        "fe_date_2018-08-31",
+        "fe_date_2018-09-30",
+        "fe_date_2018-10-31",
+        "fe_date_2018-11-30",
+        "fe_date_2018-12-31",
+        "fe_date_2019-01-31",
+        "fe_date_2019-02-28",
+        "fe_date_2019-03-31",
+        "fe_date_2019-04-30",
+        "fe_date_2019-05-31",
+        "fe_date_2019-06-30",
+        "fe_date_2019-07-31",
+        "fe_date_2019-08-31",
+        "fe_date_2019-09-30",
+        "fe_date_2019-10-31",
+        "fe_date_2019-11-30",
+        "fe_date_2019-12-31",
+        "fe_date_2020-01-31",
+        "fe_date_2020-02-29",
+        "fe_date_2020-03-31",
+        "fe_date_2020-04-30",
+        "fe_date_2020-05-31",
+        "fe_date_2020-06-30",
+        "fe_date_2020-07-31",
+        "fe_date_2020-08-31",
+        "fe_date_2020-09-30",
+        "fe_date_2020-10-31",
+        "fe_date_2020-11-30",
+        "fe_date_2020-12-31",
+        "endogenous_x"
+      ],
+      "observations": 648,
+      "r_squared": 0.7952225471651011,
+      "adj_r_squared": 0.7761976148915886,
+      "pseudo_r_squared": null,
+      "aic": null,
+      "bic": null,
+      "log_likelihood": null,
+      "coefficients": [
+        {
+          "term": "const",
+          "coefficient": 3.4932118067081563,
+          "std_error": 1.2269842196857679,
+          "t_stat": 2.846990002530572,
+          "p_value": 0.004566526132750038
+        },
+        {
+          "term": "size",
+          "coefficient": 0.5399216282951804,
+          "std_error": 0.1430496914738236,
+          "t_stat": 3.774364157884113,
+          "p_value": 0.00017657525098862693
+        },
+        {
+          "term": "leverage",
+          "coefficient": -1.376992874154726,
+          "std_error": 1.175966176550868,
+          "t_stat": -1.1709459860431302,
+          "p_value": 0.24209159324464202
+        },
+        {
+          "term": "fe_firm_id_firm_02",
+          "coefficient": -0.5808854180530048,
+          "std_error": 0.20248527254113755,
+          "t_stat": -2.8687786067749212,
+          "p_value": 0.0042675453798769036
+        },
+        {
+          "term": "fe_firm_id_firm_03",
+          "coefficient": -0.34680350792460174,
+          "std_error": 0.20743634599342253,
+          "t_stat": -1.671855075655827,
+          "p_value": 0.0950813264953411
+        },
+        {
+          "term": "fe_firm_id_firm_04",
+          "coefficient": 0.4398056868895014,
+          "std_error": 0.20763709013985707,
+          "t_stat": 2.1181460720397483,
+          "p_value": 0.034578754881848785
+        },
+        {
+          "term": "fe_firm_id_firm_05",
+          "coefficient": -0.15087151270802804,
+          "std_error": 0.2193328495137155,
+          "t_stat": -0.6878655570404816,
+          "p_value": 0.49180686758294606
+        },
+        {
+          "term": "fe_firm_id_firm_06",
+          "coefficient": -0.45031571925373787,
+          "std_error": 0.21951485457501496,
+          "t_stat": -2.051413423139668,
+          "p_value": 0.04066617173583995
+        },
+        {
+          "term": "fe_firm_id_firm_07",
+          "coefficient": 0.11255823857889782,
+          "std_error": 0.2267945522433942,
+          "t_stat": 0.49630045107124604,
+          "p_value": 0.6198666655769832
+        },
+        {
+          "term": "fe_firm_id_firm_08",
+          "coefficient": -0.6456518281071423,
+          "std_error": 0.23733402212345328,
+          "t_stat": -2.7204352006948906,
+          "p_value": 0.006711174468895201
+        },
+        {
+          "term": "fe_firm_id_firm_09",
+          "coefficient": 0.581104227998063,
+          "std_error": 0.24454667344319064,
+          "t_stat": 2.3762507983289183,
+          "p_value": 0.01780668659542903
+        },
+        {
+          "term": "fe_firm_id_firm_10",
+          "coefficient": -1.0545277458187203,
+          "std_error": 0.25317769995473816,
+          "t_stat": -4.165168362013098,
+          "p_value": 3.574568033647151e-05
+        },
+        {
+          "term": "fe_firm_id_firm_11",
+          "coefficient": -1.0827539237227013,
+          "std_error": 0.2611190940210856,
+          "t_stat": -4.146590381610577,
+          "p_value": 3.8682327922785395e-05
+        },
+        {
+          "term": "fe_firm_id_firm_12",
+          "coefficient": 0.23507631279248645,
+          "std_error": 0.2828870651212995,
+          "t_stat": 0.830989966585032,
+          "p_value": 0.40631431814184776
+        },
+        {
+          "term": "fe_firm_id_firm_13",
+          "coefficient": -0.055704876371439345,
+          "std_error": 0.29790120724674907,
+          "t_stat": -0.18699110650229578,
+          "p_value": 0.851731670577979
+        },
+        {
+          "term": "fe_firm_id_firm_14",
+          "coefficient": -0.8718987785380745,
+          "std_error": 0.3019964931030787,
+          "t_stat": -2.887115574022492,
+          "p_value": 0.004029841309904365
+        },
+        {
+          "term": "fe_firm_id_firm_15",
+          "coefficient": -1.0014708419397436,
+          "std_error": 0.32122085255546434,
+          "t_stat": -3.1177018365170497,
+          "p_value": 0.0019111196338697047
+        },
+        {
+          "term": "fe_firm_id_firm_16",
+          "coefficient": -1.0898152219097914,
+          "std_error": 0.3347477521299926,
+          "t_stat": -3.255631187887958,
+          "p_value": 0.0011960004532939725
+        },
+        {
+          "term": "fe_firm_id_firm_17",
+          "coefficient": 0.24581800892163086,
+          "std_error": 0.3456024949614973,
+          "t_stat": 0.7112738261597816,
+          "p_value": 0.4771947214290757
+        },
+        {
+          "term": "fe_firm_id_firm_18",
+          "coefficient": 0.13613721123966913,
+          "std_error": 0.35580118087136114,
+          "t_stat": 0.38262158350983416,
+          "p_value": 0.7021376960700452
+        },
+        {
+          "term": "fe_date_2018-02-28",
+          "coefficient": 0.17282275901608224,
+          "std_error": 0.28425075965256685,
+          "t_stat": 0.6079940093293664,
+          "p_value": 0.5434246173839304
+        },
+        {
+          "term": "fe_date_2018-03-31",
+          "coefficient": 0.2806086750724224,
+          "std_error": 0.28479754118203693,
+          "t_stat": 0.9852917757216972,
+          "p_value": 0.32488328215251605
+        },
+        {
+          "term": "fe_date_2018-04-30",
+          "coefficient": 0.522915424602669,
+          "std_error": 0.2846233970404908,
+          "t_stat": 1.8372186898193708,
+          "p_value": 0.06667867815294293
+        },
+        {
+          "term": "fe_date_2018-05-31",
+          "coefficient": 0.1661498813800822,
+          "std_error": 0.28497065020641865,
+          "t_stat": 0.5830420826135303,
+          "p_value": 0.5600869969055536
+        },
+        {
+          "term": "fe_date_2018-06-30",
+          "coefficient": 0.5214163268708919,
+          "std_error": 0.28519960007535117,
+          "t_stat": 1.82825055411414,
+          "p_value": 0.06801501420551288
+        },
+        {
+          "term": "fe_date_2018-07-31",
+          "coefficient": 0.8422412360353889,
+          "std_error": 0.28618962018232413,
+          "t_stat": 2.9429482295647844,
+          "p_value": 0.0033783759208722967
+        },
+        {
+          "term": "fe_date_2018-08-31",
+          "coefficient": 0.691504528857141,
+          "std_error": 0.28501347888419837,
+          "t_stat": 2.4262169338949082,
+          "p_value": 0.015554815215754766
+        },
+        {
+          "term": "fe_date_2018-09-30",
+          "coefficient": 0.8362745957809277,
+          "std_error": 0.28650869978857296,
+          "t_stat": 2.9188453837459405,
+          "p_value": 0.0036468175152371985
+        },
+        {
+          "term": "fe_date_2018-10-31",
+          "coefficient": 0.9696448995899849,
+          "std_error": 0.2861434243136364,
+          "t_stat": 3.388667420598055,
+          "p_value": 0.0007490028415432626
+        },
+        {
+          "term": "fe_date_2018-11-30",
+          "coefficient": 1.0502234232278072,
+          "std_error": 0.28683929524492097,
+          "t_stat": 3.6613652335572153,
+          "p_value": 0.00027332306636652725
+        },
+        {
+          "term": "fe_date_2018-12-31",
+          "coefficient": 1.158098395892125,
+          "std_error": 0.2886046614934753,
+          "t_stat": 4.012750140275565,
+          "p_value": 6.77136643683932e-05
+        },
+        {
+          "term": "fe_date_2019-01-31",
+          "coefficient": 1.4551231524413317,
+          "std_error": 0.2875396289486042,
+          "t_stat": 5.060600369284838,
+          "p_value": 5.585907632519647e-07
+        },
+        {
+          "term": "fe_date_2019-02-28",
+          "coefficient": 1.1865977325287167,
+          "std_error": 0.2913663664545436,
+          "t_stat": 4.072528160911939,
+          "p_value": 5.2833491739332956e-05
+        },
+        {
+          "term": "fe_date_2019-03-31",
+          "coefficient": 1.6334409487845785,
+          "std_error": 0.29078401797425085,
+          "t_stat": 5.617368382774121,
+          "p_value": 2.985757606400422e-08
+        },
+        {
+          "term": "fe_date_2019-04-30",
+          "coefficient": 1.5235882683288364,
+          "std_error": 0.2937486962307343,
+          "t_stat": 5.1867064871398965,
+          "p_value": 2.943450862291694e-07
+        },
+        {
+          "term": "fe_date_2019-05-31",
+          "coefficient": 1.5944018470928072,
+          "std_error": 0.2913295599296144,
+          "t_stat": 5.472846104178432,
+          "p_value": 6.54682695768116e-08
+        },
+        {
+          "term": "fe_date_2019-06-30",
+          "coefficient": 1.4975957772298378,
+          "std_error": 0.29274816473509135,
+          "t_stat": 5.115645314412189,
+          "p_value": 4.2301964273388455e-07
+        },
+        {
+          "term": "fe_date_2019-07-31",
+          "coefficient": 2.1464362509091917,
+          "std_error": 0.2977352901696154,
+          "t_stat": 7.209210066050277,
+          "p_value": 1.7243860222769533e-12
+        },
+        {
+          "term": "fe_date_2019-08-31",
+          "coefficient": 2.32949502823184,
+          "std_error": 0.29715842203245046,
+          "t_stat": 7.839236096015657,
+          "p_value": 2.1174033716038567e-14
+        },
+        {
+          "term": "fe_date_2019-09-30",
+          "coefficient": 2.3812150274635537,
+          "std_error": 0.29925439842773055,
+          "t_stat": 7.95715966072463,
+          "p_value": 8.99905299703624e-15
+        },
+        {
+          "term": "fe_date_2019-10-31",
+          "coefficient": 2.5662435437288074,
+          "std_error": 0.2964100246442999,
+          "t_stat": 8.657748828867613,
+          "p_value": 4.5602140021039057e-17
+        },
+        {
+          "term": "fe_date_2019-11-30",
+          "coefficient": 2.587225078924566,
+          "std_error": 0.3008375247393626,
+          "t_stat": 8.600074346330523,
+          "p_value": 7.136380202502863e-17
+        },
+        {
+          "term": "fe_date_2019-12-31",
+          "coefficient": 3.0245127605449014,
+          "std_error": 0.2997235867892309,
+          "t_stat": 10.091006827139614,
+          "p_value": 3.347679861030956e-22
+        },
+        {
+          "term": "fe_date_2020-01-31",
+          "coefficient": 2.823282918054017,
+          "std_error": 0.29890921161480544,
+          "t_stat": 9.445285753495913,
+          "p_value": 8.08532823588541e-20
+        },
+        {
+          "term": "fe_date_2020-02-29",
+          "coefficient": 2.8154170241825933,
+          "std_error": 0.30002376567554295,
+          "t_stat": 9.383980025193377,
+          "p_value": 1.3431257589193438e-19
+        },
+        {
+          "term": "fe_date_2020-03-31",
+          "coefficient": 3.039383686256967,
+          "std_error": 0.30852407702824425,
+          "t_stat": 9.851366271095667,
+          "p_value": 2.6423418830686954e-21
+        },
+        {
+          "term": "fe_date_2020-04-30",
+          "coefficient": 2.96907335283245,
+          "std_error": 0.3063842004726108,
+          "t_stat": 9.690686883502893,
+          "p_value": 1.0354878222423547e-20
+        },
+        {
+          "term": "fe_date_2020-05-31",
+          "coefficient": 3.4264712031914026,
+          "std_error": 0.30875113622193934,
+          "t_stat": 11.097841598640644,
+          "p_value": 3.9592355727822096e-26
+        },
+        {
+          "term": "fe_date_2020-06-30",
+          "coefficient": 3.356009755648893,
+          "std_error": 0.3160252015193638,
+          "t_stat": 10.619437119299677,
+          "p_value": 3.1225387597976208e-24
+        },
+        {
+          "term": "fe_date_2020-07-31",
+          "coefficient": 3.2602638876362464,
+          "std_error": 0.31166163987939144,
+          "t_stat": 10.460908467586584,
+          "p_value": 1.2909216262302511e-23
+        },
+        {
+          "term": "fe_date_2020-08-31",
+          "coefficient": 3.182224378724706,
+          "std_error": 0.31309971770996725,
+          "t_stat": 10.163613055928995,
+          "p_value": 1.7781327240120872e-22
+        },
+        {
+          "term": "fe_date_2020-09-30",
+          "coefficient": 3.7381810482396087,
+          "std_error": 0.30781752101343735,
+          "t_stat": 12.144146427832558,
+          "p_value": 1.8524879956903197e-30
+        },
+        {
+          "term": "fe_date_2020-10-31",
+          "coefficient": 3.60196509462802,
+          "std_error": 0.3200589648685601,
+          "t_stat": 11.25406718761105,
+          "p_value": 9.25845835546588e-27
+        },
+        {
+          "term": "fe_date_2020-11-30",
+          "coefficient": 3.8278499066380802,
+          "std_error": 0.32182379684551593,
+          "t_stat": 11.894241333792824,
+          "p_value": 2.106055635975208e-29
+        },
+        {
+          "term": "fe_date_2020-12-31",
+          "coefficient": 3.6525122986943184,
+          "std_error": 0.32450102222507715,
+          "t_stat": 11.255780563183864,
+          "p_value": 9.111428692315727e-27
+        },
+        {
+          "term": "endogenous_x",
+          "coefficient": 0.5550509512063452,
+          "std_error": 0.049941869015581584,
+          "t_stat": 11.113940309946598,
+          "p_value": 3.410677173619437e-26
+        }
+      ],
+      "narrative": [
+        "Panel IV run on panel_dataset.csv.",
+        "Outcome variable: outcome_y.",
+        "Endogenous regressor: endogenous_x.",
+        "Instruments: instrument_z.",
+        "Fixed effects: firm_id, date."
+      ],
+      "sample_columns": [
+        "outcome_y",
+        "endogenous_x",
+        "size",
+        "leverage",
+        "instrument_z",
+        "firm_id",
+        "date"
+      ],
+      "sample_preview": [
+        {
+          "outcome_y": 8.281342947667275,
+          "endogenous_x": 0.2785972991161518,
+          "size": 8.519775911467494,
+          "leverage": 0.3577590135791016,
+          "instrument_z": -0.1435168424451554,
+          "firm_id": "firm_01",
+          "date": "2018-01-31"
+        },
+        {
+          "outcome_y": 7.161166663415577,
+          "endogenous_x": 1.1977342200420291,
+          "size": 7.55721041465215,
+          "leverage": 0.3378183221465689,
+          "instrument_z": 1.4316570462193818,
+          "firm_id": "firm_01",
+          "date": "2018-02-28"
+        },
+        {
+          "outcome_y": 7.582391886802917,
+          "endogenous_x": 0.2791971515539841,
+          "size": 7.823590785770317,
+          "leverage": 0.3343232278441892,
+          "instrument_z": 1.0577328335812757,
+          "firm_id": "firm_01",
+          "date": "2018-03-31"
+        },
+        {
+          "outcome_y": 8.19643779930995,
+          "endogenous_x": 1.693126004491981,
+          "size": 8.058331858128255,
+          "leverage": 0.3581110765958445,
+          "instrument_z": 1.2478999752354007,
+          "firm_id": "firm_01",
+          "date": "2018-04-30"
+        },
+        {
+          "outcome_y": 6.775339604671813,
+          "endogenous_x": -0.6336680485148168,
+          "size": 7.790582349444769,
+          "leverage": 0.3323010132904619,
+          "instrument_z": -0.7576141862667286,
+          "firm_id": "firm_01",
+          "date": "2018-05-31"
+        }
+      ],
+      "specification": {
+        "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "model_family": "econometrics_baseline",
+        "model_type": "panel_iv",
+        "dependent": "outcome_y",
+        "independents": [
+          "size"
+        ],
+        "controls": [
+          "leverage"
+        ],
+        "entity_column": "firm_id",
+        "time_column": "date",
+        "include_time_effects": true,
+        "endogenous_column": "endogenous_x",
+        "instrument_columns": [
+          "instrument_z"
+        ],
+        "model_label": "Panel IV",
+        "regressors": [
+          "size",
+          "leverage",
+          "fe_firm_id_firm_02",
+          "fe_firm_id_firm_03",
+          "fe_firm_id_firm_04",
+          "fe_firm_id_firm_05",
+          "fe_firm_id_firm_06",
+          "fe_firm_id_firm_07",
+          "fe_firm_id_firm_08",
+          "fe_firm_id_firm_09",
+          "fe_firm_id_firm_10",
+          "fe_firm_id_firm_11",
+          "fe_firm_id_firm_12",
+          "fe_firm_id_firm_13",
+          "fe_firm_id_firm_14",
+          "fe_firm_id_firm_15",
+          "fe_firm_id_firm_16",
+          "fe_firm_id_firm_17",
+          "fe_firm_id_firm_18",
+          "fe_date_2018-02-28",
+          "fe_date_2018-03-31",
+          "fe_date_2018-04-30",
+          "fe_date_2018-05-31",
+          "fe_date_2018-06-30",
+          "fe_date_2018-07-31",
+          "fe_date_2018-08-31",
+          "fe_date_2018-09-30",
+          "fe_date_2018-10-31",
+          "fe_date_2018-11-30",
+          "fe_date_2018-12-31",
+          "fe_date_2019-01-31",
+          "fe_date_2019-02-28",
+          "fe_date_2019-03-31",
+          "fe_date_2019-04-30",
+          "fe_date_2019-05-31",
+          "fe_date_2019-06-30",
+          "fe_date_2019-07-31",
+          "fe_date_2019-08-31",
+          "fe_date_2019-09-30",
+          "fe_date_2019-10-31",
+          "fe_date_2019-11-30",
+          "fe_date_2019-12-31",
+          "fe_date_2020-01-31",
+          "fe_date_2020-02-29",
+          "fe_date_2020-03-31",
+          "fe_date_2020-04-30",
+          "fe_date_2020-05-31",
+          "fe_date_2020-06-30",
+          "fe_date_2020-07-31",
+          "fe_date_2020-08-31",
+          "fe_date_2020-09-30",
+          "fe_date_2020-10-31",
+          "fe_date_2020-11-30",
+          "fe_date_2020-12-31",
+          "endogenous_x"
+        ],
+        "covariance_type": "nonrobust",
+        "equation": "outcome_y ~ size + leverage + fe_firm_id_firm_02 + fe_firm_id_firm_03 + fe_firm_id_firm_04 + fe_firm_id_firm_05 + fe_firm_id_firm_06 + fe_firm_id_firm_07 + fe_firm_id_firm_08 + fe_firm_id_firm_09 + fe_firm_id_firm_10 + fe_firm_id_firm_11 + fe_firm_id_firm_12 + fe_firm_id_firm_13 + fe_firm_id_firm_14 + fe_firm_id_firm_15 + fe_firm_id_firm_16 + fe_firm_id_firm_17 + fe_firm_id_firm_18 + fe_date_2018-02-28 + fe_date_2018-03-31 + fe_date_2018-04-30 + fe_date_2018-05-31 + fe_date_2018-06-30 + fe_date_2018-07-31 + fe_date_2018-08-31 + fe_date_2018-09-30 + fe_date_2018-10-31 + fe_date_2018-11-30 + fe_date_2018-12-31 + fe_date_2019-01-31 + fe_date_2019-02-28 + fe_date_2019-03-31 + fe_date_2019-04-30 + fe_date_2019-05-31 + fe_date_2019-06-30 + fe_date_2019-07-31 + fe_date_2019-08-31 + fe_date_2019-09-30 + fe_date_2019-10-31 + fe_date_2019-11-30 + fe_date_2019-12-31 + fe_date_2020-01-31 + fe_date_2020-02-29 + fe_date_2020-03-31 + fe_date_2020-04-30 + fe_date_2020-05-31 + fe_date_2020-06-30 + fe_date_2020-07-31 + fe_date_2020-08-31 + fe_date_2020-09-30 + fe_date_2020-10-31 + fe_date_2020-11-30 + fe_date_2020-12-31 + endogenous_x"
+      },
+      "audit_trail": {
+        "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "sample_title": "panel_dataset.csv",
+        "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+        "rows_used": 648,
+        "sample_columns": [
+          "outcome_y",
+          "endogenous_x",
+          "size",
+          "leverage",
+          "instrument_z",
+          "firm_id",
+          "date"
+        ],
+        "covariance_type": "nonrobust",
+        "manual_checklist": [
+          "Download the prepared sample asset referenced in sample_asset_id.",
+          "Rebuild any derived regressors listed in derived_columns before estimation.",
+          "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+          "Compare the reproduced coefficient table with the coefficients array term by term."
+        ],
+        "derived_columns": [
+          "fe_firm_id_firm_02",
+          "fe_firm_id_firm_03",
+          "fe_firm_id_firm_04",
+          "fe_firm_id_firm_05",
+          "fe_firm_id_firm_06",
+          "fe_firm_id_firm_07",
+          "fe_firm_id_firm_08",
+          "fe_firm_id_firm_09",
+          "fe_firm_id_firm_10",
+          "fe_firm_id_firm_11",
+          "fe_firm_id_firm_12",
+          "fe_firm_id_firm_13",
+          "fe_firm_id_firm_14",
+          "fe_firm_id_firm_15",
+          "fe_firm_id_firm_16",
+          "fe_firm_id_firm_17",
+          "fe_firm_id_firm_18",
+          "fe_date_2018-02-28",
+          "fe_date_2018-03-31",
+          "fe_date_2018-04-30",
+          "fe_date_2018-05-31",
+          "fe_date_2018-06-30",
+          "fe_date_2018-07-31",
+          "fe_date_2018-08-31",
+          "fe_date_2018-09-30",
+          "fe_date_2018-10-31",
+          "fe_date_2018-11-30",
+          "fe_date_2018-12-31",
+          "fe_date_2019-01-31",
+          "fe_date_2019-02-28",
+          "fe_date_2019-03-31",
+          "fe_date_2019-04-30",
+          "fe_date_2019-05-31",
+          "fe_date_2019-06-30",
+          "fe_date_2019-07-31",
+          "fe_date_2019-08-31",
+          "fe_date_2019-09-30",
+          "fe_date_2019-10-31",
+          "fe_date_2019-11-30",
+          "fe_date_2019-12-31",
+          "fe_date_2020-01-31",
+          "fe_date_2020-02-29",
+          "fe_date_2020-03-31",
+          "fe_date_2020-04-30",
+          "fe_date_2020-05-31",
+          "fe_date_2020-06-30",
+          "fe_date_2020-07-31",
+          "fe_date_2020-08-31",
+          "fe_date_2020-09-30",
+          "fe_date_2020-10-31",
+          "fe_date_2020-11-30",
+          "fe_date_2020-12-31"
+        ],
+        "filters": [
+          "Rows with missing dependent, endogenous regressor, instrument, or selected controls are dropped."
+        ],
+        "fixed_effects": [
+          "firm_id",
+          "date"
+        ]
+      },
+      "endogenous_column": "endogenous_x",
+      "instrument_columns": [
+        "instrument_z"
+      ],
+      "exogenous_columns": [
+        "size",
+        "leverage"
+      ],
+      "entity_column": "firm_id",
+      "time_column": "date",
+      "include_time_effects": true,
+      "entity_count": 18,
+      "time_count": 36,
+      "covariance_type": "nonrobust",
+      "covariance_note": "Panel IV uses conventional covariance when robust covariance is unavailable in the current backend.",
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "Panel IV estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": []
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "",
+      "variant_spec": {},
+      "result_record_id": "16d70836-aa4f-40b0-b55a-01407dcc7909",
+      "result_detail_path": "/data-lab/results/models/16d70836-aa4f-40b0-b55a-01407dcc7909"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:16:20.296830",
+    "updated_at": "2026-04-02T03:16:20.297860"
+  },
+  "result": {
+    "model_type": "panel_iv",
+    "model_label": "Panel IV",
+    "asset": {
+      "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "kind": "dataset_csv",
+      "title": "panel_dataset.csv",
+      "filename": "panel_dataset.csv",
+      "description": "panel_dataset.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 289095,
+        "original_filename": "panel_dataset.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T03:16:14.412741",
+      "updated_at": "2026-04-02T03:16:14.426020"
+    },
+    "dependent": "outcome_y",
+    "regressors": [
+      "size",
+      "leverage",
+      "fe_firm_id_firm_02",
+      "fe_firm_id_firm_03",
+      "fe_firm_id_firm_04",
+      "fe_firm_id_firm_05",
+      "fe_firm_id_firm_06",
+      "fe_firm_id_firm_07",
+      "fe_firm_id_firm_08",
+      "fe_firm_id_firm_09",
+      "fe_firm_id_firm_10",
+      "fe_firm_id_firm_11",
+      "fe_firm_id_firm_12",
+      "fe_firm_id_firm_13",
+      "fe_firm_id_firm_14",
+      "fe_firm_id_firm_15",
+      "fe_firm_id_firm_16",
+      "fe_firm_id_firm_17",
+      "fe_firm_id_firm_18",
+      "fe_date_2018-02-28",
+      "fe_date_2018-03-31",
+      "fe_date_2018-04-30",
+      "fe_date_2018-05-31",
+      "fe_date_2018-06-30",
+      "fe_date_2018-07-31",
+      "fe_date_2018-08-31",
+      "fe_date_2018-09-30",
+      "fe_date_2018-10-31",
+      "fe_date_2018-11-30",
+      "fe_date_2018-12-31",
+      "fe_date_2019-01-31",
+      "fe_date_2019-02-28",
+      "fe_date_2019-03-31",
+      "fe_date_2019-04-30",
+      "fe_date_2019-05-31",
+      "fe_date_2019-06-30",
+      "fe_date_2019-07-31",
+      "fe_date_2019-08-31",
+      "fe_date_2019-09-30",
+      "fe_date_2019-10-31",
+      "fe_date_2019-11-30",
+      "fe_date_2019-12-31",
+      "fe_date_2020-01-31",
+      "fe_date_2020-02-29",
+      "fe_date_2020-03-31",
+      "fe_date_2020-04-30",
+      "fe_date_2020-05-31",
+      "fe_date_2020-06-30",
+      "fe_date_2020-07-31",
+      "fe_date_2020-08-31",
+      "fe_date_2020-09-30",
+      "fe_date_2020-10-31",
+      "fe_date_2020-11-30",
+      "fe_date_2020-12-31",
+      "endogenous_x"
+    ],
+    "observations": 648,
+    "r_squared": 0.7952225471651011,
+    "adj_r_squared": 0.7761976148915886,
+    "pseudo_r_squared": null,
+    "aic": null,
+    "bic": null,
+    "log_likelihood": null,
+    "coefficients": [
+      {
+        "term": "const",
+        "coefficient": 3.4932118067081563,
+        "std_error": 1.2269842196857679,
+        "t_stat": 2.846990002530572,
+        "p_value": 0.004566526132750038
+      },
+      {
+        "term": "size",
+        "coefficient": 0.5399216282951804,
+        "std_error": 0.1430496914738236,
+        "t_stat": 3.774364157884113,
+        "p_value": 0.00017657525098862693
+      },
+      {
+        "term": "leverage",
+        "coefficient": -1.376992874154726,
+        "std_error": 1.175966176550868,
+        "t_stat": -1.1709459860431302,
+        "p_value": 0.24209159324464202
+      },
+      {
+        "term": "fe_firm_id_firm_02",
+        "coefficient": -0.5808854180530048,
+        "std_error": 0.20248527254113755,
+        "t_stat": -2.8687786067749212,
+        "p_value": 0.0042675453798769036
+      },
+      {
+        "term": "fe_firm_id_firm_03",
+        "coefficient": -0.34680350792460174,
+        "std_error": 0.20743634599342253,
+        "t_stat": -1.671855075655827,
+        "p_value": 0.0950813264953411
+      },
+      {
+        "term": "fe_firm_id_firm_04",
+        "coefficient": 0.4398056868895014,
+        "std_error": 0.20763709013985707,
+        "t_stat": 2.1181460720397483,
+        "p_value": 0.034578754881848785
+      },
+      {
+        "term": "fe_firm_id_firm_05",
+        "coefficient": -0.15087151270802804,
+        "std_error": 0.2193328495137155,
+        "t_stat": -0.6878655570404816,
+        "p_value": 0.49180686758294606
+      },
+      {
+        "term": "fe_firm_id_firm_06",
+        "coefficient": -0.45031571925373787,
+        "std_error": 0.21951485457501496,
+        "t_stat": -2.051413423139668,
+        "p_value": 0.04066617173583995
+      },
+      {
+        "term": "fe_firm_id_firm_07",
+        "coefficient": 0.11255823857889782,
+        "std_error": 0.2267945522433942,
+        "t_stat": 0.49630045107124604,
+        "p_value": 0.6198666655769832
+      },
+      {
+        "term": "fe_firm_id_firm_08",
+        "coefficient": -0.6456518281071423,
+        "std_error": 0.23733402212345328,
+        "t_stat": -2.7204352006948906,
+        "p_value": 0.006711174468895201
+      },
+      {
+        "term": "fe_firm_id_firm_09",
+        "coefficient": 0.581104227998063,
+        "std_error": 0.24454667344319064,
+        "t_stat": 2.3762507983289183,
+        "p_value": 0.01780668659542903
+      },
+      {
+        "term": "fe_firm_id_firm_10",
+        "coefficient": -1.0545277458187203,
+        "std_error": 0.25317769995473816,
+        "t_stat": -4.165168362013098,
+        "p_value": 3.574568033647151e-05
+      },
+      {
+        "term": "fe_firm_id_firm_11",
+        "coefficient": -1.0827539237227013,
+        "std_error": 0.2611190940210856,
+        "t_stat": -4.146590381610577,
+        "p_value": 3.8682327922785395e-05
+      },
+      {
+        "term": "fe_firm_id_firm_12",
+        "coefficient": 0.23507631279248645,
+        "std_error": 0.2828870651212995,
+        "t_stat": 0.830989966585032,
+        "p_value": 0.40631431814184776
+      },
+      {
+        "term": "fe_firm_id_firm_13",
+        "coefficient": -0.055704876371439345,
+        "std_error": 0.29790120724674907,
+        "t_stat": -0.18699110650229578,
+        "p_value": 0.851731670577979
+      },
+      {
+        "term": "fe_firm_id_firm_14",
+        "coefficient": -0.8718987785380745,
+        "std_error": 0.3019964931030787,
+        "t_stat": -2.887115574022492,
+        "p_value": 0.004029841309904365
+      },
+      {
+        "term": "fe_firm_id_firm_15",
+        "coefficient": -1.0014708419397436,
+        "std_error": 0.32122085255546434,
+        "t_stat": -3.1177018365170497,
+        "p_value": 0.0019111196338697047
+      },
+      {
+        "term": "fe_firm_id_firm_16",
+        "coefficient": -1.0898152219097914,
+        "std_error": 0.3347477521299926,
+        "t_stat": -3.255631187887958,
+        "p_value": 0.0011960004532939725
+      },
+      {
+        "term": "fe_firm_id_firm_17",
+        "coefficient": 0.24581800892163086,
+        "std_error": 0.3456024949614973,
+        "t_stat": 0.7112738261597816,
+        "p_value": 0.4771947214290757
+      },
+      {
+        "term": "fe_firm_id_firm_18",
+        "coefficient": 0.13613721123966913,
+        "std_error": 0.35580118087136114,
+        "t_stat": 0.38262158350983416,
+        "p_value": 0.7021376960700452
+      },
+      {
+        "term": "fe_date_2018-02-28",
+        "coefficient": 0.17282275901608224,
+        "std_error": 0.28425075965256685,
+        "t_stat": 0.6079940093293664,
+        "p_value": 0.5434246173839304
+      },
+      {
+        "term": "fe_date_2018-03-31",
+        "coefficient": 0.2806086750724224,
+        "std_error": 0.28479754118203693,
+        "t_stat": 0.9852917757216972,
+        "p_value": 0.32488328215251605
+      },
+      {
+        "term": "fe_date_2018-04-30",
+        "coefficient": 0.522915424602669,
+        "std_error": 0.2846233970404908,
+        "t_stat": 1.8372186898193708,
+        "p_value": 0.06667867815294293
+      },
+      {
+        "term": "fe_date_2018-05-31",
+        "coefficient": 0.1661498813800822,
+        "std_error": 0.28497065020641865,
+        "t_stat": 0.5830420826135303,
+        "p_value": 0.5600869969055536
+      },
+      {
+        "term": "fe_date_2018-06-30",
+        "coefficient": 0.5214163268708919,
+        "std_error": 0.28519960007535117,
+        "t_stat": 1.82825055411414,
+        "p_value": 0.06801501420551288
+      },
+      {
+        "term": "fe_date_2018-07-31",
+        "coefficient": 0.8422412360353889,
+        "std_error": 0.28618962018232413,
+        "t_stat": 2.9429482295647844,
+        "p_value": 0.0033783759208722967
+      },
+      {
+        "term": "fe_date_2018-08-31",
+        "coefficient": 0.691504528857141,
+        "std_error": 0.28501347888419837,
+        "t_stat": 2.4262169338949082,
+        "p_value": 0.015554815215754766
+      },
+      {
+        "term": "fe_date_2018-09-30",
+        "coefficient": 0.8362745957809277,
+        "std_error": 0.28650869978857296,
+        "t_stat": 2.9188453837459405,
+        "p_value": 0.0036468175152371985
+      },
+      {
+        "term": "fe_date_2018-10-31",
+        "coefficient": 0.9696448995899849,
+        "std_error": 0.2861434243136364,
+        "t_stat": 3.388667420598055,
+        "p_value": 0.0007490028415432626
+      },
+      {
+        "term": "fe_date_2018-11-30",
+        "coefficient": 1.0502234232278072,
+        "std_error": 0.28683929524492097,
+        "t_stat": 3.6613652335572153,
+        "p_value": 0.00027332306636652725
+      },
+      {
+        "term": "fe_date_2018-12-31",
+        "coefficient": 1.158098395892125,
+        "std_error": 0.2886046614934753,
+        "t_stat": 4.012750140275565,
+        "p_value": 6.77136643683932e-05
+      },
+      {
+        "term": "fe_date_2019-01-31",
+        "coefficient": 1.4551231524413317,
+        "std_error": 0.2875396289486042,
+        "t_stat": 5.060600369284838,
+        "p_value": 5.585907632519647e-07
+      },
+      {
+        "term": "fe_date_2019-02-28",
+        "coefficient": 1.1865977325287167,
+        "std_error": 0.2913663664545436,
+        "t_stat": 4.072528160911939,
+        "p_value": 5.2833491739332956e-05
+      },
+      {
+        "term": "fe_date_2019-03-31",
+        "coefficient": 1.6334409487845785,
+        "std_error": 0.29078401797425085,
+        "t_stat": 5.617368382774121,
+        "p_value": 2.985757606400422e-08
+      },
+      {
+        "term": "fe_date_2019-04-30",
+        "coefficient": 1.5235882683288364,
+        "std_error": 0.2937486962307343,
+        "t_stat": 5.1867064871398965,
+        "p_value": 2.943450862291694e-07
+      },
+      {
+        "term": "fe_date_2019-05-31",
+        "coefficient": 1.5944018470928072,
+        "std_error": 0.2913295599296144,
+        "t_stat": 5.472846104178432,
+        "p_value": 6.54682695768116e-08
+      },
+      {
+        "term": "fe_date_2019-06-30",
+        "coefficient": 1.4975957772298378,
+        "std_error": 0.29274816473509135,
+        "t_stat": 5.115645314412189,
+        "p_value": 4.2301964273388455e-07
+      },
+      {
+        "term": "fe_date_2019-07-31",
+        "coefficient": 2.1464362509091917,
+        "std_error": 0.2977352901696154,
+        "t_stat": 7.209210066050277,
+        "p_value": 1.7243860222769533e-12
+      },
+      {
+        "term": "fe_date_2019-08-31",
+        "coefficient": 2.32949502823184,
+        "std_error": 0.29715842203245046,
+        "t_stat": 7.839236096015657,
+        "p_value": 2.1174033716038567e-14
+      },
+      {
+        "term": "fe_date_2019-09-30",
+        "coefficient": 2.3812150274635537,
+        "std_error": 0.29925439842773055,
+        "t_stat": 7.95715966072463,
+        "p_value": 8.99905299703624e-15
+      },
+      {
+        "term": "fe_date_2019-10-31",
+        "coefficient": 2.5662435437288074,
+        "std_error": 0.2964100246442999,
+        "t_stat": 8.657748828867613,
+        "p_value": 4.5602140021039057e-17
+      },
+      {
+        "term": "fe_date_2019-11-30",
+        "coefficient": 2.587225078924566,
+        "std_error": 0.3008375247393626,
+        "t_stat": 8.600074346330523,
+        "p_value": 7.136380202502863e-17
+      },
+      {
+        "term": "fe_date_2019-12-31",
+        "coefficient": 3.0245127605449014,
+        "std_error": 0.2997235867892309,
+        "t_stat": 10.091006827139614,
+        "p_value": 3.347679861030956e-22
+      },
+      {
+        "term": "fe_date_2020-01-31",
+        "coefficient": 2.823282918054017,
+        "std_error": 0.29890921161480544,
+        "t_stat": 9.445285753495913,
+        "p_value": 8.08532823588541e-20
+      },
+      {
+        "term": "fe_date_2020-02-29",
+        "coefficient": 2.8154170241825933,
+        "std_error": 0.30002376567554295,
+        "t_stat": 9.383980025193377,
+        "p_value": 1.3431257589193438e-19
+      },
+      {
+        "term": "fe_date_2020-03-31",
+        "coefficient": 3.039383686256967,
+        "std_error": 0.30852407702824425,
+        "t_stat": 9.851366271095667,
+        "p_value": 2.6423418830686954e-21
+      },
+      {
+        "term": "fe_date_2020-04-30",
+        "coefficient": 2.96907335283245,
+        "std_error": 0.3063842004726108,
+        "t_stat": 9.690686883502893,
+        "p_value": 1.0354878222423547e-20
+      },
+      {
+        "term": "fe_date_2020-05-31",
+        "coefficient": 3.4264712031914026,
+        "std_error": 0.30875113622193934,
+        "t_stat": 11.097841598640644,
+        "p_value": 3.9592355727822096e-26
+      },
+      {
+        "term": "fe_date_2020-06-30",
+        "coefficient": 3.356009755648893,
+        "std_error": 0.3160252015193638,
+        "t_stat": 10.619437119299677,
+        "p_value": 3.1225387597976208e-24
+      },
+      {
+        "term": "fe_date_2020-07-31",
+        "coefficient": 3.2602638876362464,
+        "std_error": 0.31166163987939144,
+        "t_stat": 10.460908467586584,
+        "p_value": 1.2909216262302511e-23
+      },
+      {
+        "term": "fe_date_2020-08-31",
+        "coefficient": 3.182224378724706,
+        "std_error": 0.31309971770996725,
+        "t_stat": 10.163613055928995,
+        "p_value": 1.7781327240120872e-22
+      },
+      {
+        "term": "fe_date_2020-09-30",
+        "coefficient": 3.7381810482396087,
+        "std_error": 0.30781752101343735,
+        "t_stat": 12.144146427832558,
+        "p_value": 1.8524879956903197e-30
+      },
+      {
+        "term": "fe_date_2020-10-31",
+        "coefficient": 3.60196509462802,
+        "std_error": 0.3200589648685601,
+        "t_stat": 11.25406718761105,
+        "p_value": 9.25845835546588e-27
+      },
+      {
+        "term": "fe_date_2020-11-30",
+        "coefficient": 3.8278499066380802,
+        "std_error": 0.32182379684551593,
+        "t_stat": 11.894241333792824,
+        "p_value": 2.106055635975208e-29
+      },
+      {
+        "term": "fe_date_2020-12-31",
+        "coefficient": 3.6525122986943184,
+        "std_error": 0.32450102222507715,
+        "t_stat": 11.255780563183864,
+        "p_value": 9.111428692315727e-27
+      },
+      {
+        "term": "endogenous_x",
+        "coefficient": 0.5550509512063452,
+        "std_error": 0.049941869015581584,
+        "t_stat": 11.113940309946598,
+        "p_value": 3.410677173619437e-26
+      }
+    ],
+    "narrative": [
+      "Panel IV run on panel_dataset.csv.",
+      "Outcome variable: outcome_y.",
+      "Endogenous regressor: endogenous_x.",
+      "Instruments: instrument_z.",
+      "Fixed effects: firm_id, date."
+    ],
+    "sample_columns": [
+      "outcome_y",
+      "endogenous_x",
+      "size",
+      "leverage",
+      "instrument_z",
+      "firm_id",
+      "date"
+    ],
+    "sample_preview": [
+      {
+        "outcome_y": 8.281342947667275,
+        "endogenous_x": 0.2785972991161518,
+        "size": 8.519775911467494,
+        "leverage": 0.3577590135791016,
+        "instrument_z": -0.1435168424451554,
+        "firm_id": "firm_01",
+        "date": "2018-01-31"
+      },
+      {
+        "outcome_y": 7.161166663415577,
+        "endogenous_x": 1.1977342200420291,
+        "size": 7.55721041465215,
+        "leverage": 0.3378183221465689,
+        "instrument_z": 1.4316570462193818,
+        "firm_id": "firm_01",
+        "date": "2018-02-28"
+      },
+      {
+        "outcome_y": 7.582391886802917,
+        "endogenous_x": 0.2791971515539841,
+        "size": 7.823590785770317,
+        "leverage": 0.3343232278441892,
+        "instrument_z": 1.0577328335812757,
+        "firm_id": "firm_01",
+        "date": "2018-03-31"
+      },
+      {
+        "outcome_y": 8.19643779930995,
+        "endogenous_x": 1.693126004491981,
+        "size": 8.058331858128255,
+        "leverage": 0.3581110765958445,
+        "instrument_z": 1.2478999752354007,
+        "firm_id": "firm_01",
+        "date": "2018-04-30"
+      },
+      {
+        "outcome_y": 6.775339604671813,
+        "endogenous_x": -0.6336680485148168,
+        "size": 7.790582349444769,
+        "leverage": 0.3323010132904619,
+        "instrument_z": -0.7576141862667286,
+        "firm_id": "firm_01",
+        "date": "2018-05-31"
+      }
+    ],
+    "specification": {
+      "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "model_family": "econometrics_baseline",
+      "model_type": "panel_iv",
+      "dependent": "outcome_y",
+      "independents": [
+        "size"
+      ],
+      "controls": [
+        "leverage"
+      ],
+      "entity_column": "firm_id",
+      "time_column": "date",
+      "include_time_effects": true,
+      "endogenous_column": "endogenous_x",
+      "instrument_columns": [
+        "instrument_z"
+      ],
+      "model_label": "Panel IV",
+      "regressors": [
+        "size",
+        "leverage",
+        "fe_firm_id_firm_02",
+        "fe_firm_id_firm_03",
+        "fe_firm_id_firm_04",
+        "fe_firm_id_firm_05",
+        "fe_firm_id_firm_06",
+        "fe_firm_id_firm_07",
+        "fe_firm_id_firm_08",
+        "fe_firm_id_firm_09",
+        "fe_firm_id_firm_10",
+        "fe_firm_id_firm_11",
+        "fe_firm_id_firm_12",
+        "fe_firm_id_firm_13",
+        "fe_firm_id_firm_14",
+        "fe_firm_id_firm_15",
+        "fe_firm_id_firm_16",
+        "fe_firm_id_firm_17",
+        "fe_firm_id_firm_18",
+        "fe_date_2018-02-28",
+        "fe_date_2018-03-31",
+        "fe_date_2018-04-30",
+        "fe_date_2018-05-31",
+        "fe_date_2018-06-30",
+        "fe_date_2018-07-31",
+        "fe_date_2018-08-31",
+        "fe_date_2018-09-30",
+        "fe_date_2018-10-31",
+        "fe_date_2018-11-30",
+        "fe_date_2018-12-31",
+        "fe_date_2019-01-31",
+        "fe_date_2019-02-28",
+        "fe_date_2019-03-31",
+        "fe_date_2019-04-30",
+        "fe_date_2019-05-31",
+        "fe_date_2019-06-30",
+        "fe_date_2019-07-31",
+        "fe_date_2019-08-31",
+        "fe_date_2019-09-30",
+        "fe_date_2019-10-31",
+        "fe_date_2019-11-30",
+        "fe_date_2019-12-31",
+        "fe_date_2020-01-31",
+        "fe_date_2020-02-29",
+        "fe_date_2020-03-31",
+        "fe_date_2020-04-30",
+        "fe_date_2020-05-31",
+        "fe_date_2020-06-30",
+        "fe_date_2020-07-31",
+        "fe_date_2020-08-31",
+        "fe_date_2020-09-30",
+        "fe_date_2020-10-31",
+        "fe_date_2020-11-30",
+        "fe_date_2020-12-31",
+        "endogenous_x"
+      ],
+      "covariance_type": "nonrobust",
+      "equation": "outcome_y ~ size + leverage + fe_firm_id_firm_02 + fe_firm_id_firm_03 + fe_firm_id_firm_04 + fe_firm_id_firm_05 + fe_firm_id_firm_06 + fe_firm_id_firm_07 + fe_firm_id_firm_08 + fe_firm_id_firm_09 + fe_firm_id_firm_10 + fe_firm_id_firm_11 + fe_firm_id_firm_12 + fe_firm_id_firm_13 + fe_firm_id_firm_14 + fe_firm_id_firm_15 + fe_firm_id_firm_16 + fe_firm_id_firm_17 + fe_firm_id_firm_18 + fe_date_2018-02-28 + fe_date_2018-03-31 + fe_date_2018-04-30 + fe_date_2018-05-31 + fe_date_2018-06-30 + fe_date_2018-07-31 + fe_date_2018-08-31 + fe_date_2018-09-30 + fe_date_2018-10-31 + fe_date_2018-11-30 + fe_date_2018-12-31 + fe_date_2019-01-31 + fe_date_2019-02-28 + fe_date_2019-03-31 + fe_date_2019-04-30 + fe_date_2019-05-31 + fe_date_2019-06-30 + fe_date_2019-07-31 + fe_date_2019-08-31 + fe_date_2019-09-30 + fe_date_2019-10-31 + fe_date_2019-11-30 + fe_date_2019-12-31 + fe_date_2020-01-31 + fe_date_2020-02-29 + fe_date_2020-03-31 + fe_date_2020-04-30 + fe_date_2020-05-31 + fe_date_2020-06-30 + fe_date_2020-07-31 + fe_date_2020-08-31 + fe_date_2020-09-30 + fe_date_2020-10-31 + fe_date_2020-11-30 + fe_date_2020-12-31 + endogenous_x"
+    },
+    "audit_trail": {
+      "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "sample_title": "panel_dataset.csv",
+      "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+      "rows_used": 648,
+      "sample_columns": [
+        "outcome_y",
+        "endogenous_x",
+        "size",
+        "leverage",
+        "instrument_z",
+        "firm_id",
+        "date"
+      ],
+      "covariance_type": "nonrobust",
+      "manual_checklist": [
+        "Download the prepared sample asset referenced in sample_asset_id.",
+        "Rebuild any derived regressors listed in derived_columns before estimation.",
+        "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+        "Compare the reproduced coefficient table with the coefficients array term by term."
+      ],
+      "derived_columns": [
+        "fe_firm_id_firm_02",
+        "fe_firm_id_firm_03",
+        "fe_firm_id_firm_04",
+        "fe_firm_id_firm_05",
+        "fe_firm_id_firm_06",
+        "fe_firm_id_firm_07",
+        "fe_firm_id_firm_08",
+        "fe_firm_id_firm_09",
+        "fe_firm_id_firm_10",
+        "fe_firm_id_firm_11",
+        "fe_firm_id_firm_12",
+        "fe_firm_id_firm_13",
+        "fe_firm_id_firm_14",
+        "fe_firm_id_firm_15",
+        "fe_firm_id_firm_16",
+        "fe_firm_id_firm_17",
+        "fe_firm_id_firm_18",
+        "fe_date_2018-02-28",
+        "fe_date_2018-03-31",
+        "fe_date_2018-04-30",
+        "fe_date_2018-05-31",
+        "fe_date_2018-06-30",
+        "fe_date_2018-07-31",
+        "fe_date_2018-08-31",
+        "fe_date_2018-09-30",
+        "fe_date_2018-10-31",
+        "fe_date_2018-11-30",
+        "fe_date_2018-12-31",
+        "fe_date_2019-01-31",
+        "fe_date_2019-02-28",
+        "fe_date_2019-03-31",
+        "fe_date_2019-04-30",
+        "fe_date_2019-05-31",
+        "fe_date_2019-06-30",
+        "fe_date_2019-07-31",
+        "fe_date_2019-08-31",
+        "fe_date_2019-09-30",
+        "fe_date_2019-10-31",
+        "fe_date_2019-11-30",
+        "fe_date_2019-12-31",
+        "fe_date_2020-01-31",
+        "fe_date_2020-02-29",
+        "fe_date_2020-03-31",
+        "fe_date_2020-04-30",
+        "fe_date_2020-05-31",
+        "fe_date_2020-06-30",
+        "fe_date_2020-07-31",
+        "fe_date_2020-08-31",
+        "fe_date_2020-09-30",
+        "fe_date_2020-10-31",
+        "fe_date_2020-11-30",
+        "fe_date_2020-12-31"
+      ],
+      "filters": [
+        "Rows with missing dependent, endogenous regressor, instrument, or selected controls are dropped."
+      ],
+      "fixed_effects": [
+        "firm_id",
+        "date"
+      ]
+    },
+    "endogenous_column": "endogenous_x",
+    "instrument_columns": [
+      "instrument_z"
+    ],
+    "exogenous_columns": [
+      "size",
+      "leverage"
+    ],
+    "entity_column": "firm_id",
+    "time_column": "date",
+    "include_time_effects": true,
+    "entity_count": 18,
+    "time_count": 36,
+    "covariance_type": "nonrobust",
+    "covariance_note": "Panel IV uses conventional covariance when robust covariance is unavailable in the current backend.",
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "Panel IV estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": []
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "",
+    "variant_spec": {},
+    "result_record_id": "16d70836-aa4f-40b0-b55a-01407dcc7909",
+    "result_detail_path": "/data-lab/results/models/16d70836-aa4f-40b0-b55a-01407dcc7909"
+  },
+  "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4"
+}

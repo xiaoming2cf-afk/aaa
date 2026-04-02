@@ -1,0 +1,14 @@
+{
+  "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "sample_title": "timeseries_dataset.csv",
+  "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+  "rows_used": 0,
+  "sample_columns": [],
+  "manual_checklist": [
+    "Recompute the Euler-implied capital return and steady-state capital-labor ratio from the listed calibration parameters.",
+    "Rebuild steady-state output, investment, and consumption under the Cobb-Douglas production function.",
+    "Reproduce the impulse path using the same shock persistence and shock size."
+  ],
+  "derived_columns": [],
+  "filters": []
+}

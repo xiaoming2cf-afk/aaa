@@ -1,0 +1,18 @@
+{
+  "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "model_family": "asset_pricing",
+  "model_type": "fama_french_3",
+  "dependent": "asset_excess",
+  "market_column": "market_return",
+  "risk_free_column": "risk_free_rate",
+  "smb_column": "smb",
+  "hml_column": "hml",
+  "model_label": "Fama-French 3-Factor",
+  "regressors": [
+    "market_excess",
+    "smb",
+    "hml"
+  ],
+  "covariance_type": "HC1",
+  "equation": "asset_excess ~ market_excess + smb + hml"
+}

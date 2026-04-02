@@ -1,0 +1,386 @@
+{
+  "model_type": "fm_ols",
+  "model_label": "Fully Modified OLS",
+  "asset": {
+    "id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "kind": "dataset_csv",
+    "title": "upgrade_ts.csv",
+    "filename": "upgrade_ts.csv",
+    "description": "upgrade_ts.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 93948,
+      "original_filename": "upgrade_ts.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:27.052169",
+    "updated_at": "2026-04-02T02:57:27.059647"
+  },
+  "dependent": "level_a",
+  "regressors": [
+    "level_b"
+  ],
+  "observations": 240,
+  "r_squared": 0.09829620441618192,
+  "adj_r_squared": 0.09450753300616599,
+  "pseudo_r_squared": null,
+  "aic": null,
+  "bic": null,
+  "log_likelihood": null,
+  "coefficients": [
+    {
+      "term": "level_b",
+      "coefficient": 0.3863633315212499,
+      "std_error": 0.08450014497726797,
+      "t_stat": 4.572339273798742,
+      "p_value": 4.82309158544858e-06
+    },
+    {
+      "term": "const",
+      "coefficient": 37.98072990320778,
+      "std_error": 14.115432639624629,
+      "t_stat": 2.6907237541263065,
+      "p_value": 0.00712972054047567
+    }
+  ],
+  "narrative": [
+    "Fully Modified OLS estimated with dependent series level_a.",
+    "Cointegrating regressors: level_b.",
+    "The result includes parameter estimates, long-run diagnostics, and fitted-versus-observed previews for manual verification."
+  ],
+  "sample_columns": [
+    "date",
+    "level_a",
+    "level_b"
+  ],
+  "sample_preview": [
+    {
+      "date": "2005-01-31T00:00:00",
+      "level_a": 101.17881574617738,
+      "level_b": 165.09641352437717
+    },
+    {
+      "date": "2005-02-28T00:00:00",
+      "level_a": 101.72316778709144,
+      "level_b": 166.2863571870547
+    },
+    {
+      "date": "2005-03-31T00:00:00",
+      "level_a": 102.04843609311602,
+      "level_b": 167.29368823261217
+    },
+    {
+      "date": "2005-04-30T00:00:00",
+      "level_a": 102.31475085003954,
+      "level_b": 166.90341224301218
+    },
+    {
+      "date": "2005-05-31T00:00:00",
+      "level_a": 102.48865532872468,
+      "level_b": 166.7571921183507
+    }
+  ],
+  "specification": {
+    "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "model_family": "time_series_finance",
+    "model_type": "fm_ols",
+    "dependent": "level_a",
+    "series_columns": [
+      "level_b"
+    ],
+    "time_column": "date",
+    "engine": "arch",
+    "variant_label": "fmols_single"
+  },
+  "audit_trail": {
+    "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "sample_title": "upgrade_ts.csv",
+    "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+    "rows_used": 240,
+    "sample_columns": [
+      "date",
+      "level_a",
+      "level_b"
+    ],
+    "covariance_type": "nonrobust",
+    "manual_checklist": [
+      "Download the prepared sample asset referenced in sample_asset_id.",
+      "Rebuild any derived regressors listed in derived_columns before estimation.",
+      "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+      "Compare the reproduced coefficient table with the coefficients array term by term."
+    ],
+    "engine": "arch",
+    "derived_columns": [],
+    "filters": [
+      "Rows with missing series values are dropped before estimation."
+    ]
+  },
+  "engine": "arch",
+  "primary_tables": [
+    "cointegration_regression",
+    "residual_diagnostics",
+    "fitted_preview"
+  ],
+  "robustness_tables": [],
+  "tables": {
+    "cointegration_regression": [
+      {
+        "term": "level_b",
+        "coefficient": 0.3863633315212499,
+        "std_error": 0.08450014497726797,
+        "t_stat": 4.572339273798742,
+        "p_value": null
+      },
+      {
+        "term": "const",
+        "coefficient": 37.98072990320778,
+        "std_error": 14.115432639624629,
+        "t_stat": 2.6907237541263065,
+        "p_value": null
+      }
+    ],
+    "residual_diagnostics": [
+      {
+        "residual_mean": 0.001060347120629738,
+        "residual_std": 0.3937380299838953,
+        "residual_min": -0.9954855236031932,
+        "residual_max": 1.4636982518154866,
+        "residual_variance": 0.1543848037738834,
+        "long_run_variance": 1.1670700272561767,
+        "kernel": "Bartlett",
+        "bandwidth": 12.0,
+        "leads": null,
+        "lags": null,
+        "r_squared": 0.09829620441618192,
+        "adj_r_squared": 0.09450753300616599
+      }
+    ],
+    "fitted_preview": [
+      {
+        "date": "2005-01-31T00:00:00",
+        "observed": 101.17881574617738,
+        "fitted": 101.76793025469608,
+        "residual": -0.5891145085187048
+      },
+      {
+        "date": "2005-02-28T00:00:00",
+        "observed": 101.72316778709144,
+        "fitted": 102.22768085253077,
+        "residual": -0.5045130654393262
+      },
+      {
+        "date": "2005-03-31T00:00:00",
+        "observed": 102.04843609311602,
+        "fitted": 102.61687663123715,
+        "residual": -0.5684405381211235
+      },
+      {
+        "date": "2005-04-30T00:00:00",
+        "observed": 102.31475085003954,
+        "fitted": 102.46608829968253,
+        "residual": -0.15133744964298046
+      },
+      {
+        "date": "2005-05-31T00:00:00",
+        "observed": 102.48865532872468,
+        "fitted": 102.40959420518288,
+        "residual": 0.07906112354179129
+      },
+      {
+        "date": "2005-06-30T00:00:00",
+        "observed": 102.5697018704502,
+        "fitted": 102.46138290282846,
+        "residual": 0.10831896762174154
+      },
+      {
+        "date": "2005-07-31T00:00:00",
+        "observed": 102.61711824466845,
+        "fitted": 102.9769975965695,
+        "residual": -0.359879351901057
+      },
+      {
+        "date": "2005-08-31T00:00:00",
+        "observed": 102.53540684083266,
+        "fitted": 102.33043235942182,
+        "residual": 0.20497448141084362
+      },
+      {
+        "date": "2005-09-30T00:00:00",
+        "observed": 102.54453362128994,
+        "fitted": 102.83141767242236,
+        "residual": -0.286884051132418
+      },
+      {
+        "date": "2005-10-31T00:00:00",
+        "observed": 102.56961147934231,
+        "fitted": 102.0512493900867,
+        "residual": 0.5183620892556178
+      },
+      {
+        "date": "2005-11-30T00:00:00",
+        "observed": 102.57173537156342,
+        "fitted": 102.59924377521659,
+        "residual": -0.02750840365317231
+      },
+      {
+        "date": "2005-12-31T00:00:00",
+        "observed": 102.56621970663925,
+        "fitted": 102.49254196361917,
+        "residual": 0.07367774302007035
+      },
+      {
+        "date": "2006-01-31T00:00:00",
+        "observed": 102.5495149248854,
+        "fitted": 102.16080816960977,
+        "residual": 0.3887067552756349
+      },
+      {
+        "date": "2006-02-28T00:00:00",
+        "observed": 102.52881164526056,
+        "fitted": 102.0203928919899,
+        "residual": 0.5084187532706608
+      },
+      {
+        "date": "2006-03-31T00:00:00",
+        "observed": 102.56977924675336,
+        "fitted": 102.20937411640907,
+        "residual": 0.3604051303442901
+      },
+      {
+        "date": "2006-04-30T00:00:00",
+        "observed": 102.56455124341754,
+        "fitted": 102.40028716257919,
+        "residual": 0.16426408083835042
+      },
+      {
+        "date": "2006-05-31T00:00:00",
+        "observed": 102.51147214327032,
+        "fitted": 102.43408969677915,
+        "residual": 0.07738244649117121
+      },
+      {
+        "date": "2006-06-30T00:00:00",
+        "observed": 102.52566010504302,
+        "fitted": 102.67884008664888,
+        "residual": -0.15317998160585944
+      },
+      {
+        "date": "2006-07-31T00:00:00",
+        "observed": 102.59270554627584,
+        "fitted": 102.72551764904009,
+        "residual": -0.13281210276424815
+      },
+      {
+        "date": "2006-08-31T00:00:00",
+        "observed": 102.60886591905084,
+        "fitted": 102.35438322475062,
+        "residual": 0.2544826943002221
+      },
+      {
+        "date": "2006-09-30T00:00:00",
+        "observed": 102.59411517772978,
+        "fitted": 102.18340016313576,
+        "residual": 0.41071501459401816
+      },
+      {
+        "date": "2006-10-31T00:00:00",
+        "observed": 102.66689852592722,
+        "fitted": 102.90449837115355,
+        "residual": -0.2375998452263275
+      },
+      {
+        "date": "2006-11-30T00:00:00",
+        "observed": 102.75498501871914,
+        "fitted": 102.54781623530519,
+        "residual": 0.20716878341394818
+      },
+      {
+        "date": "2006-12-31T00:00:00",
+        "observed": 102.77059140537456,
+        "fitted": 102.78778692221366,
+        "residual": -0.01719551683909515
+      }
+    ]
+  },
+  "figures": [
+    {
+      "asset_id": "499327f2-0fd2-4d32-a2e0-63c7518cc909",
+      "title": "Fully Modified OLS residual path",
+      "summary": "Residual series from the Fully Modified OLS cointegration regression.",
+      "download_url": "/api/assets/499327f2-0fd2-4d32-a2e0-63c7518cc909/download",
+      "asset": {
+        "id": "499327f2-0fd2-4d32-a2e0-63c7518cc909",
+        "kind": "chart_png",
+        "title": "upgrade_ts-fm_ols_residuals.png",
+        "filename": "upgrade_ts-fm_ols_residuals.png",
+        "description": "Residual series from the Fully Modified OLS cointegration regression.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 126758,
+          "original_filename": "upgrade_ts-fm_ols_residuals.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Fully Modified OLS residual path",
+          "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+          "summary": "Residual series from the Fully Modified OLS cointegration regression."
+        },
+        "created_at": "2026-04-02T03:05:28.158437+00:00",
+        "updated_at": "2026-04-02T03:05:28.170451+00:00"
+      }
+    }
+  ],
+  "metrics": {},
+  "paper_output_contract": {
+    "primary_tables": [
+      "cointegration_regression",
+      "residual_diagnostics",
+      "fitted_preview"
+    ],
+    "robustness_tables": [],
+    "figure_count": 1
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "Fully Modified OLS estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+          "Supporting tables included: cointegration_regression, residual_diagnostics, fitted_preview.",
+          "Figures included: Fully Modified OLS residual path."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "cointegration_regression",
+      "residual_diagnostics",
+      "fitted_preview",
+      "Fully Modified OLS residual path"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "fmols_single",
+  "variant_spec": {},
+  "result_record_id": "9a38af92-a82c-47e1-8bb1-e92ca6594de9",
+  "result_detail_path": "/data-lab/results/models/9a38af92-a82c-47e1-8bb1-e92ca6594de9"
+}

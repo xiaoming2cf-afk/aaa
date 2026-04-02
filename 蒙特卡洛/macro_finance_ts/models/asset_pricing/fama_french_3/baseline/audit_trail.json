@@ -1,0 +1,26 @@
+{
+  "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "sample_title": "timeseries_dataset.csv",
+  "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+  "rows_used": 240,
+  "sample_columns": [
+    "asset_excess",
+    "market_excess",
+    "smb",
+    "hml"
+  ],
+  "covariance_type": "HC1",
+  "manual_checklist": [
+    "Download the prepared sample asset referenced in sample_asset_id.",
+    "Rebuild any derived regressors listed in derived_columns before estimation.",
+    "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+    "Compare the reproduced coefficient table with the coefficients array term by term."
+  ],
+  "derived_columns": [
+    "asset_excess",
+    "market_excess"
+  ],
+  "filters": [
+    "Rows with missing factor or return inputs are dropped."
+  ]
+}

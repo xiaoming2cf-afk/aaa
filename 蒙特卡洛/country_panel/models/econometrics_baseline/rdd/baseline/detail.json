@@ -1,0 +1,718 @@
+{
+  "record": {
+    "id": "8f6c0a77-efb7-4d49-8e1a-f8c6ede8dc06",
+    "title": "RDD summary for panel_dataset.csv",
+    "content": "RDD run on panel_dataset.csv.\nOutcome variable: outcome_y.\nRunning variable: running_score.\nCutoff: 0.0000.\nLocal treatment effect at cutoff: 0.8782.",
+    "content_excerpt": "RDD run on panel_dataset.csv. Outcome variable: outcome_y. Running variable: running_score. Cutoff: 0.0000. Local treatment effect at cutoff: 0.8782.",
+    "content_length": 149,
+    "tags": [
+      "rdd",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "rdd",
+      "model_label": "RDD",
+      "asset": {
+        "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "kind": "dataset_csv",
+        "title": "panel_dataset.csv",
+        "filename": "panel_dataset.csv",
+        "description": "panel_dataset.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 289095,
+          "original_filename": "panel_dataset.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T03:16:14.412741",
+        "updated_at": "2026-04-02T03:16:14.426020"
+      },
+      "dependent": "outcome_y",
+      "regressors": [
+        "rdd_treatment",
+        "running_centered",
+        "rdd_treatment_x_running_centered",
+        "running_centered_pow_2",
+        "rdd_treatment_x_running_centered_pow_2",
+        "size"
+      ],
+      "observations": 473,
+      "r_squared": 0.3641060886406342,
+      "adj_r_squared": 0.3559186133870801,
+      "pseudo_r_squared": null,
+      "aic": 1700.0339492188903,
+      "bic": 1729.1476169383338,
+      "log_likelihood": -843.0169746094451,
+      "coefficients": [
+        {
+          "term": "const",
+          "coefficient": -1.7327361481323846,
+          "std_error": 0.7183432984632364,
+          "t_stat": -2.412128228716347,
+          "p_value": 0.015859702594643085
+        },
+        {
+          "term": "rdd_treatment",
+          "coefficient": 0.8781623450882986,
+          "std_error": 0.3523671941372993,
+          "t_stat": 2.492179634481308,
+          "p_value": 0.012696180795144408
+        },
+        {
+          "term": "running_centered",
+          "coefficient": 2.2841517902295894,
+          "std_error": 1.0658942308217685,
+          "t_stat": 2.142944134774597,
+          "p_value": 0.032117584480098785
+        },
+        {
+          "term": "rdd_treatment_x_running_centered",
+          "coefficient": -2.2422710558002183,
+          "std_error": 1.6431100847518703,
+          "t_stat": -1.3646505347441944,
+          "p_value": 0.17236291353096878
+        },
+        {
+          "term": "running_centered_pow_2",
+          "coefficient": 2.2390836221557926,
+          "std_error": 0.9732610883943426,
+          "t_stat": 2.300599139178334,
+          "p_value": 0.021414299745941116
+        },
+        {
+          "term": "rdd_treatment_x_running_centered_pow_2",
+          "coefficient": -2.1961136388261964,
+          "std_error": 1.529135459873317,
+          "t_stat": -1.4361799176432257,
+          "p_value": 0.15095115195643272
+        },
+        {
+          "term": "size",
+          "coefficient": 1.181627409232589,
+          "std_error": 0.07351836895193471,
+          "t_stat": 16.07254657683062,
+          "p_value": 3.97418769637439e-58
+        }
+      ],
+      "narrative": [
+        "RDD run on panel_dataset.csv.",
+        "Outcome variable: outcome_y.",
+        "Running variable: running_score.",
+        "Cutoff: 0.0000.",
+        "Local treatment effect at cutoff: 0.8782."
+      ],
+      "sample_columns": [
+        "outcome_y",
+        "running_score",
+        "size"
+      ],
+      "sample_preview": [
+        {
+          "outcome_y": 8.281342947667275,
+          "running_score": 0.7698387038457276,
+          "size": 8.519775911467494
+        },
+        {
+          "outcome_y": 7.582391886802917,
+          "running_score": 0.1041811916633471,
+          "size": 7.823590785770317
+        },
+        {
+          "outcome_y": 8.19643779930995,
+          "running_score": -0.0371038537441296,
+          "size": 8.058331858128255
+        },
+        {
+          "outcome_y": 6.775339604671813,
+          "running_score": -0.288971942617631,
+          "size": 7.790582349444769
+        },
+        {
+          "outcome_y": 6.077208583694369,
+          "running_score": -0.0177468320860682,
+          "size": 7.887258066895583
+        }
+      ],
+      "specification": {
+        "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "model_family": "econometrics_baseline",
+        "model_type": "rdd",
+        "dependent": "outcome_y",
+        "controls": [
+          "size"
+        ],
+        "running_column": "running_score",
+        "rdd_cutoff": 0.0,
+        "rdd_bandwidth": 1.1,
+        "rdd_polynomial_order": 2,
+        "treat_above_cutoff": true,
+        "model_label": "RDD",
+        "regressors": [
+          "rdd_treatment",
+          "running_centered",
+          "rdd_treatment_x_running_centered",
+          "running_centered_pow_2",
+          "rdd_treatment_x_running_centered_pow_2",
+          "size"
+        ],
+        "covariance_type": "HC1",
+        "equation": "outcome_y ~ rdd_treatment + running_centered + rdd_treatment_x_running_centered + running_centered_pow_2 + rdd_treatment_x_running_centered_pow_2 + size"
+      },
+      "audit_trail": {
+        "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "sample_title": "panel_dataset.csv",
+        "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+        "rows_used": 473,
+        "sample_columns": [
+          "outcome_y",
+          "running_score",
+          "size"
+        ],
+        "covariance_type": "HC1",
+        "manual_checklist": [
+          "Download the prepared sample asset referenced in sample_asset_id.",
+          "Rebuild any derived regressors listed in derived_columns before estimation.",
+          "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+          "Compare the reproduced coefficient table with the coefficients array term by term."
+        ],
+        "derived_columns": [
+          "running_centered",
+          "rdd_treatment",
+          "rdd_treatment_x_running_centered",
+          "running_centered_pow_2",
+          "rdd_treatment_x_running_centered_pow_2"
+        ],
+        "filters": [
+          "Rows with missing outcome, running variable, or selected controls are dropped.",
+          "Bandwidth filter: 1.1."
+        ]
+      },
+      "running_column": "running_score",
+      "cutoff": 0.0,
+      "bandwidth": 1.1,
+      "polynomial_order": 2,
+      "treat_above_cutoff": true,
+      "local_effect": 0.8781623450882986,
+      "tables": {
+        "bandwidth_sensitivity": [
+          {
+            "bandwidth": 0.8250000000000001,
+            "polynomial_order": 1,
+            "observations": 367,
+            "local_effect": 1.0152041928234599,
+            "std_error": 0.2777771940290069,
+            "p_value": 0.00025743995593437375
+          },
+          {
+            "bandwidth": 0.8250000000000001,
+            "polynomial_order": 2,
+            "observations": 367,
+            "local_effect": 1.315746239530921,
+            "std_error": 0.39063991089746614,
+            "p_value": 0.0007566568288933443
+          },
+          {
+            "bandwidth": 0.8250000000000001,
+            "polynomial_order": 3,
+            "observations": 367,
+            "local_effect": 2.231441102925752,
+            "std_error": 0.49666663152081003,
+            "p_value": 7.028131926191374e-06
+          },
+          {
+            "bandwidth": 1.1,
+            "polynomial_order": 1,
+            "observations": 473,
+            "local_effect": 1.2636645354063822,
+            "std_error": 0.2511532915171025,
+            "p_value": 4.867910792540149e-07
+          },
+          {
+            "bandwidth": 1.1,
+            "polynomial_order": 2,
+            "observations": 473,
+            "local_effect": 0.8781623450882986,
+            "std_error": 0.3523671941372993,
+            "p_value": 0.012696180795144408
+          },
+          {
+            "bandwidth": 1.1,
+            "polynomial_order": 3,
+            "observations": 473,
+            "local_effect": 1.8615330355857398,
+            "std_error": 0.44124611040148926,
+            "p_value": 2.4559627697027727e-05
+          },
+          {
+            "bandwidth": 1.375,
+            "polynomial_order": 1,
+            "observations": 590,
+            "local_effect": 1.2847205898300984,
+            "std_error": 0.2267910935663035,
+            "p_value": 1.4721730713321113e-08
+          },
+          {
+            "bandwidth": 1.375,
+            "polynomial_order": 2,
+            "observations": 590,
+            "local_effect": 1.0840522486377668,
+            "std_error": 0.3159961938762863,
+            "p_value": 0.0006022781128328346
+          },
+          {
+            "bandwidth": 1.375,
+            "polynomial_order": 3,
+            "observations": 590,
+            "local_effect": 1.1176523507141016,
+            "std_error": 0.40507543088564163,
+            "p_value": 0.00579569734357423
+          }
+        ],
+        "rdd_design_audit": [
+          {
+            "cutoff": 0.0,
+            "bandwidth": 1.1,
+            "polynomial_order": 2,
+            "treat_above_cutoff": true,
+            "observations": 473
+          }
+        ]
+      },
+      "figures": [
+        {
+          "asset_id": "0be6a6f1-0e3d-4d6d-8c74-051b4b44ca11",
+          "title": "RDD scatter and fitted lines",
+          "summary": "RDD plot with separate fitted curves on each side of the cutoff.",
+          "download_url": "/api/assets/0be6a6f1-0e3d-4d6d-8c74-051b4b44ca11/download",
+          "asset": {
+            "id": "0be6a6f1-0e3d-4d6d-8c74-051b4b44ca11",
+            "kind": "chart_png",
+            "title": "panel_dataset-rdd-fit.png",
+            "filename": "panel_dataset-rdd-fit.png",
+            "description": "RDD plot with separate fitted curves on each side of the cutoff.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 102841,
+              "original_filename": "panel_dataset-rdd-fit.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "RDD scatter and fitted lines",
+              "source_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+              "summary": "RDD plot with separate fitted curves on each side of the cutoff."
+            },
+            "created_at": "2026-04-02T03:16:18.918066+00:00",
+            "updated_at": "2026-04-02T03:16:18.930519+00:00"
+          }
+        }
+      ],
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "RDD estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+              "Supporting tables included: bandwidth_sensitivity, rdd_design_audit.",
+              "Figures included: RDD scatter and fitted lines."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "The cutoff effect is `rdd_treatment` = 0.8782**.",
+              "The fitted-line figure should show a visible jump at the cutoff if the local treatment effect is economically meaningful.",
+              "Polynomial and bandwidth choices matter; always read the cutoff estimate together with the selected window."
+            ]
+          },
+          {
+            "title": "What a normal paper should report",
+            "items": [
+              "A local treatment-effect table around the cutoff.",
+              "An RDD figure with separate fits on each side of the threshold.",
+              "Bandwidth, polynomial-order, and treatment-assignment-rule disclosure."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Confirm the running variable and cutoff coding in the downloaded sample.",
+              "Check whether the bandwidth filter leaves the same number of observations as reported.",
+              "Rebuild the fitted lines using the same polynomial order and compare the local effect row."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "bandwidth_sensitivity",
+          "rdd_design_audit",
+          "RDD scatter and fitted lines"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "",
+      "variant_spec": {},
+      "result_record_id": "8f6c0a77-efb7-4d49-8e1a-f8c6ede8dc06",
+      "result_detail_path": "/data-lab/results/models/8f6c0a77-efb7-4d49-8e1a-f8c6ede8dc06"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:16:19.028036",
+    "updated_at": "2026-04-02T03:16:19.028764"
+  },
+  "result": {
+    "model_type": "rdd",
+    "model_label": "RDD",
+    "asset": {
+      "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "kind": "dataset_csv",
+      "title": "panel_dataset.csv",
+      "filename": "panel_dataset.csv",
+      "description": "panel_dataset.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 289095,
+        "original_filename": "panel_dataset.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T03:16:14.412741",
+      "updated_at": "2026-04-02T03:16:14.426020"
+    },
+    "dependent": "outcome_y",
+    "regressors": [
+      "rdd_treatment",
+      "running_centered",
+      "rdd_treatment_x_running_centered",
+      "running_centered_pow_2",
+      "rdd_treatment_x_running_centered_pow_2",
+      "size"
+    ],
+    "observations": 473,
+    "r_squared": 0.3641060886406342,
+    "adj_r_squared": 0.3559186133870801,
+    "pseudo_r_squared": null,
+    "aic": 1700.0339492188903,
+    "bic": 1729.1476169383338,
+    "log_likelihood": -843.0169746094451,
+    "coefficients": [
+      {
+        "term": "const",
+        "coefficient": -1.7327361481323846,
+        "std_error": 0.7183432984632364,
+        "t_stat": -2.412128228716347,
+        "p_value": 0.015859702594643085
+      },
+      {
+        "term": "rdd_treatment",
+        "coefficient": 0.8781623450882986,
+        "std_error": 0.3523671941372993,
+        "t_stat": 2.492179634481308,
+        "p_value": 0.012696180795144408
+      },
+      {
+        "term": "running_centered",
+        "coefficient": 2.2841517902295894,
+        "std_error": 1.0658942308217685,
+        "t_stat": 2.142944134774597,
+        "p_value": 0.032117584480098785
+      },
+      {
+        "term": "rdd_treatment_x_running_centered",
+        "coefficient": -2.2422710558002183,
+        "std_error": 1.6431100847518703,
+        "t_stat": -1.3646505347441944,
+        "p_value": 0.17236291353096878
+      },
+      {
+        "term": "running_centered_pow_2",
+        "coefficient": 2.2390836221557926,
+        "std_error": 0.9732610883943426,
+        "t_stat": 2.300599139178334,
+        "p_value": 0.021414299745941116
+      },
+      {
+        "term": "rdd_treatment_x_running_centered_pow_2",
+        "coefficient": -2.1961136388261964,
+        "std_error": 1.529135459873317,
+        "t_stat": -1.4361799176432257,
+        "p_value": 0.15095115195643272
+      },
+      {
+        "term": "size",
+        "coefficient": 1.181627409232589,
+        "std_error": 0.07351836895193471,
+        "t_stat": 16.07254657683062,
+        "p_value": 3.97418769637439e-58
+      }
+    ],
+    "narrative": [
+      "RDD run on panel_dataset.csv.",
+      "Outcome variable: outcome_y.",
+      "Running variable: running_score.",
+      "Cutoff: 0.0000.",
+      "Local treatment effect at cutoff: 0.8782."
+    ],
+    "sample_columns": [
+      "outcome_y",
+      "running_score",
+      "size"
+    ],
+    "sample_preview": [
+      {
+        "outcome_y": 8.281342947667275,
+        "running_score": 0.7698387038457276,
+        "size": 8.519775911467494
+      },
+      {
+        "outcome_y": 7.582391886802917,
+        "running_score": 0.1041811916633471,
+        "size": 7.823590785770317
+      },
+      {
+        "outcome_y": 8.19643779930995,
+        "running_score": -0.0371038537441296,
+        "size": 8.058331858128255
+      },
+      {
+        "outcome_y": 6.775339604671813,
+        "running_score": -0.288971942617631,
+        "size": 7.790582349444769
+      },
+      {
+        "outcome_y": 6.077208583694369,
+        "running_score": -0.0177468320860682,
+        "size": 7.887258066895583
+      }
+    ],
+    "specification": {
+      "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "model_family": "econometrics_baseline",
+      "model_type": "rdd",
+      "dependent": "outcome_y",
+      "controls": [
+        "size"
+      ],
+      "running_column": "running_score",
+      "rdd_cutoff": 0.0,
+      "rdd_bandwidth": 1.1,
+      "rdd_polynomial_order": 2,
+      "treat_above_cutoff": true,
+      "model_label": "RDD",
+      "regressors": [
+        "rdd_treatment",
+        "running_centered",
+        "rdd_treatment_x_running_centered",
+        "running_centered_pow_2",
+        "rdd_treatment_x_running_centered_pow_2",
+        "size"
+      ],
+      "covariance_type": "HC1",
+      "equation": "outcome_y ~ rdd_treatment + running_centered + rdd_treatment_x_running_centered + running_centered_pow_2 + rdd_treatment_x_running_centered_pow_2 + size"
+    },
+    "audit_trail": {
+      "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "sample_title": "panel_dataset.csv",
+      "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+      "rows_used": 473,
+      "sample_columns": [
+        "outcome_y",
+        "running_score",
+        "size"
+      ],
+      "covariance_type": "HC1",
+      "manual_checklist": [
+        "Download the prepared sample asset referenced in sample_asset_id.",
+        "Rebuild any derived regressors listed in derived_columns before estimation.",
+        "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+        "Compare the reproduced coefficient table with the coefficients array term by term."
+      ],
+      "derived_columns": [
+        "running_centered",
+        "rdd_treatment",
+        "rdd_treatment_x_running_centered",
+        "running_centered_pow_2",
+        "rdd_treatment_x_running_centered_pow_2"
+      ],
+      "filters": [
+        "Rows with missing outcome, running variable, or selected controls are dropped.",
+        "Bandwidth filter: 1.1."
+      ]
+    },
+    "running_column": "running_score",
+    "cutoff": 0.0,
+    "bandwidth": 1.1,
+    "polynomial_order": 2,
+    "treat_above_cutoff": true,
+    "local_effect": 0.8781623450882986,
+    "tables": {
+      "bandwidth_sensitivity": [
+        {
+          "bandwidth": 0.8250000000000001,
+          "polynomial_order": 1,
+          "observations": 367,
+          "local_effect": 1.0152041928234599,
+          "std_error": 0.2777771940290069,
+          "p_value": 0.00025743995593437375
+        },
+        {
+          "bandwidth": 0.8250000000000001,
+          "polynomial_order": 2,
+          "observations": 367,
+          "local_effect": 1.315746239530921,
+          "std_error": 0.39063991089746614,
+          "p_value": 0.0007566568288933443
+        },
+        {
+          "bandwidth": 0.8250000000000001,
+          "polynomial_order": 3,
+          "observations": 367,
+          "local_effect": 2.231441102925752,
+          "std_error": 0.49666663152081003,
+          "p_value": 7.028131926191374e-06
+        },
+        {
+          "bandwidth": 1.1,
+          "polynomial_order": 1,
+          "observations": 473,
+          "local_effect": 1.2636645354063822,
+          "std_error": 0.2511532915171025,
+          "p_value": 4.867910792540149e-07
+        },
+        {
+          "bandwidth": 1.1,
+          "polynomial_order": 2,
+          "observations": 473,
+          "local_effect": 0.8781623450882986,
+          "std_error": 0.3523671941372993,
+          "p_value": 0.012696180795144408
+        },
+        {
+          "bandwidth": 1.1,
+          "polynomial_order": 3,
+          "observations": 473,
+          "local_effect": 1.8615330355857398,
+          "std_error": 0.44124611040148926,
+          "p_value": 2.4559627697027727e-05
+        },
+        {
+          "bandwidth": 1.375,
+          "polynomial_order": 1,
+          "observations": 590,
+          "local_effect": 1.2847205898300984,
+          "std_error": 0.2267910935663035,
+          "p_value": 1.4721730713321113e-08
+        },
+        {
+          "bandwidth": 1.375,
+          "polynomial_order": 2,
+          "observations": 590,
+          "local_effect": 1.0840522486377668,
+          "std_error": 0.3159961938762863,
+          "p_value": 0.0006022781128328346
+        },
+        {
+          "bandwidth": 1.375,
+          "polynomial_order": 3,
+          "observations": 590,
+          "local_effect": 1.1176523507141016,
+          "std_error": 0.40507543088564163,
+          "p_value": 0.00579569734357423
+        }
+      ],
+      "rdd_design_audit": [
+        {
+          "cutoff": 0.0,
+          "bandwidth": 1.1,
+          "polynomial_order": 2,
+          "treat_above_cutoff": true,
+          "observations": 473
+        }
+      ]
+    },
+    "figures": [
+      {
+        "asset_id": "0be6a6f1-0e3d-4d6d-8c74-051b4b44ca11",
+        "title": "RDD scatter and fitted lines",
+        "summary": "RDD plot with separate fitted curves on each side of the cutoff.",
+        "download_url": "/api/assets/0be6a6f1-0e3d-4d6d-8c74-051b4b44ca11/download",
+        "asset": {
+          "id": "0be6a6f1-0e3d-4d6d-8c74-051b4b44ca11",
+          "kind": "chart_png",
+          "title": "panel_dataset-rdd-fit.png",
+          "filename": "panel_dataset-rdd-fit.png",
+          "description": "RDD plot with separate fitted curves on each side of the cutoff.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 102841,
+            "original_filename": "panel_dataset-rdd-fit.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "RDD scatter and fitted lines",
+            "source_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+            "summary": "RDD plot with separate fitted curves on each side of the cutoff."
+          },
+          "created_at": "2026-04-02T03:16:18.918066+00:00",
+          "updated_at": "2026-04-02T03:16:18.930519+00:00"
+        }
+      }
+    ],
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "RDD estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+            "Supporting tables included: bandwidth_sensitivity, rdd_design_audit.",
+            "Figures included: RDD scatter and fitted lines."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "The cutoff effect is `rdd_treatment` = 0.8782**.",
+            "The fitted-line figure should show a visible jump at the cutoff if the local treatment effect is economically meaningful.",
+            "Polynomial and bandwidth choices matter; always read the cutoff estimate together with the selected window."
+          ]
+        },
+        {
+          "title": "What a normal paper should report",
+          "items": [
+            "A local treatment-effect table around the cutoff.",
+            "An RDD figure with separate fits on each side of the threshold.",
+            "Bandwidth, polynomial-order, and treatment-assignment-rule disclosure."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Confirm the running variable and cutoff coding in the downloaded sample.",
+            "Check whether the bandwidth filter leaves the same number of observations as reported.",
+            "Rebuild the fitted lines using the same polynomial order and compare the local effect row."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "bandwidth_sensitivity",
+        "rdd_design_audit",
+        "RDD scatter and fitted lines"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "",
+    "variant_spec": {},
+    "result_record_id": "8f6c0a77-efb7-4d49-8e1a-f8c6ede8dc06",
+    "result_detail_path": "/data-lab/results/models/8f6c0a77-efb7-4d49-8e1a-f8c6ede8dc06"
+  },
+  "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4"
+}

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Optimization Result | Data Lab | Economic Research Platform</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="page-bg"></div>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Data Lab Optimization Result</p>
+        <h1 id="optimization-result-title">Loading optimization suite...</h1>
+        <p class="hero-copy" id="optimization-result-summary">This page exposes the private optimization result, statistical tables, figures, and raw export assets.</p>
+      </div>
+      <div class="hero-meta">
+        <div class="meta-card">
+          <span>Result type</span>
+          <strong>Optimization suite</strong>
+        </div>
+        <div class="meta-card">
+          <span>Transparency</span>
+          <strong>All exports preserved</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell public-shell">
+      <section class="panel platform-nav-panel">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h2>Platform Navigation</h2>
+            <p class="muted">Only navigation stays open on public hosts before login. Use these links to move back to the main workspace or other standalone tools.</p>
+          </div>
+        </div>
+        <div class="platform-nav-grid">
+          <a class="platform-nav-card" href="/"><span class="eyebrow eyebrow-compact">Main</span><h3>Main Platform</h3><p>Return to sign-in, Provider Center, Paper Library, and the private workspace cockpit.</p></a>
+          <a class="platform-nav-card" href="/data-lab"><span class="eyebrow eyebrow-compact">Standalone</span><h3>Data Lab</h3><p>Return to the integrated Data Lab workbench.</p></a>
+          <a class="platform-nav-card" href="/data-lab#optimization-module"><span class="eyebrow eyebrow-compact">Module</span><h3>Optimization Module</h3><p>Go back to the optimization suite builder inside Data Lab.</p></a>
+          <a class="platform-nav-card" href="/public-monitor"><span class="eyebrow eyebrow-compact">Public</span><h3>Public Daily Monitor</h3><p>Open the macro monitor surface.</p></a>
+        </div>
+      </section>
+
+      <section class="panel access-gate-panel hidden" id="access-gate-panel" data-access-gate>
+        <div class="access-gate-card">
+          <p class="eyebrow eyebrow-compact" id="access-gate-eyebrow">Access Control</p>
+          <h2 id="access-gate-title">Sign in to unlock optimization results</h2>
+          <p class="muted" id="access-gate-copy">
+            On public hosts, only Platform Navigation stays open before login. Sign in on the main platform, then reopen this optimization result page.
+          </p>
+          <div class="actions compact-actions" id="access-gate-actions">
+            <a href="/" class="button-link">Go to sign-in</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel public-toolbar access-guarded">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h2>Result Detail</h2>
+            <p class="muted">This page is private. Use the same browser session as the integrated Data Lab optimization module.</p>
+          </div>
+          <div class="actions">
+            <a href="/data-lab#optimization-module" class="button-link secondary-link">Back to Optimization Module</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel public-section access-guarded">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h3>Suite Snapshot</h3>
+            <span class="muted">A quick read of the task size, success rate, and top-ranked algorithm.</span>
+          </div>
+        </div>
+        <div class="snapshot-grid" id="optimization-result-snapshot">
+          <article class="snapshot-card"><span>Loading...</span><strong>Suite summary</strong><p>The snapshot cards will appear once the result loads.</p></article>
+        </div>
+      </section>
+
+      <section class="panel public-section access-guarded">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h3>Export Board</h3>
+            <span class="muted">Download raw tables, process curves, and charts from the generated asset package.</span>
+          </div>
+        </div>
+        <div class="card-list" id="optimization-result-assets">
+          <div class="card"><p>Loading export assets...</p></div>
+        </div>
+      </section>
+
+      <section class="panel public-section access-guarded">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h3>Statistical Tables</h3>
+            <span class="muted">Score summary, ranking table, Wilcoxon, and sign-test outputs are preserved as downloadable files.</span>
+          </div>
+        </div>
+        <div class="card-list" id="optimization-result-tables">
+          <div class="card"><p>Loading table package...</p></div>
+        </div>
+      </section>
+
+      <section class="panel public-section access-guarded">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h3>Figure Gallery</h3>
+            <span class="muted">Average convergence, radar chart, ranking plot, and per-function curve figures.</span>
+          </div>
+        </div>
+        <div class="card-list" id="optimization-result-figures">
+          <div class="card"><p>Loading figures...</p></div>
+        </div>
+      </section>
+
+      <section class="panel public-section access-guarded">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h3>Raw Result JSON</h3>
+            <span class="muted">The raw private result payload is included below for audit and replication.</span>
+          </div>
+        </div>
+        <pre class="console-box" id="optimization-result-raw">Loading raw JSON...</pre>
+      </section>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>

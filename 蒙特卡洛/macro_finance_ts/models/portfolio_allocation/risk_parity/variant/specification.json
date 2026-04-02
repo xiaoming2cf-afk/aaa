@@ -1,0 +1,17 @@
+{
+  "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "model_family": "portfolio_allocation",
+  "model_type": "risk_parity",
+  "series_columns": [
+    "return_a",
+    "return_b",
+    "return_c"
+  ],
+  "long_only": true,
+  "report_variant": "turnover_check",
+  "engine": "pypfopt",
+  "variant_label": "risk_parity_audit",
+  "variant_spec": {
+    "report_variant": "turnover_check"
+  }
+}

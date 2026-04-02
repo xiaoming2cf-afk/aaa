@@ -3,6 +3,8 @@ from __future__ import annotations
 from copy import deepcopy
 from urllib.parse import urlencode
 
+from .model_library_support import engine_metadata
+
 
 PROCESSING_FAMILY_CATALOG: list[dict[str, object]] = [
     {
@@ -1434,6 +1436,19 @@ def get_model_method(family_slug: str, method_slug: str) -> dict[str, object] | 
         "variant_presets": list(method.get("variant_presets") or family.get("variant_presets") or []),
         "paper_template": _paper_results_template(method_slug, str(method.get("name") or method_slug), guide),
         "paper_table_preview": _paper_table_preview(method_slug, str(method.get("name") or method_slug)),
+        "engine": method.get("engine") or "baseline",
+        "engine_label": method.get("engine_label") or "Baseline",
+        "engine_available": bool(method.get("engine_available", True)),
+        "engine_version": method.get("engine_version") or "",
+        "engine_note": method.get("engine_note") or "",
+        "baseline_engine": method.get("baseline_engine") or method.get("engine") or "baseline",
+        "candidate_engine": method.get("candidate_engine") or "",
+        "comparison_required": bool(method.get("comparison_required", False)),
+        "comparison_status": method.get("comparison_status") or "pending",
+        "async_only": bool(method.get("async_only", False)),
+        "requires_optional_dependency": bool(method.get("requires_optional_dependency", False)),
+        "variant_schema": deepcopy(method.get("variant_schema") or family.get("variant_schema") or {}),
+        "paper_output_contract": deepcopy(method.get("paper_output_contract") or {}),
     }
 
 
@@ -1457,4 +1472,959 @@ def get_model_teaching_guide(family_slug: str, method_slug: str) -> dict[str, ob
         "variant_presets": list(method.get("variant_presets") or family.get("variant_presets") or []),
         "paper_template": _paper_results_template(method_slug, str(method["name"]), guide),
         "paper_table_preview": _paper_table_preview(method_slug, str(method["name"])),
+        "engine": method.get("engine") or "baseline",
+        "engine_label": method.get("engine_label") or "Baseline",
+        "engine_available": bool(method.get("engine_available", True)),
+        "engine_version": method.get("engine_version") or "",
+        "engine_note": method.get("engine_note") or "",
+        "baseline_engine": method.get("baseline_engine") or method.get("engine") or "baseline",
+        "candidate_engine": method.get("candidate_engine") or "",
+        "comparison_required": bool(method.get("comparison_required", False)),
+        "comparison_status": method.get("comparison_status") or "pending",
+        "async_only": bool(method.get("async_only", False)),
+        "requires_optional_dependency": bool(method.get("requires_optional_dependency", False)),
+        "variant_schema": deepcopy(method.get("variant_schema") or family.get("variant_schema") or {}),
+        "paper_output_contract": deepcopy(method.get("paper_output_contract") or {}),
     }
+
+
+def _make_method_guide(
+    overview: str,
+    equation: str,
+    outputs: list[str],
+    normal_result: str,
+    manual_checks: list[str] | None = None,
+) -> dict[str, object]:
+    return {
+        "overview": overview,
+        "equation": equation,
+        "outputs": outputs,
+        "normal_result": normal_result,
+        "manual_checks": manual_checks or [],
+    }
+
+
+def _paper_output_contract(
+    primary_tables: list[str],
+    figures: list[str],
+    *,
+    robustness_tables: list[str] | None = None,
+    diagnostics: list[str] | None = None,
+) -> dict[str, object]:
+    return {
+        "primary_tables": primary_tables,
+        "robustness_tables": robustness_tables or [],
+        "figures": figures,
+        "diagnostics": diagnostics or [],
+    }
+
+
+def _find_model_family_mutable(slug: str) -> dict[str, object] | None:
+    for family in MODEL_FAMILY_CATALOG:
+        if family.get("slug") == slug:
+            return family
+    return None
+
+
+def _append_methods(family_slug: str, methods: list[dict[str, object]]) -> None:
+    family = _find_model_family_mutable(family_slug)
+    if not family:
+        raise KeyError(f"Unknown model family: {family_slug}")
+    existing = {str(method.get("slug")) for method in family.get("methods") or []}
+    for method in methods:
+        if str(method.get("slug")) not in existing:
+            family.setdefault("methods", []).append(method)
+
+
+def _append_family(family: dict[str, object]) -> None:
+    if _find_model_family_mutable(str(family.get("slug"))):
+        return
+    MODEL_FAMILY_CATALOG.append(family)
+
+
+def _extend_method_guides(guides: dict[str, dict[str, object]]) -> None:
+    MODEL_METHOD_GUIDES.update(guides)
+
+
+def _update_method_metadata(family_slug: str, updates: dict[str, dict[str, object]]) -> None:
+    family = _find_model_family_mutable(family_slug)
+    if not family:
+        return
+    for method in family.get("methods") or []:
+        slug = str(method.get("slug") or "")
+        if slug in updates:
+            method.update(deepcopy(updates[slug]))
+
+
+COMMON_REGRESSION_SCHEMA = {
+    "shared": [
+        "dependent",
+        "independents",
+        "controls",
+        "entity_column",
+        "time_column",
+        "robust_covariance",
+        "subset_filter",
+        "lag_terms",
+        "lead_terms",
+        "log_transform_columns",
+        "interaction_terms",
+        "quadratic_terms",
+    ],
+}
+
+
+TIME_SERIES_SCHEMA = {
+    "shared": [
+        "dependent",
+        "series_columns",
+        "time_column",
+        "forecast_steps",
+        "lag_order",
+        "difference_order",
+        "distribution",
+        "volatility_family",
+        "impulse_column",
+        "response_column",
+    ],
+}
+
+
+PORTFOLIO_SCHEMA = {
+    "shared": [
+        "series_columns",
+        "objective",
+        "weight_bounds",
+        "long_only",
+        "risk_free_rate",
+        "market_neutral",
+        "target_return",
+        "target_risk",
+    ],
+}
+
+
+CAUSAL_SCHEMA = {
+    "shared": [
+        "dependent",
+        "treatment_column",
+        "post_column",
+        "event_time_column",
+        "running_column",
+        "cutoff",
+        "bandwidth",
+        "entity_column",
+        "time_column",
+        "include_time_effects",
+        "donor_pool",
+        "placebo_checks",
+        "pretrend_checks",
+    ],
+}
+
+
+BAYESIAN_SCHEMA = {
+    "shared": [
+        "dependent",
+        "independents",
+        "controls",
+        "priors",
+        "chains",
+        "draws",
+        "tune",
+        "target_accept",
+        "hdi_prob",
+        "posterior_predictive",
+    ],
+}
+
+
+def _candidate_method(
+    *,
+    slug: str,
+    name: str,
+    description: str,
+    engine: str,
+    paper_contract: dict[str, object],
+    variant_schema: dict[str, object],
+    baseline_engine: str = "baseline",
+    candidate_engine: str = "",
+    comparison_required: bool = False,
+    async_only: bool = False,
+    optional: bool = True,
+) -> dict[str, object]:
+    method = {
+        "slug": slug,
+        "name": name,
+        "description": description,
+        "paper_output_contract": deepcopy(paper_contract),
+        "variant_schema": deepcopy(variant_schema),
+        "baseline_engine": baseline_engine,
+        "candidate_engine": candidate_engine or engine,
+        "comparison_required": comparison_required,
+        "comparison_status": "pending" if comparison_required else "not_required",
+    }
+    method.update(engine_metadata(engine, async_only=async_only, optional=optional))
+    return method
+
+
+_append_methods(
+    "econometrics_baseline",
+    [
+        _candidate_method(
+            slug="random_effects",
+            name="Random Effects",
+            description="Panel random-effects estimator for partially pooled entity variation.",
+            engine="linearmodels",
+            paper_contract=_paper_output_contract(
+                ["Random-effects main table", "Variance decomposition table"],
+                ["Residual distribution plot"],
+                robustness_tables=["Hausman-style comparison table"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="first_difference",
+            name="First Difference",
+            description="Panel first-difference estimator that removes time-invariant heterogeneity.",
+            engine="linearmodels",
+            paper_contract=_paper_output_contract(
+                ["First-difference main table", "Differenced sample audit table"],
+                ["Differenced outcome diagnostic plot"],
+                robustness_tables=["Alternative lag/lead specification table"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="between_ols",
+            name="Between OLS",
+            description="Between estimator using unit-level averages across time.",
+            engine="linearmodels",
+            paper_contract=_paper_output_contract(
+                ["Between-estimator main table", "Entity-average sample audit table"],
+                ["Entity-average comparison plot"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="pooled_ols",
+            name="Pooled OLS",
+            description="Pooled panel regression benchmark without fixed effects.",
+            engine="linearmodels",
+            paper_contract=_paper_output_contract(
+                ["Pooled OLS table", "Model comparison table"],
+                ["Residual diagnostic plot"],
+                robustness_tables=["Robust covariance comparison table"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="fama_macbeth",
+            name="Fama-MacBeth",
+            description="Cross-sectional asset-pricing regression with time-series aggregation of coefficients.",
+            engine="linearmodels",
+            paper_contract=_paper_output_contract(
+                ["Fama-MacBeth coefficient table", "Period-by-period summary table"],
+                ["Factor premium path plot"],
+                robustness_tables=["Alternative factor specification table"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="iv_liml",
+            name="IV-LIML",
+            description="Limited-information maximum likelihood estimator for weak-instrument settings.",
+            engine="linearmodels",
+            paper_contract=_paper_output_contract(
+                ["IV-LIML main table", "Weak-instrument diagnostic table"],
+                ["First-stage fit plot"],
+                robustness_tables=["2SLS vs LIML comparison table"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="iv_gmm",
+            name="IV-GMM",
+            description="Generalized-method-of-moments IV estimator with over-identification diagnostics.",
+            engine="linearmodels",
+            paper_contract=_paper_output_contract(
+                ["IV-GMM main table", "Over-identification diagnostic table"],
+                ["Moment-condition diagnostic plot"],
+                robustness_tables=["Alternative weighting matrix table"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="absorbing_ls",
+            name="Absorbing Least Squares",
+            description="High-dimensional fixed-effects regression using absorbed dummies.",
+            engine="linearmodels",
+            paper_contract=_paper_output_contract(
+                ["Absorbing-LS main table", "Absorbed-effects audit table"],
+                ["Residual by group plot"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="sur",
+            name="SUR",
+            description="Seemingly unrelated regression for correlated system equations.",
+            engine="linearmodels",
+            paper_contract=_paper_output_contract(
+                ["SUR system table", "Equation covariance table"],
+                ["System residual correlation heatmap"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="iv_3sls",
+            name="IV-3SLS",
+            description="Three-stage least squares for simultaneous-equation systems with instruments.",
+            engine="linearmodels",
+            paper_contract=_paper_output_contract(
+                ["3SLS system table", "Instrument validity table"],
+                ["Equation residual plot"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="system_gmm",
+            name="System GMM",
+            description="System-GMM style estimator for dynamic panel equations.",
+            engine="linearmodels",
+            paper_contract=_paper_output_contract(
+                ["System-GMM main table", "Serial-correlation and Hansen table"],
+                ["Dynamic fit plot"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+            async_only=True,
+        ),
+    ],
+)
+
+_append_methods(
+    "time_series_finance",
+    [
+        _candidate_method(
+            slug="varmax",
+            name="VARMAX",
+            description="State-space VARMAX model for multivariate dynamics with moving-average terms.",
+            engine="statsmodels",
+            paper_contract=_paper_output_contract(
+                ["VARMAX system table", "Forecast summary table"],
+                ["Forecast path plot", "Residual diagnostics plot"],
+            ),
+            variant_schema=TIME_SERIES_SCHEMA,
+        ),
+        _candidate_method(
+            slug="vecm",
+            name="VECM",
+            description="Vector error-correction model for cointegrated multivariate systems.",
+            engine="statsmodels",
+            paper_contract=_paper_output_contract(
+                ["VECM coefficient table", "Cointegration summary table"],
+                ["Impulse-response plot", "Error-correction path plot"],
+            ),
+            variant_schema=TIME_SERIES_SCHEMA,
+        ),
+        _candidate_method(
+            slug="markov_switching",
+            name="Markov Switching",
+            description="Regime-switching model with latent states and filtered probabilities.",
+            engine="statsmodels",
+            paper_contract=_paper_output_contract(
+                ["Markov-switching summary table", "State probability table"],
+                ["Smoothed state probability plot"],
+            ),
+            variant_schema=TIME_SERIES_SCHEMA,
+        ),
+        _candidate_method(
+            slug="unobserved_components",
+            name="Unobserved Components",
+            description="State-space decomposition into trend, cycle, and irregular components.",
+            engine="statsmodels",
+            paper_contract=_paper_output_contract(
+                ["Component summary table", "Trend/cycle decomposition table"],
+                ["Trend decomposition plot", "Component contribution plot"],
+            ),
+            variant_schema=TIME_SERIES_SCHEMA,
+        ),
+        _candidate_method(
+            slug="exponential_smoothing",
+            name="Exponential Smoothing",
+            description="ETS forecast model with level, trend, and seasonality controls.",
+            engine="statsmodels",
+            paper_contract=_paper_output_contract(
+                ["ETS summary table", "Forecast comparison table"],
+                ["Forecast path plot"],
+            ),
+            variant_schema=TIME_SERIES_SCHEMA,
+        ),
+        _candidate_method(
+            slug="egarch",
+            name="EGARCH",
+            description="Exponential GARCH model for asymmetric volatility responses.",
+            engine="arch",
+            paper_contract=_paper_output_contract(
+                ["EGARCH parameter table", "Volatility forecast table"],
+                ["Conditional volatility plot", "Forecast volatility plot"],
+                diagnostics=["Residual diagnostic table"],
+            ),
+            variant_schema=TIME_SERIES_SCHEMA,
+        ),
+        _candidate_method(
+            slug="gjr_garch",
+            name="GJR-GARCH",
+            description="Threshold GARCH model with leverage effects.",
+            engine="arch",
+            paper_contract=_paper_output_contract(
+                ["GJR-GARCH parameter table", "Volatility forecast table"],
+                ["Conditional volatility plot", "Forecast volatility plot"],
+                diagnostics=["Residual diagnostic table"],
+            ),
+            variant_schema=TIME_SERIES_SCHEMA,
+        ),
+        _candidate_method(
+            slug="harx",
+            name="HARX",
+            description="Heterogeneous autoregressive model with exogenous features for realized-volatility style problems.",
+            engine="arch",
+            paper_contract=_paper_output_contract(
+                ["HARX parameter table", "Forecast table"],
+                ["Forecast path plot"],
+            ),
+            variant_schema=TIME_SERIES_SCHEMA,
+        ),
+        _candidate_method(
+            slug="adf_test",
+            name="ADF Unit Root Test",
+            description="Augmented Dickey-Fuller unit root test with lag and trend options.",
+            engine="arch",
+            paper_contract=_paper_output_contract(
+                ["ADF test table", "Lag selection table"],
+                ["Series level plot"],
+            ),
+            variant_schema=TIME_SERIES_SCHEMA,
+        ),
+        _candidate_method(
+            slug="kpss_test",
+            name="KPSS Stationarity Test",
+            description="KPSS stationarity test with level or trend null.",
+            engine="arch",
+            paper_contract=_paper_output_contract(
+                ["KPSS test table", "Bandwidth table"],
+                ["Series level plot"],
+            ),
+            variant_schema=TIME_SERIES_SCHEMA,
+        ),
+        _candidate_method(
+            slug="pp_test",
+            name="Phillips-Perron Test",
+            description="Phillips-Perron unit root test with heteroskedasticity-robust correction.",
+            engine="arch",
+            paper_contract=_paper_output_contract(
+                ["Phillips-Perron test table", "Bandwidth table"],
+                ["Series level plot"],
+            ),
+            variant_schema=TIME_SERIES_SCHEMA,
+        ),
+        _candidate_method(
+            slug="zivot_andrews",
+            name="Zivot-Andrews Break Test",
+            description="Unit root test with a single endogenous structural break.",
+            engine="arch",
+            paper_contract=_paper_output_contract(
+                ["Zivot-Andrews test table", "Break-date summary table"],
+                ["Series with break marker plot"],
+            ),
+            variant_schema=TIME_SERIES_SCHEMA,
+        ),
+        _candidate_method(
+            slug="engle_granger",
+            name="Engle-Granger Cointegration",
+            description="Residual-based cointegration test for long-run equilibrium relationships.",
+            engine="arch",
+            paper_contract=_paper_output_contract(
+                ["Cointegration test table", "Long-run regression table"],
+                ["Residual stationarity plot"],
+            ),
+            variant_schema=TIME_SERIES_SCHEMA,
+        ),
+        _candidate_method(
+            slug="dynamic_ols",
+            name="Dynamic OLS",
+            description="Cointegration estimator with leads and lags of first differences.",
+            engine="arch",
+            paper_contract=_paper_output_contract(
+                ["Dynamic OLS main table", "Lead-lag audit table"],
+                ["Fitted long-run relation plot"],
+            ),
+            variant_schema=TIME_SERIES_SCHEMA,
+        ),
+        _candidate_method(
+            slug="fm_ols",
+            name="Fully Modified OLS",
+            description="Cointegration estimator robust to endogeneity and serial correlation.",
+            engine="arch",
+            paper_contract=_paper_output_contract(
+                ["FM-OLS main table", "Kernel/bandwidth audit table"],
+                ["Long-run fit plot"],
+            ),
+            variant_schema=TIME_SERIES_SCHEMA,
+        ),
+    ],
+)
+
+_append_methods(
+    "portfolio_allocation",
+    [
+        _candidate_method(
+            slug="efficient_frontier",
+            name="Efficient Frontier",
+            description="Mean-variance frontier and optimal portfolio under configurable objectives.",
+            engine="pypfopt",
+            paper_contract=_paper_output_contract(
+                ["Weight table", "Risk-return summary table"],
+                ["Efficient frontier plot", "Weight allocation plot"],
+            ),
+            variant_schema=PORTFOLIO_SCHEMA,
+        ),
+        _candidate_method(
+            slug="semivariance_frontier",
+            name="Efficient Semivariance",
+            description="Downside-risk frontier using semivariance instead of total variance.",
+            engine="pypfopt",
+            paper_contract=_paper_output_contract(
+                ["Semivariance allocation table", "Downside-risk summary table"],
+                ["Semivariance frontier plot"],
+            ),
+            variant_schema=PORTFOLIO_SCHEMA,
+        ),
+        _candidate_method(
+            slug="cvar_frontier",
+            name="Efficient CVaR",
+            description="Tail-risk-aware allocation using CVaR optimization.",
+            engine="pypfopt",
+            paper_contract=_paper_output_contract(
+                ["CVaR allocation table", "Tail-risk summary table"],
+                ["CVaR frontier plot"],
+            ),
+            variant_schema=PORTFOLIO_SCHEMA,
+        ),
+        _candidate_method(
+            slug="black_litterman",
+            name="Black-Litterman",
+            description="Bayesian portfolio combination of equilibrium returns and user views.",
+            engine="pypfopt",
+            paper_contract=_paper_output_contract(
+                ["Black-Litterman weights table", "Posterior return table"],
+                ["Posterior allocation plot", "View impact plot"],
+            ),
+            variant_schema=PORTFOLIO_SCHEMA,
+            async_only=True,
+        ),
+        _candidate_method(
+            slug="hrp",
+            name="Hierarchical Risk Parity",
+            description="Clustering-based portfolio construction with hierarchical risk parity.",
+            engine="pypfopt",
+            paper_contract=_paper_output_contract(
+                ["HRP weights table", "Cluster risk table"],
+                ["Dendrogram plot", "Risk contribution plot"],
+            ),
+            variant_schema=PORTFOLIO_SCHEMA,
+        ),
+        _candidate_method(
+            slug="discrete_allocation",
+            name="Discrete Allocation",
+            description="Translate continuous weights into integer holdings for implementable portfolios.",
+            engine="pypfopt",
+            paper_contract=_paper_output_contract(
+                ["Discrete allocation table", "Cash remainder table"],
+                ["Allocation value plot"],
+            ),
+            variant_schema=PORTFOLIO_SCHEMA,
+        ),
+    ],
+)
+
+_append_family(
+    {
+        "slug": "causal_inference",
+        "title": "Causal Inference",
+        "category": "model",
+        "category_label": "Model",
+        "summary": "Policy-evaluation and design-based causal estimators with explicit identification checks.",
+        "description": "Use this family for quasi-experimental designs such as staggered adoption, synthetic controls, interrupted time series, and regression-kink style identification.",
+        "key_inputs": ["Outcome, treatment, time, design variables", "Donor pool or pre-treatment structure", "Placebo and pre-trend settings"],
+        "manual_checks": ["Confirm treatment timing definitions.", "Inspect donor/pre-period balance.", "Validate placebo or sensitivity outputs against the design narrative."],
+        "variant_schema": CAUSAL_SCHEMA,
+        "methods": [
+            _candidate_method(slug="staggered_did", name="Staggered DID", description="Difference-in-differences with staggered adoption timing and cohort-time effects.", engine="causalpy", paper_contract=_paper_output_contract(["Main staggered DID table", "Cohort-time effect table"], ["Dynamic treatment effect plot"], robustness_tables=["Placebo or alternative timing table"]), variant_schema=CAUSAL_SCHEMA, async_only=True),
+            _candidate_method(slug="synthetic_control", name="Synthetic Control", description="Construct a synthetic counterfactual from donor units for case-study treatment analysis.", engine="causalpy", paper_contract=_paper_output_contract(["Synthetic-control fit table", "Donor weight table"], ["Observed vs synthetic path plot", "Gap plot"], diagnostics=["Pre-treatment fit diagnostics"]), variant_schema=CAUSAL_SCHEMA, async_only=True),
+            _candidate_method(slug="interrupted_time_series", name="Interrupted Time Series", description="Estimate level and slope changes after a policy interruption in ordered data.", engine="causalpy", paper_contract=_paper_output_contract(["ITS coefficient table", "Pre/post slope summary table"], ["Observed vs fitted ITS plot"], robustness_tables=["Alternative break-date table"]), variant_schema=CAUSAL_SCHEMA),
+            _candidate_method(slug="regression_kink", name="Regression Kink", description="Causal identification from slope changes at a known kink point.", engine="causalpy", paper_contract=_paper_output_contract(["Regression kink table", "Bandwidth and slope audit table"], ["Kink diagnostic plot"]), variant_schema=CAUSAL_SCHEMA),
+            _candidate_method(slug="instrumental_causal", name="Instrumental Variable Causal", description="CausalPy IV workflow with design-oriented diagnostics.", engine="causalpy", paper_contract=_paper_output_contract(["Causal IV main table", "First-stage diagnostic table"], ["Fitted treatment plot"]), variant_schema=CAUSAL_SCHEMA),
+            _candidate_method(slug="inverse_propensity_weighting", name="Inverse Propensity Weighting", description="Reweight observational samples using estimated treatment propensities.", engine="causalpy", paper_contract=_paper_output_contract(["IPW treatment-effect table", "Propensity summary table"], ["Propensity overlap plot"], diagnostics=["Balance diagnostic table"]), variant_schema=CAUSAL_SCHEMA),
+        ],
+        "default_workbench_query": {"workflow": "model", "model_family": "causal_inference", "model_type": "staggered_did"},
+    }
+)
+
+_append_family(
+    {
+        "slug": "bayesian",
+        "title": "Bayesian Modeling",
+        "category": "model",
+        "category_label": "Model",
+        "summary": "Bayesian regression, causal, and panel models with posterior diagnostics.",
+        "description": "Use this family when posterior uncertainty, priors, or hierarchical structure is the primary research requirement.",
+        "key_inputs": ["Outcome and predictor variables", "Prior settings and sampler configuration", "Posterior predictive checks"],
+        "manual_checks": ["Inspect trace diagnostics and divergences.", "Check prior sensitivity against posterior summaries.", "Verify HDI and predictive plots against posterior tables."],
+        "variant_schema": BAYESIAN_SCHEMA,
+        "methods": [
+            _candidate_method(slug="bayesian_linear_regression", name="Bayesian Linear Regression", description="Linear regression estimated with priors and posterior inference.", engine="pymc", paper_contract=_paper_output_contract(["Posterior summary table", "Predictor contribution table"], ["Trace plot", "Posterior predictive plot"], diagnostics=["Sampler diagnostic table"]), variant_schema=BAYESIAN_SCHEMA, async_only=True),
+            _candidate_method(slug="bayesian_panel", name="Bayesian Panel", description="Hierarchical panel regression with unit-level random structure.", engine="pymc", paper_contract=_paper_output_contract(["Posterior coefficient table", "Group-level variance table"], ["Trace plot", "Posterior predictive panel plot"], diagnostics=["Sampler diagnostic table"]), variant_schema=BAYESIAN_SCHEMA, async_only=True),
+            _candidate_method(slug="bayesian_did", name="Bayesian DID", description="Bayesian treatment-effect estimation for before-after designs.", engine="pymc", paper_contract=_paper_output_contract(["Posterior treatment-effect table", "Cell-mean posterior table"], ["Trace plot", "Posterior treatment effect plot"], diagnostics=["Sampler diagnostic table"]), variant_schema=BAYESIAN_SCHEMA, async_only=True),
+            _candidate_method(slug="bayesian_its", name="Bayesian ITS", description="Bayesian interrupted time-series with posterior intervention effects.", engine="pymc", paper_contract=_paper_output_contract(["Posterior intervention table", "Slope change posterior table"], ["Trace plot", "Posterior path plot"], diagnostics=["Sampler diagnostic table"]), variant_schema=BAYESIAN_SCHEMA, async_only=True),
+        ],
+        "default_workbench_query": {"workflow": "model", "model_family": "bayesian", "model_type": "bayesian_linear_regression"},
+    }
+)
+
+_append_family(
+    {
+        "slug": "quant_research",
+        "title": "Quant Research",
+        "category": "model",
+        "category_label": "Model",
+        "summary": "Prediction, signal evaluation, and lightweight backtest workflows inspired by qlib.",
+        "description": "Use this family for predictive alpha research and strategy diagnostics within the current workspace, without depending on qlib online services.",
+        "key_inputs": ["Feature columns", "Label horizon", "Backtest or ranking configuration"],
+        "manual_checks": ["Verify feature/label definitions.", "Check train-test split dates.", "Compare reported IC and return metrics against exported predictions."],
+        "variant_schema": {"shared": ["feature_columns", "label_column", "split_date", "model_config", "strategy_config", "backtest_config"]},
+        "methods": [
+            _candidate_method(slug="quant_linear_model", name="Quant Linear Model", description="Linear predictive model for alpha research with IC diagnostics.", engine="qlib", paper_contract=_paper_output_contract(["Prediction metric table", "IC summary table"], ["Prediction path plot", "Cumulative return plot"]), variant_schema={"shared": ["feature_columns", "label_column", "split_date", "holding_period"]}, async_only=True),
+            _candidate_method(slug="quant_lightgbm", name="Quant LightGBM", description="Gradient-boosted alpha model with ranked-signal evaluation.", engine="qlib", paper_contract=_paper_output_contract(["Prediction metric table", "Feature importance table"], ["Feature importance plot", "Cumulative return plot"]), variant_schema={"shared": ["feature_columns", "label_column", "split_date", "holding_period", "num_leaves", "learning_rate"]}, async_only=True),
+            _candidate_method(slug="quant_backtest_report", name="Quant Backtest Report", description="Signal ranking and portfolio backtest report with position analysis.", engine="qlib", paper_contract=_paper_output_contract(["Backtest metric table", "Position analysis table"], ["Strategy equity curve", "Turnover plot"]), variant_schema={"shared": ["prediction_asset_id", "backtest_config", "transaction_cost"]}, async_only=True),
+        ],
+        "default_workbench_query": {"workflow": "model", "model_family": "quant_research", "model_type": "quant_linear_model"},
+    }
+)
+
+_update_method_metadata(
+    "econometrics_baseline",
+    {
+        "ols": {
+            **engine_metadata("statsmodels", optional=False),
+            "baseline_engine": "baseline",
+            "candidate_engine": "statsmodels",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": COMMON_REGRESSION_SCHEMA,
+        },
+        "ppml": {
+            **engine_metadata("statsmodels", optional=False),
+            "baseline_engine": "baseline",
+            "candidate_engine": "statsmodels",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": COMMON_REGRESSION_SCHEMA,
+        },
+        "logit": {
+            **engine_metadata("statsmodels", optional=False),
+            "baseline_engine": "baseline",
+            "candidate_engine": "statsmodels",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": COMMON_REGRESSION_SCHEMA,
+        },
+        "probit": {
+            **engine_metadata("statsmodels", optional=False),
+            "baseline_engine": "baseline",
+            "candidate_engine": "statsmodels",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": COMMON_REGRESSION_SCHEMA,
+        },
+        "fixed_effects": {
+            **engine_metadata("linearmodels", optional=False),
+            "baseline_engine": "baseline",
+            "candidate_engine": "linearmodels",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": COMMON_REGRESSION_SCHEMA,
+        },
+        "panel_iv": {
+            **engine_metadata("linearmodels", optional=False),
+            "baseline_engine": "baseline",
+            "candidate_engine": "linearmodels",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": COMMON_REGRESSION_SCHEMA,
+        },
+        "did": {
+            **engine_metadata("causalpy"),
+            "baseline_engine": "baseline",
+            "candidate_engine": "causalpy",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": CAUSAL_SCHEMA,
+        },
+        "event_study": {
+            **engine_metadata("causalpy"),
+            "baseline_engine": "baseline",
+            "candidate_engine": "causalpy",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": CAUSAL_SCHEMA,
+        },
+        "rdd": {
+            **engine_metadata("causalpy"),
+            "baseline_engine": "baseline",
+            "candidate_engine": "causalpy",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": CAUSAL_SCHEMA,
+        },
+    },
+)
+
+_update_method_metadata(
+    "time_series_finance",
+    {
+        "arima": {
+            **engine_metadata("statsmodels", optional=False),
+            "baseline_engine": "baseline",
+            "candidate_engine": "statsmodels",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": TIME_SERIES_SCHEMA,
+        },
+        "var": {
+            **engine_metadata("statsmodels", optional=False),
+            "baseline_engine": "baseline",
+            "candidate_engine": "statsmodels",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": TIME_SERIES_SCHEMA,
+        },
+        "svar_irf": {
+            **engine_metadata("statsmodels", optional=False),
+            "baseline_engine": "baseline",
+            "candidate_engine": "statsmodels",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": TIME_SERIES_SCHEMA,
+        },
+        "arch": {
+            **engine_metadata("arch", optional=False),
+            "baseline_engine": "baseline",
+            "candidate_engine": "arch",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": TIME_SERIES_SCHEMA,
+        },
+        "garch": {
+            **engine_metadata("arch", optional=False),
+            "baseline_engine": "baseline",
+            "candidate_engine": "arch",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": TIME_SERIES_SCHEMA,
+        },
+    },
+)
+
+_update_method_metadata(
+    "portfolio_allocation",
+    {
+        "mean_variance": {
+            **engine_metadata("pypfopt", optional=False),
+            "baseline_engine": "baseline",
+            "candidate_engine": "pypfopt",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": PORTFOLIO_SCHEMA,
+        },
+        "minimum_variance": {
+            **engine_metadata("pypfopt", optional=False),
+            "baseline_engine": "baseline",
+            "candidate_engine": "pypfopt",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": PORTFOLIO_SCHEMA,
+        },
+        "risk_parity": {
+            **engine_metadata("pypfopt", optional=False),
+            "baseline_engine": "baseline",
+            "candidate_engine": "pypfopt",
+            "comparison_required": True,
+            "comparison_status": "pending",
+            "variant_schema": PORTFOLIO_SCHEMA,
+        },
+    },
+)
+
+_append_methods(
+    "econometrics_baseline",
+    [
+        _candidate_method(
+            slug="glm",
+            name="GLM",
+            description="Generalized linear model with configurable family and link.",
+            engine="statsmodels",
+            paper_contract=_paper_output_contract(
+                ["GLM coefficient table", "Family/link audit table"],
+                ["Fitted vs actual plot"],
+                robustness_tables=["Alternative family table"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="quantile_regression",
+            name="Quantile Regression",
+            description="Estimate conditional quantiles instead of the conditional mean.",
+            engine="statsmodels",
+            paper_contract=_paper_output_contract(
+                ["Quantile coefficient table", "Quantile comparison table"],
+                ["Coefficient path by quantile"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="gee",
+            name="GEE",
+            description="Generalized estimating equations for correlated outcomes.",
+            engine="statsmodels",
+            paper_contract=_paper_output_contract(
+                ["GEE coefficient table", "Working-correlation summary table"],
+                ["Cluster diagnostic plot"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="mnlogit",
+            name="Multinomial Logit",
+            description="Multinomial discrete-choice model for outcomes with more than two categories.",
+            engine="statsmodels",
+            paper_contract=_paper_output_contract(
+                ["MNLogit coefficient table", "Class probability table"],
+                ["Predicted class distribution plot"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="negative_binomial",
+            name="Negative Binomial",
+            description="Over-dispersed count model with explicit dispersion parameter.",
+            engine="statsmodels",
+            paper_contract=_paper_output_contract(
+                ["Negative-binomial main table", "Dispersion summary table"],
+                ["Predicted vs observed count plot"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="zero_inflated_count",
+            name="Zero-Inflated Count",
+            description="Zero-inflated Poisson or negative-binomial count specification.",
+            engine="statsmodels",
+            paper_contract=_paper_output_contract(
+                ["Zero-inflated count table", "Inflation probability table"],
+                ["Observed vs fitted count plot"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="mixedlm",
+            name="Mixed Linear Model",
+            description="Linear mixed-effects model with group-specific random structure.",
+            engine="statsmodels",
+            paper_contract=_paper_output_contract(
+                ["MixedLM coefficient table", "Random-effect variance table"],
+                ["Fitted vs actual grouped plot"],
+                diagnostics=["Random-effect summary table"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+    ],
+)
+
+_append_methods(
+    "asset_pricing",
+    [
+        _candidate_method(
+            slug="traded_factor_model",
+            name="Traded Factor Model",
+            description="Linear factor model for traded factors with alpha and risk-premia diagnostics.",
+            engine="linearmodels",
+            paper_contract=_paper_output_contract(
+                ["Risk premia table", "Alpha table", "Beta loading table"],
+                ["Factor pricing summary plot"],
+                diagnostics=["J-test or pricing-error summary"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+        _candidate_method(
+            slug="linear_factor_gmm",
+            name="Linear Factor GMM",
+            description="GMM-based linear factor pricing model for non-traded or estimated factors.",
+            engine="linearmodels",
+            paper_contract=_paper_output_contract(
+                ["Risk premia table", "Moment condition table", "Factor loading table"],
+                ["Pricing error comparison plot"],
+                diagnostics=["GMM objective and over-identification table"],
+            ),
+            variant_schema=COMMON_REGRESSION_SCHEMA,
+        ),
+    ],
+)
+
+_append_methods(
+    "portfolio_allocation",
+    [
+        _candidate_method(
+            slug="cdar_frontier",
+            name="CDaR Frontier",
+            description="Portfolio optimization using Conditional Drawdown at Risk as the risk objective.",
+            engine="pypfopt",
+            paper_contract=_paper_output_contract(
+                ["Weight table", "Drawdown risk table", "Allocation summary table"],
+                ["Drawdown frontier plot", "Weight allocation plot"],
+                diagnostics=["Constraint audit table"],
+            ),
+            variant_schema=PORTFOLIO_SCHEMA,
+        ),
+    ],
+)
+
+_append_methods(
+    "quant_research",
+    [
+        _candidate_method(
+            slug="quant_catboost",
+            name="Quant CatBoost",
+            description="Gradient-boosted tree alpha model using CatBoost with cross-sectional prediction diagnostics.",
+            engine="catboost",
+            paper_contract=_paper_output_contract(
+                ["Prediction metric table", "Feature importance table", "IC summary table"],
+                ["Feature importance plot", "Cumulative return plot", "Prediction spread plot"],
+            ),
+            variant_schema={"shared": ["feature_columns", "label_column", "split_date", "holding_period", "iterations", "depth", "learning_rate"]},
+            async_only=True,
+        ),
+        _candidate_method(
+            slug="position_analysis",
+            name="Position Analysis",
+            description="Qlib-style position and contribution diagnostics for an existing prediction or backtest output.",
+            engine="qlib",
+            paper_contract=_paper_output_contract(
+                ["Position analysis table", "Turnover table", "Contribution table"],
+                ["Position concentration plot", "Turnover path plot", "Contribution breakdown plot"],
+            ),
+            variant_schema={"shared": ["prediction_asset_id", "position_weight_column", "date_column", "instrument_column"]},
+            async_only=True,
+        ),
+    ],
+)

@@ -1,0 +1,24 @@
+{
+  "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "model_family": "econometrics_baseline",
+  "model_type": "fixed_effects",
+  "dependent": "outcome_y",
+  "independents": [
+    "size",
+    "leverage"
+  ],
+  "controls": [
+    "post"
+  ],
+  "entity_column": "firm_id",
+  "time_column": "date",
+  "include_time_effects": true,
+  "model_label": "Fixed Effects",
+  "regressors": [
+    "size",
+    "leverage",
+    "post"
+  ],
+  "covariance_type": "HC1",
+  "equation": "outcome_y ~ size + leverage + post"
+}

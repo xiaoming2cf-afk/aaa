@@ -1,0 +1,11 @@
+{
+  "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+  "model_family": "time_series_finance",
+  "model_type": "exponential_smoothing",
+  "dependent": "seasonal_series",
+  "time_column": "date",
+  "forecast_steps": 6,
+  "seasonal": "add",
+  "seasonal_periods": 12,
+  "engine": "statsmodels"
+}

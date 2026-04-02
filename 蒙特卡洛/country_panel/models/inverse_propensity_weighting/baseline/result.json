@@ -1,0 +1,241 @@
+{
+  "model_type": "inverse_propensity_weighting",
+  "model_label": "Inverse Propensity Weighting",
+  "asset": {
+    "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "kind": "dataset_csv",
+    "title": "upgrade_panel.csv",
+    "filename": "upgrade_panel.csv",
+    "description": "upgrade_panel.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 289095,
+      "original_filename": "upgrade_panel.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:26.995002",
+    "updated_at": "2026-04-02T02:57:27.013674"
+  },
+  "observations": 648,
+  "narrative": [
+    "Inverse propensity weighting estimated with a logistic propensity model."
+  ],
+  "specification": {
+    "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "model_family": "causal_inference",
+    "model_type": "inverse_propensity_weighting",
+    "dependent": "outcome_y",
+    "controls": [
+      "size",
+      "leverage",
+      "post"
+    ],
+    "treatment_column": "treated",
+    "engine": "causalpy",
+    "outcome_variable": "outcome_y",
+    "covariates": [
+      "size",
+      "leverage",
+      "post"
+    ]
+  },
+  "audit_trail": {
+    "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "sample_title": "upgrade_panel.csv",
+    "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+    "engine": "causalpy",
+    "derived_columns": [
+      "_propensity",
+      "_weight"
+    ],
+    "filters": []
+  },
+  "metrics": {},
+  "tables": {
+    "treatment_effect_table": [
+      {
+        "weighted_ate": 0.3660675449115427,
+        "treated_mean": 9.888629193935909,
+        "control_mean": 9.522561649024366
+      }
+    ],
+    "propensity_summary_table": [
+      {
+        "min_propensity": 0.00034197461987287887,
+        "max_propensity": 0.9997697470849086,
+        "mean_weight": 1.459143205174799
+      }
+    ],
+    "balance_before_table": [
+      {
+        "covariate": "size",
+        "smd": -2.1095710148995024
+      },
+      {
+        "covariate": "leverage",
+        "smd": -0.11880889190610276
+      },
+      {
+        "covariate": "post",
+        "smd": 0.0
+      }
+    ],
+    "balance_after_table": [
+      {
+        "covariate": "size",
+        "weighted_mean_diff": -0.6658824631281703
+      },
+      {
+        "covariate": "leverage",
+        "weighted_mean_diff": -0.0029804431049254565
+      },
+      {
+        "covariate": "post",
+        "weighted_mean_diff": 0.010992789895353572
+      }
+    ]
+  },
+  "sample_columns": [
+    "outcome_y",
+    "treated",
+    "size",
+    "leverage",
+    "post",
+    "_propensity",
+    "_weight"
+  ],
+  "sample_preview": [
+    {
+      "outcome_y": 8.281342947667275,
+      "treated": 1,
+      "size": 8.519775911467494,
+      "leverage": 0.3577590135791016,
+      "post": 0,
+      "_propensity": 0.9742615742183345,
+      "_weight": 1.0264183936457885
+    },
+    {
+      "outcome_y": 7.161166663415577,
+      "treated": 1,
+      "size": 7.55721041465215,
+      "leverage": 0.3378183221465689,
+      "post": 0,
+      "_propensity": 0.999757450910442,
+      "_weight": 1.0002426079338915
+    },
+    {
+      "outcome_y": 7.582391886802917,
+      "treated": 1,
+      "size": 7.823590785770317,
+      "leverage": 0.3343232278441892,
+      "post": 0,
+      "_propensity": 0.9991130025705879,
+      "_weight": 1.0008877848923294
+    },
+    {
+      "outcome_y": 8.19643779930995,
+      "treated": 1,
+      "size": 8.058331858128255,
+      "leverage": 0.3581110765958445,
+      "post": 0,
+      "_propensity": 0.9972169116486301,
+      "_weight": 1.0027908555489384
+    },
+    {
+      "outcome_y": 6.775339604671813,
+      "treated": 1,
+      "size": 7.790582349444769,
+      "leverage": 0.3323010132904619,
+      "post": 0,
+      "_propensity": 0.9992447696883843,
+      "_weight": 1.0007558011155278
+    }
+  ],
+  "engine": "causalpy",
+  "figures": [
+    {
+      "asset_id": "51f8c100-c0ea-438d-ba8a-1cf8ed8479c7",
+      "title": "Propensity score overlap",
+      "summary": "Propensity score overlap by treatment status.",
+      "download_url": "/api/assets/51f8c100-c0ea-438d-ba8a-1cf8ed8479c7/download",
+      "asset": {
+        "id": "51f8c100-c0ea-438d-ba8a-1cf8ed8479c7",
+        "kind": "chart_png",
+        "title": "upgrade_panel-ipw_overlap.png",
+        "filename": "upgrade_panel-ipw_overlap.png",
+        "description": "Propensity score overlap by treatment status.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 27490,
+          "original_filename": "upgrade_panel-ipw_overlap.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Propensity score overlap",
+          "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+          "summary": "Propensity score overlap by treatment status."
+        },
+        "created_at": "2026-04-02T02:58:03.590366+00:00",
+        "updated_at": "2026-04-02T02:58:03.599198+00:00"
+      }
+    }
+  ],
+  "primary_tables": [
+    "treatment_effect_table",
+    "propensity_summary_table",
+    "balance_before_table",
+    "balance_after_table"
+  ],
+  "paper_output_contract": {
+    "primary_tables": [
+      "treatment_effect_table",
+      "propensity_summary_table",
+      "balance_before_table",
+      "balance_after_table"
+    ],
+    "figure_count": 1
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "Inverse Propensity Weighting estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: treatment_effect_table, propensity_summary_table, balance_before_table, balance_after_table.",
+          "Figures included: Propensity score overlap."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "treatment_effect_table",
+      "propensity_summary_table",
+      "balance_before_table",
+      "balance_after_table",
+      "Propensity score overlap"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "",
+  "variant_spec": {},
+  "result_record_id": "eb8af77b-d30f-4b25-969a-583cbe997129",
+  "result_detail_path": "/data-lab/results/models/eb8af77b-d30f-4b25-969a-583cbe997129"
+}

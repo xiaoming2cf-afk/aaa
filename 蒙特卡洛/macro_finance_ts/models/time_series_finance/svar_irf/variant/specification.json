@@ -1,0 +1,24 @@
+{
+  "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "model_family": "time_series_finance",
+  "model_type": "svar_irf",
+  "series_columns": [
+    "return_a",
+    "return_b",
+    "return_c"
+  ],
+  "time_column": "date",
+  "var_lags": 2,
+  "irf_horizon": 10,
+  "impulse_column": "return_a",
+  "response_column": "return_b",
+  "lags": 2,
+  "horizon": 10,
+  "identification": "Recursive (Cholesky) ordering",
+  "variant_label": "svar_alt_response",
+  "variant_spec": {
+    "irf_horizon": 12,
+    "impulse_column": "return_b",
+    "response_column": "return_c"
+  }
+}

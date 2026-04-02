@@ -1,0 +1,24 @@
+{
+  "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "model_family": "time_series_finance",
+  "model_type": "arima",
+  "dependent": "policy_rate",
+  "time_column": "date",
+  "arima_p": 1,
+  "arima_d": 0,
+  "arima_q": 1,
+  "forecast_steps": 6,
+  "engine": "statsmodels",
+  "order": [
+    1,
+    0,
+    1
+  ],
+  "variant_label": "arima_alt_order",
+  "variant_spec": {
+    "arima_p": 2,
+    "arima_d": 1,
+    "arima_q": 1,
+    "forecast_steps": 4
+  }
+}

@@ -1,0 +1,261 @@
+{
+  "model_type": "system_gmm",
+  "model_label": "System GMM",
+  "asset": {
+    "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "kind": "dataset_csv",
+    "title": "upgrade_panel.csv",
+    "filename": "upgrade_panel.csv",
+    "description": "upgrade_panel.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 289095,
+      "original_filename": "upgrade_panel.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:26.995002",
+    "updated_at": "2026-04-02T02:57:27.013674"
+  },
+  "observations": 648,
+  "narrative": [
+    "System GMM estimated with linearmodels system estimators.",
+    "Equations estimated: eq."
+  ],
+  "specification": {
+    "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "model_family": "econometrics_baseline",
+    "model_type": "system_gmm",
+    "dependent": "outcome_y",
+    "independents": [
+      "size"
+    ],
+    "controls": [
+      "leverage",
+      "post"
+    ],
+    "endogenous_column": "endogenous_x",
+    "instrument_columns": [
+      "instrument_z"
+    ],
+    "secondary_dependent": "secondary_outcome",
+    "engine": "linearmodels",
+    "variant_label": "sysgmm_post"
+  },
+  "audit_trail": {
+    "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "sample_title": "upgrade_panel.csv",
+    "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+    "engine": "linearmodels",
+    "derived_columns": [],
+    "filters": [
+      "Rows with missing variables used by any equation are dropped."
+    ]
+  },
+  "metrics": {
+    "j_stat": "H0: Expected moment conditions are equal to 0\nStatistic: 0.0000\nP-value: nan\nDistributed: chi2(0)",
+    "sigma": "              eq_primary  eq_secondary\neq_primary      2.159951      1.221243\neq_secondary    1.221243      1.544184",
+    "method": "2-Step System GMM",
+    "iterations": "2"
+  },
+  "tables": {
+    "system_coefficients": [
+      {
+        "term": "primary_Intercept",
+        "coefficient": 0.10774651444160507,
+        "equation": "eq"
+      },
+      {
+        "term": "primary_size",
+        "coefficient": 1.1228012275624626,
+        "equation": "eq"
+      },
+      {
+        "term": "primary_leverage",
+        "coefficient": -2.7788400804366846,
+        "equation": "eq"
+      },
+      {
+        "term": "primary_endogenous_x",
+        "coefficient": 0.612715473858611,
+        "equation": "eq"
+      },
+      {
+        "term": "secondary_Intercept",
+        "coefficient": 3.5453967892976683,
+        "equation": "eq"
+      },
+      {
+        "term": "secondary_size",
+        "coefficient": 0.5972280638270929,
+        "equation": "eq"
+      },
+      {
+        "term": "secondary_leverage",
+        "coefficient": -1.2486303494877835,
+        "equation": "eq"
+      },
+      {
+        "term": "secondary_post",
+        "coefficient": 2.1529029876401946,
+        "equation": "eq"
+      }
+    ],
+    "equation_residual_summary": [
+      {
+        "equation": "eq_primary",
+        "mean": 1.166693627853004e-14,
+        "std": 1.4696771172280527,
+        "rmse": 1.4696771172280527
+      },
+      {
+        "equation": "eq_secondary",
+        "mean": 6.42558708573177e-15,
+        "std": 1.2426521463954796,
+        "rmse": 1.2426521463954796
+      }
+    ]
+  },
+  "sample_columns": [
+    "outcome_y",
+    "secondary_outcome",
+    "size",
+    "leverage",
+    "post",
+    "treated",
+    "endogenous_x",
+    "instrument_z"
+  ],
+  "sample_preview": [
+    {
+      "outcome_y": 8.281342947667275,
+      "secondary_outcome": 8.061791269331776,
+      "size": 8.519775911467494,
+      "leverage": 0.3577590135791016,
+      "post": 0,
+      "treated": 1,
+      "endogenous_x": 0.2785972991161518,
+      "instrument_z": -0.1435168424451554
+    },
+    {
+      "outcome_y": 7.161166663415577,
+      "secondary_outcome": 7.318611368946235,
+      "size": 7.55721041465215,
+      "leverage": 0.3378183221465689,
+      "post": 0,
+      "treated": 1,
+      "endogenous_x": 1.1977342200420291,
+      "instrument_z": 1.4316570462193818
+    },
+    {
+      "outcome_y": 7.582391886802917,
+      "secondary_outcome": 7.862834793778379,
+      "size": 7.823590785770317,
+      "leverage": 0.3343232278441892,
+      "post": 0,
+      "treated": 1,
+      "endogenous_x": 0.2791971515539841,
+      "instrument_z": 1.0577328335812757
+    },
+    {
+      "outcome_y": 8.19643779930995,
+      "secondary_outcome": 8.591393326330843,
+      "size": 8.058331858128255,
+      "leverage": 0.3581110765958445,
+      "post": 0,
+      "treated": 1,
+      "endogenous_x": 1.693126004491981,
+      "instrument_z": 1.2478999752354007
+    },
+    {
+      "outcome_y": 6.775339604671813,
+      "secondary_outcome": 6.579443540901458,
+      "size": 7.790582349444769,
+      "leverage": 0.3323010132904619,
+      "post": 0,
+      "treated": 1,
+      "endogenous_x": -0.6336680485148168,
+      "instrument_z": -0.7576141862667286
+    }
+  ],
+  "engine": "linearmodels",
+  "figures": [
+    {
+      "asset_id": "9aada3c6-8be4-4bbd-80e8-ad83651dba7a",
+      "title": "System Equation Diagnostic",
+      "summary": "Equation-level residual or dynamic fit diagnostics across the estimated system.",
+      "download_url": "/api/assets/9aada3c6-8be4-4bbd-80e8-ad83651dba7a/download",
+      "asset": {
+        "id": "9aada3c6-8be4-4bbd-80e8-ad83651dba7a",
+        "kind": "chart_png",
+        "title": "upgrade_panel-system_gmm_diagnostic.png",
+        "filename": "upgrade_panel-system_gmm_diagnostic.png",
+        "description": "Equation-level residual or dynamic fit diagnostics across the estimated system.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 250803,
+          "original_filename": "upgrade_panel-system_gmm_diagnostic.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "System Equation Diagnostic",
+          "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+          "summary": "Equation-level residual or dynamic fit diagnostics across the estimated system."
+        },
+        "created_at": "2026-04-02T02:57:44.337076+00:00",
+        "updated_at": "2026-04-02T02:57:44.351203+00:00"
+      }
+    }
+  ],
+  "primary_tables": [
+    "system_coefficients",
+    "equation_residual_summary"
+  ],
+  "paper_output_contract": {
+    "primary_tables": [
+      "system_coefficients",
+      "equation_residual_summary"
+    ],
+    "figure_count": 1
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "System GMM estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: system_coefficients, equation_residual_summary.",
+          "Figures included: System Equation Diagnostic."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "system_coefficients",
+      "equation_residual_summary",
+      "System Equation Diagnostic"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "sysgmm_post",
+  "variant_spec": {},
+  "result_record_id": "429280af-90ab-4918-a731-d5e89a19b53b",
+  "result_detail_path": "/data-lab/results/models/429280af-90ab-4918-a731-d5e89a19b53b"
+}

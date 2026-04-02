@@ -1,0 +1,488 @@
+{
+  "record": {
+    "id": "3008ffa2-094d-499b-91d3-14db1126ec91",
+    "title": "ARCH summary for timeseries_dataset.csv",
+    "content": "ARCH estimated with distribution=normal.\nForecast horizon: 5.\nForecast method: analytic.",
+    "content_excerpt": "ARCH estimated with distribution=normal. Forecast horizon: 5. Forecast method: analytic.",
+    "content_length": 88,
+    "tags": [
+      "arch",
+      "time_series_finance",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "arch",
+      "model_label": "ARCH",
+      "asset": {
+        "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "kind": "dataset_csv",
+        "title": "timeseries_dataset.csv",
+        "filename": "timeseries_dataset.csv",
+        "description": "timeseries_dataset.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 93948,
+          "original_filename": "timeseries_dataset.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T03:16:14.454310",
+        "updated_at": "2026-04-02T03:16:14.458473"
+      },
+      "observations": 240,
+      "narrative": [
+        "ARCH estimated with distribution=normal.",
+        "Forecast horizon: 5.",
+        "Forecast method: analytic."
+      ],
+      "specification": {
+        "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "model_family": "time_series_finance",
+        "model_type": "arch",
+        "dependent": "asset_return",
+        "time_column": "date",
+        "garch_p": 1,
+        "garch_q": 1,
+        "forecast_steps": 5,
+        "engine": "arch",
+        "distribution": "normal",
+        "forecast_method": "analytic"
+      },
+      "audit_trail": {
+        "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "sample_title": "timeseries_dataset.csv",
+        "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+        "engine": "arch",
+        "derived_columns": [],
+        "filters": [
+          "Rows with missing dependent are dropped."
+        ]
+      },
+      "metrics": {
+        "loglikelihood": -157.01408482608593,
+        "aic": 320.02816965217187,
+        "bic": 330.4700864221978
+      },
+      "tables": {
+        "parameter_table": [
+          {
+            "term": "mu",
+            "coefficient": -0.036537851146284
+          },
+          {
+            "term": "omega",
+            "coefficient": 0.18861581584520884
+          },
+          {
+            "term": "alpha[1]",
+            "coefficient": 0.1458575242819331
+          }
+        ],
+        "forecast_volatility": [
+          {
+            "forecast_date": "2025-01-31T00:00:00",
+            "forecast_variance": 0.20257329306170765
+          },
+          {
+            "forecast_date": "2025-02-28T00:00:00",
+            "forecast_variance": 0.218162654856828
+          },
+          {
+            "forecast_date": "2025-03-31T00:00:00",
+            "forecast_variance": 0.22043648057339962
+          },
+          {
+            "forecast_date": "2025-04-30T00:00:00",
+            "forecast_variance": 0.22076813516306734
+          },
+          {
+            "forecast_date": "2025-05-31T00:00:00",
+            "forecast_variance": 0.22081650948043302
+          }
+        ]
+      },
+      "sample_columns": [
+        "date",
+        "asset_return"
+      ],
+      "sample_preview": [
+        {
+          "date": "2005-01-31T00:00:00",
+          "asset_return": 0.233763149235475
+        },
+        {
+          "date": "2005-02-28T00:00:00",
+          "asset_return": -0.0288988145034342
+        },
+        {
+          "date": "2005-03-31T00:00:00",
+          "asset_return": 0.0006193654776038
+        },
+        {
+          "date": "2005-04-30T00:00:00",
+          "asset_return": 0.3695634562880727
+        },
+        {
+          "date": "2005-05-31T00:00:00",
+          "asset_return": 0.2029051474483442
+        }
+      ],
+      "engine": "arch",
+      "figures": [
+        {
+          "asset_id": "ed9b3a79-30f6-441f-b955-c613f4bc2630",
+          "title": "ARCH conditional volatility",
+          "summary": "In-sample conditional volatility from the fitted volatility model.",
+          "download_url": "/api/assets/ed9b3a79-30f6-441f-b955-c613f4bc2630/download",
+          "asset": {
+            "id": "ed9b3a79-30f6-441f-b955-c613f4bc2630",
+            "kind": "chart_png",
+            "title": "timeseries_dataset-arch_conditional_volatility.png",
+            "filename": "timeseries_dataset-arch_conditional_volatility.png",
+            "description": "In-sample conditional volatility from the fitted volatility model.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 124117,
+              "original_filename": "timeseries_dataset-arch_conditional_volatility.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "ARCH conditional volatility",
+              "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+              "summary": "In-sample conditional volatility from the fitted volatility model."
+            },
+            "created_at": "2026-04-02T03:16:21.958464+00:00",
+            "updated_at": "2026-04-02T03:16:21.964106+00:00"
+          }
+        },
+        {
+          "asset_id": "751cb3e1-7cdc-404a-bacb-5b5cbc592884",
+          "title": "ARCH forecast volatility",
+          "summary": "Out-of-sample volatility forecast from the fitted model.",
+          "download_url": "/api/assets/751cb3e1-7cdc-404a-bacb-5b5cbc592884/download",
+          "asset": {
+            "id": "751cb3e1-7cdc-404a-bacb-5b5cbc592884",
+            "kind": "chart_png",
+            "title": "timeseries_dataset-arch_forecast_volatility.png",
+            "filename": "timeseries_dataset-arch_forecast_volatility.png",
+            "description": "Out-of-sample volatility forecast from the fitted model.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 54312,
+              "original_filename": "timeseries_dataset-arch_forecast_volatility.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "ARCH forecast volatility",
+              "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+              "summary": "Out-of-sample volatility forecast from the fitted model."
+            },
+            "created_at": "2026-04-02T03:16:22.150144+00:00",
+            "updated_at": "2026-04-02T03:16:22.154151+00:00"
+          }
+        }
+      ],
+      "primary_tables": [
+        "parameter_table",
+        "forecast_volatility"
+      ],
+      "paper_output_contract": {
+        "primary_tables": [
+          "parameter_table",
+          "forecast_volatility"
+        ],
+        "figure_count": 2
+      },
+      "workflow_type": "model",
+      "model_family": "time_series_finance",
+      "interpretation": {
+        "headline": "ARCH estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Supporting tables included: parameter_table, forecast_volatility.",
+              "Figures included: ARCH conditional volatility, ARCH forecast volatility."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Volatility persistence is reported directly in the metrics panel and should normally be below 1. Current value: n/a.",
+              "The parameter table is the formal estimation output; the volatility-path chart shows how conditional volatility evolves through the sample.",
+              "The forecast-volatility table and forecast chart extend the conditional variance path beyond the last observation."
+            ]
+          },
+          {
+            "title": "What a normal paper should report",
+            "items": [
+              "A parameter table with omega, alpha, and beta terms.",
+              "A conditional-volatility figure over time.",
+              "A short discussion of persistence and forecasted volatility."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Re-estimate the same ARCH/GARCH order on the downloaded return series.",
+              "Check whether alpha plus beta matches the reported persistence.",
+              "Recompute the forecast variance path and compare it step by step with the forecast table."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "parameter_table",
+          "forecast_volatility",
+          "ARCH conditional volatility",
+          "ARCH forecast volatility"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "",
+      "variant_spec": {},
+      "result_record_id": "3008ffa2-094d-499b-91d3-14db1126ec91",
+      "result_detail_path": "/data-lab/results/models/3008ffa2-094d-499b-91d3-14db1126ec91"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:16:22.159204",
+    "updated_at": "2026-04-02T03:16:22.160025"
+  },
+  "result": {
+    "model_type": "arch",
+    "model_label": "ARCH",
+    "asset": {
+      "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "kind": "dataset_csv",
+      "title": "timeseries_dataset.csv",
+      "filename": "timeseries_dataset.csv",
+      "description": "timeseries_dataset.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 93948,
+        "original_filename": "timeseries_dataset.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T03:16:14.454310",
+      "updated_at": "2026-04-02T03:16:14.458473"
+    },
+    "observations": 240,
+    "narrative": [
+      "ARCH estimated with distribution=normal.",
+      "Forecast horizon: 5.",
+      "Forecast method: analytic."
+    ],
+    "specification": {
+      "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "model_family": "time_series_finance",
+      "model_type": "arch",
+      "dependent": "asset_return",
+      "time_column": "date",
+      "garch_p": 1,
+      "garch_q": 1,
+      "forecast_steps": 5,
+      "engine": "arch",
+      "distribution": "normal",
+      "forecast_method": "analytic"
+    },
+    "audit_trail": {
+      "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "sample_title": "timeseries_dataset.csv",
+      "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+      "engine": "arch",
+      "derived_columns": [],
+      "filters": [
+        "Rows with missing dependent are dropped."
+      ]
+    },
+    "metrics": {
+      "loglikelihood": -157.01408482608593,
+      "aic": 320.02816965217187,
+      "bic": 330.4700864221978
+    },
+    "tables": {
+      "parameter_table": [
+        {
+          "term": "mu",
+          "coefficient": -0.036537851146284
+        },
+        {
+          "term": "omega",
+          "coefficient": 0.18861581584520884
+        },
+        {
+          "term": "alpha[1]",
+          "coefficient": 0.1458575242819331
+        }
+      ],
+      "forecast_volatility": [
+        {
+          "forecast_date": "2025-01-31T00:00:00",
+          "forecast_variance": 0.20257329306170765
+        },
+        {
+          "forecast_date": "2025-02-28T00:00:00",
+          "forecast_variance": 0.218162654856828
+        },
+        {
+          "forecast_date": "2025-03-31T00:00:00",
+          "forecast_variance": 0.22043648057339962
+        },
+        {
+          "forecast_date": "2025-04-30T00:00:00",
+          "forecast_variance": 0.22076813516306734
+        },
+        {
+          "forecast_date": "2025-05-31T00:00:00",
+          "forecast_variance": 0.22081650948043302
+        }
+      ]
+    },
+    "sample_columns": [
+      "date",
+      "asset_return"
+    ],
+    "sample_preview": [
+      {
+        "date": "2005-01-31T00:00:00",
+        "asset_return": 0.233763149235475
+      },
+      {
+        "date": "2005-02-28T00:00:00",
+        "asset_return": -0.0288988145034342
+      },
+      {
+        "date": "2005-03-31T00:00:00",
+        "asset_return": 0.0006193654776038
+      },
+      {
+        "date": "2005-04-30T00:00:00",
+        "asset_return": 0.3695634562880727
+      },
+      {
+        "date": "2005-05-31T00:00:00",
+        "asset_return": 0.2029051474483442
+      }
+    ],
+    "engine": "arch",
+    "figures": [
+      {
+        "asset_id": "ed9b3a79-30f6-441f-b955-c613f4bc2630",
+        "title": "ARCH conditional volatility",
+        "summary": "In-sample conditional volatility from the fitted volatility model.",
+        "download_url": "/api/assets/ed9b3a79-30f6-441f-b955-c613f4bc2630/download",
+        "asset": {
+          "id": "ed9b3a79-30f6-441f-b955-c613f4bc2630",
+          "kind": "chart_png",
+          "title": "timeseries_dataset-arch_conditional_volatility.png",
+          "filename": "timeseries_dataset-arch_conditional_volatility.png",
+          "description": "In-sample conditional volatility from the fitted volatility model.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 124117,
+            "original_filename": "timeseries_dataset-arch_conditional_volatility.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "ARCH conditional volatility",
+            "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+            "summary": "In-sample conditional volatility from the fitted volatility model."
+          },
+          "created_at": "2026-04-02T03:16:21.958464+00:00",
+          "updated_at": "2026-04-02T03:16:21.964106+00:00"
+        }
+      },
+      {
+        "asset_id": "751cb3e1-7cdc-404a-bacb-5b5cbc592884",
+        "title": "ARCH forecast volatility",
+        "summary": "Out-of-sample volatility forecast from the fitted model.",
+        "download_url": "/api/assets/751cb3e1-7cdc-404a-bacb-5b5cbc592884/download",
+        "asset": {
+          "id": "751cb3e1-7cdc-404a-bacb-5b5cbc592884",
+          "kind": "chart_png",
+          "title": "timeseries_dataset-arch_forecast_volatility.png",
+          "filename": "timeseries_dataset-arch_forecast_volatility.png",
+          "description": "Out-of-sample volatility forecast from the fitted model.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 54312,
+            "original_filename": "timeseries_dataset-arch_forecast_volatility.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "ARCH forecast volatility",
+            "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+            "summary": "Out-of-sample volatility forecast from the fitted model."
+          },
+          "created_at": "2026-04-02T03:16:22.150144+00:00",
+          "updated_at": "2026-04-02T03:16:22.154151+00:00"
+        }
+      }
+    ],
+    "primary_tables": [
+      "parameter_table",
+      "forecast_volatility"
+    ],
+    "paper_output_contract": {
+      "primary_tables": [
+        "parameter_table",
+        "forecast_volatility"
+      ],
+      "figure_count": 2
+    },
+    "workflow_type": "model",
+    "model_family": "time_series_finance",
+    "interpretation": {
+      "headline": "ARCH estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Supporting tables included: parameter_table, forecast_volatility.",
+            "Figures included: ARCH conditional volatility, ARCH forecast volatility."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Volatility persistence is reported directly in the metrics panel and should normally be below 1. Current value: n/a.",
+            "The parameter table is the formal estimation output; the volatility-path chart shows how conditional volatility evolves through the sample.",
+            "The forecast-volatility table and forecast chart extend the conditional variance path beyond the last observation."
+          ]
+        },
+        {
+          "title": "What a normal paper should report",
+          "items": [
+            "A parameter table with omega, alpha, and beta terms.",
+            "A conditional-volatility figure over time.",
+            "A short discussion of persistence and forecasted volatility."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Re-estimate the same ARCH/GARCH order on the downloaded return series.",
+            "Check whether alpha plus beta matches the reported persistence.",
+            "Recompute the forecast variance path and compare it step by step with the forecast table."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "parameter_table",
+        "forecast_volatility",
+        "ARCH conditional volatility",
+        "ARCH forecast volatility"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "",
+    "variant_spec": {},
+    "result_record_id": "3008ffa2-094d-499b-91d3-14db1126ec91",
+    "result_detail_path": "/data-lab/results/models/3008ffa2-094d-499b-91d3-14db1126ec91"
+  },
+  "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4"
+}

@@ -1,0 +1,10 @@
+{
+  "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "sample_title": "upgrade_panel.csv",
+  "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+  "engine": "pymc",
+  "derived_columns": [
+    "_posterior_mean"
+  ],
+  "filters": []
+}

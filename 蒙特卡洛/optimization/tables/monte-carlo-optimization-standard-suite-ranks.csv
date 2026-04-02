@@ -1,0 +1,4 @@
+optimizer_name,average_rank,rank_order
+mealpy.swarm_based.WOA.OriginalWOA,1.0,1
+mealpy.evolutionary_based.DE.OriginalDE,2.3333333333333335,2
+mealpy.swarm_based.PSO.OriginalPSO,2.6666666666666665,3

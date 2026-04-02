@@ -1,0 +1,546 @@
+{
+  "record": {
+    "id": "1c1d0a4e-1e81-480b-a5b5-25d2e149ac38",
+    "title": "Quant CatBoost summary for upgrade_ts.csv",
+    "content": "CatBoost alpha model evaluated with IC metrics and a simple long-short strategy curve.",
+    "content_excerpt": "CatBoost alpha model evaluated with IC metrics and a simple long-short strategy curve.",
+    "content_length": 86,
+    "tags": [
+      "quant_catboost",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "quant_catboost",
+      "model_label": "Quant CatBoost",
+      "asset": {
+        "id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+        "kind": "dataset_csv",
+        "title": "upgrade_ts.csv",
+        "filename": "upgrade_ts.csv",
+        "description": "upgrade_ts.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 93948,
+          "original_filename": "upgrade_ts.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T02:57:27.052169",
+        "updated_at": "2026-04-02T02:57:27.059647"
+      },
+      "observations": 72,
+      "narrative": [
+        "CatBoost alpha model evaluated with IC metrics and a simple long-short strategy curve."
+      ],
+      "specification": {
+        "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+        "model_family": "quant_research",
+        "model_type": "quant_catboost",
+        "dependent": "asset_return",
+        "time_column": "date",
+        "feature_columns": [
+          "market_return",
+          "smb",
+          "hml",
+          "output_gap"
+        ],
+        "split_ratio": 0.7,
+        "iterations": 120,
+        "depth": 5,
+        "engine": "qlib",
+        "variant_label": "quant_cat_alt"
+      },
+      "audit_trail": {
+        "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+        "sample_title": "upgrade_ts.csv",
+        "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+        "engine": "qlib",
+        "derived_columns": [
+          "prediction",
+          "strategy_return",
+          "cumulative_return"
+        ],
+        "filters": []
+      },
+      "metrics": {},
+      "tables": {
+        "prediction_metric_table": [
+          {
+            "mse": 0.024924749873656078,
+            "r2": 0.9170953510446866
+          }
+        ],
+        "feature_importance_table": [
+          {
+            "feature": "market_return",
+            "importance": 92.88277319895568
+          },
+          {
+            "feature": "output_gap",
+            "importance": 2.7348566074318077
+          },
+          {
+            "feature": "smb",
+            "importance": 2.4205284803735347
+          },
+          {
+            "feature": "hml",
+            "importance": 1.9618417132389743
+          }
+        ],
+        "ic_summary_table": [
+          {
+            "ic": 0.9720486374626678,
+            "rank_ic": 0.9955624155894272
+          }
+        ],
+        "feature_label_spec_table": [
+          {
+            "feature_columns": "market_return, smb, hml, output_gap",
+            "label_column": "asset_return",
+            "observation_count": 72
+          }
+        ]
+      },
+      "sample_columns": [
+        "asset_return",
+        "date",
+        "market_return",
+        "smb",
+        "hml",
+        "output_gap",
+        "prediction"
+      ],
+      "sample_preview": [
+        {
+          "asset_return": 0.6103892668004385,
+          "date": "2019-01-31",
+          "market_return": 0.4225926355792506,
+          "smb": -0.0136058496547306,
+          "hml": -0.0192287942645375,
+          "output_gap": -0.1162678403167445,
+          "prediction": 0.5653491726404791
+        },
+        {
+          "asset_return": 0.4503262844625377,
+          "date": "2019-02-28",
+          "market_return": 0.3349344561814909,
+          "smb": -0.0167020927825678,
+          "hml": 0.0072888668322776,
+          "output_gap": -0.215859239497153,
+          "prediction": 0.435679498971292
+        },
+        {
+          "asset_return": 0.2467740170886707,
+          "date": "2019-03-31",
+          "market_return": 0.2019138766498448,
+          "smb": 0.0195913903342569,
+          "hml": 0.02137588314334,
+          "output_gap": -0.4759883361222958,
+          "prediction": 0.2880965930787452
+        },
+        {
+          "asset_return": 0.0710026348466687,
+          "date": "2019-04-30",
+          "market_return": 0.0635426508870538,
+          "smb": 0.026483922439306,
+          "hml": 0.0046933269170794,
+          "output_gap": -0.4008650268815827,
+          "prediction": 0.0770195162634473
+        },
+        {
+          "asset_return": 0.4764258880914624,
+          "date": "2019-05-31",
+          "market_return": 0.3644843160133288,
+          "smb": 0.0208036038691824,
+          "hml": 0.0247712637277533,
+          "output_gap": -0.1201437333836792,
+          "prediction": 0.469192544730868
+        }
+      ],
+      "engine": "qlib",
+      "figures": [
+        {
+          "asset_id": "be4be46f-ad12-410b-8f07-2640bf6434e5",
+          "title": "CatBoost feature importance",
+          "summary": "Feature importance from the CatBoost alpha model.",
+          "download_url": "/api/assets/be4be46f-ad12-410b-8f07-2640bf6434e5/download",
+          "asset": {
+            "id": "be4be46f-ad12-410b-8f07-2640bf6434e5",
+            "kind": "chart_png",
+            "title": "upgrade_ts-quant_catboost_importance.png",
+            "filename": "upgrade_ts-quant_catboost_importance.png",
+            "description": "Feature importance from the CatBoost alpha model.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 28253,
+              "original_filename": "upgrade_ts-quant_catboost_importance.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "CatBoost feature importance",
+              "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+              "summary": "Feature importance from the CatBoost alpha model."
+            },
+            "created_at": "2026-04-02T03:07:40.548455+00:00",
+            "updated_at": "2026-04-02T03:07:40.560556+00:00"
+          }
+        },
+        {
+          "asset_id": "af630b2c-883a-4467-bb3d-914e57e4dcc5",
+          "title": "Quant CatBoost strategy curve",
+          "summary": "Strategy curve from the CatBoost alpha model.",
+          "download_url": "/api/assets/af630b2c-883a-4467-bb3d-914e57e4dcc5/download",
+          "asset": {
+            "id": "af630b2c-883a-4467-bb3d-914e57e4dcc5",
+            "kind": "chart_png",
+            "title": "upgrade_ts-quant_catboost_curve.png",
+            "filename": "upgrade_ts-quant_catboost_curve.png",
+            "description": "Strategy curve from the CatBoost alpha model.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 57776,
+              "original_filename": "upgrade_ts-quant_catboost_curve.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "Quant CatBoost strategy curve",
+              "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+              "summary": "Strategy curve from the CatBoost alpha model."
+            },
+            "created_at": "2026-04-02T03:07:40.280560+00:00",
+            "updated_at": "2026-04-02T03:07:40.294247+00:00"
+          }
+        }
+      ],
+      "primary_tables": [
+        "prediction_metric_table",
+        "feature_importance_table",
+        "ic_summary_table",
+        "feature_label_spec_table"
+      ],
+      "paper_output_contract": {
+        "primary_tables": [
+          "prediction_metric_table",
+          "feature_importance_table",
+          "ic_summary_table",
+          "feature_label_spec_table"
+        ],
+        "figure_count": 2
+      },
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "Quant CatBoost estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Supporting tables included: prediction_metric_table, feature_importance_table, ic_summary_table, feature_label_spec_table.",
+              "Figures included: CatBoost feature importance, Quant CatBoost strategy curve."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "prediction_metric_table",
+          "feature_importance_table",
+          "ic_summary_table",
+          "feature_label_spec_table",
+          "CatBoost feature importance",
+          "Quant CatBoost strategy curve"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "quant_cat_alt",
+      "variant_spec": {},
+      "result_record_id": "1c1d0a4e-1e81-480b-a5b5-25d2e149ac38",
+      "result_detail_path": "/data-lab/results/models/1c1d0a4e-1e81-480b-a5b5-25d2e149ac38"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:07:40.583758",
+    "updated_at": "2026-04-02T03:07:40.585344"
+  },
+  "result": {
+    "model_type": "quant_catboost",
+    "model_label": "Quant CatBoost",
+    "asset": {
+      "id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+      "kind": "dataset_csv",
+      "title": "upgrade_ts.csv",
+      "filename": "upgrade_ts.csv",
+      "description": "upgrade_ts.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 93948,
+        "original_filename": "upgrade_ts.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T02:57:27.052169",
+      "updated_at": "2026-04-02T02:57:27.059647"
+    },
+    "observations": 72,
+    "narrative": [
+      "CatBoost alpha model evaluated with IC metrics and a simple long-short strategy curve."
+    ],
+    "specification": {
+      "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+      "model_family": "quant_research",
+      "model_type": "quant_catboost",
+      "dependent": "asset_return",
+      "time_column": "date",
+      "feature_columns": [
+        "market_return",
+        "smb",
+        "hml",
+        "output_gap"
+      ],
+      "split_ratio": 0.7,
+      "iterations": 120,
+      "depth": 5,
+      "engine": "qlib",
+      "variant_label": "quant_cat_alt"
+    },
+    "audit_trail": {
+      "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+      "sample_title": "upgrade_ts.csv",
+      "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+      "engine": "qlib",
+      "derived_columns": [
+        "prediction",
+        "strategy_return",
+        "cumulative_return"
+      ],
+      "filters": []
+    },
+    "metrics": {},
+    "tables": {
+      "prediction_metric_table": [
+        {
+          "mse": 0.024924749873656078,
+          "r2": 0.9170953510446866
+        }
+      ],
+      "feature_importance_table": [
+        {
+          "feature": "market_return",
+          "importance": 92.88277319895568
+        },
+        {
+          "feature": "output_gap",
+          "importance": 2.7348566074318077
+        },
+        {
+          "feature": "smb",
+          "importance": 2.4205284803735347
+        },
+        {
+          "feature": "hml",
+          "importance": 1.9618417132389743
+        }
+      ],
+      "ic_summary_table": [
+        {
+          "ic": 0.9720486374626678,
+          "rank_ic": 0.9955624155894272
+        }
+      ],
+      "feature_label_spec_table": [
+        {
+          "feature_columns": "market_return, smb, hml, output_gap",
+          "label_column": "asset_return",
+          "observation_count": 72
+        }
+      ]
+    },
+    "sample_columns": [
+      "asset_return",
+      "date",
+      "market_return",
+      "smb",
+      "hml",
+      "output_gap",
+      "prediction"
+    ],
+    "sample_preview": [
+      {
+        "asset_return": 0.6103892668004385,
+        "date": "2019-01-31",
+        "market_return": 0.4225926355792506,
+        "smb": -0.0136058496547306,
+        "hml": -0.0192287942645375,
+        "output_gap": -0.1162678403167445,
+        "prediction": 0.5653491726404791
+      },
+      {
+        "asset_return": 0.4503262844625377,
+        "date": "2019-02-28",
+        "market_return": 0.3349344561814909,
+        "smb": -0.0167020927825678,
+        "hml": 0.0072888668322776,
+        "output_gap": -0.215859239497153,
+        "prediction": 0.435679498971292
+      },
+      {
+        "asset_return": 0.2467740170886707,
+        "date": "2019-03-31",
+        "market_return": 0.2019138766498448,
+        "smb": 0.0195913903342569,
+        "hml": 0.02137588314334,
+        "output_gap": -0.4759883361222958,
+        "prediction": 0.2880965930787452
+      },
+      {
+        "asset_return": 0.0710026348466687,
+        "date": "2019-04-30",
+        "market_return": 0.0635426508870538,
+        "smb": 0.026483922439306,
+        "hml": 0.0046933269170794,
+        "output_gap": -0.4008650268815827,
+        "prediction": 0.0770195162634473
+      },
+      {
+        "asset_return": 0.4764258880914624,
+        "date": "2019-05-31",
+        "market_return": 0.3644843160133288,
+        "smb": 0.0208036038691824,
+        "hml": 0.0247712637277533,
+        "output_gap": -0.1201437333836792,
+        "prediction": 0.469192544730868
+      }
+    ],
+    "engine": "qlib",
+    "figures": [
+      {
+        "asset_id": "be4be46f-ad12-410b-8f07-2640bf6434e5",
+        "title": "CatBoost feature importance",
+        "summary": "Feature importance from the CatBoost alpha model.",
+        "download_url": "/api/assets/be4be46f-ad12-410b-8f07-2640bf6434e5/download",
+        "asset": {
+          "id": "be4be46f-ad12-410b-8f07-2640bf6434e5",
+          "kind": "chart_png",
+          "title": "upgrade_ts-quant_catboost_importance.png",
+          "filename": "upgrade_ts-quant_catboost_importance.png",
+          "description": "Feature importance from the CatBoost alpha model.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 28253,
+            "original_filename": "upgrade_ts-quant_catboost_importance.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "CatBoost feature importance",
+            "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+            "summary": "Feature importance from the CatBoost alpha model."
+          },
+          "created_at": "2026-04-02T03:07:40.548455+00:00",
+          "updated_at": "2026-04-02T03:07:40.560556+00:00"
+        }
+      },
+      {
+        "asset_id": "af630b2c-883a-4467-bb3d-914e57e4dcc5",
+        "title": "Quant CatBoost strategy curve",
+        "summary": "Strategy curve from the CatBoost alpha model.",
+        "download_url": "/api/assets/af630b2c-883a-4467-bb3d-914e57e4dcc5/download",
+        "asset": {
+          "id": "af630b2c-883a-4467-bb3d-914e57e4dcc5",
+          "kind": "chart_png",
+          "title": "upgrade_ts-quant_catboost_curve.png",
+          "filename": "upgrade_ts-quant_catboost_curve.png",
+          "description": "Strategy curve from the CatBoost alpha model.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 57776,
+            "original_filename": "upgrade_ts-quant_catboost_curve.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "Quant CatBoost strategy curve",
+            "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+            "summary": "Strategy curve from the CatBoost alpha model."
+          },
+          "created_at": "2026-04-02T03:07:40.280560+00:00",
+          "updated_at": "2026-04-02T03:07:40.294247+00:00"
+        }
+      }
+    ],
+    "primary_tables": [
+      "prediction_metric_table",
+      "feature_importance_table",
+      "ic_summary_table",
+      "feature_label_spec_table"
+    ],
+    "paper_output_contract": {
+      "primary_tables": [
+        "prediction_metric_table",
+        "feature_importance_table",
+        "ic_summary_table",
+        "feature_label_spec_table"
+      ],
+      "figure_count": 2
+    },
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "Quant CatBoost estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Supporting tables included: prediction_metric_table, feature_importance_table, ic_summary_table, feature_label_spec_table.",
+            "Figures included: CatBoost feature importance, Quant CatBoost strategy curve."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "prediction_metric_table",
+        "feature_importance_table",
+        "ic_summary_table",
+        "feature_label_spec_table",
+        "CatBoost feature importance",
+        "Quant CatBoost strategy curve"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "quant_cat_alt",
+    "variant_spec": {},
+    "result_record_id": "1c1d0a4e-1e81-480b-a5b5-25d2e149ac38",
+    "result_detail_path": "/data-lab/results/models/1c1d0a4e-1e81-480b-a5b5-25d2e149ac38"
+  },
+  "workspace_id": "015bd6ef-9f0c-4365-a59a-a9b472406eb1"
+}

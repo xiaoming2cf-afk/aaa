@@ -64,9 +64,12 @@ def build_panel_dataset() -> pd.DataFrame:
     for firm_index, firm in enumerate(firms):
         treated = 1 if firm_index < len(firms) // 2 else 0
         firm_effect = rng.normal(scale=0.5)
+        treatment_time = policy_start + (firm_index % 4) if treated else np.inf
         for t_index, current_date in enumerate(periods):
             post = 1 if t_index >= policy_start else 0
+            staggered_post = 1 if treated and t_index >= treatment_time else 0
             event_time = t_index - policy_start
+            staggered_event_time = t_index - treatment_time if treated else np.nan
             size = 8.0 + 0.03 * t_index + 0.12 * firm_index + rng.normal(scale=0.25)
             leverage = 0.35 + 0.01 * (firm_index % 5) + rng.normal(scale=0.03)
             profitability = 0.08 + 0.004 * np.sin(t_index / 4) + rng.normal(scale=0.015)
@@ -90,6 +93,15 @@ def build_panel_dataset() -> pd.DataFrame:
             latent_default = -0.2 + 1.4 * leverage - 0.09 * size + 0.45 * treated + 0.18 * post + rng.normal(scale=0.45)
             default_probability = 1.0 / (1.0 + np.exp(-latent_default))
             binary_outcome = int(rng.random() < default_probability)
+            count_intensity = np.exp(0.25 + 0.4 * post + 0.3 * treated + 0.12 * size - 0.8 * leverage)
+            count_outcome = int(rng.poisson(max(count_intensity, 0.1)))
+            logit_one = -0.45 + 0.18 * size - 1.05 * leverage + 0.35 * profitability + 0.1 * treated + rng.normal(scale=0.5)
+            logit_two = -1.05 + 0.05 * size + 1.15 * leverage + 0.35 * post + 0.18 * treated + rng.normal(scale=0.5)
+            logits = np.array([0.0, logit_one, logit_two], dtype=float)
+            logits -= logits.max()
+            probabilities = np.exp(logits)
+            probabilities /= probabilities.sum()
+            multiclass_outcome = int(rng.choice([0, 1, 2], p=probabilities))
             origin_gdp = np.exp(8.8 + 0.025 * firm_index + rng.normal(scale=0.05))
             destination_gdp = np.exp(8.5 + 0.015 * t_index + rng.normal(scale=0.05))
             distance_km = np.exp(6.2 + 0.03 * (firm_index % 6) + rng.normal(scale=0.06))
@@ -119,13 +131,20 @@ def build_panel_dataset() -> pd.DataFrame:
                     "month_index": t_index + 1,
                     "treated": treated,
                     "post": post,
+                    "staggered_post": staggered_post,
                     "event_time": event_time,
+                    "staggered_event_time": float(staggered_event_time) if np.isfinite(staggered_event_time) else np.nan,
+                    "treatment_time": float(treatment_time) if np.isfinite(treatment_time) else np.nan,
+                    "unit": firm,
                     "size": float(size),
                     "leverage": float(leverage),
                     "instrument_z": float(instrument),
                     "endogenous_x": float(endogenous_x),
                     "outcome_y": float(outcome),
                     "binary_outcome": binary_outcome,
+                    "count_outcome": count_outcome,
+                    "multiclass_outcome": multiclass_outcome,
+                    "secondary_outcome": float(outcome + 0.35 * profitability + rng.normal(scale=0.25)),
                     "running_score": float(running_score),
                     "export_flow": float(max(export_flow, 0.0)),
                     "origin_gdp": float(origin_gdp),
@@ -196,6 +215,11 @@ def build_time_series_dataset() -> pd.DataFrame:
     time_to_maturity = np.linspace(0.2, 1.5, n)
     risk_free_rate = np.full(n, 0.02) + 0.002 * np.sin(np.arange(n) / 8)
     implied_vol = np.sqrt(h)
+    level_a = 100 + np.cumsum(return_a + 0.01)
+    level_b = 80 + 0.85 * level_a + rng.normal(scale=0.8, size=n)
+    level_c = 60 + 0.6 * level_a - 0.25 * level_b + rng.normal(scale=1.0, size=n)
+    seasonal_series = 2.0 + 0.4 * np.sin(np.arange(n) / 6) + 0.25 * np.cos(np.arange(n) / 3) + rng.normal(scale=0.08, size=n)
+    regime_proxy = (np.arange(n) >= n // 2).astype(int)
 
     return pd.DataFrame(
         {
@@ -211,6 +235,11 @@ def build_time_series_dataset() -> pd.DataFrame:
             "policy_rate": policy_rate,
             "inflation_gap": inflation_gap,
             "output_gap": output_gap,
+            "level_a": level_a,
+            "level_b": level_b,
+            "level_c": level_c,
+            "seasonal_series": seasonal_series,
+            "regime_proxy": regime_proxy,
             "spot_price": spot_price,
             "strike_price": strike_price,
             "time_to_maturity": time_to_maturity,

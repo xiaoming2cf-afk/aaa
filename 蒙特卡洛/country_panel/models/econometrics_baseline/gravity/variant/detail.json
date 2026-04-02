@@ -1,0 +1,470 @@
+{
+  "record": {
+    "id": "81f59c64-beb4-4b69-b305-d961ab2a9a06",
+    "title": "Gravity Model summary for panel_dataset.csv",
+    "content": "Gravity model run on panel_dataset.csv.\nFlow variable: export_flow.\nMass variables: origin_gdp, destination_gdp.\nDistance variable: distance_km.\nObservations used: 648.",
+    "content_excerpt": "Gravity model run on panel_dataset.csv. Flow variable: export_flow. Mass variables: origin_gdp, destination_gdp. Distance variable: distance_km. Observations used: 648.",
+    "content_length": 168,
+    "tags": [
+      "gravity",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "gravity",
+      "model_label": "Gravity Model",
+      "asset": {
+        "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "kind": "dataset_csv",
+        "title": "panel_dataset.csv",
+        "filename": "panel_dataset.csv",
+        "description": "panel_dataset.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 289095,
+          "original_filename": "panel_dataset.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T03:16:14.412741",
+        "updated_at": "2026-04-02T03:16:14.426020"
+      },
+      "dependent": "ln_flow",
+      "regressors": [
+        "ln_origin_mass",
+        "ln_destination_mass",
+        "ln_distance",
+        "post"
+      ],
+      "observations": 648,
+      "r_squared": 0.4407937573441829,
+      "adj_r_squared": 0.43731502488598195,
+      "pseudo_r_squared": null,
+      "aic": -305.814223203839,
+      "bic": -283.44476972207764,
+      "log_likelihood": 157.9071116019195,
+      "coefficients": [
+        {
+          "term": "const",
+          "coefficient": 2.3896485885848833,
+          "std_error": 0.9871866487074039,
+          "t_stat": 2.420665425037733,
+          "p_value": 0.015492128666602054
+        },
+        {
+          "term": "ln_origin_mass",
+          "coefficient": 0.46763047205931707,
+          "std_error": 0.05340679168490268,
+          "t_stat": 8.75601131066462,
+          "p_value": 2.0228142862093397e-18
+        },
+        {
+          "term": "ln_destination_mass",
+          "coefficient": 0.3167776723989342,
+          "std_error": 0.08446946467550927,
+          "t_stat": 3.7502033855173633,
+          "p_value": 0.00017669119937322193
+        },
+        {
+          "term": "ln_distance",
+          "coefficient": -0.799744977503417,
+          "std_error": 0.08615065519994895,
+          "t_stat": -9.283098029228812,
+          "p_value": 1.646209403180116e-20
+        },
+        {
+          "term": "post",
+          "coefficient": 0.19889601670484963,
+          "std_error": 0.027194261088239545,
+          "t_stat": 7.313896710025499,
+          "p_value": 2.5950464961076827e-13
+        }
+      ],
+      "narrative": [
+        "Gravity model run on panel_dataset.csv.",
+        "Flow variable: export_flow.",
+        "Mass variables: origin_gdp, destination_gdp.",
+        "Distance variable: distance_km.",
+        "Observations used: 648."
+      ],
+      "sample_columns": [
+        "ln_flow",
+        "ln_origin_mass",
+        "ln_destination_mass",
+        "ln_distance",
+        "post"
+      ],
+      "sample_preview": [
+        {
+          "ln_flow": 3.9201665402152424,
+          "ln_origin_mass": 8.810918551911675,
+          "ln_destination_mass": 8.541715673572273,
+          "ln_distance": 6.226928715793215,
+          "post": 0
+        },
+        {
+          "ln_flow": 4.532352083502479,
+          "ln_origin_mass": 8.787098970419812,
+          "ln_destination_mass": 8.454412243017643,
+          "ln_distance": 6.214557826591342,
+          "post": 0
+        },
+        {
+          "ln_flow": 4.06175255171007,
+          "ln_origin_mass": 8.788239992057935,
+          "ln_destination_mass": 8.562736349396404,
+          "ln_distance": 6.228829358998692,
+          "post": 0
+        },
+        {
+          "ln_flow": 4.150501386219507,
+          "ln_origin_mass": 8.724805163414965,
+          "ln_destination_mass": 8.5512976916296,
+          "ln_distance": 6.240295367380765,
+          "post": 0
+        },
+        {
+          "ln_flow": 4.208841131654106,
+          "ln_origin_mass": 8.751140717891566,
+          "ln_destination_mass": 8.593024583361963,
+          "ln_distance": 6.19944668355644,
+          "post": 0
+        }
+      ],
+      "specification": {
+        "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "model_family": "econometrics_baseline",
+        "model_type": "gravity",
+        "dependent": "ln_flow",
+        "controls": [
+          "post"
+        ],
+        "origin_mass_column": "origin_gdp",
+        "destination_mass_column": "destination_gdp",
+        "distance_column": "distance_km",
+        "model_label": "Gravity Model",
+        "regressors": [
+          "ln_origin_mass",
+          "ln_destination_mass",
+          "ln_distance",
+          "post"
+        ],
+        "covariance_type": "HC1",
+        "equation": "ln_flow ~ ln_origin_mass + ln_destination_mass + ln_distance + post",
+        "variant_label": "gravity_extended",
+        "variant_spec": {
+          "controls": [
+            "post",
+            "treated"
+          ]
+        }
+      },
+      "audit_trail": {
+        "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "sample_title": "panel_dataset.csv",
+        "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+        "rows_used": 648,
+        "sample_columns": [
+          "ln_flow",
+          "ln_origin_mass",
+          "ln_destination_mass",
+          "ln_distance",
+          "post"
+        ],
+        "covariance_type": "HC1",
+        "manual_checklist": [
+          "Download the prepared sample asset referenced in sample_asset_id.",
+          "Rebuild any derived regressors listed in derived_columns before estimation.",
+          "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+          "Compare the reproduced coefficient table with the coefficients array term by term."
+        ],
+        "derived_columns": [
+          "ln_flow",
+          "ln_origin_mass",
+          "ln_destination_mass",
+          "ln_distance"
+        ],
+        "filters": [
+          "Rows with missing flow, mass, distance, or selected controls are dropped.",
+          "Rows with negative flow or nonpositive mass/distance are excluded before log transforms."
+        ]
+      },
+      "flow_column": "export_flow",
+      "origin_mass_column": "origin_gdp",
+      "destination_mass_column": "destination_gdp",
+      "distance_column": "distance_km",
+      "dropped_nonpositive_rows": 0,
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "Gravity Model estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": []
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "gravity_extended",
+      "variant_spec": {
+        "controls": [
+          "post",
+          "treated"
+        ]
+      },
+      "result_record_id": "81f59c64-beb4-4b69-b305-d961ab2a9a06",
+      "result_detail_path": "/data-lab/results/models/81f59c64-beb4-4b69-b305-d961ab2a9a06"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:16:19.943656",
+    "updated_at": "2026-04-02T03:16:19.944364"
+  },
+  "result": {
+    "model_type": "gravity",
+    "model_label": "Gravity Model",
+    "asset": {
+      "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "kind": "dataset_csv",
+      "title": "panel_dataset.csv",
+      "filename": "panel_dataset.csv",
+      "description": "panel_dataset.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 289095,
+        "original_filename": "panel_dataset.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T03:16:14.412741",
+      "updated_at": "2026-04-02T03:16:14.426020"
+    },
+    "dependent": "ln_flow",
+    "regressors": [
+      "ln_origin_mass",
+      "ln_destination_mass",
+      "ln_distance",
+      "post"
+    ],
+    "observations": 648,
+    "r_squared": 0.4407937573441829,
+    "adj_r_squared": 0.43731502488598195,
+    "pseudo_r_squared": null,
+    "aic": -305.814223203839,
+    "bic": -283.44476972207764,
+    "log_likelihood": 157.9071116019195,
+    "coefficients": [
+      {
+        "term": "const",
+        "coefficient": 2.3896485885848833,
+        "std_error": 0.9871866487074039,
+        "t_stat": 2.420665425037733,
+        "p_value": 0.015492128666602054
+      },
+      {
+        "term": "ln_origin_mass",
+        "coefficient": 0.46763047205931707,
+        "std_error": 0.05340679168490268,
+        "t_stat": 8.75601131066462,
+        "p_value": 2.0228142862093397e-18
+      },
+      {
+        "term": "ln_destination_mass",
+        "coefficient": 0.3167776723989342,
+        "std_error": 0.08446946467550927,
+        "t_stat": 3.7502033855173633,
+        "p_value": 0.00017669119937322193
+      },
+      {
+        "term": "ln_distance",
+        "coefficient": -0.799744977503417,
+        "std_error": 0.08615065519994895,
+        "t_stat": -9.283098029228812,
+        "p_value": 1.646209403180116e-20
+      },
+      {
+        "term": "post",
+        "coefficient": 0.19889601670484963,
+        "std_error": 0.027194261088239545,
+        "t_stat": 7.313896710025499,
+        "p_value": 2.5950464961076827e-13
+      }
+    ],
+    "narrative": [
+      "Gravity model run on panel_dataset.csv.",
+      "Flow variable: export_flow.",
+      "Mass variables: origin_gdp, destination_gdp.",
+      "Distance variable: distance_km.",
+      "Observations used: 648."
+    ],
+    "sample_columns": [
+      "ln_flow",
+      "ln_origin_mass",
+      "ln_destination_mass",
+      "ln_distance",
+      "post"
+    ],
+    "sample_preview": [
+      {
+        "ln_flow": 3.9201665402152424,
+        "ln_origin_mass": 8.810918551911675,
+        "ln_destination_mass": 8.541715673572273,
+        "ln_distance": 6.226928715793215,
+        "post": 0
+      },
+      {
+        "ln_flow": 4.532352083502479,
+        "ln_origin_mass": 8.787098970419812,
+        "ln_destination_mass": 8.454412243017643,
+        "ln_distance": 6.214557826591342,
+        "post": 0
+      },
+      {
+        "ln_flow": 4.06175255171007,
+        "ln_origin_mass": 8.788239992057935,
+        "ln_destination_mass": 8.562736349396404,
+        "ln_distance": 6.228829358998692,
+        "post": 0
+      },
+      {
+        "ln_flow": 4.150501386219507,
+        "ln_origin_mass": 8.724805163414965,
+        "ln_destination_mass": 8.5512976916296,
+        "ln_distance": 6.240295367380765,
+        "post": 0
+      },
+      {
+        "ln_flow": 4.208841131654106,
+        "ln_origin_mass": 8.751140717891566,
+        "ln_destination_mass": 8.593024583361963,
+        "ln_distance": 6.19944668355644,
+        "post": 0
+      }
+    ],
+    "specification": {
+      "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "model_family": "econometrics_baseline",
+      "model_type": "gravity",
+      "dependent": "ln_flow",
+      "controls": [
+        "post"
+      ],
+      "origin_mass_column": "origin_gdp",
+      "destination_mass_column": "destination_gdp",
+      "distance_column": "distance_km",
+      "model_label": "Gravity Model",
+      "regressors": [
+        "ln_origin_mass",
+        "ln_destination_mass",
+        "ln_distance",
+        "post"
+      ],
+      "covariance_type": "HC1",
+      "equation": "ln_flow ~ ln_origin_mass + ln_destination_mass + ln_distance + post",
+      "variant_label": "gravity_extended",
+      "variant_spec": {
+        "controls": [
+          "post",
+          "treated"
+        ]
+      }
+    },
+    "audit_trail": {
+      "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "sample_title": "panel_dataset.csv",
+      "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+      "rows_used": 648,
+      "sample_columns": [
+        "ln_flow",
+        "ln_origin_mass",
+        "ln_destination_mass",
+        "ln_distance",
+        "post"
+      ],
+      "covariance_type": "HC1",
+      "manual_checklist": [
+        "Download the prepared sample asset referenced in sample_asset_id.",
+        "Rebuild any derived regressors listed in derived_columns before estimation.",
+        "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+        "Compare the reproduced coefficient table with the coefficients array term by term."
+      ],
+      "derived_columns": [
+        "ln_flow",
+        "ln_origin_mass",
+        "ln_destination_mass",
+        "ln_distance"
+      ],
+      "filters": [
+        "Rows with missing flow, mass, distance, or selected controls are dropped.",
+        "Rows with negative flow or nonpositive mass/distance are excluded before log transforms."
+      ]
+    },
+    "flow_column": "export_flow",
+    "origin_mass_column": "origin_gdp",
+    "destination_mass_column": "destination_gdp",
+    "distance_column": "distance_km",
+    "dropped_nonpositive_rows": 0,
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "Gravity Model estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": []
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "gravity_extended",
+    "variant_spec": {
+      "controls": [
+        "post",
+        "treated"
+      ]
+    },
+    "result_record_id": "81f59c64-beb4-4b69-b305-d961ab2a9a06",
+    "result_detail_path": "/data-lab/results/models/81f59c64-beb4-4b69-b305-d961ab2a9a06"
+  },
+  "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4"
+}

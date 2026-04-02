@@ -1,0 +1,396 @@
+{
+  "record": {
+    "id": "ac31b99e-c6ea-47e3-9ee2-298692c65f7b",
+    "title": "Toy RBC / DSGE summary for timeseries_dataset.csv",
+    "content": "Toy RBC/DSGE calibration run on timeseries_dataset.csv.\nSteady-state output: 0.9951.\nSteady-state consumption: 0.7612.",
+    "content_excerpt": "Toy RBC/DSGE calibration run on timeseries_dataset.csv. Steady-state output: 0.9951. Steady-state consumption: 0.7612.",
+    "content_length": 118,
+    "tags": [
+      "rbc_dsge",
+      "macro_finance_dsge",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "rbc_dsge",
+      "model_label": "Toy RBC / DSGE",
+      "asset": {
+        "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "kind": "dataset_csv",
+        "title": "timeseries_dataset.csv",
+        "filename": "timeseries_dataset.csv",
+        "description": "timeseries_dataset.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 93948,
+          "original_filename": "timeseries_dataset.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T03:16:14.454310",
+        "updated_at": "2026-04-02T03:16:14.458473"
+      },
+      "observations": 0,
+      "narrative": [
+        "Toy RBC/DSGE calibration run on timeseries_dataset.csv.",
+        "Steady-state output: 0.9951.",
+        "Steady-state consumption: 0.7612."
+      ],
+      "specification": {
+        "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "model_family": "macro_finance_dsge",
+        "model_type": "rbc_dsge",
+        "dsge_alpha": 0.33,
+        "dsge_beta": 0.99,
+        "dsge_delta": 0.025,
+        "dsge_productivity": 1.0,
+        "dsge_labor": 0.33,
+        "dsge_shock_persistence": 0.92,
+        "dsge_shock_size": 0.02,
+        "dsge_impulse_horizon": 10,
+        "equation": "Calibrated Cobb-Douglas RBC steady state with a productivity shock impulse path",
+        "parameters": {
+          "alpha": 0.33,
+          "beta": 0.99,
+          "delta": 0.025,
+          "productivity": 1.0,
+          "labor": 0.33,
+          "shock_persistence": 0.92,
+          "shock_size": 0.02,
+          "impulse_horizon": 10
+        }
+      },
+      "audit_trail": {
+        "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "sample_title": "timeseries_dataset.csv",
+        "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+        "rows_used": 0,
+        "sample_columns": [],
+        "manual_checklist": [
+          "Recompute the Euler-implied capital return and steady-state capital-labor ratio from the listed calibration parameters.",
+          "Rebuild steady-state output, investment, and consumption under the Cobb-Douglas production function.",
+          "Reproduce the impulse path using the same shock persistence and shock size."
+        ],
+        "derived_columns": [],
+        "filters": []
+      },
+      "metrics": {
+        "steady_state_capital": 9.354978290145985,
+        "steady_state_output": 0.9950581438095304,
+        "steady_state_consumption": 0.7611836865558808,
+        "steady_state_investment": 0.23387445725364964
+      },
+      "tables": {
+        "impulse_response_table": [
+          {
+            "step": 0,
+            "technology": 1.02,
+            "output": 1.0149593066857212,
+            "consumption": 0.7810848494320716
+          },
+          {
+            "step": 1,
+            "technology": 1.0184,
+            "output": 1.0133672136556258,
+            "consumption": 0.7794927564019761
+          },
+          {
+            "step": 2,
+            "technology": 1.016928,
+            "output": 1.0119024880679384,
+            "consumption": 0.7780280308142887
+          },
+          {
+            "step": 3,
+            "technology": 1.01557376,
+            "output": 1.0105549405272658,
+            "consumption": 0.7766804832736162
+          },
+          {
+            "step": 4,
+            "technology": 1.0143278592,
+            "output": 1.0093151967898468,
+            "consumption": 0.7754407395361972
+          },
+          {
+            "step": 5,
+            "technology": 1.013181630464,
+            "output": 1.0081746325514214,
+            "consumption": 0.7743001752977717
+          },
+          {
+            "step": 6,
+            "technology": 1.01212710002688,
+            "output": 1.0071253134520703,
+            "consumption": 0.7732508561984207
+          },
+          {
+            "step": 7,
+            "technology": 1.0111569320247296,
+            "output": 1.0061599398806669,
+            "consumption": 0.7722854826270172
+          },
+          {
+            "step": 8,
+            "technology": 1.0102643774627513,
+            "output": 1.0052717961949762,
+            "consumption": 0.7713973389413266
+          },
+          {
+            "step": 9,
+            "technology": 1.0094432272657312,
+            "output": 1.0044547040041405,
+            "consumption": 0.7705802467504909
+          },
+          {
+            "step": 10,
+            "technology": 1.0086877690844727,
+            "output": 1.0037029791885714,
+            "consumption": 0.7698285219349218
+          }
+        ],
+        "steady_state_summary": [
+          {
+            "steady_state_capital": 9.354978290145985,
+            "steady_state_output": 0.9950581438095304,
+            "steady_state_consumption": 0.7611836865558808,
+            "steady_state_investment": 0.23387445725364964
+          }
+        ]
+      },
+      "sample_columns": [],
+      "sample_preview": [],
+      "workflow_type": "model",
+      "model_family": "macro_finance_dsge",
+      "interpretation": {
+        "headline": "Toy RBC / DSGE estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Supporting tables included: impulse_response_table, steady_state_summary."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "impulse_response_table",
+          "steady_state_summary"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "",
+      "variant_spec": {},
+      "result_record_id": "ac31b99e-c6ea-47e3-9ee2-298692c65f7b",
+      "result_detail_path": "/data-lab/results/models/ac31b99e-c6ea-47e3-9ee2-298692c65f7b"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:16:38.664321",
+    "updated_at": "2026-04-02T03:16:38.666911"
+  },
+  "result": {
+    "model_type": "rbc_dsge",
+    "model_label": "Toy RBC / DSGE",
+    "asset": {
+      "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "kind": "dataset_csv",
+      "title": "timeseries_dataset.csv",
+      "filename": "timeseries_dataset.csv",
+      "description": "timeseries_dataset.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 93948,
+        "original_filename": "timeseries_dataset.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T03:16:14.454310",
+      "updated_at": "2026-04-02T03:16:14.458473"
+    },
+    "observations": 0,
+    "narrative": [
+      "Toy RBC/DSGE calibration run on timeseries_dataset.csv.",
+      "Steady-state output: 0.9951.",
+      "Steady-state consumption: 0.7612."
+    ],
+    "specification": {
+      "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "model_family": "macro_finance_dsge",
+      "model_type": "rbc_dsge",
+      "dsge_alpha": 0.33,
+      "dsge_beta": 0.99,
+      "dsge_delta": 0.025,
+      "dsge_productivity": 1.0,
+      "dsge_labor": 0.33,
+      "dsge_shock_persistence": 0.92,
+      "dsge_shock_size": 0.02,
+      "dsge_impulse_horizon": 10,
+      "equation": "Calibrated Cobb-Douglas RBC steady state with a productivity shock impulse path",
+      "parameters": {
+        "alpha": 0.33,
+        "beta": 0.99,
+        "delta": 0.025,
+        "productivity": 1.0,
+        "labor": 0.33,
+        "shock_persistence": 0.92,
+        "shock_size": 0.02,
+        "impulse_horizon": 10
+      }
+    },
+    "audit_trail": {
+      "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "sample_title": "timeseries_dataset.csv",
+      "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+      "rows_used": 0,
+      "sample_columns": [],
+      "manual_checklist": [
+        "Recompute the Euler-implied capital return and steady-state capital-labor ratio from the listed calibration parameters.",
+        "Rebuild steady-state output, investment, and consumption under the Cobb-Douglas production function.",
+        "Reproduce the impulse path using the same shock persistence and shock size."
+      ],
+      "derived_columns": [],
+      "filters": []
+    },
+    "metrics": {
+      "steady_state_capital": 9.354978290145985,
+      "steady_state_output": 0.9950581438095304,
+      "steady_state_consumption": 0.7611836865558808,
+      "steady_state_investment": 0.23387445725364964
+    },
+    "tables": {
+      "impulse_response_table": [
+        {
+          "step": 0,
+          "technology": 1.02,
+          "output": 1.0149593066857212,
+          "consumption": 0.7810848494320716
+        },
+        {
+          "step": 1,
+          "technology": 1.0184,
+          "output": 1.0133672136556258,
+          "consumption": 0.7794927564019761
+        },
+        {
+          "step": 2,
+          "technology": 1.016928,
+          "output": 1.0119024880679384,
+          "consumption": 0.7780280308142887
+        },
+        {
+          "step": 3,
+          "technology": 1.01557376,
+          "output": 1.0105549405272658,
+          "consumption": 0.7766804832736162
+        },
+        {
+          "step": 4,
+          "technology": 1.0143278592,
+          "output": 1.0093151967898468,
+          "consumption": 0.7754407395361972
+        },
+        {
+          "step": 5,
+          "technology": 1.013181630464,
+          "output": 1.0081746325514214,
+          "consumption": 0.7743001752977717
+        },
+        {
+          "step": 6,
+          "technology": 1.01212710002688,
+          "output": 1.0071253134520703,
+          "consumption": 0.7732508561984207
+        },
+        {
+          "step": 7,
+          "technology": 1.0111569320247296,
+          "output": 1.0061599398806669,
+          "consumption": 0.7722854826270172
+        },
+        {
+          "step": 8,
+          "technology": 1.0102643774627513,
+          "output": 1.0052717961949762,
+          "consumption": 0.7713973389413266
+        },
+        {
+          "step": 9,
+          "technology": 1.0094432272657312,
+          "output": 1.0044547040041405,
+          "consumption": 0.7705802467504909
+        },
+        {
+          "step": 10,
+          "technology": 1.0086877690844727,
+          "output": 1.0037029791885714,
+          "consumption": 0.7698285219349218
+        }
+      ],
+      "steady_state_summary": [
+        {
+          "steady_state_capital": 9.354978290145985,
+          "steady_state_output": 0.9950581438095304,
+          "steady_state_consumption": 0.7611836865558808,
+          "steady_state_investment": 0.23387445725364964
+        }
+      ]
+    },
+    "sample_columns": [],
+    "sample_preview": [],
+    "workflow_type": "model",
+    "model_family": "macro_finance_dsge",
+    "interpretation": {
+      "headline": "Toy RBC / DSGE estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Supporting tables included: impulse_response_table, steady_state_summary."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "impulse_response_table",
+        "steady_state_summary"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "",
+    "variant_spec": {},
+    "result_record_id": "ac31b99e-c6ea-47e3-9ee2-298692c65f7b",
+    "result_detail_path": "/data-lab/results/models/ac31b99e-c6ea-47e3-9ee2-298692c65f7b"
+  },
+  "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4"
+}

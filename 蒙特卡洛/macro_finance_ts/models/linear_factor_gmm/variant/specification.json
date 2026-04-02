@@ -1,0 +1,18 @@
+{
+  "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+  "model_family": "asset_pricing",
+  "model_type": "linear_factor_gmm",
+  "series_columns": [
+    "asset_return",
+    "return_b",
+    "return_c"
+  ],
+  "time_column": "date",
+  "factor_columns": [
+    "market_return",
+    "smb",
+    "hml"
+  ],
+  "engine": "linearmodels",
+  "variant_label": "lfgmm_alt_assets"
+}

@@ -1,0 +1,30 @@
+{
+  "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "model_family": "econometrics_baseline",
+  "model_type": "did",
+  "dependent": "outcome_y",
+  "controls": [
+    "size",
+    "leverage"
+  ],
+  "treatment_column": "treated",
+  "post_column": "post",
+  "model_label": "Difference-in-Differences",
+  "regressors": [
+    "treated",
+    "post",
+    "did_interaction",
+    "size",
+    "leverage"
+  ],
+  "covariance_type": "HC1",
+  "equation": "outcome_y ~ treated + post + did_interaction + size + leverage",
+  "variant_label": "did_alt_controls",
+  "variant_spec": {
+    "controls": [
+      "size",
+      "leverage",
+      "endogenous_x"
+    ]
+  }
+}

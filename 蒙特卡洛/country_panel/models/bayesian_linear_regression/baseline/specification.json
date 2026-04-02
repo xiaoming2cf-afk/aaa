@@ -1,0 +1,20 @@
+{
+  "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "model_family": "bayesian",
+  "model_type": "bayesian_linear_regression",
+  "dependent": "outcome_y",
+  "independents": [
+    "size",
+    "leverage",
+    "post"
+  ],
+  "draws": 100,
+  "tune": 100,
+  "chains": 1,
+  "engine": "pymc",
+  "regressors": [
+    "size",
+    "leverage",
+    "post"
+  ]
+}

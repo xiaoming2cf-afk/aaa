@@ -1,0 +1,626 @@
+{
+  "record": {
+    "id": "0254a265-55ca-4f66-b405-bf98ea8812c2",
+    "title": "VIRF summary for timeseries_dataset.csv",
+    "content": "VIRF run on timeseries_dataset.csv.\nSeries: asset_return.\nFitted GARCH(1,1) persistence: 0.9051.\nShock size: 1.25 sigma.",
+    "content_excerpt": "VIRF run on timeseries_dataset.csv. Series: asset_return. Fitted GARCH(1,1) persistence: 0.9051. Shock size: 1.25 sigma.",
+    "content_length": 120,
+    "tags": [
+      "virf",
+      "time_series_finance",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "virf",
+      "model_label": "VIRF",
+      "asset": {
+        "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "kind": "dataset_csv",
+        "title": "timeseries_dataset.csv",
+        "filename": "timeseries_dataset.csv",
+        "description": "timeseries_dataset.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 93948,
+          "original_filename": "timeseries_dataset.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T03:16:14.454310",
+        "updated_at": "2026-04-02T03:16:14.458473"
+      },
+      "observations": 240,
+      "narrative": [
+        "VIRF run on timeseries_dataset.csv.",
+        "Series: asset_return.",
+        "Fitted GARCH(1,1) persistence: 0.9051.",
+        "Shock size: 1.25 sigma."
+      ],
+      "specification": {
+        "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "model_family": "time_series_finance",
+        "model_type": "virf",
+        "dependent": "asset_return",
+        "time_column": "date",
+        "garch_p": 1,
+        "garch_q": 1,
+        "irf_horizon": 10,
+        "virf_shock_size": 1.25,
+        "return_column": "asset_return",
+        "p": 1,
+        "q": 1,
+        "horizon": 10,
+        "shock_size": 1.25,
+        "equation": "E[h_{t+s}|shock] for a fitted GARCH(1,1) process",
+        "variant_label": "virf_larger_shock",
+        "variant_spec": {
+          "irf_horizon": 12,
+          "virf_shock_size": 1.5
+        }
+      },
+      "audit_trail": {
+        "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "sample_title": "timeseries_dataset.csv",
+        "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+        "rows_used": 240,
+        "sample_columns": [
+          "date",
+          "asset_return"
+        ],
+        "manual_checklist": [
+          "Re-estimate the same GARCH(1,1) model and record omega, alpha, and beta.",
+          "Rebuild the VIRF path from the documented shock_size and persistence formula.",
+          "Compare the volatility-response table and the chart horizon by horizon."
+        ],
+        "derived_columns": [],
+        "filters": [
+          "Rows with missing selected series values are dropped."
+        ]
+      },
+      "metrics": {
+        "omega": 0.021759000794973095,
+        "alpha": 0.09416097358193717,
+        "beta": 0.8109769118202905,
+        "persistence": 0.9051378854022277,
+        "baseline_volatility": 0.4789311373843602,
+        "shock_size": 1.25
+      },
+      "tables": {
+        "parameter_table": [
+          {
+            "term": "mu",
+            "coefficient": -0.03267800439828604,
+            "std_error": 0.028872556903735483,
+            "t_stat": null,
+            "p_value": null
+          },
+          {
+            "term": "omega",
+            "coefficient": 0.021759000794973095,
+            "std_error": 0.010853429789198775,
+            "t_stat": null,
+            "p_value": null
+          },
+          {
+            "term": "alpha[1]",
+            "coefficient": 0.09416097358193717,
+            "std_error": 0.05271570136307892,
+            "t_stat": null,
+            "p_value": null
+          },
+          {
+            "term": "beta[1]",
+            "coefficient": 0.8109769118202905,
+            "std_error": 0.0645415757968802,
+            "t_stat": null,
+            "p_value": null
+          }
+        ],
+        "virf_path": [
+          {
+            "horizon": 1,
+            "variance": 0.24152400866586418,
+            "volatility": 0.49145092193001755,
+            "volatility_response": 0.012519784545657331
+          },
+          {
+            "horizon": 2,
+            "variance": 0.24037153127266273,
+            "volatility": 0.4902769944354545,
+            "volatility_response": 0.01134585705109431
+          },
+          {
+            "horizon": 3,
+            "variance": 0.23932838032200648,
+            "volatility": 0.48921199936429044,
+            "volatility_response": 0.010280861979930223
+          },
+          {
+            "horizon": 4,
+            "variance": 0.23838418487637417,
+            "volatility": 0.488246029043119,
+            "volatility_response": 0.009314891658758762
+          },
+          {
+            "horizon": 5,
+            "variance": 0.23752955780730814,
+            "volatility": 0.48737004196740297,
+            "volatility_response": 0.00843890458304275
+          },
+          {
+            "horizon": 6,
+            "variance": 0.2367560024692062,
+            "volatility": 0.48657579313936916,
+            "volatility_response": 0.0076446557550089445
+          },
+          {
+            "horizon": 7,
+            "variance": 0.236055828226235,
+            "volatility": 0.4858557689543626,
+            "volatility_response": 0.006924631570002393
+          },
+          {
+            "horizon": 8,
+            "variance": 0.23542207399253892,
+            "volatility": 0.4852031265279923,
+            "volatility_response": 0.006271989143632084
+          },
+          {
+            "horizon": 9,
+            "variance": 0.23484843902558658,
+            "volatility": 0.48461163731960316,
+            "volatility_response": 0.005680499935242944
+          },
+          {
+            "horizon": 10,
+            "variance": 0.23432922028460654,
+            "volatility": 0.4840756348801358,
+            "volatility_response": 0.005144497495775557
+          }
+        ]
+      },
+      "sample_columns": [
+        "date",
+        "asset_return"
+      ],
+      "sample_preview": [
+        {
+          "date": "2005-01-31",
+          "asset_return": 0.233763149235475
+        },
+        {
+          "date": "2005-02-28",
+          "asset_return": -0.0288988145034342
+        },
+        {
+          "date": "2005-03-31",
+          "asset_return": 0.0006193654776038
+        },
+        {
+          "date": "2005-04-30",
+          "asset_return": 0.3695634562880727
+        },
+        {
+          "date": "2005-05-31",
+          "asset_return": 0.2029051474483442
+        }
+      ],
+      "figures": [
+        {
+          "asset_id": "83d76448-8b9b-4ef5-9219-1490aad9937c",
+          "title": "Volatility impulse response",
+          "summary": "VIRF path from a 1.25 sigma shock under a fitted GARCH(1,1) model.",
+          "download_url": "/api/assets/83d76448-8b9b-4ef5-9219-1490aad9937c/download",
+          "asset": {
+            "id": "83d76448-8b9b-4ef5-9219-1490aad9937c",
+            "kind": "chart_png",
+            "title": "timeseries_dataset-virf.png",
+            "filename": "timeseries_dataset-virf.png",
+            "description": "VIRF path from a 1.25 sigma shock under a fitted GARCH(1,1) model.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 66044,
+              "original_filename": "timeseries_dataset-virf.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "Volatility impulse response",
+              "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+              "summary": "VIRF path from a 1.25 sigma shock under a fitted GARCH(1,1) model."
+            },
+            "created_at": "2026-04-02T03:16:34.119462+00:00",
+            "updated_at": "2026-04-02T03:16:34.126301+00:00"
+          }
+        },
+        {
+          "asset_id": "09b7dae9-5c43-4a65-9a3b-61a568806e7c",
+          "title": "Variance impulse response",
+          "summary": "Variance response path implied by the fitted GARCH(1,1) volatility shock.",
+          "download_url": "/api/assets/09b7dae9-5c43-4a65-9a3b-61a568806e7c/download",
+          "asset": {
+            "id": "09b7dae9-5c43-4a65-9a3b-61a568806e7c",
+            "kind": "chart_png",
+            "title": "timeseries_dataset-virf-variance.png",
+            "filename": "timeseries_dataset-virf-variance.png",
+            "description": "Variance response path implied by the fitted GARCH(1,1) volatility shock.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 65910,
+              "original_filename": "timeseries_dataset-virf-variance.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "Variance impulse response",
+              "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+              "summary": "Variance response path implied by the fitted GARCH(1,1) volatility shock."
+            },
+            "created_at": "2026-04-02T03:16:34.335519+00:00",
+            "updated_at": "2026-04-02T03:16:34.338725+00:00"
+          }
+        }
+      ],
+      "workflow_type": "model",
+      "model_family": "time_series_finance",
+      "interpretation": {
+        "headline": "VIRF estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Supporting tables included: parameter_table, virf_path.",
+              "Figures included: Volatility impulse response, Variance impulse response."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "The reported shock size is 1.25 sigma.",
+              "The volatility path shows the level of implied volatility after the shock, while the variance-response plot shows the raw variance adjustment.",
+              "Persistence close to 1 means the shock decays slowly."
+            ]
+          },
+          {
+            "title": "What a normal paper should report",
+            "items": [
+              "Estimated GARCH parameters and persistence.",
+              "A volatility impulse-response plot.",
+              "A table listing volatility or variance responses by horizon."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Recover omega, alpha, and beta from the fitted GARCH(1,1) specification.",
+              "Rebuild the VIRF path from the documented recurrence formula and shock size.",
+              "Compare both the volatility and variance response outputs horizon by horizon."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "parameter_table",
+          "virf_path",
+          "Volatility impulse response",
+          "Variance impulse response"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "virf_larger_shock",
+      "variant_spec": {
+        "irf_horizon": 12,
+        "virf_shock_size": 1.5
+      },
+      "result_record_id": "0254a265-55ca-4f66-b405-bf98ea8812c2",
+      "result_detail_path": "/data-lab/results/models/0254a265-55ca-4f66-b405-bf98ea8812c2"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:16:34.346478",
+    "updated_at": "2026-04-02T03:16:34.347377"
+  },
+  "result": {
+    "model_type": "virf",
+    "model_label": "VIRF",
+    "asset": {
+      "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "kind": "dataset_csv",
+      "title": "timeseries_dataset.csv",
+      "filename": "timeseries_dataset.csv",
+      "description": "timeseries_dataset.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 93948,
+        "original_filename": "timeseries_dataset.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T03:16:14.454310",
+      "updated_at": "2026-04-02T03:16:14.458473"
+    },
+    "observations": 240,
+    "narrative": [
+      "VIRF run on timeseries_dataset.csv.",
+      "Series: asset_return.",
+      "Fitted GARCH(1,1) persistence: 0.9051.",
+      "Shock size: 1.25 sigma."
+    ],
+    "specification": {
+      "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "model_family": "time_series_finance",
+      "model_type": "virf",
+      "dependent": "asset_return",
+      "time_column": "date",
+      "garch_p": 1,
+      "garch_q": 1,
+      "irf_horizon": 10,
+      "virf_shock_size": 1.25,
+      "return_column": "asset_return",
+      "p": 1,
+      "q": 1,
+      "horizon": 10,
+      "shock_size": 1.25,
+      "equation": "E[h_{t+s}|shock] for a fitted GARCH(1,1) process",
+      "variant_label": "virf_larger_shock",
+      "variant_spec": {
+        "irf_horizon": 12,
+        "virf_shock_size": 1.5
+      }
+    },
+    "audit_trail": {
+      "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "sample_title": "timeseries_dataset.csv",
+      "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+      "rows_used": 240,
+      "sample_columns": [
+        "date",
+        "asset_return"
+      ],
+      "manual_checklist": [
+        "Re-estimate the same GARCH(1,1) model and record omega, alpha, and beta.",
+        "Rebuild the VIRF path from the documented shock_size and persistence formula.",
+        "Compare the volatility-response table and the chart horizon by horizon."
+      ],
+      "derived_columns": [],
+      "filters": [
+        "Rows with missing selected series values are dropped."
+      ]
+    },
+    "metrics": {
+      "omega": 0.021759000794973095,
+      "alpha": 0.09416097358193717,
+      "beta": 0.8109769118202905,
+      "persistence": 0.9051378854022277,
+      "baseline_volatility": 0.4789311373843602,
+      "shock_size": 1.25
+    },
+    "tables": {
+      "parameter_table": [
+        {
+          "term": "mu",
+          "coefficient": -0.03267800439828604,
+          "std_error": 0.028872556903735483,
+          "t_stat": null,
+          "p_value": null
+        },
+        {
+          "term": "omega",
+          "coefficient": 0.021759000794973095,
+          "std_error": 0.010853429789198775,
+          "t_stat": null,
+          "p_value": null
+        },
+        {
+          "term": "alpha[1]",
+          "coefficient": 0.09416097358193717,
+          "std_error": 0.05271570136307892,
+          "t_stat": null,
+          "p_value": null
+        },
+        {
+          "term": "beta[1]",
+          "coefficient": 0.8109769118202905,
+          "std_error": 0.0645415757968802,
+          "t_stat": null,
+          "p_value": null
+        }
+      ],
+      "virf_path": [
+        {
+          "horizon": 1,
+          "variance": 0.24152400866586418,
+          "volatility": 0.49145092193001755,
+          "volatility_response": 0.012519784545657331
+        },
+        {
+          "horizon": 2,
+          "variance": 0.24037153127266273,
+          "volatility": 0.4902769944354545,
+          "volatility_response": 0.01134585705109431
+        },
+        {
+          "horizon": 3,
+          "variance": 0.23932838032200648,
+          "volatility": 0.48921199936429044,
+          "volatility_response": 0.010280861979930223
+        },
+        {
+          "horizon": 4,
+          "variance": 0.23838418487637417,
+          "volatility": 0.488246029043119,
+          "volatility_response": 0.009314891658758762
+        },
+        {
+          "horizon": 5,
+          "variance": 0.23752955780730814,
+          "volatility": 0.48737004196740297,
+          "volatility_response": 0.00843890458304275
+        },
+        {
+          "horizon": 6,
+          "variance": 0.2367560024692062,
+          "volatility": 0.48657579313936916,
+          "volatility_response": 0.0076446557550089445
+        },
+        {
+          "horizon": 7,
+          "variance": 0.236055828226235,
+          "volatility": 0.4858557689543626,
+          "volatility_response": 0.006924631570002393
+        },
+        {
+          "horizon": 8,
+          "variance": 0.23542207399253892,
+          "volatility": 0.4852031265279923,
+          "volatility_response": 0.006271989143632084
+        },
+        {
+          "horizon": 9,
+          "variance": 0.23484843902558658,
+          "volatility": 0.48461163731960316,
+          "volatility_response": 0.005680499935242944
+        },
+        {
+          "horizon": 10,
+          "variance": 0.23432922028460654,
+          "volatility": 0.4840756348801358,
+          "volatility_response": 0.005144497495775557
+        }
+      ]
+    },
+    "sample_columns": [
+      "date",
+      "asset_return"
+    ],
+    "sample_preview": [
+      {
+        "date": "2005-01-31",
+        "asset_return": 0.233763149235475
+      },
+      {
+        "date": "2005-02-28",
+        "asset_return": -0.0288988145034342
+      },
+      {
+        "date": "2005-03-31",
+        "asset_return": 0.0006193654776038
+      },
+      {
+        "date": "2005-04-30",
+        "asset_return": 0.3695634562880727
+      },
+      {
+        "date": "2005-05-31",
+        "asset_return": 0.2029051474483442
+      }
+    ],
+    "figures": [
+      {
+        "asset_id": "83d76448-8b9b-4ef5-9219-1490aad9937c",
+        "title": "Volatility impulse response",
+        "summary": "VIRF path from a 1.25 sigma shock under a fitted GARCH(1,1) model.",
+        "download_url": "/api/assets/83d76448-8b9b-4ef5-9219-1490aad9937c/download",
+        "asset": {
+          "id": "83d76448-8b9b-4ef5-9219-1490aad9937c",
+          "kind": "chart_png",
+          "title": "timeseries_dataset-virf.png",
+          "filename": "timeseries_dataset-virf.png",
+          "description": "VIRF path from a 1.25 sigma shock under a fitted GARCH(1,1) model.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 66044,
+            "original_filename": "timeseries_dataset-virf.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "Volatility impulse response",
+            "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+            "summary": "VIRF path from a 1.25 sigma shock under a fitted GARCH(1,1) model."
+          },
+          "created_at": "2026-04-02T03:16:34.119462+00:00",
+          "updated_at": "2026-04-02T03:16:34.126301+00:00"
+        }
+      },
+      {
+        "asset_id": "09b7dae9-5c43-4a65-9a3b-61a568806e7c",
+        "title": "Variance impulse response",
+        "summary": "Variance response path implied by the fitted GARCH(1,1) volatility shock.",
+        "download_url": "/api/assets/09b7dae9-5c43-4a65-9a3b-61a568806e7c/download",
+        "asset": {
+          "id": "09b7dae9-5c43-4a65-9a3b-61a568806e7c",
+          "kind": "chart_png",
+          "title": "timeseries_dataset-virf-variance.png",
+          "filename": "timeseries_dataset-virf-variance.png",
+          "description": "Variance response path implied by the fitted GARCH(1,1) volatility shock.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 65910,
+            "original_filename": "timeseries_dataset-virf-variance.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "Variance impulse response",
+            "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+            "summary": "Variance response path implied by the fitted GARCH(1,1) volatility shock."
+          },
+          "created_at": "2026-04-02T03:16:34.335519+00:00",
+          "updated_at": "2026-04-02T03:16:34.338725+00:00"
+        }
+      }
+    ],
+    "workflow_type": "model",
+    "model_family": "time_series_finance",
+    "interpretation": {
+      "headline": "VIRF estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Supporting tables included: parameter_table, virf_path.",
+            "Figures included: Volatility impulse response, Variance impulse response."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "The reported shock size is 1.25 sigma.",
+            "The volatility path shows the level of implied volatility after the shock, while the variance-response plot shows the raw variance adjustment.",
+            "Persistence close to 1 means the shock decays slowly."
+          ]
+        },
+        {
+          "title": "What a normal paper should report",
+          "items": [
+            "Estimated GARCH parameters and persistence.",
+            "A volatility impulse-response plot.",
+            "A table listing volatility or variance responses by horizon."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Recover omega, alpha, and beta from the fitted GARCH(1,1) specification.",
+            "Rebuild the VIRF path from the documented recurrence formula and shock size.",
+            "Compare both the volatility and variance response outputs horizon by horizon."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "parameter_table",
+        "virf_path",
+        "Volatility impulse response",
+        "Variance impulse response"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "virf_larger_shock",
+    "variant_spec": {
+      "irf_horizon": 12,
+      "virf_shock_size": 1.5
+    },
+    "result_record_id": "0254a265-55ca-4f66-b405-bf98ea8812c2",
+    "result_detail_path": "/data-lab/results/models/0254a265-55ca-4f66-b405-bf98ea8812c2"
+  },
+  "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4"
+}

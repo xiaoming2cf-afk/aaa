@@ -1,0 +1,88 @@
+{
+  "source_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "source_asset_title": "panel_dataset.csv",
+  "prepared_asset_id": "7a79d0d2-3da8-4460-9c51-2f180f2828e7",
+  "prepared_download_url": "/api/assets/7a79d0d2-3da8-4460-9c51-2f180f2828e7/download",
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "minmax_variant",
+  "variant_spec": {
+    "impute_method": "mean",
+    "minmax_scale_columns": [
+      "size",
+      "leverage"
+    ],
+    "outlier_threshold": 1.25
+  },
+  "effective_specification": {
+    "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+    "workflow_group": "cleaning_transforms",
+    "impute_columns": [
+      "size",
+      "leverage"
+    ],
+    "winsorize_columns": [
+      "outcome_y"
+    ],
+    "winsor_lower_quantile": 0.01,
+    "winsor_upper_quantile": 0.99,
+    "outlier_columns": [
+      "outcome_y"
+    ],
+    "outlier_method": "iqr",
+    "impute_method": "mean",
+    "minmax_scale_columns": [
+      "size",
+      "leverage"
+    ],
+    "outlier_threshold": 1.25
+  },
+  "manual_checklist": [
+    "Download the prepared asset and compare row/column counts with rows_after_prepare and columns.",
+    "Reapply each cleaning step in order: imputation, winsorization, transforms, outlier filter, and missing-value filtering.",
+    "Verify the preview_rows against the downloaded prepared sample."
+  ],
+  "operations": {
+    "required_columns": [],
+    "numeric_columns": [],
+    "binary_columns": [],
+    "date_columns": [],
+    "imputed_columns": {
+      "size": "mean",
+      "leverage": "mean"
+    },
+    "winsorized_columns": {
+      "outcome_y": {
+        "lower": 0.01,
+        "upper": 0.99
+      }
+    },
+    "transformed_columns": {
+      "log": [],
+      "zscore": [],
+      "minmax": [
+        "size",
+        "leverage"
+      ]
+    },
+    "time_series_features": {
+      "sort_column": "",
+      "group_column": "",
+      "difference_columns": [],
+      "return_columns": [],
+      "lag_columns": [],
+      "lead_columns": [],
+      "rolling_mean_columns": [],
+      "rolling_volatility_columns": []
+    },
+    "derived_columns": [],
+    "outlier_columns": [
+      "outcome_y"
+    ],
+    "outlier_method": "iqr",
+    "outlier_threshold": 1.25,
+    "drop_duplicates": true,
+    "drop_missing_required": true,
+    "workflow_group": "cleaning_transforms"
+  }
+}

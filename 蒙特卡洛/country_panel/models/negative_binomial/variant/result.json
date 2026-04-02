@@ -1,0 +1,256 @@
+{
+  "model_type": "negative_binomial",
+  "model_label": "Negative Binomial",
+  "asset": {
+    "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "kind": "dataset_csv",
+    "title": "upgrade_panel.csv",
+    "filename": "upgrade_panel.csv",
+    "description": "upgrade_panel.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 289095,
+      "original_filename": "upgrade_panel.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:26.995002",
+    "updated_at": "2026-04-02T02:57:27.013674"
+  },
+  "dependent": "count_outcome",
+  "regressors": [
+    "const",
+    "size",
+    "leverage",
+    "post",
+    "treated"
+  ],
+  "observations": 648,
+  "r_squared": null,
+  "adj_r_squared": null,
+  "pseudo_r_squared": 0.06447012093877258,
+  "aic": 2767.676543439596,
+  "bic": 2794.5198876177096,
+  "log_likelihood": -1377.838271719798,
+  "coefficients": [
+    {
+      "term": "const",
+      "coefficient": 0.08995761969389811,
+      "std_error": 0.48549887498195365,
+      "t_stat": 0.1852890384086717,
+      "p_value": 0.8530023352510548
+    },
+    {
+      "term": "size",
+      "coefficient": 0.15095685269459938,
+      "std_error": 0.045655717890824475,
+      "t_stat": 3.306417239031904,
+      "p_value": 0.0009449726093406387
+    },
+    {
+      "term": "leverage",
+      "coefficient": -1.426600452007488,
+      "std_error": 0.5921800424935748,
+      "t_stat": -2.4090654017996,
+      "p_value": 0.015993431629190407
+    },
+    {
+      "term": "post",
+      "coefficient": 0.4104621486128731,
+      "std_error": 0.04773914040022276,
+      "t_stat": 8.598021354631635,
+      "p_value": 8.110221051880387e-18
+    },
+    {
+      "term": "treated",
+      "coefficient": 0.4284772484274677,
+      "std_error": 0.06358206027220929,
+      "t_stat": 6.738964522273404,
+      "p_value": 1.5951934243069248e-11
+    },
+    {
+      "term": "alpha",
+      "coefficient": 0.013287470925468938,
+      "std_error": 0.013219106119629849,
+      "t_stat": 1.005171666315438,
+      "p_value": 0.3148141959245131
+    }
+  ],
+  "narrative": [
+    "Negative binomial count model estimated with statsmodels."
+  ],
+  "sample_columns": [
+    "count_outcome",
+    "size",
+    "leverage",
+    "post",
+    "treated"
+  ],
+  "sample_preview": [
+    {
+      "count_outcome": 1,
+      "size": 8.519775911467494,
+      "leverage": 0.3577590135791016,
+      "post": 0,
+      "treated": 1
+    },
+    {
+      "count_outcome": 3,
+      "size": 7.55721041465215,
+      "leverage": 0.3378183221465689,
+      "post": 0,
+      "treated": 1
+    },
+    {
+      "count_outcome": 3,
+      "size": 7.823590785770317,
+      "leverage": 0.3343232278441892,
+      "post": 0,
+      "treated": 1
+    },
+    {
+      "count_outcome": 1,
+      "size": 8.058331858128255,
+      "leverage": 0.3581110765958445,
+      "post": 0,
+      "treated": 1
+    },
+    {
+      "count_outcome": 3,
+      "size": 7.790582349444769,
+      "leverage": 0.3323010132904619,
+      "post": 0,
+      "treated": 1
+    }
+  ],
+  "specification": {
+    "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "model_family": "econometrics_baseline",
+    "model_type": "negative_binomial",
+    "dependent": "count_outcome",
+    "independents": [
+      "size",
+      "leverage"
+    ],
+    "controls": [
+      "post",
+      "treated"
+    ],
+    "engine": "statsmodels",
+    "variant_label": "nb_treated"
+  },
+  "audit_trail": {
+    "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "sample_title": "upgrade_panel.csv",
+    "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+    "rows_used": 648,
+    "sample_columns": [
+      "count_outcome",
+      "size",
+      "leverage",
+      "post",
+      "treated"
+    ],
+    "covariance_type": "nonrobust",
+    "manual_checklist": [
+      "Download the prepared sample asset referenced in sample_asset_id.",
+      "Rebuild any derived regressors listed in derived_columns before estimation.",
+      "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+      "Compare the reproduced coefficient table with the coefficients array term by term."
+    ],
+    "engine": "statsmodels",
+    "derived_columns": [],
+    "filters": [
+      "Rows with missing dependent or regressors are dropped."
+    ]
+  },
+  "engine": "statsmodels",
+  "primary_tables": [
+    "dispersion_audit"
+  ],
+  "robustness_tables": [],
+  "tables": {
+    "dispersion_audit": [
+      {
+        "alpha": -4.3209337234279275,
+        "aic": 2767.676543439596
+      }
+    ]
+  },
+  "figures": [
+    {
+      "asset_id": "d44ab9c7-80b2-4f1c-8369-830a9c4218dd",
+      "title": "Predicted vs Observed Count",
+      "summary": "Observed versus fitted counts for the negative-binomial model.",
+      "download_url": "/api/assets/d44ab9c7-80b2-4f1c-8369-830a9c4218dd/download",
+      "asset": {
+        "id": "d44ab9c7-80b2-4f1c-8369-830a9c4218dd",
+        "kind": "chart_png",
+        "title": "upgrade_panel-negative_binomial_fit.png",
+        "filename": "upgrade_panel-negative_binomial_fit.png",
+        "description": "Observed versus fitted counts for the negative-binomial model.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 119814,
+          "original_filename": "upgrade_panel-negative_binomial_fit.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Predicted vs Observed Count",
+          "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+          "summary": "Observed versus fitted counts for the negative-binomial model."
+        },
+        "created_at": "2026-04-02T02:57:51.822139+00:00",
+        "updated_at": "2026-04-02T02:57:51.832444+00:00"
+      }
+    }
+  ],
+  "metrics": {},
+  "paper_output_contract": {
+    "primary_tables": [
+      "dispersion_audit"
+    ],
+    "robustness_tables": [],
+    "figure_count": 1
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "Negative Binomial estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+          "Supporting tables included: dispersion_audit.",
+          "Figures included: Predicted vs Observed Count."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "dispersion_audit",
+      "Predicted vs Observed Count"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "nb_treated",
+  "variant_spec": {},
+  "result_record_id": "81e5b3da-6b55-4a13-b954-dbe0dc65c5f5",
+  "result_detail_path": "/data-lab/results/models/81e5b3da-6b55-4a13-b954-dbe0dc65c5f5"
+}

@@ -1,0 +1,18 @@
+{
+  "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "model_family": "causal_inference",
+  "model_type": "synthetic_control",
+  "dependent": "outcome_y",
+  "entity_column": "firm_id",
+  "time_column": "month_index",
+  "treated_unit": "firm_01",
+  "control_units": [
+    "firm_02",
+    "firm_03",
+    "firm_04",
+    "firm_05",
+    "firm_06"
+  ],
+  "treatment_time": 18,
+  "engine": "causalpy"
+}

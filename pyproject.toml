@@ -10,11 +10,17 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "arch>=8.0.0",
+    "arviz>=0.22.0",
+    "catboost>=1.2.0",
+    "causalpy>=0.8.0",
     "cryptography>=45.0.0",
     "fastapi>=0.115.0",
+    "linearmodels>=7.0",
     "matplotlib>=3.9.0",
     "markdown>=3.7",
     "mealpy>=3.0.3",
+    "pymc>=5.20.0",
+    "PyPortfolioOpt>=1.5.5",
     "statsmodels>=0.14.0",
     "openai>=1.0.0",
     "openpyxl>=3.1.0",

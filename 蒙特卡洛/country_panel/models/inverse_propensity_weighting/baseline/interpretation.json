@@ -1,0 +1,34 @@
+{
+  "headline": "Inverse Propensity Weighting estimates are exposed in full so you can read the result and reproduce it manually.",
+  "sections": [
+    {
+      "title": "What is shown on this page",
+      "items": [
+        "Supporting tables included: treatment_effect_table, propensity_summary_table, balance_before_table, balance_after_table.",
+        "Figures included: Propensity score overlap."
+      ]
+    },
+    {
+      "title": "How to read the main result",
+      "items": [
+        "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+        "The specification block records the exact equation or parameterization that should be reproduced manually."
+      ]
+    },
+    {
+      "title": "Manual replication focus",
+      "items": [
+        "Download the referenced sample and rebuild all listed derived columns before estimation.",
+        "Match the equation, regressors, covariance type, and sample filters exactly.",
+        "Compare the resulting table or figure object term by term with the result shown here."
+      ]
+    }
+  ],
+  "paper_outputs": [
+    "treatment_effect_table",
+    "propensity_summary_table",
+    "balance_before_table",
+    "balance_after_table",
+    "Propensity score overlap"
+  ]
+}

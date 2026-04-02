@@ -138,13 +138,25 @@ def _create_template(client: TestClient, token: str, workspace_id: str, payload:
 
 
 def _assert_model_output(label: str, result: dict[str, Any]) -> None:
+    from research_agent.data_lab_catalog import get_model_method
+
     model_type = result.get("model_type", "")
+    model_family = result.get("model_family", "")
     if not result.get("interpretation", {}).get("sections"):
         raise AssertionError(f"{label}: missing interpretation sections")
     if not result.get("audit_trail"):
         raise AssertionError(f"{label}: missing audit trail")
     if not result.get("specification"):
         raise AssertionError(f"{label}: missing specification")
+    method_meta = get_model_method(model_family, model_type) if model_family else None
+    paper_contract = method_meta.get("paper_output_contract") if isinstance(method_meta, dict) else None
+    if isinstance(paper_contract, dict):
+        expected_primary_tables = len(paper_contract.get("primary_tables") or [])
+        expected_figures = len(paper_contract.get("figures") or [])
+        if _nonempty_table_count(result) < max(1, expected_primary_tables):
+            raise AssertionError(f"{label}: missing required paper-table outputs")
+        if len(result.get("figures", [])) < expected_figures:
+            raise AssertionError(f"{label}: missing required figure outputs")
     if model_type in {"ols", "ppml", "logit", "probit", "fixed_effects", "gravity", "iv_2sls", "panel_iv", "taylor_rule", "capm", "fama_french_3"} and not result.get("coefficients"):
         raise AssertionError(f"{label}: missing coefficient table")
     if model_type == "did":
@@ -178,6 +190,22 @@ def _assert_model_output(label: str, result: dict[str, Any]) -> None:
         raise AssertionError(f"{label}: missing weights table")
     if model_type in {"altman_z", "dupont"} and not result.get("tables"):
         raise AssertionError(f"{label}: missing corporate finance table output")
+    if model_type in {"random_effects", "first_difference", "between_ols", "pooled_ols", "fama_macbeth", "iv_liml", "iv_gmm", "absorbing_ls", "sur", "iv_3sls", "system_gmm", "glm", "quantile_regression", "gee", "mnlogit", "negative_binomial", "zero_inflated_count", "mixedlm"} and not result.get("tables"):
+        raise AssertionError(f"{label}: missing extended regression tables")
+    if model_type in {"varmax", "vecm", "markov_switching", "unobserved_components", "exponential_smoothing"} and not result.get("figures"):
+        raise AssertionError(f"{label}: missing extended time-series figures")
+    if model_type in {"egarch", "gjr_garch", "harx"} and len(result.get("figures", [])) < 2:
+        raise AssertionError(f"{label}: missing volatility model figures")
+    if model_type in {"adf_test", "kpss_test", "pp_test", "zivot_andrews", "engle_granger", "dynamic_ols", "fm_ols"} and not result.get("tables"):
+        raise AssertionError(f"{label}: missing time-series diagnostic tables")
+    if model_type in {"efficient_frontier", "semivariance_frontier", "cvar_frontier", "cdar_frontier", "black_litterman", "hrp", "discrete_allocation"} and not result.get("tables", {}).get("weights_table"):
+        raise AssertionError(f"{label}: missing portfolio allocation table")
+    if model_type in {"staggered_did", "synthetic_control", "interrupted_time_series", "regression_kink", "instrumental_causal", "inverse_propensity_weighting"} and not result.get("figures"):
+        raise AssertionError(f"{label}: missing causal figure output")
+    if model_type in {"bayesian_linear_regression", "bayesian_panel", "bayesian_did", "bayesian_its"} and len(result.get("figures", [])) < 2:
+        raise AssertionError(f"{label}: missing Bayesian diagnostics")
+    if model_type in {"quant_linear_model", "quant_lightgbm", "quant_catboost", "quant_backtest_report", "position_analysis"} and not result.get("tables"):
+        raise AssertionError(f"{label}: missing quant research tables")
 
 
 def _comparison_frame(left: dict[str, Any], right: dict[str, Any]) -> pd.DataFrame:
@@ -186,6 +214,18 @@ def _comparison_frame(left: dict[str, Any], right: dict[str, Any]) -> pd.DataFra
     if not left_rows.empty and not right_rows.empty and "term" in left_rows.columns and "term" in right_rows.columns:
         return left_rows.merge(right_rows, on="term", how="outer", suffixes=("_baseline", "_variant"))
     return pd.DataFrame([{"baseline_record_id": left.get("_record_id", ""), "variant_record_id": right.get("_record_id", "")}])
+
+
+def _nonempty_table_count(result: dict[str, Any]) -> int:
+    count = 0
+    if result.get("coefficients"):
+        count += 1
+    for rows in (result.get("tables") or {}).values():
+        if isinstance(rows, list) and rows:
+            count += 1
+        elif isinstance(rows, dict) and rows:
+            count += 1
+    return count
 
 
 def _model_specs(panel_asset_id: str, ts_asset_id: str) -> list[dict[str, Any]]:

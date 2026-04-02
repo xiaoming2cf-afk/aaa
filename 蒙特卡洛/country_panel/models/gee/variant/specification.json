@@ -1,0 +1,17 @@
+{
+  "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "model_family": "econometrics_baseline",
+  "model_type": "gee",
+  "dependent": "count_outcome",
+  "independents": [
+    "size",
+    "leverage"
+  ],
+  "controls": [
+    "post"
+  ],
+  "gee_family": "poisson",
+  "gee_group_column": "firm_id",
+  "engine": "statsmodels",
+  "variant_label": "gee_count"
+}

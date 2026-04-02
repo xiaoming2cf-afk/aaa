@@ -1,0 +1,734 @@
+{
+  "result": {
+    "workflow_type": "data_processing",
+    "processing_family": "sample_preparation",
+    "template_id": "e663c46c-2ac5-4cad-9fd9-112e407d3bf9",
+    "template_name": "Panel sample prep template",
+    "variant_label": "",
+    "variant_spec": {},
+    "effective_specification": {
+      "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "workflow_group": "sample_preparation",
+      "include_columns": [
+        "firm_id",
+        "date",
+        "treated",
+        "post",
+        "size",
+        "leverage",
+        "outcome_y"
+      ],
+      "required_columns": [
+        "firm_id",
+        "date",
+        "treated",
+        "post",
+        "outcome_y"
+      ],
+      "numeric_columns": [
+        "size",
+        "leverage",
+        "outcome_y"
+      ],
+      "binary_columns": [
+        "treated",
+        "post"
+      ],
+      "date_columns": [
+        "date"
+      ],
+      "drop_duplicates": true,
+      "drop_missing_required": true
+    },
+    "asset": {
+      "id": "316877d4-6401-4acb-bb7e-d2e9db466a79",
+      "kind": "dataset_csv",
+      "title": "panel_dataset-prepared.csv",
+      "filename": "panel_dataset-prepared.csv",
+      "description": "Prepared analysis sample derived from panel_dataset.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 59769,
+        "original_filename": "panel_dataset-prepared.csv",
+        "storage_backend": "local",
+        "preparation_summary": {
+          "rows_initial": 648,
+          "rows_after_prepare": 648,
+          "rows_removed_for_missing_required": 0,
+          "duplicate_rows_removed": 0,
+          "columns": [
+            "firm_id",
+            "date",
+            "treated",
+            "post",
+            "size",
+            "leverage",
+            "outcome_y"
+          ],
+          "required_columns": [
+            "firm_id",
+            "date",
+            "treated",
+            "post",
+            "outcome_y"
+          ],
+          "numeric_columns": [
+            "size",
+            "leverage",
+            "outcome_y"
+          ],
+          "binary_columns": [
+            "treated",
+            "post"
+          ],
+          "date_columns": [
+            "date"
+          ],
+          "imputed_columns": {},
+          "winsorized_columns": {},
+          "transformed_columns": {
+            "log": [],
+            "zscore": [],
+            "minmax": []
+          },
+          "time_series_features": {
+            "sort_column": "",
+            "group_column": "",
+            "difference_columns": [],
+            "return_columns": [],
+            "lag_columns": [],
+            "lead_columns": [],
+            "rolling_mean_columns": [],
+            "rolling_volatility_columns": []
+          },
+          "derived_columns": [],
+          "outlier_columns": [],
+          "outlier_method": "none",
+          "outlier_threshold": 1.5,
+          "outliers_removed": 0,
+          "missing_by_column": {
+            "firm_id": 0,
+            "date": 0,
+            "treated": 0,
+            "post": 0,
+            "size": 0,
+            "leverage": 0,
+            "outcome_y": 0
+          }
+        },
+        "source_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440"
+      },
+      "created_at": "2026-04-02T03:16:15.018956",
+      "updated_at": "2026-04-02T03:16:15.026553"
+    },
+    "summary": {
+      "rows_initial": 648,
+      "rows_after_prepare": 648,
+      "rows_removed_for_missing_required": 0,
+      "duplicate_rows_removed": 0,
+      "columns": [
+        "firm_id",
+        "date",
+        "treated",
+        "post",
+        "size",
+        "leverage",
+        "outcome_y"
+      ],
+      "required_columns": [
+        "firm_id",
+        "date",
+        "treated",
+        "post",
+        "outcome_y"
+      ],
+      "numeric_columns": [
+        "size",
+        "leverage",
+        "outcome_y"
+      ],
+      "binary_columns": [
+        "treated",
+        "post"
+      ],
+      "date_columns": [
+        "date"
+      ],
+      "imputed_columns": {},
+      "winsorized_columns": {},
+      "transformed_columns": {
+        "log": [],
+        "zscore": [],
+        "minmax": []
+      },
+      "time_series_features": {
+        "sort_column": "",
+        "group_column": "",
+        "difference_columns": [],
+        "return_columns": [],
+        "lag_columns": [],
+        "lead_columns": [],
+        "rolling_mean_columns": [],
+        "rolling_volatility_columns": []
+      },
+      "derived_columns": [],
+      "outlier_columns": [],
+      "outlier_method": "none",
+      "outlier_threshold": 1.5,
+      "outliers_removed": 0,
+      "missing_by_column": {
+        "firm_id": 0,
+        "date": 0,
+        "treated": 0,
+        "post": 0,
+        "size": 0,
+        "leverage": 0,
+        "outcome_y": 0
+      }
+    },
+    "preview_rows": [
+      {
+        "firm_id": "firm_01",
+        "date": "2018-01-31T00:00:00",
+        "treated": 1.0,
+        "post": 0.0,
+        "size": 8.519775911467494,
+        "leverage": 0.3577590135791016,
+        "outcome_y": 8.281342947667275
+      },
+      {
+        "firm_id": "firm_01",
+        "date": "2018-02-28T00:00:00",
+        "treated": 1.0,
+        "post": 0.0,
+        "size": 7.55721041465215,
+        "leverage": 0.3378183221465689,
+        "outcome_y": 7.161166663415577
+      },
+      {
+        "firm_id": "firm_01",
+        "date": "2018-03-31T00:00:00",
+        "treated": 1.0,
+        "post": 0.0,
+        "size": 7.823590785770317,
+        "leverage": 0.3343232278441892,
+        "outcome_y": 7.582391886802917
+      },
+      {
+        "firm_id": "firm_01",
+        "date": "2018-04-30T00:00:00",
+        "treated": 1.0,
+        "post": 0.0,
+        "size": 8.058331858128255,
+        "leverage": 0.3581110765958445,
+        "outcome_y": 8.19643779930995
+      },
+      {
+        "firm_id": "firm_01",
+        "date": "2018-05-31T00:00:00",
+        "treated": 1.0,
+        "post": 0.0,
+        "size": 7.790582349444769,
+        "leverage": 0.3323010132904619,
+        "outcome_y": 6.775339604671813
+      },
+      {
+        "firm_id": "firm_01",
+        "date": "2018-06-30T00:00:00",
+        "treated": 1.0,
+        "post": 0.0,
+        "size": 8.382292912367715,
+        "leverage": 0.2967550203777046,
+        "outcome_y": 7.332408657947028
+      },
+      {
+        "firm_id": "firm_01",
+        "date": "2018-07-31T00:00:00",
+        "treated": 1.0,
+        "post": 0.0,
+        "size": 8.283596354996046,
+        "leverage": 0.3652903550150778,
+        "outcome_y": 9.385157683987362
+      },
+      {
+        "firm_id": "firm_01",
+        "date": "2018-08-31T00:00:00",
+        "treated": 1.0,
+        "post": 0.0,
+        "size": 7.887258066895583,
+        "leverage": 0.3441162567445512,
+        "outcome_y": 6.077208583694369
+      }
+    ],
+    "audit_trail": {
+      "source_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "source_asset_title": "panel_dataset.csv",
+      "prepared_asset_id": "316877d4-6401-4acb-bb7e-d2e9db466a79",
+      "prepared_download_url": "/api/assets/316877d4-6401-4acb-bb7e-d2e9db466a79/download",
+      "template_id": "e663c46c-2ac5-4cad-9fd9-112e407d3bf9",
+      "template_name": "Panel sample prep template",
+      "variant_label": "",
+      "variant_spec": {},
+      "effective_specification": {
+        "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "workflow_group": "sample_preparation",
+        "include_columns": [
+          "firm_id",
+          "date",
+          "treated",
+          "post",
+          "size",
+          "leverage",
+          "outcome_y"
+        ],
+        "required_columns": [
+          "firm_id",
+          "date",
+          "treated",
+          "post",
+          "outcome_y"
+        ],
+        "numeric_columns": [
+          "size",
+          "leverage",
+          "outcome_y"
+        ],
+        "binary_columns": [
+          "treated",
+          "post"
+        ],
+        "date_columns": [
+          "date"
+        ],
+        "drop_duplicates": true,
+        "drop_missing_required": true
+      },
+      "manual_checklist": [
+        "Download the prepared asset and compare row/column counts with rows_after_prepare and columns.",
+        "Reapply each cleaning step in order: imputation, winsorization, transforms, outlier filter, and missing-value filtering.",
+        "Verify the preview_rows against the downloaded prepared sample."
+      ],
+      "operations": {
+        "required_columns": [
+          "firm_id",
+          "date",
+          "treated",
+          "post",
+          "outcome_y"
+        ],
+        "numeric_columns": [
+          "size",
+          "leverage",
+          "outcome_y"
+        ],
+        "binary_columns": [
+          "treated",
+          "post"
+        ],
+        "date_columns": [
+          "date"
+        ],
+        "imputed_columns": {},
+        "winsorized_columns": {},
+        "transformed_columns": {
+          "log": [],
+          "zscore": [],
+          "minmax": []
+        },
+        "time_series_features": {
+          "sort_column": "",
+          "group_column": "",
+          "difference_columns": [],
+          "return_columns": [],
+          "lag_columns": [],
+          "lead_columns": [],
+          "rolling_mean_columns": [],
+          "rolling_volatility_columns": []
+        },
+        "derived_columns": [],
+        "outlier_columns": [],
+        "outlier_method": "none",
+        "outlier_threshold": 1.5,
+        "drop_duplicates": true,
+        "drop_missing_required": true,
+        "workflow_group": "sample_preparation"
+      }
+    },
+    "result_detail_path": "/data-lab/results/processing/316877d4-6401-4acb-bb7e-d2e9db466a79",
+    "profile": {
+      "asset": {
+        "id": "316877d4-6401-4acb-bb7e-d2e9db466a79",
+        "kind": "dataset_csv",
+        "title": "panel_dataset-prepared.csv",
+        "filename": "panel_dataset-prepared.csv",
+        "description": "Prepared analysis sample derived from panel_dataset.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 59769,
+          "original_filename": "panel_dataset-prepared.csv",
+          "storage_backend": "local",
+          "preparation_summary": {
+            "rows_initial": 648,
+            "rows_after_prepare": 648,
+            "rows_removed_for_missing_required": 0,
+            "duplicate_rows_removed": 0,
+            "columns": [
+              "firm_id",
+              "date",
+              "treated",
+              "post",
+              "size",
+              "leverage",
+              "outcome_y"
+            ],
+            "required_columns": [
+              "firm_id",
+              "date",
+              "treated",
+              "post",
+              "outcome_y"
+            ],
+            "numeric_columns": [
+              "size",
+              "leverage",
+              "outcome_y"
+            ],
+            "binary_columns": [
+              "treated",
+              "post"
+            ],
+            "date_columns": [
+              "date"
+            ],
+            "imputed_columns": {},
+            "winsorized_columns": {},
+            "transformed_columns": {
+              "log": [],
+              "zscore": [],
+              "minmax": []
+            },
+            "time_series_features": {
+              "sort_column": "",
+              "group_column": "",
+              "difference_columns": [],
+              "return_columns": [],
+              "lag_columns": [],
+              "lead_columns": [],
+              "rolling_mean_columns": [],
+              "rolling_volatility_columns": []
+            },
+            "derived_columns": [],
+            "outlier_columns": [],
+            "outlier_method": "none",
+            "outlier_threshold": 1.5,
+            "outliers_removed": 0,
+            "missing_by_column": {
+              "firm_id": 0,
+              "date": 0,
+              "treated": 0,
+              "post": 0,
+              "size": 0,
+              "leverage": 0,
+              "outcome_y": 0
+            }
+          },
+          "source_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440"
+        },
+        "created_at": "2026-04-02T03:16:15.018956",
+        "updated_at": "2026-04-02T03:16:15.026553"
+      },
+      "rows": 648,
+      "columns": 7,
+      "duplicate_rows_detected": 0,
+      "column_profiles": [
+        {
+          "name": "firm_id",
+          "source_name": "firm_id",
+          "role": "categorical",
+          "dtype": "object",
+          "missing_count": 0,
+          "non_null_count": 648,
+          "unique_count": 18,
+          "sample_values": [
+            "firm_01",
+            "firm_01",
+            "firm_01",
+            "firm_01"
+          ]
+        },
+        {
+          "name": "date",
+          "source_name": "date",
+          "role": "date",
+          "dtype": "object",
+          "missing_count": 0,
+          "non_null_count": 648,
+          "unique_count": 36,
+          "sample_values": [
+            "2018-01-31T00:00:00",
+            "2018-02-28T00:00:00",
+            "2018-03-31T00:00:00",
+            "2018-04-30T00:00:00"
+          ],
+          "min": "2018-01-31T00:00:00",
+          "max": "2020-12-31T00:00:00"
+        },
+        {
+          "name": "treated",
+          "source_name": "treated",
+          "role": "binary",
+          "dtype": "float64",
+          "missing_count": 0,
+          "non_null_count": 648,
+          "unique_count": 2,
+          "sample_values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "mean": 0.5,
+          "std": 0.5003862495747899,
+          "min": 0.0,
+          "max": 1.0
+        },
+        {
+          "name": "post",
+          "source_name": "post",
+          "role": "binary",
+          "dtype": "float64",
+          "missing_count": 0,
+          "non_null_count": 648,
+          "unique_count": 2,
+          "sample_values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mean": 0.5,
+          "std": 0.5003862495747899,
+          "min": 0.0,
+          "max": 1.0
+        },
+        {
+          "name": "size",
+          "source_name": "size",
+          "role": "numeric",
+          "dtype": "float64",
+          "missing_count": 0,
+          "non_null_count": 648,
+          "unique_count": 648,
+          "sample_values": [
+            8.519775911467494,
+            7.55721041465215,
+            7.823590785770317,
+            8.058331858128255
+          ],
+          "mean": 9.538186592667989,
+          "std": 0.7548432168148171,
+          "min": 7.55721041465215,
+          "max": 11.179256239937407
+        },
+        {
+          "name": "leverage",
+          "source_name": "leverage",
+          "role": "numeric",
+          "dtype": "float64",
+          "missing_count": 0,
+          "non_null_count": 648,
+          "unique_count": 648,
+          "sample_values": [
+            0.3577590135791016,
+            0.3378183221465689,
+            0.3343232278441892,
+            0.3581110765958445
+          ],
+          "mean": 0.3705122911444113,
+          "std": 0.033020967375193576,
+          "min": 0.2602727457321433,
+          "max": 0.4708691649202774
+        },
+        {
+          "name": "outcome_y",
+          "source_name": "outcome_y",
+          "role": "numeric",
+          "dtype": "float64",
+          "missing_count": 0,
+          "non_null_count": 648,
+          "unique_count": 648,
+          "sample_values": [
+            8.281342947667275,
+            7.161166663415577,
+            7.582391886802917,
+            8.19643779930995
+          ],
+          "mean": 9.81688999287978,
+          "std": 1.8017436699715415,
+          "min": 5.100573032333041,
+          "max": 14.529631639768809
+        }
+      ],
+      "column_roles": {
+        "numeric": [
+          "size",
+          "leverage",
+          "outcome_y"
+        ],
+        "binary": [
+          "treated",
+          "post"
+        ],
+        "date": [
+          "date"
+        ],
+        "categorical": [
+          "firm_id"
+        ],
+        "text": [],
+        "empty": []
+      },
+      "preview_rows": [
+        {
+          "firm_id": "firm_01",
+          "date": "2018-01-31T00:00:00",
+          "treated": 1.0,
+          "post": 0.0,
+          "size": 8.519775911467494,
+          "leverage": 0.3577590135791016,
+          "outcome_y": 8.281342947667275
+        },
+        {
+          "firm_id": "firm_01",
+          "date": "2018-02-28T00:00:00",
+          "treated": 1.0,
+          "post": 0.0,
+          "size": 7.55721041465215,
+          "leverage": 0.3378183221465689,
+          "outcome_y": 7.161166663415577
+        },
+        {
+          "firm_id": "firm_01",
+          "date": "2018-03-31T00:00:00",
+          "treated": 1.0,
+          "post": 0.0,
+          "size": 7.823590785770317,
+          "leverage": 0.3343232278441892,
+          "outcome_y": 7.582391886802917
+        },
+        {
+          "firm_id": "firm_01",
+          "date": "2018-04-30T00:00:00",
+          "treated": 1.0,
+          "post": 0.0,
+          "size": 8.058331858128255,
+          "leverage": 0.3581110765958445,
+          "outcome_y": 8.19643779930995
+        },
+        {
+          "firm_id": "firm_01",
+          "date": "2018-05-31T00:00:00",
+          "treated": 1.0,
+          "post": 0.0,
+          "size": 7.790582349444769,
+          "leverage": 0.3323010132904619,
+          "outcome_y": 6.775339604671813
+        },
+        {
+          "firm_id": "firm_01",
+          "date": "2018-06-30T00:00:00",
+          "treated": 1.0,
+          "post": 0.0,
+          "size": 8.382292912367715,
+          "leverage": 0.2967550203777046,
+          "outcome_y": 7.332408657947028
+        },
+        {
+          "firm_id": "firm_01",
+          "date": "2018-07-31T00:00:00",
+          "treated": 1.0,
+          "post": 0.0,
+          "size": 8.283596354996046,
+          "leverage": 0.3652903550150778,
+          "outcome_y": 9.385157683987362
+        },
+        {
+          "firm_id": "firm_01",
+          "date": "2018-08-31T00:00:00",
+          "treated": 1.0,
+          "post": 0.0,
+          "size": 7.887258066895583,
+          "leverage": 0.3441162567445512,
+          "outcome_y": 6.077208583694369
+        }
+      ],
+      "suggested_models": [
+        "ols",
+        "logit",
+        "probit",
+        "ppml",
+        "rdd",
+        "historical_var",
+        "parametric_var",
+        "ewma_volatility",
+        "capm",
+        "mean_variance",
+        "minimum_variance",
+        "risk_parity",
+        "did",
+        "event_study",
+        "fixed_effects",
+        "arima",
+        "var",
+        "taylor_rule",
+        "rbc_dsge"
+      ],
+      "source_columns": {
+        "firm_id": "firm_id",
+        "date": "date",
+        "treated": "treated",
+        "post": "post",
+        "size": "size",
+        "leverage": "leverage",
+        "outcome_y": "outcome_y"
+      }
+    },
+    "interpretation": {
+      "headline": "Sample Preparation created a reproducible prepared sample with full audit metadata.",
+      "sections": [
+        {
+          "title": "What this processing run produced",
+          "items": [
+            "Prepared rows: 648.",
+            "Missing-value drops: 0.",
+            "Derived columns created: none."
+          ]
+        },
+        {
+          "title": "What a normal appendix should show",
+          "items": [
+            "A concise data-preparation log that lists the exact transformations applied in order.",
+            "A preview or schema of the final prepared sample.",
+            "A downloadable prepared dataset used for estimation."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Reapply imputation, winsorization, transforms, feature construction, and filtering in the documented order.",
+            "Verify row and column counts against the saved preparation summary.",
+            "Check transformation groups explicitly: {\"log\": [], \"zscore\": [], \"minmax\": []}."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "Preparation summary",
+        "Prepared sample preview",
+        "Downloadable prepared dataset"
+      ]
+    },
+    "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4"
+  }
+}

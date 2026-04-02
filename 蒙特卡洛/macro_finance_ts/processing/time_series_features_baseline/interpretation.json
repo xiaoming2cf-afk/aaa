@@ -1,0 +1,34 @@
+{
+  "headline": "Time Series Features created a reproducible prepared sample with full audit metadata.",
+  "sections": [
+    {
+      "title": "What this processing run produced",
+      "items": [
+        "Prepared rows: 240.",
+        "Missing-value drops: 0.",
+        "Derived columns created: diff_policy_rate, logret_spot_price, lag2_asset_return, lead1_asset_return, rollmean12_asset_return, rollvol12_asset_return."
+      ]
+    },
+    {
+      "title": "What a normal appendix should show",
+      "items": [
+        "A concise data-preparation log that lists the exact transformations applied in order.",
+        "A preview or schema of the final prepared sample.",
+        "A downloadable prepared dataset used for estimation."
+      ]
+    },
+    {
+      "title": "Manual replication focus",
+      "items": [
+        "Reapply imputation, winsorization, transforms, feature construction, and filtering in the documented order.",
+        "Verify row and column counts against the saved preparation summary.",
+        "Check transformation groups explicitly: {\"log\": [], \"zscore\": [], \"minmax\": []}."
+      ]
+    }
+  ],
+  "paper_outputs": [
+    "Preparation summary",
+    "Prepared sample preview",
+    "Downloadable prepared dataset"
+  ]
+}

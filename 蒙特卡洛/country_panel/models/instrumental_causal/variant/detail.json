@@ -1,0 +1,548 @@
+{
+  "record": {
+    "id": "e772ea5f-71a1-445f-97bd-0c36234e7142",
+    "title": "Instrumental Variable Causal summary for upgrade_panel.csv",
+    "content": "Instrumental-variable causal effect estimated with linearmodels IV2SLS.",
+    "content_excerpt": "Instrumental-variable causal effect estimated with linearmodels IV2SLS.",
+    "content_length": 71,
+    "tags": [
+      "instrumental_causal",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "instrumental_causal",
+      "model_label": "Instrumental Variable Causal",
+      "asset": {
+        "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "kind": "dataset_csv",
+        "title": "upgrade_panel.csv",
+        "filename": "upgrade_panel.csv",
+        "description": "upgrade_panel.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 289095,
+          "original_filename": "upgrade_panel.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T02:57:26.995002",
+        "updated_at": "2026-04-02T02:57:27.013674"
+      },
+      "dependent": "outcome_y",
+      "regressors": [
+        "endogenous_x",
+        "leverage",
+        "post"
+      ],
+      "observations": 648,
+      "r_squared": 0.5720103529003726,
+      "adj_r_squared": 0.5700166123082937,
+      "pseudo_r_squared": null,
+      "aic": null,
+      "bic": null,
+      "log_likelihood": null,
+      "coefficients": [
+        {
+          "term": "const",
+          "coefficient": 8.586707346338699,
+          "std_error": 0.51589754076423,
+          "t_stat": 16.64421065783468,
+          "p_value": 0.0
+        },
+        {
+          "term": "leverage",
+          "coefficient": -0.0673188445625783,
+          "std_error": 1.3739966585620944,
+          "t_stat": -0.048994911409048374,
+          "p_value": 0.9609233511785795
+        },
+        {
+          "term": "post",
+          "coefficient": 2.461166988666468,
+          "std_error": 0.09286480358870793,
+          "t_stat": 26.502688785805375,
+          "p_value": 0.0
+        },
+        {
+          "term": "endogenous_x",
+          "coefficient": 0.5140816125965846,
+          "std_error": 0.06877886595170467,
+          "t_stat": 7.474412459163892,
+          "p_value": 7.749356711883593e-14
+        }
+      ],
+      "narrative": [
+        "Instrumental-variable causal effect estimated with linearmodels IV2SLS."
+      ],
+      "sample_columns": [
+        "outcome_y",
+        "endogenous_x",
+        "leverage",
+        "post",
+        "instrument_z"
+      ],
+      "sample_preview": [
+        {
+          "outcome_y": 8.281342947667275,
+          "endogenous_x": 0.2785972991161518,
+          "leverage": 0.3577590135791016,
+          "post": 0,
+          "instrument_z": -0.1435168424451554
+        },
+        {
+          "outcome_y": 7.161166663415577,
+          "endogenous_x": 1.1977342200420291,
+          "leverage": 0.3378183221465689,
+          "post": 0,
+          "instrument_z": 1.4316570462193818
+        },
+        {
+          "outcome_y": 7.582391886802917,
+          "endogenous_x": 0.2791971515539841,
+          "leverage": 0.3343232278441892,
+          "post": 0,
+          "instrument_z": 1.0577328335812757
+        },
+        {
+          "outcome_y": 8.19643779930995,
+          "endogenous_x": 1.693126004491981,
+          "leverage": 0.3581110765958445,
+          "post": 0,
+          "instrument_z": 1.2478999752354007
+        },
+        {
+          "outcome_y": 6.775339604671813,
+          "endogenous_x": -0.6336680485148168,
+          "leverage": 0.3323010132904619,
+          "post": 0,
+          "instrument_z": -0.7576141862667286
+        }
+      ],
+      "specification": {
+        "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "model_family": "causal_inference",
+        "model_type": "instrumental_causal",
+        "dependent": "outcome_y",
+        "independents": [
+          "size"
+        ],
+        "controls": [
+          "leverage",
+          "post"
+        ],
+        "endogenous_column": "endogenous_x",
+        "instrument_columns": [
+          "instrument_z"
+        ],
+        "engine": "causalpy",
+        "variant_label": "instr_post"
+      },
+      "audit_trail": {
+        "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "sample_title": "upgrade_panel.csv",
+        "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+        "rows_used": 648,
+        "sample_columns": [
+          "outcome_y",
+          "endogenous_x",
+          "leverage",
+          "post",
+          "instrument_z"
+        ],
+        "covariance_type": "robust",
+        "manual_checklist": [
+          "Download the prepared sample asset referenced in sample_asset_id.",
+          "Rebuild any derived regressors listed in derived_columns before estimation.",
+          "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+          "Compare the reproduced coefficient table with the coefficients array term by term."
+        ],
+        "engine": "causalpy",
+        "derived_columns": [
+          "_fitted_treatment"
+        ],
+        "filters": []
+      },
+      "engine": "causalpy",
+      "primary_tables": [
+        "first_stage_table",
+        "first_stage_diagnostics"
+      ],
+      "robustness_tables": [],
+      "tables": {
+        "first_stage_table": [
+          {
+            "term": "const",
+            "coefficient": -0.024523200029168052
+          },
+          {
+            "term": "leverage",
+            "coefficient": 0.03905645697020316
+          },
+          {
+            "term": "post",
+            "coefficient": 0.017046628153618314
+          },
+          {
+            "term": "instrument_z",
+            "coefficient": 0.7390482078992413
+          }
+        ],
+        "first_stage_diagnostics": [
+          {
+            "rsquared": 0.7738778469032042,
+            "f_statistic": 686.1157089111642
+          }
+        ]
+      },
+      "figures": [
+        {
+          "asset_id": "7d39e9ad-bc35-4a80-8dce-8fd98d8ada87",
+          "title": "Observed vs fitted treatment",
+          "summary": "First-stage fit for the treatment variable.",
+          "download_url": "/api/assets/7d39e9ad-bc35-4a80-8dce-8fd98d8ada87/download",
+          "asset": {
+            "id": "7d39e9ad-bc35-4a80-8dce-8fd98d8ada87",
+            "kind": "chart_png",
+            "title": "upgrade_panel-causal_iv_first_stage.png",
+            "filename": "upgrade_panel-causal_iv_first_stage.png",
+            "description": "First-stage fit for the treatment variable.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 239018,
+              "original_filename": "upgrade_panel-causal_iv_first_stage.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "Observed vs fitted treatment",
+              "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+              "summary": "First-stage fit for the treatment variable."
+            },
+            "created_at": "2026-04-02T02:58:02.716587+00:00",
+            "updated_at": "2026-04-02T02:58:02.730444+00:00"
+          }
+        }
+      ],
+      "metrics": {},
+      "paper_output_contract": {
+        "primary_tables": [
+          "first_stage_table",
+          "first_stage_diagnostics"
+        ],
+        "robustness_tables": [],
+        "figure_count": 1
+      },
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "Instrumental Variable Causal estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+              "Supporting tables included: first_stage_table, first_stage_diagnostics.",
+              "Figures included: Observed vs fitted treatment."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "first_stage_table",
+          "first_stage_diagnostics",
+          "Observed vs fitted treatment"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "instr_post",
+      "variant_spec": {},
+      "result_record_id": "e772ea5f-71a1-445f-97bd-0c36234e7142",
+      "result_detail_path": "/data-lab/results/models/e772ea5f-71a1-445f-97bd-0c36234e7142"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T02:58:02.760657",
+    "updated_at": "2026-04-02T02:58:02.762575"
+  },
+  "result": {
+    "model_type": "instrumental_causal",
+    "model_label": "Instrumental Variable Causal",
+    "asset": {
+      "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "kind": "dataset_csv",
+      "title": "upgrade_panel.csv",
+      "filename": "upgrade_panel.csv",
+      "description": "upgrade_panel.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 289095,
+        "original_filename": "upgrade_panel.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T02:57:26.995002",
+      "updated_at": "2026-04-02T02:57:27.013674"
+    },
+    "dependent": "outcome_y",
+    "regressors": [
+      "endogenous_x",
+      "leverage",
+      "post"
+    ],
+    "observations": 648,
+    "r_squared": 0.5720103529003726,
+    "adj_r_squared": 0.5700166123082937,
+    "pseudo_r_squared": null,
+    "aic": null,
+    "bic": null,
+    "log_likelihood": null,
+    "coefficients": [
+      {
+        "term": "const",
+        "coefficient": 8.586707346338699,
+        "std_error": 0.51589754076423,
+        "t_stat": 16.64421065783468,
+        "p_value": 0.0
+      },
+      {
+        "term": "leverage",
+        "coefficient": -0.0673188445625783,
+        "std_error": 1.3739966585620944,
+        "t_stat": -0.048994911409048374,
+        "p_value": 0.9609233511785795
+      },
+      {
+        "term": "post",
+        "coefficient": 2.461166988666468,
+        "std_error": 0.09286480358870793,
+        "t_stat": 26.502688785805375,
+        "p_value": 0.0
+      },
+      {
+        "term": "endogenous_x",
+        "coefficient": 0.5140816125965846,
+        "std_error": 0.06877886595170467,
+        "t_stat": 7.474412459163892,
+        "p_value": 7.749356711883593e-14
+      }
+    ],
+    "narrative": [
+      "Instrumental-variable causal effect estimated with linearmodels IV2SLS."
+    ],
+    "sample_columns": [
+      "outcome_y",
+      "endogenous_x",
+      "leverage",
+      "post",
+      "instrument_z"
+    ],
+    "sample_preview": [
+      {
+        "outcome_y": 8.281342947667275,
+        "endogenous_x": 0.2785972991161518,
+        "leverage": 0.3577590135791016,
+        "post": 0,
+        "instrument_z": -0.1435168424451554
+      },
+      {
+        "outcome_y": 7.161166663415577,
+        "endogenous_x": 1.1977342200420291,
+        "leverage": 0.3378183221465689,
+        "post": 0,
+        "instrument_z": 1.4316570462193818
+      },
+      {
+        "outcome_y": 7.582391886802917,
+        "endogenous_x": 0.2791971515539841,
+        "leverage": 0.3343232278441892,
+        "post": 0,
+        "instrument_z": 1.0577328335812757
+      },
+      {
+        "outcome_y": 8.19643779930995,
+        "endogenous_x": 1.693126004491981,
+        "leverage": 0.3581110765958445,
+        "post": 0,
+        "instrument_z": 1.2478999752354007
+      },
+      {
+        "outcome_y": 6.775339604671813,
+        "endogenous_x": -0.6336680485148168,
+        "leverage": 0.3323010132904619,
+        "post": 0,
+        "instrument_z": -0.7576141862667286
+      }
+    ],
+    "specification": {
+      "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "model_family": "causal_inference",
+      "model_type": "instrumental_causal",
+      "dependent": "outcome_y",
+      "independents": [
+        "size"
+      ],
+      "controls": [
+        "leverage",
+        "post"
+      ],
+      "endogenous_column": "endogenous_x",
+      "instrument_columns": [
+        "instrument_z"
+      ],
+      "engine": "causalpy",
+      "variant_label": "instr_post"
+    },
+    "audit_trail": {
+      "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "sample_title": "upgrade_panel.csv",
+      "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+      "rows_used": 648,
+      "sample_columns": [
+        "outcome_y",
+        "endogenous_x",
+        "leverage",
+        "post",
+        "instrument_z"
+      ],
+      "covariance_type": "robust",
+      "manual_checklist": [
+        "Download the prepared sample asset referenced in sample_asset_id.",
+        "Rebuild any derived regressors listed in derived_columns before estimation.",
+        "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+        "Compare the reproduced coefficient table with the coefficients array term by term."
+      ],
+      "engine": "causalpy",
+      "derived_columns": [
+        "_fitted_treatment"
+      ],
+      "filters": []
+    },
+    "engine": "causalpy",
+    "primary_tables": [
+      "first_stage_table",
+      "first_stage_diagnostics"
+    ],
+    "robustness_tables": [],
+    "tables": {
+      "first_stage_table": [
+        {
+          "term": "const",
+          "coefficient": -0.024523200029168052
+        },
+        {
+          "term": "leverage",
+          "coefficient": 0.03905645697020316
+        },
+        {
+          "term": "post",
+          "coefficient": 0.017046628153618314
+        },
+        {
+          "term": "instrument_z",
+          "coefficient": 0.7390482078992413
+        }
+      ],
+      "first_stage_diagnostics": [
+        {
+          "rsquared": 0.7738778469032042,
+          "f_statistic": 686.1157089111642
+        }
+      ]
+    },
+    "figures": [
+      {
+        "asset_id": "7d39e9ad-bc35-4a80-8dce-8fd98d8ada87",
+        "title": "Observed vs fitted treatment",
+        "summary": "First-stage fit for the treatment variable.",
+        "download_url": "/api/assets/7d39e9ad-bc35-4a80-8dce-8fd98d8ada87/download",
+        "asset": {
+          "id": "7d39e9ad-bc35-4a80-8dce-8fd98d8ada87",
+          "kind": "chart_png",
+          "title": "upgrade_panel-causal_iv_first_stage.png",
+          "filename": "upgrade_panel-causal_iv_first_stage.png",
+          "description": "First-stage fit for the treatment variable.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 239018,
+            "original_filename": "upgrade_panel-causal_iv_first_stage.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "Observed vs fitted treatment",
+            "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+            "summary": "First-stage fit for the treatment variable."
+          },
+          "created_at": "2026-04-02T02:58:02.716587+00:00",
+          "updated_at": "2026-04-02T02:58:02.730444+00:00"
+        }
+      }
+    ],
+    "metrics": {},
+    "paper_output_contract": {
+      "primary_tables": [
+        "first_stage_table",
+        "first_stage_diagnostics"
+      ],
+      "robustness_tables": [],
+      "figure_count": 1
+    },
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "Instrumental Variable Causal estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+            "Supporting tables included: first_stage_table, first_stage_diagnostics.",
+            "Figures included: Observed vs fitted treatment."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "first_stage_table",
+        "first_stage_diagnostics",
+        "Observed vs fitted treatment"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "instr_post",
+    "variant_spec": {},
+    "result_record_id": "e772ea5f-71a1-445f-97bd-0c36234e7142",
+    "result_detail_path": "/data-lab/results/models/e772ea5f-71a1-445f-97bd-0c36234e7142"
+  },
+  "workspace_id": "1127ef60-f949-49b8-b32e-bae8138f3568"
+}

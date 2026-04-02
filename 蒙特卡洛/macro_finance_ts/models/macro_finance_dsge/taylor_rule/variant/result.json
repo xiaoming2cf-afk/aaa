@@ -1,0 +1,177 @@
+{
+  "model_type": "taylor_rule",
+  "model_label": "Taylor Rule",
+  "asset": {
+    "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "kind": "dataset_csv",
+    "title": "timeseries_dataset.csv",
+    "filename": "timeseries_dataset.csv",
+    "description": "timeseries_dataset.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 93948,
+      "original_filename": "timeseries_dataset.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T03:16:14.454310",
+    "updated_at": "2026-04-02T03:16:14.458473"
+  },
+  "dependent": "policy_rate",
+  "regressors": [
+    "inflation_gap",
+    "output_gap"
+  ],
+  "observations": 240,
+  "r_squared": 0.8334165470168797,
+  "adj_r_squared": 0.8320107794811572,
+  "pseudo_r_squared": null,
+  "aic": 17.98864641093263,
+  "bic": 28.430563180958604,
+  "log_likelihood": -5.994323205466316,
+  "coefficients": [
+    {
+      "term": "const",
+      "coefficient": 0.005732830735404638,
+      "std_error": 0.016810459402631876,
+      "t_stat": 0.341027606568985,
+      "p_value": 0.7330827991151638
+    },
+    {
+      "term": "inflation_gap",
+      "coefficient": 1.9941585374484923,
+      "std_error": 0.06559288135951893,
+      "t_stat": 30.402057298236024,
+      "p_value": 5.159549428995504e-203
+    },
+    {
+      "term": "output_gap",
+      "coefficient": 0.9259517470767081,
+      "std_error": 0.06457315722907216,
+      "t_stat": 14.33957679646839,
+      "p_value": 1.2380811856097715e-46
+    }
+  ],
+  "narrative": [
+    "OLS run on timeseries_dataset.csv.",
+    "Outcome variable: policy_rate.",
+    "Regressors: inflation_gap, output_gap.",
+    "Observations used: 240.",
+    "R-squared: 0.8334."
+  ],
+  "sample_columns": [
+    "policy_rate",
+    "inflation_gap",
+    "output_gap"
+  ],
+  "sample_preview": [
+    {
+      "policy_rate": 2.4984724687964475,
+      "inflation_gap": 0.3614152365499934,
+      "output_gap": 0.1614719746247687
+    },
+    {
+      "policy_rate": 1.6212191346234608,
+      "inflation_gap": 0.4140040747084316,
+      "output_gap": 0.017434358755067
+    },
+    {
+      "policy_rate": 1.2044706806320091,
+      "inflation_gap": 0.3839373276526551,
+      "output_gap": -0.0625753978694966
+    },
+    {
+      "policy_rate": 0.9502435898913666,
+      "inflation_gap": 0.0700593909970158,
+      "output_gap": 0.4360635873681854
+    },
+    {
+      "policy_rate": 0.6420261781796007,
+      "inflation_gap": -0.0788133004629155,
+      "output_gap": 0.4764731832288586
+    }
+  ],
+  "specification": {
+    "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "model_family": "macro_finance_dsge",
+    "model_type": "taylor_rule",
+    "dependent": "policy_rate",
+    "inflation_gap_column": "inflation_gap",
+    "output_gap_column": "output_gap",
+    "report_variant": "output_weight_focus",
+    "model_label": "Ordinary Least Squares",
+    "regressors": [
+      "inflation_gap",
+      "output_gap"
+    ],
+    "covariance_type": "HC1",
+    "equation": "policy_rate ~ inflation_gap + output_gap",
+    "variant_label": "taylor_output_focus",
+    "variant_spec": {
+      "report_variant": "output_weight_focus"
+    }
+  },
+  "audit_trail": {
+    "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "sample_title": "timeseries_dataset.csv",
+    "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+    "rows_used": 240,
+    "sample_columns": [
+      "policy_rate",
+      "inflation_gap",
+      "output_gap"
+    ],
+    "covariance_type": "HC1",
+    "manual_checklist": [
+      "Download the prepared sample asset referenced in sample_asset_id.",
+      "Rebuild any derived regressors listed in derived_columns before estimation.",
+      "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+      "Compare the reproduced coefficient table with the coefficients array term by term.",
+      "Interpret the inflation-gap and output-gap coefficients against the standard Taylor-rule benchmark."
+    ],
+    "derived_columns": [],
+    "filters": [
+      "Rows with missing dependent or regressor values are dropped."
+    ]
+  },
+  "residual_sum_squares": 14.771720122312374,
+  "model_family": "macro_finance_dsge",
+  "inflation_gap_column": "inflation_gap",
+  "output_gap_column": "output_gap",
+  "workflow_type": "model",
+  "interpretation": {
+    "headline": "Taylor Rule estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": []
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "taylor_output_focus",
+  "variant_spec": {
+    "report_variant": "output_weight_focus"
+  },
+  "result_record_id": "53f95dc1-9b84-490c-afde-ab5a4c141603",
+  "result_detail_path": "/data-lab/results/models/53f95dc1-9b84-490c-afde-ab5a4c141603"
+}

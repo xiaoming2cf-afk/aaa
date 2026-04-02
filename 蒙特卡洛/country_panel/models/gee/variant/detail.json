@@ -1,0 +1,642 @@
+{
+  "record": {
+    "id": "aa12cabe-03d7-4a0f-8a42-a20ee23bccae",
+    "title": "Generalized Estimating Equations summary for upgrade_panel.csv",
+    "content": "GEE estimated with groups defined by firm_id.\nFamily: poisson.",
+    "content_excerpt": "GEE estimated with groups defined by firm_id. Family: poisson.",
+    "content_length": 62,
+    "tags": [
+      "gee",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "gee",
+      "model_label": "Generalized Estimating Equations",
+      "asset": {
+        "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "kind": "dataset_csv",
+        "title": "upgrade_panel.csv",
+        "filename": "upgrade_panel.csv",
+        "description": "upgrade_panel.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 289095,
+          "original_filename": "upgrade_panel.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T02:57:26.995002",
+        "updated_at": "2026-04-02T02:57:27.013674"
+      },
+      "dependent": "count_outcome",
+      "regressors": [
+        "const",
+        "size",
+        "leverage",
+        "post"
+      ],
+      "observations": 648,
+      "r_squared": null,
+      "adj_r_squared": null,
+      "pseudo_r_squared": null,
+      "aic": 2813.5447257268124,
+      "bic": -3395.6688760628826,
+      "log_likelihood": -1402.7723628634062,
+      "coefficients": [
+        {
+          "term": "const",
+          "coefficient": 2.520053952719398,
+          "std_error": 0.2573894026467323,
+          "t_stat": 9.790822492323738,
+          "p_value": 1.2328885659347745e-22
+        },
+        {
+          "term": "size",
+          "coefficient": -0.09104835064785242,
+          "std_error": 0.025418877422044264,
+          "t_stat": -3.581918632208819,
+          "p_value": 0.0003410800356320473
+        },
+        {
+          "term": "leverage",
+          "coefficient": -1.34021778653072,
+          "std_error": 0.4818131282350811,
+          "t_stat": -2.781613260394215,
+          "p_value": 0.005408945347419654
+        },
+        {
+          "term": "post",
+          "coefficient": 0.5488273668268113,
+          "std_error": 0.03599245783303993,
+          "t_stat": 15.24839924443852,
+          "p_value": 1.687188716645043e-52
+        }
+      ],
+      "narrative": [
+        "GEE estimated with groups defined by firm_id.",
+        "Family: poisson."
+      ],
+      "sample_columns": [
+        "firm_id",
+        "count_outcome",
+        "size",
+        "leverage",
+        "post"
+      ],
+      "sample_preview": [
+        {
+          "firm_id": "firm_01",
+          "count_outcome": 1,
+          "size": 8.519775911467494,
+          "leverage": 0.3577590135791016,
+          "post": 0
+        },
+        {
+          "firm_id": "firm_01",
+          "count_outcome": 3,
+          "size": 7.55721041465215,
+          "leverage": 0.3378183221465689,
+          "post": 0
+        },
+        {
+          "firm_id": "firm_01",
+          "count_outcome": 3,
+          "size": 7.823590785770317,
+          "leverage": 0.3343232278441892,
+          "post": 0
+        },
+        {
+          "firm_id": "firm_01",
+          "count_outcome": 1,
+          "size": 8.058331858128255,
+          "leverage": 0.3581110765958445,
+          "post": 0
+        },
+        {
+          "firm_id": "firm_01",
+          "count_outcome": 3,
+          "size": 7.790582349444769,
+          "leverage": 0.3323010132904619,
+          "post": 0
+        }
+      ],
+      "specification": {
+        "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "model_family": "econometrics_baseline",
+        "model_type": "gee",
+        "dependent": "count_outcome",
+        "independents": [
+          "size",
+          "leverage"
+        ],
+        "controls": [
+          "post"
+        ],
+        "gee_family": "poisson",
+        "gee_group_column": "firm_id",
+        "engine": "statsmodels",
+        "variant_label": "gee_count"
+      },
+      "audit_trail": {
+        "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "sample_title": "upgrade_panel.csv",
+        "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+        "rows_used": 648,
+        "sample_columns": [
+          "firm_id",
+          "count_outcome",
+          "size",
+          "leverage",
+          "post"
+        ],
+        "covariance_type": "robust",
+        "manual_checklist": [
+          "Download the prepared sample asset referenced in sample_asset_id.",
+          "Rebuild any derived regressors listed in derived_columns before estimation.",
+          "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+          "Compare the reproduced coefficient table with the coefficients array term by term."
+        ],
+        "engine": "statsmodels",
+        "derived_columns": [],
+        "filters": [
+          "Rows with missing dependent, regressors, or group ids are dropped."
+        ]
+      },
+      "engine": "statsmodels",
+      "primary_tables": [
+        "group_audit"
+      ],
+      "robustness_tables": [],
+      "tables": {
+        "group_audit": [
+          {
+            "firm_id": "firm_01",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_02",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_03",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_04",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_05",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_06",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_07",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_08",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_09",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_10",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_11",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_12",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_13",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_14",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_15",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_16",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_17",
+            "n": 36
+          },
+          {
+            "firm_id": "firm_18",
+            "n": 36
+          }
+        ]
+      },
+      "figures": [
+        {
+          "asset_id": "a3664f47-b976-49cb-810b-55a233ac28a4",
+          "title": "Cluster Diagnostic Plot",
+          "summary": "Mean and standard deviation of residuals by cluster.",
+          "download_url": "/api/assets/a3664f47-b976-49cb-810b-55a233ac28a4/download",
+          "asset": {
+            "id": "a3664f47-b976-49cb-810b-55a233ac28a4",
+            "kind": "chart_png",
+            "title": "upgrade_panel-gee_cluster_diagnostic.png",
+            "filename": "upgrade_panel-gee_cluster_diagnostic.png",
+            "description": "Mean and standard deviation of residuals by cluster.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 83119,
+              "original_filename": "upgrade_panel-gee_cluster_diagnostic.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "Cluster Diagnostic Plot",
+              "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+              "summary": "Mean and standard deviation of residuals by cluster."
+            },
+            "created_at": "2026-04-02T02:57:48.915063+00:00",
+            "updated_at": "2026-04-02T02:57:48.923510+00:00"
+          }
+        }
+      ],
+      "metrics": {},
+      "paper_output_contract": {
+        "primary_tables": [
+          "group_audit"
+        ],
+        "robustness_tables": [],
+        "figure_count": 1
+      },
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "Generalized Estimating Equations estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+              "Supporting tables included: group_audit.",
+              "Figures included: Cluster Diagnostic Plot."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "group_audit",
+          "Cluster Diagnostic Plot"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "gee_count",
+      "variant_spec": {},
+      "result_record_id": "aa12cabe-03d7-4a0f-8a42-a20ee23bccae",
+      "result_detail_path": "/data-lab/results/models/aa12cabe-03d7-4a0f-8a42-a20ee23bccae"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T02:57:48.973468",
+    "updated_at": "2026-04-02T02:57:48.975344"
+  },
+  "result": {
+    "model_type": "gee",
+    "model_label": "Generalized Estimating Equations",
+    "asset": {
+      "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "kind": "dataset_csv",
+      "title": "upgrade_panel.csv",
+      "filename": "upgrade_panel.csv",
+      "description": "upgrade_panel.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 289095,
+        "original_filename": "upgrade_panel.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T02:57:26.995002",
+      "updated_at": "2026-04-02T02:57:27.013674"
+    },
+    "dependent": "count_outcome",
+    "regressors": [
+      "const",
+      "size",
+      "leverage",
+      "post"
+    ],
+    "observations": 648,
+    "r_squared": null,
+    "adj_r_squared": null,
+    "pseudo_r_squared": null,
+    "aic": 2813.5447257268124,
+    "bic": -3395.6688760628826,
+    "log_likelihood": -1402.7723628634062,
+    "coefficients": [
+      {
+        "term": "const",
+        "coefficient": 2.520053952719398,
+        "std_error": 0.2573894026467323,
+        "t_stat": 9.790822492323738,
+        "p_value": 1.2328885659347745e-22
+      },
+      {
+        "term": "size",
+        "coefficient": -0.09104835064785242,
+        "std_error": 0.025418877422044264,
+        "t_stat": -3.581918632208819,
+        "p_value": 0.0003410800356320473
+      },
+      {
+        "term": "leverage",
+        "coefficient": -1.34021778653072,
+        "std_error": 0.4818131282350811,
+        "t_stat": -2.781613260394215,
+        "p_value": 0.005408945347419654
+      },
+      {
+        "term": "post",
+        "coefficient": 0.5488273668268113,
+        "std_error": 0.03599245783303993,
+        "t_stat": 15.24839924443852,
+        "p_value": 1.687188716645043e-52
+      }
+    ],
+    "narrative": [
+      "GEE estimated with groups defined by firm_id.",
+      "Family: poisson."
+    ],
+    "sample_columns": [
+      "firm_id",
+      "count_outcome",
+      "size",
+      "leverage",
+      "post"
+    ],
+    "sample_preview": [
+      {
+        "firm_id": "firm_01",
+        "count_outcome": 1,
+        "size": 8.519775911467494,
+        "leverage": 0.3577590135791016,
+        "post": 0
+      },
+      {
+        "firm_id": "firm_01",
+        "count_outcome": 3,
+        "size": 7.55721041465215,
+        "leverage": 0.3378183221465689,
+        "post": 0
+      },
+      {
+        "firm_id": "firm_01",
+        "count_outcome": 3,
+        "size": 7.823590785770317,
+        "leverage": 0.3343232278441892,
+        "post": 0
+      },
+      {
+        "firm_id": "firm_01",
+        "count_outcome": 1,
+        "size": 8.058331858128255,
+        "leverage": 0.3581110765958445,
+        "post": 0
+      },
+      {
+        "firm_id": "firm_01",
+        "count_outcome": 3,
+        "size": 7.790582349444769,
+        "leverage": 0.3323010132904619,
+        "post": 0
+      }
+    ],
+    "specification": {
+      "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "model_family": "econometrics_baseline",
+      "model_type": "gee",
+      "dependent": "count_outcome",
+      "independents": [
+        "size",
+        "leverage"
+      ],
+      "controls": [
+        "post"
+      ],
+      "gee_family": "poisson",
+      "gee_group_column": "firm_id",
+      "engine": "statsmodels",
+      "variant_label": "gee_count"
+    },
+    "audit_trail": {
+      "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "sample_title": "upgrade_panel.csv",
+      "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+      "rows_used": 648,
+      "sample_columns": [
+        "firm_id",
+        "count_outcome",
+        "size",
+        "leverage",
+        "post"
+      ],
+      "covariance_type": "robust",
+      "manual_checklist": [
+        "Download the prepared sample asset referenced in sample_asset_id.",
+        "Rebuild any derived regressors listed in derived_columns before estimation.",
+        "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+        "Compare the reproduced coefficient table with the coefficients array term by term."
+      ],
+      "engine": "statsmodels",
+      "derived_columns": [],
+      "filters": [
+        "Rows with missing dependent, regressors, or group ids are dropped."
+      ]
+    },
+    "engine": "statsmodels",
+    "primary_tables": [
+      "group_audit"
+    ],
+    "robustness_tables": [],
+    "tables": {
+      "group_audit": [
+        {
+          "firm_id": "firm_01",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_02",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_03",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_04",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_05",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_06",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_07",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_08",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_09",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_10",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_11",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_12",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_13",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_14",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_15",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_16",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_17",
+          "n": 36
+        },
+        {
+          "firm_id": "firm_18",
+          "n": 36
+        }
+      ]
+    },
+    "figures": [
+      {
+        "asset_id": "a3664f47-b976-49cb-810b-55a233ac28a4",
+        "title": "Cluster Diagnostic Plot",
+        "summary": "Mean and standard deviation of residuals by cluster.",
+        "download_url": "/api/assets/a3664f47-b976-49cb-810b-55a233ac28a4/download",
+        "asset": {
+          "id": "a3664f47-b976-49cb-810b-55a233ac28a4",
+          "kind": "chart_png",
+          "title": "upgrade_panel-gee_cluster_diagnostic.png",
+          "filename": "upgrade_panel-gee_cluster_diagnostic.png",
+          "description": "Mean and standard deviation of residuals by cluster.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 83119,
+            "original_filename": "upgrade_panel-gee_cluster_diagnostic.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "Cluster Diagnostic Plot",
+            "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+            "summary": "Mean and standard deviation of residuals by cluster."
+          },
+          "created_at": "2026-04-02T02:57:48.915063+00:00",
+          "updated_at": "2026-04-02T02:57:48.923510+00:00"
+        }
+      }
+    ],
+    "metrics": {},
+    "paper_output_contract": {
+      "primary_tables": [
+        "group_audit"
+      ],
+      "robustness_tables": [],
+      "figure_count": 1
+    },
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "Generalized Estimating Equations estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+            "Supporting tables included: group_audit.",
+            "Figures included: Cluster Diagnostic Plot."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "group_audit",
+        "Cluster Diagnostic Plot"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "gee_count",
+    "variant_spec": {},
+    "result_record_id": "aa12cabe-03d7-4a0f-8a42-a20ee23bccae",
+    "result_detail_path": "/data-lab/results/models/aa12cabe-03d7-4a0f-8a42-a20ee23bccae"
+  },
+  "workspace_id": "1127ef60-f949-49b8-b32e-bae8138f3568"
+}

@@ -1,0 +1,42 @@
+{
+  "headline": "ARCH estimates are exposed in full so you can read the result and reproduce it manually.",
+  "sections": [
+    {
+      "title": "What is shown on this page",
+      "items": [
+        "Supporting tables included: parameter_table, forecast_volatility.",
+        "Figures included: ARCH conditional volatility, ARCH forecast volatility."
+      ]
+    },
+    {
+      "title": "How to read the main result",
+      "items": [
+        "Volatility persistence is reported directly in the metrics panel and should normally be below 1. Current value: n/a.",
+        "The parameter table is the formal estimation output; the volatility-path chart shows how conditional volatility evolves through the sample.",
+        "The forecast-volatility table and forecast chart extend the conditional variance path beyond the last observation."
+      ]
+    },
+    {
+      "title": "What a normal paper should report",
+      "items": [
+        "A parameter table with omega, alpha, and beta terms.",
+        "A conditional-volatility figure over time.",
+        "A short discussion of persistence and forecasted volatility."
+      ]
+    },
+    {
+      "title": "Manual replication focus",
+      "items": [
+        "Re-estimate the same ARCH/GARCH order on the downloaded return series.",
+        "Check whether alpha plus beta matches the reported persistence.",
+        "Recompute the forecast variance path and compare it step by step with the forecast table."
+      ]
+    }
+  ],
+  "paper_outputs": [
+    "parameter_table",
+    "forecast_volatility",
+    "ARCH conditional volatility",
+    "ARCH forecast volatility"
+  ]
+}

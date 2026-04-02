@@ -1,0 +1,536 @@
+{
+  "record": {
+    "id": "1f1cef31-6c1e-44ba-8d4e-a9b742ac6945",
+    "title": "Difference-in-Differences summary for panel_dataset.csv",
+    "content": "DID run on panel_dataset.csv.\nOutcome variable: outcome_y.\nTreatment indicator: treated.\nPost indicator: post.\nEstimated DID effect: 1.4601.",
+    "content_excerpt": "DID run on panel_dataset.csv. Outcome variable: outcome_y. Treatment indicator: treated. Post indicator: post. Estimated DID effect: 1.4601.",
+    "content_length": 140,
+    "tags": [
+      "did",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "did",
+      "model_label": "Difference-in-Differences",
+      "asset": {
+        "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "kind": "dataset_csv",
+        "title": "panel_dataset.csv",
+        "filename": "panel_dataset.csv",
+        "description": "panel_dataset.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 289095,
+          "original_filename": "panel_dataset.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T03:16:14.412741",
+        "updated_at": "2026-04-02T03:16:14.426020"
+      },
+      "dependent": "outcome_y",
+      "regressors": [
+        "treated",
+        "post",
+        "did_interaction",
+        "size",
+        "leverage"
+      ],
+      "observations": 648,
+      "r_squared": 0.6280783045134215,
+      "adj_r_squared": 0.6251817180999746,
+      "pseudo_r_squared": null,
+      "aic": 1972.051300061748,
+      "bic": 1998.8946442398617,
+      "log_likelihood": -980.025650030874,
+      "coefficients": [
+        {
+          "term": "const",
+          "coefficient": -2.5250270291443555,
+          "std_error": 0.9876789003216656,
+          "t_stat": -2.556526243824799,
+          "p_value": 0.010572309581543544
+        },
+        {
+          "term": "treated",
+          "coefficient": 0.39680360132298315,
+          "std_error": 0.15269804858701352,
+          "t_stat": 2.5986160595684913,
+          "p_value": 0.009360039797094887
+        },
+        {
+          "term": "post",
+          "coefficient": 1.0958746617962563,
+          "std_error": 0.1280453901963042,
+          "t_stat": 8.558485862834964,
+          "p_value": 1.1435949975049423e-17
+        },
+        {
+          "term": "did_interaction",
+          "coefficient": 1.4600793951482913,
+          "std_error": 0.1733488662114839,
+          "t_stat": 8.422780183442383,
+          "p_value": 3.676538758516214e-17
+        },
+        {
+          "term": "size",
+          "coefficient": 1.2334275186655927,
+          "std_error": 0.08928795262831954,
+          "t_stat": 13.81404189879907,
+          "p_value": 2.0972602809769308e-43
+        },
+        {
+          "term": "leverage",
+          "coefficient": -1.4415278322799336,
+          "std_error": 1.3187638499443597,
+          "t_stat": -1.093090193775598,
+          "p_value": 0.2743542010884268
+        }
+      ],
+      "narrative": [
+        "DID run on panel_dataset.csv.",
+        "Outcome variable: outcome_y.",
+        "Treatment indicator: treated.",
+        "Post indicator: post.",
+        "Estimated DID effect: 1.4601."
+      ],
+      "sample_columns": [
+        "outcome_y",
+        "treated",
+        "post",
+        "size",
+        "leverage",
+        "did_interaction"
+      ],
+      "sample_preview": [
+        {
+          "outcome_y": 8.281342947667275,
+          "treated": 1.0,
+          "post": 0.0,
+          "size": 8.519775911467494,
+          "leverage": 0.3577590135791016,
+          "did_interaction": 0.0
+        },
+        {
+          "outcome_y": 7.161166663415577,
+          "treated": 1.0,
+          "post": 0.0,
+          "size": 7.55721041465215,
+          "leverage": 0.3378183221465689,
+          "did_interaction": 0.0
+        },
+        {
+          "outcome_y": 7.582391886802917,
+          "treated": 1.0,
+          "post": 0.0,
+          "size": 7.823590785770317,
+          "leverage": 0.3343232278441892,
+          "did_interaction": 0.0
+        },
+        {
+          "outcome_y": 8.19643779930995,
+          "treated": 1.0,
+          "post": 0.0,
+          "size": 8.058331858128255,
+          "leverage": 0.3581110765958445,
+          "did_interaction": 0.0
+        },
+        {
+          "outcome_y": 6.775339604671813,
+          "treated": 1.0,
+          "post": 0.0,
+          "size": 7.790582349444769,
+          "leverage": 0.3323010132904619,
+          "did_interaction": 0.0
+        }
+      ],
+      "specification": {
+        "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "model_family": "econometrics_baseline",
+        "model_type": "did",
+        "dependent": "outcome_y",
+        "controls": [
+          "size",
+          "leverage"
+        ],
+        "treatment_column": "treated",
+        "post_column": "post",
+        "model_label": "Difference-in-Differences",
+        "regressors": [
+          "treated",
+          "post",
+          "did_interaction",
+          "size",
+          "leverage"
+        ],
+        "covariance_type": "HC1",
+        "equation": "outcome_y ~ treated + post + did_interaction + size + leverage"
+      },
+      "audit_trail": {
+        "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "sample_title": "panel_dataset.csv",
+        "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+        "rows_used": 648,
+        "sample_columns": [
+          "outcome_y",
+          "treated",
+          "post",
+          "size",
+          "leverage",
+          "did_interaction"
+        ],
+        "covariance_type": "HC1",
+        "manual_checklist": [
+          "Download the prepared sample asset referenced in sample_asset_id.",
+          "Rebuild any derived regressors listed in derived_columns before estimation.",
+          "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+          "Compare the reproduced coefficient table with the coefficients array term by term."
+        ],
+        "derived_columns": [
+          "did_interaction"
+        ],
+        "filters": [
+          "Rows with missing outcome, treatment, post indicator, or selected controls are dropped."
+        ]
+      },
+      "treatment_column": "treated",
+      "post_column": "post",
+      "did_effect": 1.4600793951482913,
+      "cell_means": [
+        {
+          "treatment": 0,
+          "post": 0,
+          "mean": 9.031738576080604,
+          "count": 162
+        },
+        {
+          "treatment": 0,
+          "post": 1,
+          "mean": 10.820814344829785,
+          "count": 162
+        },
+        {
+          "treatment": 1,
+          "post": 0,
+          "mean": 8.070741492696929,
+          "count": 162
+        },
+        {
+          "treatment": 1,
+          "post": 1,
+          "mean": 11.3442655579118,
+          "count": 162
+        }
+      ],
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "Difference-in-Differences estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "The focal DID coefficient is `did_interaction` = 1.4601***.",
+              "A positive sign means the treated group rose more after treatment than the control group did over the same period.",
+              "The 2x2 cell-means table should tell the same story as the regression coefficient."
+            ]
+          },
+          {
+            "title": "What a normal paper should report",
+            "items": [
+              "A coefficient table with treatment, post, and DID interaction terms.",
+              "A 2x2 before/after by treated/control summary or plot.",
+              "A discussion of parallel-trends plausibility and sample construction."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Check that treatment and post indicators are coded exactly as intended in the downloaded sample.",
+              "Recompute the 2x2 cell means manually before trusting the DID coefficient.",
+              "Re-estimate the regression with the documented covariance type and compare the `did_interaction` row term by term."
+            ]
+          }
+        ],
+        "paper_outputs": []
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "",
+      "variant_spec": {},
+      "result_record_id": "1f1cef31-6c1e-44ba-8d4e-a9b742ac6945",
+      "result_detail_path": "/data-lab/results/models/1f1cef31-6c1e-44ba-8d4e-a9b742ac6945"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:16:17.709763",
+    "updated_at": "2026-04-02T03:16:17.710475"
+  },
+  "result": {
+    "model_type": "did",
+    "model_label": "Difference-in-Differences",
+    "asset": {
+      "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "kind": "dataset_csv",
+      "title": "panel_dataset.csv",
+      "filename": "panel_dataset.csv",
+      "description": "panel_dataset.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 289095,
+        "original_filename": "panel_dataset.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T03:16:14.412741",
+      "updated_at": "2026-04-02T03:16:14.426020"
+    },
+    "dependent": "outcome_y",
+    "regressors": [
+      "treated",
+      "post",
+      "did_interaction",
+      "size",
+      "leverage"
+    ],
+    "observations": 648,
+    "r_squared": 0.6280783045134215,
+    "adj_r_squared": 0.6251817180999746,
+    "pseudo_r_squared": null,
+    "aic": 1972.051300061748,
+    "bic": 1998.8946442398617,
+    "log_likelihood": -980.025650030874,
+    "coefficients": [
+      {
+        "term": "const",
+        "coefficient": -2.5250270291443555,
+        "std_error": 0.9876789003216656,
+        "t_stat": -2.556526243824799,
+        "p_value": 0.010572309581543544
+      },
+      {
+        "term": "treated",
+        "coefficient": 0.39680360132298315,
+        "std_error": 0.15269804858701352,
+        "t_stat": 2.5986160595684913,
+        "p_value": 0.009360039797094887
+      },
+      {
+        "term": "post",
+        "coefficient": 1.0958746617962563,
+        "std_error": 0.1280453901963042,
+        "t_stat": 8.558485862834964,
+        "p_value": 1.1435949975049423e-17
+      },
+      {
+        "term": "did_interaction",
+        "coefficient": 1.4600793951482913,
+        "std_error": 0.1733488662114839,
+        "t_stat": 8.422780183442383,
+        "p_value": 3.676538758516214e-17
+      },
+      {
+        "term": "size",
+        "coefficient": 1.2334275186655927,
+        "std_error": 0.08928795262831954,
+        "t_stat": 13.81404189879907,
+        "p_value": 2.0972602809769308e-43
+      },
+      {
+        "term": "leverage",
+        "coefficient": -1.4415278322799336,
+        "std_error": 1.3187638499443597,
+        "t_stat": -1.093090193775598,
+        "p_value": 0.2743542010884268
+      }
+    ],
+    "narrative": [
+      "DID run on panel_dataset.csv.",
+      "Outcome variable: outcome_y.",
+      "Treatment indicator: treated.",
+      "Post indicator: post.",
+      "Estimated DID effect: 1.4601."
+    ],
+    "sample_columns": [
+      "outcome_y",
+      "treated",
+      "post",
+      "size",
+      "leverage",
+      "did_interaction"
+    ],
+    "sample_preview": [
+      {
+        "outcome_y": 8.281342947667275,
+        "treated": 1.0,
+        "post": 0.0,
+        "size": 8.519775911467494,
+        "leverage": 0.3577590135791016,
+        "did_interaction": 0.0
+      },
+      {
+        "outcome_y": 7.161166663415577,
+        "treated": 1.0,
+        "post": 0.0,
+        "size": 7.55721041465215,
+        "leverage": 0.3378183221465689,
+        "did_interaction": 0.0
+      },
+      {
+        "outcome_y": 7.582391886802917,
+        "treated": 1.0,
+        "post": 0.0,
+        "size": 7.823590785770317,
+        "leverage": 0.3343232278441892,
+        "did_interaction": 0.0
+      },
+      {
+        "outcome_y": 8.19643779930995,
+        "treated": 1.0,
+        "post": 0.0,
+        "size": 8.058331858128255,
+        "leverage": 0.3581110765958445,
+        "did_interaction": 0.0
+      },
+      {
+        "outcome_y": 6.775339604671813,
+        "treated": 1.0,
+        "post": 0.0,
+        "size": 7.790582349444769,
+        "leverage": 0.3323010132904619,
+        "did_interaction": 0.0
+      }
+    ],
+    "specification": {
+      "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "model_family": "econometrics_baseline",
+      "model_type": "did",
+      "dependent": "outcome_y",
+      "controls": [
+        "size",
+        "leverage"
+      ],
+      "treatment_column": "treated",
+      "post_column": "post",
+      "model_label": "Difference-in-Differences",
+      "regressors": [
+        "treated",
+        "post",
+        "did_interaction",
+        "size",
+        "leverage"
+      ],
+      "covariance_type": "HC1",
+      "equation": "outcome_y ~ treated + post + did_interaction + size + leverage"
+    },
+    "audit_trail": {
+      "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "sample_title": "panel_dataset.csv",
+      "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+      "rows_used": 648,
+      "sample_columns": [
+        "outcome_y",
+        "treated",
+        "post",
+        "size",
+        "leverage",
+        "did_interaction"
+      ],
+      "covariance_type": "HC1",
+      "manual_checklist": [
+        "Download the prepared sample asset referenced in sample_asset_id.",
+        "Rebuild any derived regressors listed in derived_columns before estimation.",
+        "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+        "Compare the reproduced coefficient table with the coefficients array term by term."
+      ],
+      "derived_columns": [
+        "did_interaction"
+      ],
+      "filters": [
+        "Rows with missing outcome, treatment, post indicator, or selected controls are dropped."
+      ]
+    },
+    "treatment_column": "treated",
+    "post_column": "post",
+    "did_effect": 1.4600793951482913,
+    "cell_means": [
+      {
+        "treatment": 0,
+        "post": 0,
+        "mean": 9.031738576080604,
+        "count": 162
+      },
+      {
+        "treatment": 0,
+        "post": 1,
+        "mean": 10.820814344829785,
+        "count": 162
+      },
+      {
+        "treatment": 1,
+        "post": 0,
+        "mean": 8.070741492696929,
+        "count": 162
+      },
+      {
+        "treatment": 1,
+        "post": 1,
+        "mean": 11.3442655579118,
+        "count": 162
+      }
+    ],
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "Difference-in-Differences estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "The focal DID coefficient is `did_interaction` = 1.4601***.",
+            "A positive sign means the treated group rose more after treatment than the control group did over the same period.",
+            "The 2x2 cell-means table should tell the same story as the regression coefficient."
+          ]
+        },
+        {
+          "title": "What a normal paper should report",
+          "items": [
+            "A coefficient table with treatment, post, and DID interaction terms.",
+            "A 2x2 before/after by treated/control summary or plot.",
+            "A discussion of parallel-trends plausibility and sample construction."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Check that treatment and post indicators are coded exactly as intended in the downloaded sample.",
+            "Recompute the 2x2 cell means manually before trusting the DID coefficient.",
+            "Re-estimate the regression with the documented covariance type and compare the `did_interaction` row term by term."
+          ]
+        }
+      ],
+      "paper_outputs": []
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "",
+    "variant_spec": {},
+    "result_record_id": "1f1cef31-6c1e-44ba-8d4e-a9b742ac6945",
+    "result_detail_path": "/data-lab/results/models/1f1cef31-6c1e-44ba-8d4e-a9b742ac6945"
+  },
+  "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4"
+}

@@ -1,0 +1,26 @@
+{
+  "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "model_family": "econometrics_baseline",
+  "model_type": "ols",
+  "dependent": "outcome_y",
+  "independents": [
+    "size",
+    "leverage"
+  ],
+  "controls": [
+    "post"
+  ],
+  "engine": "statsmodels",
+  "variant_label": "robust_with_treatment",
+  "variant_spec": {
+    "controls": [
+      "post",
+      "treated"
+    ],
+    "independents": [
+      "size",
+      "leverage",
+      "endogenous_x"
+    ]
+  }
+}

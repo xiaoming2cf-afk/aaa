@@ -1,0 +1,14 @@
+{
+  "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+  "model_family": "portfolio_allocation",
+  "model_type": "cvar_frontier",
+  "series_columns": [
+    "return_a",
+    "return_b",
+    "return_c"
+  ],
+  "time_column": "date",
+  "long_only": true,
+  "cvar_beta": 0.95,
+  "engine": "pypfopt"
+}

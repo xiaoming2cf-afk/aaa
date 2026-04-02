@@ -7,4 +7,7 @@ reports/
 storage/
 .playwright-cli/
 .codex-runtime/
-蒙特卡洛/
+钂欑壒鍗℃礇/
+_tmp*
+catboost_info/
+_import/
