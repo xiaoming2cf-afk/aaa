@@ -6129,36 +6129,57 @@ async function loadSelectedAssetProfile(force = false) {
 }
 
 async function loadSession() {
+  let payload = null;
   try {
-    const payload = await api("/api/auth/me", {}, false);
-    if (!payload?.user) {
-      throw new Error("No active session");
-    }
-    state.user = payload.user;
-    state.workspaces = payload.workspaces || [];
-    if (!state.workspaces.some((item) => item.id === state.selectedWorkspaceId)) {
-      state.selectedWorkspaceId = state.workspaces[0]?.id || "";
-      if (state.selectedWorkspaceId) {
-        localStorage.setItem(storageKeys.workspaceId, state.selectedWorkspaceId);
-      }
-    }
+    payload = await api("/api/auth/me", {}, false);
+  } catch (error) {
+    if (!state.token) {
+      clearSession({ redirect: false });
       renderSession();
       renderWorkspaceOptions();
-      if (state.selectedWorkspaceId) {
-        await refreshWorkspaceData();
-      } else {
-        clearPrivateLists();
-      }
-      if (hasOptimizationLabUI() && state.selectedWorkspaceId) {
-        await refreshOptimizationResults();
-      } else {
-        renderOptimizationResults([]);
-      }
-    } catch {
+      clearPrivateLists();
+      return;
+    }
+    renderSession();
+    renderWorkspaceOptions();
+    showToast(error.message || "Session refresh failed. Retaining the current local session state.", true);
+    return;
+  }
+  if (!payload?.user) {
     clearSession({ redirect: false });
     renderSession();
     renderWorkspaceOptions();
     clearPrivateLists();
+    return;
+  }
+  state.user = payload.user;
+  state.workspaces = payload.workspaces || [];
+  if (!state.workspaces.some((item) => item.id === state.selectedWorkspaceId)) {
+    state.selectedWorkspaceId = state.workspaces[0]?.id || "";
+    if (state.selectedWorkspaceId) {
+      localStorage.setItem(storageKeys.workspaceId, state.selectedWorkspaceId);
+    }
+  }
+  renderSession();
+  renderWorkspaceOptions();
+  try {
+    if (state.selectedWorkspaceId) {
+      await refreshWorkspaceData();
+    } else {
+      clearPrivateLists();
+    }
+  } catch (error) {
+    showToast(error.message || "Workspace data refresh failed. The session remains active.", true);
+  }
+  try {
+    if (hasOptimizationLabUI() && state.selectedWorkspaceId) {
+      await refreshOptimizationResults();
+    } else {
+      renderOptimizationResults([]);
+    }
+  } catch (error) {
+    renderOptimizationResults([]);
+    showToast(error.message || "Optimization history refresh failed. The session remains active.", true);
   }
 }
 
