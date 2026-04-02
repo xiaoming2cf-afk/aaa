@@ -7,6 +7,7 @@ import logging
 import math
 import os
 import pkgutil
+import tempfile
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import redirect_stdout
@@ -16,9 +17,6 @@ from pathlib import Path
 from types import MethodType
 from typing import Any
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -111,6 +109,22 @@ MAX_ESTIMATED_EVALUATIONS = 5_000_000
 MIN_STANDARD_ALGORITHMS = 3
 MIN_STANDARD_FUNCTIONS = 3
 MIN_STANDARD_RUNS = 3
+_PYPLOT: Any | None = None
+
+
+def _pyplot():
+    global _PYPLOT
+    if _PYPLOT is None:
+        mpl_config_dir = Path(tempfile.gettempdir()) / "research_agent-mpl"
+        mpl_config_dir.mkdir(parents=True, exist_ok=True)
+        os.environ.setdefault("MPLCONFIGDIR", str(mpl_config_dir))
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as pyplot
+
+        _PYPLOT = pyplot
+    return _PYPLOT
 
 
 def _ensure_numpy_compat_aliases() -> None:
@@ -676,7 +690,7 @@ def _mean_curve(curves: list[list[float]]) -> list[float]:
 
 
 def _figure_bytes(draw_fn) -> bytes:
-    figure = plt.figure(figsize=(8.4, 5.2))
+    figure = _pyplot().figure(figsize=(8.4, 5.2))
     try:
         draw_fn(figure)
         buffer = BytesIO()
@@ -684,7 +698,7 @@ def _figure_bytes(draw_fn) -> bytes:
         figure.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
         return buffer.getvalue()
     finally:
-        plt.close(figure)
+        _pyplot().close(figure)
 
 
 def _plot_average_convergence(mean_curves: dict[str, list[float]]) -> bytes:

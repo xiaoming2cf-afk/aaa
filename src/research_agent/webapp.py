@@ -22,13 +22,6 @@ from .data_lab_catalog import (
 )
 from .db import init_database, session_scope
 from .entities import DataAsset
-from .optimization_lab import (
-    build_optimization_result_detail,
-    get_optimization_catalog,
-    list_optimization_results,
-    run_optimization_suite,
-    serialize_optimization_result_list,
-)
 from .platform_core import (
     archive_knowledge_record,
     add_item_to_knowledge_case,
@@ -137,6 +130,24 @@ OPTIMIZATION_LAB_WEB_FILE = WEB_DIR / "optimization_lab.html"
 OPTIMIZATION_LAB_RESULT_WEB_FILE = WEB_DIR / "optimization_lab_result.html"
 SESSION_COOKIE_NAME = "erp_session_token"
 _REQUEST_SESSION_TOKEN: ContextVar[str] = ContextVar("erp_request_session_token", default="")
+
+
+def _optimization_api():
+    from .optimization_lab import (
+        build_optimization_result_detail,
+        get_optimization_catalog,
+        list_optimization_results,
+        run_optimization_suite,
+        serialize_optimization_result_list,
+    )
+
+    return {
+        "build_result_detail": build_optimization_result_detail,
+        "get_catalog": get_optimization_catalog,
+        "list_results": list_optimization_results,
+        "run_suite": run_optimization_suite,
+        "serialize_result_list": serialize_optimization_result_list,
+    }
 
 
 class RegisterRequest(BaseModel):
@@ -859,7 +870,7 @@ def create_app() -> FastAPI:
         try:
             with session_scope() as db:
                 _require_feature_access(db, request, authorization, x_session_token)
-                return get_optimization_catalog()
+                return _optimization_api()["get_catalog"]()
         except Exception as exc:
             _raise_http_error(exc)
 
@@ -1720,7 +1731,7 @@ def create_app() -> FastAPI:
             token = _token_from_headers(authorization, x_session_token)
             with session_scope() as db:
                 user = get_current_user(db, token)
-                return build_optimization_result_detail(db, user=user, record_id=record_id)
+                return _optimization_api()["build_result_detail"](db, user=user, record_id=record_id)
         except Exception as exc:
             _raise_http_error(exc)
 
@@ -1736,7 +1747,12 @@ def create_app() -> FastAPI:
             with session_scope() as db:
                 user = get_current_user(db, token)
                 workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
-                return {"items": serialize_optimization_result_list(list_optimization_results(db, user=user, workspace=workspace, limit=limit))}
+                optimization_api = _optimization_api()
+                return {
+                    "items": optimization_api["serialize_result_list"](
+                        optimization_api["list_results"](db, user=user, workspace=workspace, limit=limit)
+                    )
+                }
         except Exception as exc:
             _raise_http_error(exc)
 
@@ -1991,7 +2007,7 @@ def create_app() -> FastAPI:
                     method="suite",
                 )
                 payload = resolved["payload"]
-                return run_optimization_suite(
+                return _optimization_api()["run_suite"](
                     settings,
                     db,
                     user=user,

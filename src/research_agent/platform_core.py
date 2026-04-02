@@ -7,12 +7,11 @@ from statistics import NormalDist
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
+import os
+import tempfile
 from typing import Any
 
 import fitz
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import requests
@@ -56,6 +55,23 @@ from .utils import slugify, truncate_text
 
 
 DATASET_KINDS = {"dataset_csv", "dataset_excel", "dataset_json"}
+
+_PYPLOT: Any | None = None
+
+
+def _pyplot():
+    global _PYPLOT
+    if _PYPLOT is None:
+        mpl_config_dir = Path(tempfile.gettempdir()) / "research_agent-mpl"
+        mpl_config_dir.mkdir(parents=True, exist_ok=True)
+        os.environ.setdefault("MPLCONFIGDIR", str(mpl_config_dir))
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as pyplot
+
+        _PYPLOT = pyplot
+    return _PYPLOT
 
 BEGINNER_INTENT_RULES: list[dict[str, Any]] = [
     {
@@ -3708,7 +3724,7 @@ def _save_model_figure_asset(
 ) -> dict[str, Any]:
     buffer = BytesIO()
     figure.savefig(buffer, format="png", bbox_inches="tight")
-    plt.close(figure)
+    _pyplot().close(figure)
     filename = f"{Path(source_asset.title).stem}-{filename_slug}.png"
     chart_asset = save_upload_asset(
         settings,
@@ -3836,7 +3852,7 @@ def _directional_connectedness_rows(matrix: np.ndarray, labels: list[str]) -> li
 
 
 def _connectedness_heatmap_figure(matrix: np.ndarray, labels: list[str], *, title: str) -> Any:
-    figure, axis = plt.subplots(figsize=(7.4, 5.8), dpi=160)
+    figure, axis = _pyplot().subplots(figsize=(7.4, 5.8), dpi=160)
     image = axis.imshow(matrix * 100.0, cmap="YlGnBu")
     axis.set_xticks(range(len(labels)))
     axis.set_xticklabels(labels, rotation=35, ha="right")
@@ -4505,7 +4521,7 @@ def run_event_study_analysis(
         periods_plot = np.array([int(item["period"]) for item in dynamic_rows], dtype=int)
         coefficients_plot = np.array([float(item["coefficient"]) for item in dynamic_rows], dtype=float)
         standard_errors = np.array([float(item["std_error"]) if item["std_error"] is not None else 0.0 for item in dynamic_rows], dtype=float)
-        figure, axis = plt.subplots(figsize=(9.4, 5.8), dpi=160)
+        figure, axis = _pyplot().subplots(figsize=(9.4, 5.8), dpi=160)
         axis.errorbar(
             periods_plot,
             coefficients_plot,
@@ -4664,7 +4680,7 @@ def run_rdd_analysis(
         design = design.reindex(columns=fitted.model.exog_names, fill_value=0.0)
         return np.asarray(design.to_numpy() @ np.asarray(fitted.params), dtype=float)
 
-    figure, axis = plt.subplots(figsize=(9.4, 5.8), dpi=160)
+    figure, axis = _pyplot().subplots(figsize=(9.4, 5.8), dpi=160)
     scatter_frame = sample[[dependent, "running_centered", "rdd_treatment"]].copy()
     axis.scatter(
         scatter_frame.loc[scatter_frame["rdd_treatment"] == 0, "running_centered"],
@@ -4963,7 +4979,7 @@ def run_arima_analysis(
     forecast = fitted.forecast(steps=int(forecast_steps))
     x_actual = sample[time_column] if time_column else np.arange(1, len(sample) + 1)
     x_forecast = np.arange(len(sample) + 1, len(sample) + int(forecast_steps) + 1)
-    figure, axis = plt.subplots(figsize=(10.2, 5.8), dpi=160)
+    figure, axis = _pyplot().subplots(figsize=(10.2, 5.8), dpi=160)
     axis.plot(x_actual, sample[dependent], color="#0b5f45", linewidth=1.6, label="Observed")
     axis.plot(x_forecast, np.asarray(forecast, dtype=float), color="#d97706", linewidth=1.8, marker="o", label="Forecast")
     axis.set_title(f"ARIMA({p}, {d}, {q}) forecast")
@@ -5058,7 +5074,7 @@ def run_var_analysis(
         {"step": step, **{series_columns[index]: float(value) for index, value in enumerate(row)}}
         for step, row in enumerate(forecast_values, start=1)
     ]
-    figure, axes = plt.subplots(len(series_columns), 1, figsize=(10.8, 3.0 * len(series_columns)), dpi=160, sharex=False)
+    figure, axes = _pyplot().subplots(len(series_columns), 1, figsize=(10.8, 3.0 * len(series_columns)), dpi=160, sharex=False)
     if len(series_columns) == 1:
         axes = [axes]
     actual_x = sample[time_column] if time_column else np.arange(1, len(sample) + 1)
@@ -5175,7 +5191,7 @@ def run_arch_garch_analysis(
     persistence = float(sum(alpha_terms) + sum(beta_terms))
 
     x_values = sample[time_column] if time_column else np.arange(1, len(sample) + 1)
-    figure, axes = plt.subplots(2, 1, figsize=(10.5, 7.2), dpi=160, sharex=False)
+    figure, axes = _pyplot().subplots(2, 1, figsize=(10.5, 7.2), dpi=160, sharex=False)
     axes[0].plot(x_values, sample[dependent], color="#0b5f45", linewidth=1.5)
     axes[0].set_title(f"{label} input series")
     axes[0].set_ylabel(dependent)
@@ -5197,7 +5213,7 @@ def run_arch_garch_analysis(
         title=f"{label} volatility path",
         summary=f"{label} conditional volatility path estimated from {dependent}.",
     )
-    forecast_figure, forecast_axis = plt.subplots(figsize=(9.2, 5.4), dpi=160)
+    forecast_figure, forecast_axis = _pyplot().subplots(figsize=(9.2, 5.4), dpi=160)
     forecast_steps_axis = np.arange(1, len(volatility_forecast) + 1)
     forecast_axis.plot(forecast_steps_axis, volatility_forecast, marker="o", linewidth=1.8, color="#7c3aed")
     forecast_axis.set_title(f"{label} forecast volatility path")
@@ -5323,7 +5339,7 @@ def run_svar_irf_analysis(
                     "cumulative_irf": float(cumulative_irfs[step, response_index, impulse_index]),
                 }
             )
-    figure, axis = plt.subplots(figsize=(9.8, 6.2), dpi=160)
+    figure, axis = _pyplot().subplots(figsize=(9.8, 6.2), dpi=160)
     steps = np.arange(int(horizon) + 1)
     for response_name in response_targets:
         response_index = series_columns.index(response_name)
@@ -5346,7 +5362,7 @@ def run_svar_irf_analysis(
         title=f"SVAR IRF for {impulse}",
         summary=f"Recursive structural impulse response chart for a shock to {impulse}.",
     )
-    cumulative_figure, cumulative_axis = plt.subplots(figsize=(9.8, 6.2), dpi=160)
+    cumulative_figure, cumulative_axis = _pyplot().subplots(figsize=(9.8, 6.2), dpi=160)
     for response_name in response_targets:
         response_index = series_columns.index(response_name)
         cumulative_axis.plot(
@@ -5464,7 +5480,7 @@ def run_virf_analysis(
         }
         for step, value in enumerate(variance_path, start=1)
     ]
-    figure, axis = plt.subplots(figsize=(9.4, 5.8), dpi=160)
+    figure, axis = _pyplot().subplots(figsize=(9.4, 5.8), dpi=160)
     horizons = [row["horizon"] for row in response_rows]
     volatility_path = [row["volatility"] for row in response_rows]
     axis.plot(horizons, volatility_path, marker="o", linewidth=1.8, label="Shock path")
@@ -5486,7 +5502,7 @@ def run_virf_analysis(
         title="Volatility impulse response",
         summary=f"VIRF path from a {normalized_shock:.2f} sigma shock under a fitted GARCH(1,1) model.",
     )
-    variance_figure, variance_axis = plt.subplots(figsize=(9.4, 5.8), dpi=160)
+    variance_figure, variance_axis = _pyplot().subplots(figsize=(9.4, 5.8), dpi=160)
     variance_axis.plot(
         horizons,
         [row["variance"] for row in response_rows],
@@ -5600,7 +5616,7 @@ def run_dy_connectedness_analysis(
         title="DY connectedness heatmap",
         summary="Diebold-Yilmaz spillover heatmap from generalized forecast-error variance decomposition.",
     )
-    directional_figure, directional_axis = plt.subplots(figsize=(9.4, 5.6), dpi=160)
+    directional_figure, directional_axis = _pyplot().subplots(figsize=(9.4, 5.6), dpi=160)
     directional_axis.bar(
         [row["variable"] for row in directional_rows],
         [row["net"] for row in directional_rows],
@@ -5697,7 +5713,7 @@ def run_bk_connectedness_analysis(
         medium_horizon=int(medium_horizon),
         truncation_horizon=int(truncation_horizon),
     )
-    figure, axes = plt.subplots(
+    figure, axes = _pyplot().subplots(
         1,
         len(band_results),
         figsize=(5.6 * len(band_results), 5.0),
@@ -5737,7 +5753,7 @@ def run_bk_connectedness_analysis(
         title="BK frequency connectedness",
         summary="Frequency-domain connectedness heatmaps across short, medium, and long horizons.",
     )
-    summary_figure, summary_axis = plt.subplots(figsize=(8.8, 5.2), dpi=160)
+    summary_figure, summary_axis = _pyplot().subplots(figsize=(8.8, 5.2), dpi=160)
     band_labels = [band_result["band"] for band_result in band_results]
     band_tci = [float(band_result["total_connectedness_index"]) for band_result in band_results]
     summary_axis.bar(band_labels, band_tci, color=["#d97706", "#0b5f45", "#7c3aed"][: len(band_results)])
@@ -7514,7 +7530,7 @@ def create_plot_asset(
         if column and column not in frame.columns:
             raise ValueError(f"Missing column: {column}")
 
-    figure, axis = plt.subplots(figsize=(10, 6), dpi=160)
+    figure, axis = _pyplot().subplots(figsize=(10, 6), dpi=160)
     figure.patch.set_facecolor("#fffdf8")
     axis.set_facecolor("#fffdf8")
     summary = ""
@@ -7596,7 +7612,7 @@ def create_plot_asset(
 
     buffer = BytesIO()
     figure.savefig(buffer, format="png", bbox_inches="tight")
-    plt.close(figure)
+    _pyplot().close(figure)
     payload = buffer.getvalue()
     plot_asset = save_upload_asset(
         settings,
