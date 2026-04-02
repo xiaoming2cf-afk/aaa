@@ -317,10 +317,18 @@ const dom = {
   knowledgeCancelButton: document.getElementById("knowledge-cancel-button"),
   scheduleList: document.getElementById("schedule-list"),
   analysisAssetSelect: document.getElementById("analysis-asset-select"),
+  uploadFileInput: document.getElementById("upload-file-input"),
+  labUploadDropzone: document.getElementById("lab-upload-dropzone"),
+  labUploadFileName: document.getElementById("lab-upload-file-name"),
+  labUploadFileMeta: document.getElementById("lab-upload-file-meta"),
   refreshAssetProfileButton: document.getElementById("refresh-asset-profile"),
   analysisAssetOverview: document.getElementById("analysis-asset-overview"),
   analysisColumnGrid: document.getElementById("analysis-column-grid"),
   analysisPreviewTable: document.getElementById("analysis-preview-table"),
+  dataLabCurrentStepPill: document.getElementById("data-lab-current-step-pill"),
+  dataLabAppTitle: document.getElementById("data-lab-app-title"),
+  dataLabAppCopy: document.getElementById("data-lab-app-copy"),
+  dataLabAppWorkspace: document.getElementById("data-lab-app-workspace"),
   labWorkflowType: document.getElementById("lab-workflow-type"),
   processingFamilyWrap: document.getElementById("processing-family-wrap"),
   processingFamily: document.getElementById("processing-family"),
@@ -3307,6 +3315,7 @@ function renderLabContext() {
   const profile = currentAssetProfile();
   const family = currentFamilyDetail();
   const activeCase = currentKnowledgeCase();
+  const datasetSummary = dataset ? `${dataset.title}${profile ? ` | ${profile.rows} rows` : ""}` : "No dataset selected";
 
   dom.labContextAccess && (dom.labContextAccess.textContent = state.user ? "Signed in" : "Signed out");
   dom.labContextWorkspace && (dom.labContextWorkspace.textContent = workspace?.name || "No workspace selected");
@@ -3316,6 +3325,7 @@ function renderLabContext() {
   dom.labContextFamily && (dom.labContextFamily.textContent = family?.title || (currentWorkflowType() === "model" ? currentModelFamily() : currentProcessingFamily()));
   dom.labContextModel &&
     (dom.labContextModel.textContent = currentWorkflowType() === "model" ? currentModelLabel() : "Not applicable for data processing");
+  dom.dataLabAppWorkspace && (dom.dataLabAppWorkspace.textContent = workspace?.name || "No workspace selected");
   if (dom.labCaseSelect) {
     dom.labCaseSelect.value = state.selectedKnowledgeCaseId || "";
   }
@@ -3331,6 +3341,9 @@ function renderLabContext() {
   dom.labContextNextAction && (dom.labContextNextAction.textContent = nextLabAction());
   if (dom.labContextDetailLink) {
     dom.labContextDetailLink.href = currentFamilyDetailPath();
+  }
+  if (dom.dataLabAppCopy && currentDataLabShellStep() === "results" && dataset) {
+    dom.dataLabAppCopy.textContent = `Review the latest outputs for ${datasetSummary}, validate the audit trail, and route reusable results into cases or notes.`;
   }
   renderWorkflowGuide();
   renderActiveFamilySummary();
@@ -3502,8 +3515,14 @@ function applyDataLabShellStep() {
   const stepTitle = document.getElementById("data-lab-step-title");
   const stepCopy = document.getElementById("data-lab-step-copy");
   const runButton = document.getElementById("data-lab-run-link");
+  const appTitle = dom.dataLabAppTitle;
+  const appCopy = dom.dataLabAppCopy;
+  const stepPill = dom.dataLabCurrentStepPill;
   if (stepTitle) {
     stepTitle.textContent = stepLabelMap[step] || "Dataset";
+  }
+  if (stepPill) {
+    stepPill.textContent = stepLabelMap[step] || "Dataset";
   }
   if (stepCopy) {
     stepCopy.textContent =
@@ -3514,6 +3533,26 @@ function applyDataLabShellStep() {
         results: "Review the latest outputs, download figures or assets, and route results into notes or cases.",
         history: "Inspect previous processing and model runs inside the current workspace.",
       }[step] || "Work through the current Data Lab step.";
+  }
+  if (appTitle) {
+    appTitle.textContent =
+      {
+        dataset: "Dataset workspace",
+        preparation: "Preparation workspace",
+        model: "Model workspace",
+        results: "Results workspace",
+        history: "History workspace",
+      }[step] || "Data Lab";
+  }
+  if (appCopy) {
+    appCopy.textContent =
+      {
+        dataset: "Load a dataset, inspect the profile, and move forward only after the sample looks usable.",
+        preparation: "Transform the selected dataset into an analysis-ready sample with explicit preparation rules.",
+        model: "Configure the estimation path, apply a saved specification, and run the selected model.",
+        results: "Audit the latest outputs, inspect the generated assets, and route them into reusable research artifacts.",
+        history: "Review previous runs, reopen result pages, and reuse outputs without rebuilding the workflow.",
+      }[step] || "A private research shell for datasets, preparation, model runs, optimization suites, and reusable outputs.";
   }
   if (runButton) {
     const hrefMap = {
@@ -3533,6 +3572,49 @@ function applyDataLabShellStep() {
         history: "Open history",
       }[step] || "Run current step";
   }
+}
+
+function updateLabUploadLabel() {
+  if (!dom.labUploadFileName || !dom.labUploadFileMeta) {
+    return;
+  }
+  const file = dom.uploadFileInput?.files?.[0] || null;
+  if (!file) {
+    dom.labUploadFileName.textContent = "Choose a file for this workspace";
+    dom.labUploadFileMeta.textContent = "CSV, XLSX, XLS, JSON, PDF, TXT, MD. Drag here or click to browse.";
+    return;
+  }
+  dom.labUploadFileName.textContent = file.name;
+  dom.labUploadFileMeta.textContent = `${Math.max(1, Math.round(file.size / 1024))} KB selected. Submit to upload into the workspace dataset list.`;
+}
+
+function bindLabDropzone() {
+  if (!dom.labUploadDropzone || !dom.uploadFileInput) {
+    return;
+  }
+  const dropzone = dom.labUploadDropzone;
+  const input = dom.uploadFileInput;
+  const setDragState = (active) => dropzone.classList.toggle("is-dragover", active);
+  input.addEventListener("change", updateLabUploadLabel);
+  dropzone.addEventListener("dragenter", (event) => {
+    event.preventDefault();
+    setDragState(true);
+  });
+  dropzone.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    setDragState(true);
+  });
+  dropzone.addEventListener("dragleave", () => setDragState(false));
+  dropzone.addEventListener("drop", (event) => {
+    event.preventDefault();
+    setDragState(false);
+    const files = event.dataTransfer?.files;
+    if (files?.length) {
+      input.files = files;
+      updateLabUploadLabel();
+    }
+  });
+  updateLabUploadLabel();
 }
 
 function getSelectedValues(select) {
@@ -7722,6 +7804,7 @@ function bind() {
   initializeDataLabFromLocation();
   updateWorkflowVisibility();
   applyDataLabShellStep();
+  bindLabDropzone();
 }
 
 async function init() {

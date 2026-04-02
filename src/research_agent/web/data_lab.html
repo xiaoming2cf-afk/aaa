@@ -13,9 +13,14 @@
     <header class="lab-app-bar">
       <div class="lab-app-bar__inner">
         <div>
+          <div class="lab-app-bar__meta">
+            <a href="/workspace" class="inline-link">Workspace</a>
+            <span class="status-pill status-pill--ready" id="data-lab-current-step-pill">Dataset</span>
+            <span class="mono-note" id="data-lab-app-workspace">No workspace selected</span>
+          </div>
           <p class="eyebrow">Data Lab</p>
-          <h1>Processing, estimation, optimization.</h1>
-          <p class="lab-app-bar__copy">A private research shell for datasets, preparation, model runs, optimization suites, and reusable outputs.</p>
+          <h1 id="data-lab-app-title">Dataset workspace</h1>
+          <p class="lab-app-bar__copy" id="data-lab-app-copy">Load a dataset, inspect the profile, and move to preparation or model execution only when the sample is ready.</p>
         </div>
         <div class="lab-app-bar__actions">
           <a href="/workspace" class="button-link secondary-link">Workspace</a>
@@ -55,9 +60,37 @@
                 <p class="muted">Upload or select a dataset, review the profile, and optionally use the beginner guide before moving forward.</p>
               </div>
             </div>
+            <div class="lab-stage-guide">
+              <article class="lab-stage-guide__item">
+                <span>1</span>
+                <div>
+                  <strong>Load source</strong>
+                  <p>Upload a new file or pick a workspace dataset.</p>
+                </div>
+              </article>
+              <article class="lab-stage-guide__item">
+                <span>2</span>
+                <div>
+                  <strong>Review profile</strong>
+                  <p>Check rows, columns, missingness, and previews.</p>
+                </div>
+              </article>
+              <article class="lab-stage-guide__item">
+                <span>3</span>
+                <div>
+                  <strong>Proceed</strong>
+                  <p>Move to preparation or modeling after validation.</p>
+                </div>
+              </article>
+            </div>
             <div class="lab-stage-stack">
               <form id="upload-form" class="stack">
-                <input name="file" type="file" required />
+                <input id="upload-file-input" name="file" type="file" required hidden />
+                <label for="upload-file-input" id="lab-upload-dropzone" class="lab-dropzone">
+                  <span class="lab-dropzone__eyebrow">Dataset Upload</span>
+                  <strong id="lab-upload-file-name">Choose a file for this workspace</strong>
+                  <span class="lab-dropzone__meta" id="lab-upload-file-meta">CSV, XLSX, XLS, JSON, PDF, TXT, MD. Drag here or click to browse.</span>
+                </label>
                 <input name="description" type="text" placeholder="Asset description (optional)" />
                 <button type="submit">Upload file</button>
               </form>
@@ -170,6 +203,29 @@
                 <h2>Preparation</h2>
                 <p class="muted">Choose the processing family, apply a template or variant, and prepare the analysis-ready sample.</p>
               </div>
+            </div>
+            <div class="lab-stage-guide">
+              <article class="lab-stage-guide__item">
+                <span>1</span>
+                <div>
+                  <strong>Choose family</strong>
+                  <p>Pick preparation, transforms, time-series features, or visualization.</p>
+                </div>
+              </article>
+              <article class="lab-stage-guide__item">
+                <span>2</span>
+                <div>
+                  <strong>Set rules</strong>
+                  <p>Apply a saved template, preset variant, or manual specification.</p>
+                </div>
+              </article>
+              <article class="lab-stage-guide__item">
+                <span>3</span>
+                <div>
+                  <strong>Build sample</strong>
+                  <p>Create the reusable analysis-ready output for later model runs.</p>
+                </div>
+              </article>
             </div>
             <div class="lab-stage-stack">
               <form id="prepare-form" class="stack">
@@ -388,6 +444,29 @@
                 <h2>Model</h2>
                 <p class="muted">Set the model family, choose the specification, and run estimation or chart generation.</p>
               </div>
+            </div>
+            <div class="lab-stage-guide">
+              <article class="lab-stage-guide__item">
+                <span>1</span>
+                <div>
+                  <strong>Pick family</strong>
+                  <p>Select the econometric, time-series, risk, portfolio, or pricing family.</p>
+                </div>
+              </article>
+              <article class="lab-stage-guide__item">
+                <span>2</span>
+                <div>
+                  <strong>Specify model</strong>
+                  <p>Set variables, variant presets, and model-specific options.</p>
+                </div>
+              </article>
+              <article class="lab-stage-guide__item">
+                <span>3</span>
+                <div>
+                  <strong>Run & audit</strong>
+                  <p>Estimate the model and carry outputs into results or notes.</p>
+                </div>
+              </article>
             </div>
             <div class="lab-stage-stack">
               <form id="model-form" class="stack hidden">
@@ -820,6 +899,29 @@
                 <p class="muted">Review the latest outputs, download artifacts, and route them into cases or notes.</p>
               </div>
             </div>
+            <div class="lab-stage-guide">
+              <article class="lab-stage-guide__item">
+                <span>1</span>
+                <div>
+                  <strong>Review summary</strong>
+                  <p>Inspect the latest processing or model overview before exporting anything.</p>
+                </div>
+              </article>
+              <article class="lab-stage-guide__item">
+                <span>2</span>
+                <div>
+                  <strong>Validate</strong>
+                  <p>Check figures, specifications, and audit trails against the run design.</p>
+                </div>
+              </article>
+              <article class="lab-stage-guide__item">
+                <span>3</span>
+                <div>
+                  <strong>Reuse output</strong>
+                  <p>Download, cite, or push the output into notes and case workspaces.</p>
+                </div>
+              </article>
+            </div>
             <div class="lab-stage-stack">
               <div id="plot-preview-panel" class="plot-preview hidden">
                 <div class="panel-head panel-head-wrap">
@@ -882,6 +984,29 @@
                 <h2>History</h2>
                 <p class="muted">Previous processing and model runs remain available for reuse and auditing.</p>
               </div>
+            </div>
+            <div class="lab-stage-guide">
+              <article class="lab-stage-guide__item">
+                <span>1</span>
+                <div>
+                  <strong>Browse runs</strong>
+                  <p>Inspect recent processing and model outputs saved in the workspace.</p>
+                </div>
+              </article>
+              <article class="lab-stage-guide__item">
+                <span>2</span>
+                <div>
+                  <strong>Open detail</strong>
+                  <p>Jump into the dedicated result page for full audit and export controls.</p>
+                </div>
+              </article>
+              <article class="lab-stage-guide__item">
+                <span>3</span>
+                <div>
+                  <strong>Reuse assets</strong>
+                  <p>Reload samples, download charts, or route records into private cases.</p>
+                </div>
+              </article>
             </div>
             <article class="panel public-section" id="data-lab-history">
           <div class="panel-head panel-head-wrap">

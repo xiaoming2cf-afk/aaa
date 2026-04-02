@@ -2824,6 +2824,20 @@ body.page-optimization .page-bg {
   line-height: 1.65;
 }
 
+.lab-app-bar__meta {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 0.7rem;
+}
+
+.mono-note {
+  font-family: "IBM Plex Mono", "Consolas", monospace;
+  font-size: 0.83rem;
+  color: var(--muted-light);
+}
+
 .module-header__nav,
 .lab-app-bar__actions {
   display: inline-flex;
@@ -2924,6 +2938,79 @@ body.page-optimization .page-bg {
 .lab-stage-stack {
   display: grid;
   gap: 1rem;
+}
+
+.lab-stage-guide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.lab-stage-guide__item {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: start;
+  padding: 0.85rem 0.95rem;
+  background: var(--surface-muted-light);
+  border-radius: 14px;
+}
+
+.lab-stage-guide__item span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: rgba(29, 78, 216, 0.12);
+  color: var(--accent-light);
+  font-family: "IBM Plex Mono", "Consolas", monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.lab-stage-guide__item strong {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.lab-stage-guide__item p {
+  margin: 0;
+  color: var(--muted-light);
+  line-height: 1.55;
+}
+
+.lab-dropzone {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.1rem 1.15rem;
+  border-radius: 14px;
+  border: 1px dashed var(--line-strong-light);
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(238,243,248,0.88));
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.lab-dropzone:hover,
+.lab-dropzone:focus-within,
+.lab-dropzone.is-dragover {
+  border-color: rgba(29, 78, 216, 0.45);
+  box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.08);
+}
+
+.lab-dropzone__eyebrow {
+  color: var(--accent-light);
+  font-family: "IBM Plex Mono", "Consolas", monospace;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lab-dropzone__meta {
+  color: var(--muted-light);
+  line-height: 1.55;
 }
 
 .lab-stage-card,
@@ -3119,6 +3206,7 @@ body.page-optimization .page-bg {
   }
 
   .optimization-pickers,
+  .lab-stage-guide,
   .workspace-hub-shell .workspace-module-grid {
     grid-template-columns: 1fr;
   }
