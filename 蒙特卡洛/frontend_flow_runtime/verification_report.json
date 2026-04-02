@@ -1,0 +1,93 @@
+{
+  "generated_at": "2026-04-02T12:57:00+08:00",
+  "scope": "homepage-session-and-data-lab-frontend-flow",
+  "status": "local_pass_public_deploy_pending",
+  "local_runtime": {
+    "base_url": "http://127.0.0.1:8010",
+    "health_features": [
+      "auth",
+      "workspaces",
+      "multi_provider_llm",
+      "private_knowledge_base",
+      "data_assets",
+      "openalex_library",
+      "economic_briefings",
+      "scheduled_jobs",
+      "public_daily_briefings",
+      "public_macro_summary",
+      "optimization_lab"
+    ],
+    "homepage_login_flow": {
+      "passed": true,
+      "session_indicator": "Signed in",
+      "login_form_hidden": true,
+      "register_form_hidden": true,
+      "user_summary": "Codex Frontend QA | codex.frontend.1775101609@example.com"
+    },
+    "homepage_return_after_private_navigation": {
+      "passed": true,
+      "session_indicator": "Signed in",
+      "login_form_hidden": true,
+      "register_form_hidden": true,
+      "auth_panel_title": "Workspace Session"
+    },
+    "data_lab_post_login": {
+      "passed": true,
+      "login_form_present": false,
+      "register_form_present": false,
+      "optimization_module_visible": true,
+      "optimization_form_visible": true
+    },
+    "screenshots": [
+      "D:\\智能体\\蒙特卡洛\\frontend_flow_runtime\\home_signed_in_after_return_local.png",
+      "D:\\智能体\\蒙特卡洛\\frontend_flow_runtime\\data_lab_post_login_local.png",
+      "D:\\智能体\\蒙特卡洛\\frontend_flow_runtime\\data_lab_optimization_success.png",
+      "D:\\智能体\\蒙特卡洛\\frontend_flow_runtime\\optimization_result_page.png"
+    ]
+  },
+  "public_runtime": {
+    "base_url": "https://economic-research-web.onrender.com",
+    "health_features": [
+      "auth",
+      "workspaces",
+      "multi_provider_llm",
+      "private_knowledge_base",
+      "data_assets",
+      "openalex_library",
+      "economic_briefings",
+      "scheduled_jobs",
+      "public_daily_briefings",
+      "public_macro_summary",
+      "optimization_lab"
+    ],
+    "anonymous_private_page_redirect": {
+      "path": "/data-lab",
+      "status_code": 307,
+      "passed": true
+    },
+    "latest_asset_probe": {
+      "app_js_has_restoring_workspace_copy": false,
+      "app_js_has_workspace_refresh_retention_copy": false
+    },
+    "status": "deployment_not_yet_serving_latest_frontend_bundle"
+  },
+  "fixes_verified_locally": [
+    "Homepage no longer falls back to signed-out UI after a valid session is restored.",
+    "Homepage hides login and registration forms while signed in.",
+    "Form handlers capture a stable form reference before async refreshes, preventing null reset errors after login or workspace refresh.",
+    "Data Lab no longer renders login or registration forms after sign-in.",
+    "Optimization Module remains embedded inside Data Lab after sign-in."
+  ],
+  "deployment_commits": {
+    "main": [
+      "d228459",
+      "3cd2151",
+      "8aed590"
+    ],
+    "codex/free-deploy-adaptation": [
+      "60c90f1",
+      "c8d2a61",
+      "d3eb0ed"
+    ]
+  }
+}
