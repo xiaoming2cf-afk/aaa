@@ -1,0 +1,33 @@
+{
+  "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "model_family": "econometrics_baseline",
+  "model_type": "ppml",
+  "dependent": "export_flow",
+  "independents": [
+    "size",
+    "leverage"
+  ],
+  "controls": [
+    "post"
+  ],
+  "model_label": "PPML",
+  "regressors": [
+    "size",
+    "leverage",
+    "post"
+  ],
+  "covariance_type": "HC1",
+  "equation": "export_flow ~ size + leverage + post",
+  "variant_label": "trade_controls",
+  "variant_spec": {
+    "controls": [
+      "post",
+      "treated"
+    ],
+    "independents": [
+      "size",
+      "leverage",
+      "distance_km"
+    ]
+  }
+}

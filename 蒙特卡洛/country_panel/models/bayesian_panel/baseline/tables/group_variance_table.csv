@@ -1,0 +1,2 @@
+term,mean,sd,hdi_3%,hdi_97%,mcse_mean,mcse_sd,ess_bulk,ess_tail,r_hat
+sigma_entity,1.1158,0.6594,0.191,2.2201,0.0221,0.0387,882.7759,791.0827,

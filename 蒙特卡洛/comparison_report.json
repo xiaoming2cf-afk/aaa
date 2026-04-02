@@ -1,0 +1,445 @@
+{
+  "status": "passed",
+  "generated_at": "2026-04-02T11:16:07.496049+08:00",
+  "models": {
+    "econometrics_baseline/ols": {
+      "family": "econometrics_baseline",
+      "method": "ols",
+      "baseline_engine": "baseline",
+      "candidate_engine": "statsmodels",
+      "baseline_metrics": {
+        "speed_score": 72.03986536367168,
+        "completeness_score": 95.0,
+        "accuracy_score": 75.71346978230112,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.060132399999929476
+      },
+      "candidate_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 95.0,
+        "accuracy_score": 87.69321537654919,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.0433192999998937
+      },
+      "final_decision": "statsmodels",
+      "decision_reason": "candidate wins on accuracy under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "econometrics_baseline/ppml": {
+      "family": "econometrics_baseline",
+      "method": "ppml",
+      "baseline_engine": "baseline",
+      "candidate_engine": "statsmodels",
+      "baseline_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 95.0,
+        "accuracy_score": 100.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.04788384999983464
+      },
+      "candidate_metrics": {
+        "speed_score": 99.25163074176888,
+        "completeness_score": 95.0,
+        "accuracy_score": 100.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.04824490000009973
+      },
+      "final_decision": "baseline",
+      "decision_reason": "baseline wins on speed under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "econometrics_baseline/logit": {
+      "family": "econometrics_baseline",
+      "method": "logit",
+      "baseline_engine": "baseline",
+      "candidate_engine": "statsmodels",
+      "baseline_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 95.0,
+        "accuracy_score": 66.66666666666667,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.04617904999986422
+      },
+      "candidate_metrics": {
+        "speed_score": 90.1762847892557,
+        "completeness_score": 95.0,
+        "accuracy_score": 66.66666666666667,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.051209749999998166
+      },
+      "final_decision": "baseline",
+      "decision_reason": "baseline wins on speed under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "econometrics_baseline/probit": {
+      "family": "econometrics_baseline",
+      "method": "probit",
+      "baseline_engine": "baseline",
+      "candidate_engine": "statsmodels",
+      "baseline_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 95.0,
+        "accuracy_score": 66.66666666666667,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.046145200000410114
+      },
+      "candidate_metrics": {
+        "speed_score": 93.48722343499799,
+        "completeness_score": 95.0,
+        "accuracy_score": 66.66666666666667,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.0493599000001268
+      },
+      "final_decision": "baseline",
+      "decision_reason": "baseline wins on speed under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "econometrics_baseline/did": {
+      "family": "econometrics_baseline",
+      "method": "did",
+      "baseline_engine": "baseline",
+      "candidate_engine": "causalpy",
+      "baseline_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 95.0,
+        "accuracy_score": 95.9229853648781,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.047509550000086165
+      },
+      "candidate_metrics": {
+        "speed_score": 78.73738901284118,
+        "completeness_score": 95.0,
+        "accuracy_score": 95.9229853648781,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.06033925000019735
+      },
+      "final_decision": "baseline",
+      "decision_reason": "baseline wins on speed under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "econometrics_baseline/event_study": {
+      "family": "econometrics_baseline",
+      "method": "event_study",
+      "baseline_engine": "baseline",
+      "candidate_engine": "causalpy",
+      "baseline_metrics": {
+        "speed_score": 94.1309614155808,
+        "completeness_score": 100.0,
+        "accuracy_score": 40.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.3265824500003873
+      },
+      "candidate_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 100.0,
+        "accuracy_score": 64.55203710336848,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.30741519999992306
+      },
+      "final_decision": "causalpy",
+      "decision_reason": "candidate wins on accuracy under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "econometrics_baseline/rdd": {
+      "family": "econometrics_baseline",
+      "method": "rdd",
+      "baseline_engine": "baseline",
+      "candidate_engine": "causalpy",
+      "baseline_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 100.0,
+        "accuracy_score": 45.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.3596893000003547
+      },
+      "candidate_metrics": {
+        "speed_score": 81.42999121618993,
+        "completeness_score": 100.0,
+        "accuracy_score": 45.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.4417159999998148
+      },
+      "final_decision": "baseline",
+      "decision_reason": "baseline wins on speed under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "econometrics_baseline/fixed_effects": {
+      "family": "econometrics_baseline",
+      "method": "fixed_effects",
+      "baseline_engine": "baseline",
+      "candidate_engine": "linearmodels",
+      "baseline_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 95.0,
+        "accuracy_score": 92.44690555237281,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.0692138999997951
+      },
+      "candidate_metrics": {
+        "speed_score": 59.54337168879045,
+        "completeness_score": 95.0,
+        "accuracy_score": 92.44690555237271,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.11624114999995072
+      },
+      "final_decision": "baseline",
+      "decision_reason": "baseline wins on accuracy under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "econometrics_baseline/panel_iv": {
+      "family": "econometrics_baseline",
+      "method": "panel_iv",
+      "baseline_engine": "baseline",
+      "candidate_engine": "linearmodels",
+      "baseline_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 95.0,
+        "accuracy_score": 99.74745243968275,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.0855722500000411
+      },
+      "candidate_metrics": {
+        "speed_score": 42.49404220102977,
+        "completeness_score": 95.0,
+        "accuracy_score": 96.86422630706902,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.20137469999963287
+      },
+      "final_decision": "baseline",
+      "decision_reason": "baseline wins on accuracy under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "time_series_finance/arima": {
+      "family": "time_series_finance",
+      "method": "arima",
+      "baseline_engine": "baseline",
+      "candidate_engine": "statsmodels",
+      "baseline_metrics": {
+        "speed_score": 29.95862116835173,
+        "completeness_score": 100.0,
+        "accuracy_score": 50.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 1.5991872499998863
+      },
+      "candidate_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 100.0,
+        "accuracy_score": 87.5273417859582,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.4790944500000478
+      },
+      "final_decision": "statsmodels",
+      "decision_reason": "candidate wins on accuracy under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "time_series_finance/arch": {
+      "family": "time_series_finance",
+      "method": "arch",
+      "baseline_engine": "baseline",
+      "candidate_engine": "arch",
+      "baseline_metrics": {
+        "speed_score": 15.96813551980771,
+        "completeness_score": 100.0,
+        "accuracy_score": 50.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 3.0169580500000848
+      },
+      "candidate_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 100.0,
+        "accuracy_score": 50.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.48175194999976156
+      },
+      "final_decision": "arch",
+      "decision_reason": "candidate wins on speed under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "time_series_finance/garch": {
+      "family": "time_series_finance",
+      "method": "garch",
+      "baseline_engine": "baseline",
+      "candidate_engine": "arch",
+      "baseline_metrics": {
+        "speed_score": 15.935070197509589,
+        "completeness_score": 100.0,
+        "accuracy_score": 50.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 3.206986499999857
+      },
+      "candidate_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 100.0,
+        "accuracy_score": 50.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.5110355499996331
+      },
+      "final_decision": "arch",
+      "decision_reason": "candidate wins on speed under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "time_series_finance/var": {
+      "family": "time_series_finance",
+      "method": "var",
+      "baseline_engine": "baseline",
+      "candidate_engine": "statsmodels",
+      "baseline_metrics": {
+        "speed_score": 6.212881125546227,
+        "completeness_score": 100.0,
+        "accuracy_score": 50.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 4.2053234999998494
+      },
+      "candidate_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 100.0,
+        "accuracy_score": 40.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.26127174999965064
+      },
+      "final_decision": "baseline",
+      "decision_reason": "baseline wins on accuracy under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "time_series_finance/svar_irf": {
+      "family": "time_series_finance",
+      "method": "svar_irf",
+      "baseline_engine": "baseline",
+      "candidate_engine": "statsmodels",
+      "baseline_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 100.0,
+        "accuracy_score": 50.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.5075276500001564
+      },
+      "candidate_metrics": {
+        "speed_score": 74.70477398590491,
+        "completeness_score": 100.0,
+        "accuracy_score": 40.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.6793777999996564
+      },
+      "final_decision": "baseline",
+      "decision_reason": "baseline wins on accuracy under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "portfolio_allocation/mean_variance": {
+      "family": "portfolio_allocation",
+      "method": "mean_variance",
+      "baseline_engine": "baseline",
+      "candidate_engine": "pypfopt",
+      "baseline_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 95.0,
+        "accuracy_score": 30.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.023265850000370847
+      },
+      "candidate_metrics": {
+        "speed_score": 5.423486814544164,
+        "completeness_score": 100.0,
+        "accuracy_score": 100.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.42898325000032855
+      },
+      "final_decision": "pypfopt",
+      "decision_reason": "candidate wins on accuracy under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "portfolio_allocation/minimum_variance": {
+      "family": "portfolio_allocation",
+      "method": "minimum_variance",
+      "baseline_engine": "baseline",
+      "candidate_engine": "pypfopt",
+      "baseline_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 95.0,
+        "accuracy_score": 30.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.0244353999996747
+      },
+      "candidate_metrics": {
+        "speed_score": 5.899692622164324,
+        "completeness_score": 100.0,
+        "accuracy_score": 48.067980755077464,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.41418089999933727
+      },
+      "final_decision": "pypfopt",
+      "decision_reason": "candidate wins on accuracy under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "portfolio_allocation/risk_parity": {
+      "family": "portfolio_allocation",
+      "method": "risk_parity",
+      "baseline_engine": "baseline",
+      "candidate_engine": "pypfopt",
+      "baseline_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 95.0,
+        "accuracy_score": 30.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.020567149999806134
+      },
+      "candidate_metrics": {
+        "speed_score": 9.65560578063826,
+        "completeness_score": 100.0,
+        "accuracy_score": 70.51485033575628,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.21300735000022541
+      },
+      "final_decision": "pypfopt",
+      "decision_reason": "candidate wins on accuracy under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "asset_pricing/capm": {
+      "family": "asset_pricing",
+      "method": "capm",
+      "baseline_engine": "baseline",
+      "candidate_engine": "baseline",
+      "baseline_metrics": {
+        "speed_score": 86.94563322671125,
+        "completeness_score": 95.0,
+        "accuracy_score": 45.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.029488599999694998
+      },
+      "candidate_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 95.0,
+        "accuracy_score": 45.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.02563904999942679
+      },
+      "final_decision": "baseline",
+      "decision_reason": "baseline wins on speed under the quality-first decision order (accuracy > completeness > stability > speed)."
+    },
+    "asset_pricing/fama_french_3": {
+      "family": "asset_pricing",
+      "method": "fama_french_3",
+      "baseline_engine": "baseline",
+      "candidate_engine": "baseline",
+      "baseline_metrics": {
+        "speed_score": 100.0,
+        "completeness_score": 95.0,
+        "accuracy_score": 45.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.026363450000189914
+      },
+      "candidate_metrics": {
+        "speed_score": 96.58055782952573,
+        "completeness_score": 95.0,
+        "accuracy_score": 45.0,
+        "stability_score": 100.0,
+        "avg_runtime_seconds": 0.02729685000031168
+      },
+      "final_decision": "baseline",
+      "decision_reason": "baseline wins on speed under the quality-first decision order (accuracy > completeness > stability > speed)."
+    }
+  },
+  "winners": {
+    "ols": "statsmodels",
+    "ppml": "baseline",
+    "logit": "baseline",
+    "probit": "baseline",
+    "did": "baseline",
+    "event_study": "causalpy",
+    "rdd": "baseline",
+    "fixed_effects": "baseline",
+    "panel_iv": "baseline",
+    "arima": "statsmodels",
+    "arch": "arch",
+    "garch": "arch",
+    "var": "baseline",
+    "svar_irf": "baseline",
+    "mean_variance": "pypfopt",
+    "minimum_variance": "pypfopt",
+    "risk_parity": "pypfopt",
+    "capm": "baseline",
+    "fama_french_3": "baseline"
+  }
+}

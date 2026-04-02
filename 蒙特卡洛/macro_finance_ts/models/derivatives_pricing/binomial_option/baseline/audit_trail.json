@@ -1,0 +1,26 @@
+{
+  "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "sample_title": "timeseries_dataset.csv",
+  "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+  "rows_used": 240,
+  "sample_columns": [
+    "spot_price",
+    "strike_price",
+    "time_to_maturity",
+    "risk_free_rate",
+    "implied_vol",
+    "price"
+  ],
+  "manual_checklist": [
+    "Download the sample asset and reproduce the pricing inputs row by row.",
+    "Use the same option_type and option_steps when applicable.",
+    "Compare the reproduced option values against the preview table and latest price metric."
+  ],
+  "derived_columns": [
+    "price"
+  ],
+  "filters": [
+    "Rows with missing pricing inputs are dropped.",
+    "Only the first 500 complete rows are priced for stability."
+  ]
+}

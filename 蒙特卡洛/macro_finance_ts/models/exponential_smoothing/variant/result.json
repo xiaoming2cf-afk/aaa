@@ -1,0 +1,215 @@
+{
+  "model_type": "exponential_smoothing",
+  "model_label": "Exponential Smoothing",
+  "asset": {
+    "id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "kind": "dataset_csv",
+    "title": "upgrade_ts.csv",
+    "filename": "upgrade_ts.csv",
+    "description": "upgrade_ts.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 93948,
+      "original_filename": "upgrade_ts.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:27.052169",
+    "updated_at": "2026-04-02T02:57:27.059647"
+  },
+  "observations": 240,
+  "narrative": [
+    "Exponential smoothing estimated with seasonal=none."
+  ],
+  "specification": {
+    "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "model_family": "time_series_finance",
+    "model_type": "exponential_smoothing",
+    "dependent": "seasonal_series",
+    "time_column": "date",
+    "forecast_steps": 4,
+    "seasonal": "",
+    "seasonal_periods": 12,
+    "engine": "statsmodels",
+    "variant_label": "es_no_seasonal"
+  },
+  "audit_trail": {
+    "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "sample_title": "upgrade_ts.csv",
+    "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+    "engine": "statsmodels",
+    "derived_columns": [],
+    "filters": [
+      "Rows with missing series values are dropped."
+    ]
+  },
+  "metrics": {},
+  "tables": {
+    "parameter_table": [
+      {
+        "term": "smoothing_level",
+        "coefficient": 0.6009793819314525
+      },
+      {
+        "term": "smoothing_trend",
+        "coefficient": 0.6009793819314525
+      },
+      {
+        "term": "smoothing_seasonal",
+        "coefficient": null
+      },
+      {
+        "term": "damping_trend",
+        "coefficient": null
+      },
+      {
+        "term": "initial_level",
+        "coefficient": 2.225344023807537
+      },
+      {
+        "term": "initial_trend",
+        "coefficient": 0.03825318436581858
+      },
+      {
+        "term": "initial_seasons",
+        "coefficient": null
+      },
+      {
+        "term": "use_boxcox",
+        "coefficient": 0.0
+      },
+      {
+        "term": "lamda",
+        "coefficient": null
+      },
+      {
+        "term": "remove_bias",
+        "coefficient": 0.0
+      }
+    ],
+    "forecast_summary": [
+      {
+        "index": "2025-01-31T00:00:00",
+        "forecast": 2.278131522313771
+      },
+      {
+        "index": "2025-02-28T00:00:00",
+        "forecast": 2.3403045575711325
+      },
+      {
+        "index": "2025-03-31T00:00:00",
+        "forecast": 2.4024775928284945
+      },
+      {
+        "index": "2025-04-30T00:00:00",
+        "forecast": 2.464650628085856
+      }
+    ]
+  },
+  "sample_columns": [
+    "date",
+    "seasonal_series"
+  ],
+  "sample_preview": [
+    {
+      "date": "2005-01-31T00:00:00",
+      "seasonal_series": 2.227068229961948
+    },
+    {
+      "date": "2005-02-28T00:00:00",
+      "seasonal_series": 2.292666822236901
+    },
+    {
+      "date": "2005-03-31T00:00:00",
+      "seasonal_series": 2.3069950883993475
+    },
+    {
+      "date": "2005-04-30T00:00:00",
+      "seasonal_series": 2.425818904350475
+    },
+    {
+      "date": "2005-05-31T00:00:00",
+      "seasonal_series": 2.2725801590519
+    }
+  ],
+  "engine": "statsmodels",
+  "figures": [
+    {
+      "asset_id": "fe529f53-588b-4f31-9241-d5a031702120",
+      "title": "Exponential smoothing forecast",
+      "summary": "Forecast path from the fitted exponential smoothing model.",
+      "download_url": "/api/assets/fe529f53-588b-4f31-9241-d5a031702120/download",
+      "asset": {
+        "id": "fe529f53-588b-4f31-9241-d5a031702120",
+        "kind": "chart_png",
+        "title": "upgrade_ts-exp_smoothing_forecast.png",
+        "filename": "upgrade_ts-exp_smoothing_forecast.png",
+        "description": "Forecast path from the fitted exponential smoothing model.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 68684,
+          "original_filename": "upgrade_ts-exp_smoothing_forecast.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Exponential smoothing forecast",
+          "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+          "summary": "Forecast path from the fitted exponential smoothing model."
+        },
+        "created_at": "2026-04-02T03:05:18.047623+00:00",
+        "updated_at": "2026-04-02T03:05:18.058748+00:00"
+      }
+    }
+  ],
+  "primary_tables": [
+    "parameter_table",
+    "forecast_summary"
+  ],
+  "paper_output_contract": {
+    "primary_tables": [
+      "parameter_table",
+      "forecast_summary"
+    ],
+    "figure_count": 1
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "Exponential Smoothing estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: parameter_table, forecast_summary.",
+          "Figures included: Exponential smoothing forecast."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "parameter_table",
+      "forecast_summary",
+      "Exponential smoothing forecast"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "es_no_seasonal",
+  "variant_spec": {},
+  "result_record_id": "be8ffa99-d0ef-462e-814c-e0e3336d535b",
+  "result_detail_path": "/data-lab/results/models/be8ffa99-d0ef-462e-814c-e0e3336d535b"
+}

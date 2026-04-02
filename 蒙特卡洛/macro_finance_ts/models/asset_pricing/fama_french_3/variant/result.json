@@ -1,0 +1,197 @@
+{
+  "model_type": "fama_french_3",
+  "model_label": "Fama-French 3-Factor",
+  "asset": {
+    "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "kind": "dataset_csv",
+    "title": "timeseries_dataset.csv",
+    "filename": "timeseries_dataset.csv",
+    "description": "timeseries_dataset.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 93948,
+      "original_filename": "timeseries_dataset.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T03:16:14.454310",
+    "updated_at": "2026-04-02T03:16:14.458473"
+  },
+  "dependent": "asset_excess",
+  "regressors": [
+    "market_excess",
+    "smb",
+    "hml"
+  ],
+  "observations": 240,
+  "r_squared": 0.9974710040029315,
+  "adj_r_squared": 0.9974388557487315,
+  "pseudo_r_squared": null,
+  "aic": -1108.735780590823,
+  "bic": -1094.813224897455,
+  "log_likelihood": 558.3678902954115,
+  "coefficients": [
+    {
+      "term": "const",
+      "coefficient": 0.0067097081737217176,
+      "std_error": 0.0015770166580424847,
+      "t_stat": 4.254684400132036,
+      "p_value": 2.0934407654821707e-05
+    },
+    {
+      "term": "market_excess",
+      "coefficient": 1.357383952681004,
+      "std_error": 0.004320494216641281,
+      "t_stat": 314.1733062511131,
+      "p_value": 0.0
+    },
+    {
+      "term": "smb",
+      "coefficient": -0.11664227951042794,
+      "std_error": 0.0687669661207147,
+      "t_stat": -1.6961963874583634,
+      "p_value": 0.08984869438623791
+    },
+    {
+      "term": "hml",
+      "coefficient": -0.08341633074271648,
+      "std_error": 0.08186004797181577,
+      "t_stat": -1.0190115057278801,
+      "p_value": 0.3081975042418563
+    }
+  ],
+  "narrative": [
+    "Fama-French 3-Factor run on timeseries_dataset.csv.",
+    "Asset return column: asset_return.",
+    "Market factor column: market_return."
+  ],
+  "sample_columns": [
+    "asset_excess",
+    "market_excess",
+    "smb",
+    "hml"
+  ],
+  "sample_preview": [
+    {
+      "asset_excess": 0.21376314923547501,
+      "market_excess": 0.1032070887143996,
+      "smb": -0.0095728861465322,
+      "hml": -0.0051907035522945
+    },
+    {
+      "asset_excess": -0.0491481639702046,
+      "market_excess": 0.045611592272011406,
+      "smb": -0.0110844643733706,
+      "hml": -0.0009130749154339
+    },
+    {
+      "asset_excess": -0.019875442440905198,
+      "market_excess": 0.04227616143870691,
+      "smb": 5.768812157802474e-05,
+      "hml": -0.0082574312972218
+    },
+    {
+      "asset_excess": 0.3488309112299007,
+      "market_excess": 0.3145376761414168,
+      "smb": -0.0061484256058104,
+      "hml": -0.0133531007591293
+    },
+    {
+      "asset_excess": 0.1819462963711358,
+      "market_excess": 0.16607709262653908,
+      "smb": 0.0428115482863142,
+      "hml": -0.0173015814676813
+    }
+  ],
+  "specification": {
+    "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "model_family": "asset_pricing",
+    "model_type": "fama_french_3",
+    "dependent": "asset_excess",
+    "market_column": "market_return",
+    "risk_free_column": "risk_free_rate",
+    "smb_column": "smb",
+    "hml_column": "hml",
+    "report_variant": "factor_loading_focus",
+    "model_label": "Fama-French 3-Factor",
+    "regressors": [
+      "market_excess",
+      "smb",
+      "hml"
+    ],
+    "covariance_type": "HC1",
+    "equation": "asset_excess ~ market_excess + smb + hml",
+    "variant_label": "ff3_factor_focus",
+    "variant_spec": {
+      "report_variant": "factor_loading_focus"
+    }
+  },
+  "audit_trail": {
+    "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "sample_title": "timeseries_dataset.csv",
+    "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+    "rows_used": 240,
+    "sample_columns": [
+      "asset_excess",
+      "market_excess",
+      "smb",
+      "hml"
+    ],
+    "covariance_type": "HC1",
+    "manual_checklist": [
+      "Download the prepared sample asset referenced in sample_asset_id.",
+      "Rebuild any derived regressors listed in derived_columns before estimation.",
+      "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+      "Compare the reproduced coefficient table with the coefficients array term by term."
+    ],
+    "derived_columns": [
+      "asset_excess",
+      "market_excess"
+    ],
+    "filters": [
+      "Rows with missing factor or return inputs are dropped."
+    ]
+  },
+  "model_family": "asset_pricing",
+  "asset_return_column": "asset_return",
+  "market_column": "market_return",
+  "risk_free_column": "risk_free_rate",
+  "smb_column": "smb",
+  "hml_column": "hml",
+  "workflow_type": "model",
+  "interpretation": {
+    "headline": "Fama-French 3-Factor estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": []
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "ff3_factor_focus",
+  "variant_spec": {
+    "report_variant": "factor_loading_focus"
+  },
+  "result_record_id": "435a1915-af0e-4344-994e-e3ba07d29252",
+  "result_detail_path": "/data-lab/results/models/435a1915-af0e-4344-994e-e3ba07d29252"
+}

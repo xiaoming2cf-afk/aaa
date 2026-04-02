@@ -1,0 +1,633 @@
+{
+  "model_type": "fixed_effects",
+  "model_label": "Fixed Effects",
+  "asset": {
+    "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+    "kind": "dataset_csv",
+    "title": "panel_dataset.csv",
+    "filename": "panel_dataset.csv",
+    "description": "panel_dataset.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 289095,
+      "original_filename": "panel_dataset.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T03:16:14.412741",
+    "updated_at": "2026-04-02T03:16:14.426020"
+  },
+  "dependent": "outcome_y",
+  "regressors": [
+    "size",
+    "leverage",
+    "post"
+  ],
+  "observations": 648,
+  "r_squared": 0.7134955411889723,
+  "adj_r_squared": 0.6874057591050001,
+  "pseudo_r_squared": null,
+  "aic": 1900.9691544611214,
+  "bic": 2147.0331427604965,
+  "log_likelihood": -895.4845772305607,
+  "coefficients": [
+    {
+      "term": "const",
+      "coefficient": 3.311004916907436,
+      "std_error": 1.433855491390917,
+      "t_stat": 2.3091622111064924,
+      "p_value": 0.020934581648422896
+    },
+    {
+      "term": "size",
+      "coefficient": 0.5492020528994708,
+      "std_error": 0.16725805198915267,
+      "t_stat": 3.2835612179381872,
+      "p_value": 0.0010250437936772231
+    },
+    {
+      "term": "leverage",
+      "coefficient": -1.4376135045517942,
+      "std_error": 1.3913241195194805,
+      "t_stat": -1.033270022694856,
+      "p_value": 0.3014775518359555
+    },
+    {
+      "term": "post",
+      "coefficient": 3.079625333121159,
+      "std_error": 0.24030130780605324,
+      "t_stat": 12.815682782745066,
+      "p_value": 1.3395400079182162e-37
+    },
+    {
+      "term": "fe_firm_id_firm_02",
+      "coefficient": -0.5907766206256267,
+      "std_error": 0.24293031859052006,
+      "t_stat": -2.4318768610410935,
+      "p_value": 0.01502081302614157
+    },
+    {
+      "term": "fe_firm_id_firm_03",
+      "coefficient": -0.4161454683380358,
+      "std_error": 0.26026964177048845,
+      "t_stat": -1.598901299080444,
+      "p_value": 0.10984253535754651
+    },
+    {
+      "term": "fe_firm_id_firm_04",
+      "coefficient": 0.37243594820587406,
+      "std_error": 0.24062847578550514,
+      "t_stat": 1.5477634016094644,
+      "p_value": 0.12167927101826113
+    },
+    {
+      "term": "fe_firm_id_firm_05",
+      "coefficient": -0.14040631164121917,
+      "std_error": 0.2653856779427752,
+      "t_stat": -0.5290651429633472,
+      "p_value": 0.5967602608148177
+    },
+    {
+      "term": "fe_firm_id_firm_06",
+      "coefficient": -0.590498196159884,
+      "std_error": 0.27773999360401763,
+      "t_stat": -2.1260827023773006,
+      "p_value": 0.03349637394280415
+    },
+    {
+      "term": "fe_firm_id_firm_07",
+      "coefficient": 0.10581426794699245,
+      "std_error": 0.28124514580825,
+      "t_stat": 0.3762350018269667,
+      "p_value": 0.7067421961011688
+    },
+    {
+      "term": "fe_firm_id_firm_08",
+      "coefficient": -0.6487581475604911,
+      "std_error": 0.27608855491269574,
+      "t_stat": -2.3498190563011216,
+      "p_value": 0.018782539166185032
+    },
+    {
+      "term": "fe_firm_id_firm_09",
+      "coefficient": 0.5232615739259985,
+      "std_error": 0.281137445117305,
+      "t_stat": 1.8612304515596165,
+      "p_value": 0.06271163980778828
+    },
+    {
+      "term": "fe_firm_id_firm_10",
+      "coefficient": -1.0679668003762472,
+      "std_error": 0.2928840772304826,
+      "t_stat": -3.646380542346179,
+      "p_value": 0.00026596003001878144
+    },
+    {
+      "term": "fe_firm_id_firm_11",
+      "coefficient": -1.1280203231112909,
+      "std_error": 0.29043886567267935,
+      "t_stat": -3.8838477092199994,
+      "p_value": 0.0001028163206079345
+    },
+    {
+      "term": "fe_firm_id_firm_12",
+      "coefficient": 0.0894003266671049,
+      "std_error": 0.3172398354034699,
+      "t_stat": 0.2818067489960848,
+      "p_value": 0.7780916956388609
+    },
+    {
+      "term": "fe_firm_id_firm_13",
+      "coefficient": 0.020546372946703972,
+      "std_error": 0.356287832413325,
+      "t_stat": 0.05766790520892216,
+      "p_value": 0.9540131590671135
+    },
+    {
+      "term": "fe_firm_id_firm_14",
+      "coefficient": -0.8811573177079411,
+      "std_error": 0.34787782914848003,
+      "t_stat": -2.532950489730257,
+      "p_value": 0.011310692735204029
+    },
+    {
+      "term": "fe_firm_id_firm_15",
+      "coefficient": -1.018923350575176,
+      "std_error": 0.3812223907993884,
+      "t_stat": -2.672779393777441,
+      "p_value": 0.00752257025125504
+    },
+    {
+      "term": "fe_firm_id_firm_16",
+      "coefficient": -1.0235277021806706,
+      "std_error": 0.38588018872467283,
+      "t_stat": -2.6524494702964967,
+      "p_value": 0.007991008762348773
+    },
+    {
+      "term": "fe_firm_id_firm_17",
+      "coefficient": 0.13544183069937493,
+      "std_error": 0.4178083151628219,
+      "t_stat": 0.32417217605301274,
+      "p_value": 0.7458076859088836
+    },
+    {
+      "term": "fe_firm_id_firm_18",
+      "coefficient": 0.09375764514964535,
+      "std_error": 0.4097439825003551,
+      "t_stat": 0.22882006607519637,
+      "p_value": 0.8190087700447102
+    },
+    {
+      "term": "fe_date_2018-02-28",
+      "coefficient": 0.19297795818524754,
+      "std_error": 0.3188690698511299,
+      "t_stat": 0.6051949732074766,
+      "p_value": 0.5450494554551619
+    },
+    {
+      "term": "fe_date_2018-03-31",
+      "coefficient": 0.4898756798758376,
+      "std_error": 0.2553501654032599,
+      "t_stat": 1.9184466910456275,
+      "p_value": 0.05505439549825344
+    },
+    {
+      "term": "fe_date_2018-04-30",
+      "coefficient": 0.695868937558858,
+      "std_error": 0.37249271035636655,
+      "t_stat": 1.8681410889708823,
+      "p_value": 0.06174240759709359
+    },
+    {
+      "term": "fe_date_2018-05-31",
+      "coefficient": 0.4067885166155078,
+      "std_error": 0.3155793798804417,
+      "t_stat": 1.2890212179567022,
+      "p_value": 0.1973907102039456
+    },
+    {
+      "term": "fe_date_2018-06-30",
+      "coefficient": 0.6739683138043384,
+      "std_error": 0.2626468383638965,
+      "t_stat": 2.5660629231354273,
+      "p_value": 0.010286016693969793
+    },
+    {
+      "term": "fe_date_2018-07-31",
+      "coefficient": 1.0820995784888912,
+      "std_error": 0.2978529389913094,
+      "t_stat": 3.632999500201219,
+      "p_value": 0.00028014556113582176
+    },
+    {
+      "term": "fe_date_2018-08-31",
+      "coefficient": 0.6269898998925578,
+      "std_error": 0.34604741090237606,
+      "t_stat": 1.8118612656502113,
+      "p_value": 0.07000763575254954
+    },
+    {
+      "term": "fe_date_2018-09-30",
+      "coefficient": 1.099485402099648,
+      "std_error": 0.2660468309302344,
+      "t_stat": 4.132676184321724,
+      "p_value": 3.585637211457027e-05
+    },
+    {
+      "term": "fe_date_2018-10-31",
+      "coefficient": 1.1595571722259903,
+      "std_error": 0.321319183281284,
+      "t_stat": 3.6087393238856507,
+      "p_value": 0.0003076885885176801
+    },
+    {
+      "term": "fe_date_2018-11-30",
+      "coefficient": 1.2461015775596935,
+      "std_error": 0.31758523109684933,
+      "t_stat": 3.9236760892690508,
+      "p_value": 8.720796985288207e-05
+    },
+    {
+      "term": "fe_date_2018-12-31",
+      "coefficient": 1.2246045007754605,
+      "std_error": 0.3504586067097417,
+      "t_stat": 3.4942914151048585,
+      "p_value": 0.00047532187214268984
+    },
+    {
+      "term": "fe_date_2019-01-31",
+      "coefficient": 1.4329178070943314,
+      "std_error": 0.31965093911021913,
+      "t_stat": 4.482758008104102,
+      "p_value": 7.368447152559646e-06
+    },
+    {
+      "term": "fe_date_2019-02-28",
+      "coefficient": 1.2879612382492116,
+      "std_error": 0.33487895074373225,
+      "t_stat": 3.846050148535105,
+      "p_value": 0.00012003720516967144
+    },
+    {
+      "term": "fe_date_2019-03-31",
+      "coefficient": 1.8177836263319194,
+      "std_error": 0.2808810106804746,
+      "t_stat": 6.4717213240157365,
+      "p_value": 9.689270153262729e-11
+    },
+    {
+      "term": "fe_date_2019-04-30",
+      "coefficient": 1.7941173533876702,
+      "std_error": 0.32304338339588207,
+      "t_stat": 5.553796937512327,
+      "p_value": 2.795301873434098e-08
+    },
+    {
+      "term": "fe_date_2019-05-31",
+      "coefficient": 1.8160153779153112,
+      "std_error": 0.3124890169459396,
+      "t_stat": 5.811453457352969,
+      "p_value": 6.193275290475397e-09
+    },
+    {
+      "term": "fe_date_2019-06-30",
+      "coefficient": 1.5763383770383106,
+      "std_error": 0.3258839112703199,
+      "t_stat": 4.837116293632372,
+      "p_value": 1.3173636024174079e-06
+    },
+    {
+      "term": "fe_date_2019-07-31",
+      "coefficient": -0.6979330809065045,
+      "std_error": 0.2455623269698502,
+      "t_stat": -2.8421830397143766,
+      "p_value": 0.004480575908171133
+    },
+    {
+      "term": "fe_date_2019-08-31",
+      "coefficient": -0.585942572830767,
+      "std_error": 0.26160194100801776,
+      "t_stat": -2.2398250203075083,
+      "p_value": 0.025102284872984545
+    },
+    {
+      "term": "fe_date_2019-09-30",
+      "coefficient": -0.38575905552303613,
+      "std_error": 0.24256395375816706,
+      "t_stat": -1.590339576619998,
+      "p_value": 0.11175828227355855
+    },
+    {
+      "term": "fe_date_2019-10-31",
+      "coefficient": -0.2520438265535372,
+      "std_error": 0.23235800034977255,
+      "t_stat": -1.084721964271216,
+      "p_value": 0.27804481677972215
+    },
+    {
+      "term": "fe_date_2019-11-30",
+      "coefficient": -0.17580786001170168,
+      "std_error": 0.2199746395269562,
+      "t_stat": -0.7992187662621798,
+      "p_value": 0.4241635722244236
+    },
+    {
+      "term": "fe_date_2019-12-31",
+      "coefficient": 0.1895845015320603,
+      "std_error": 0.21478572923211858,
+      "t_stat": 0.8826680534588807,
+      "p_value": 0.3774156475943268
+    },
+    {
+      "term": "fe_date_2020-01-31",
+      "coefficient": -0.15788655160954157,
+      "std_error": 0.26327511228826744,
+      "t_stat": -0.5997017729373032,
+      "p_value": 0.5487050064694126
+    },
+    {
+      "term": "fe_date_2020-02-29",
+      "coefficient": -0.0050924489294965625,
+      "std_error": 0.2078575845390129,
+      "t_stat": -0.024499702239832187,
+      "p_value": 0.9804540212228924
+    },
+    {
+      "term": "fe_date_2020-03-31",
+      "coefficient": 0.0854013807468581,
+      "std_error": 0.2660077557151156,
+      "t_stat": 0.32104846160320155,
+      "p_value": 0.748173666108219
+    },
+    {
+      "term": "fe_date_2020-04-30",
+      "coefficient": 0.09788322212311051,
+      "std_error": 0.22130465659977736,
+      "t_stat": 0.4423007795092595,
+      "p_value": 0.6582715669482161
+    },
+    {
+      "term": "fe_date_2020-05-31",
+      "coefficient": 0.522640310260865,
+      "std_error": 0.2635791522706238,
+      "t_stat": 1.9828590605840335,
+      "p_value": 0.04738317471486678
+    },
+    {
+      "term": "fe_date_2020-06-30",
+      "coefficient": 0.46415175426867084,
+      "std_error": 0.1980266868307441,
+      "t_stat": 2.3438848657069498,
+      "p_value": 0.01908406150850383
+    },
+    {
+      "term": "fe_date_2020-07-31",
+      "coefficient": 0.39983413152393066,
+      "std_error": 0.2588768008911098,
+      "t_stat": 1.544495799343994,
+      "p_value": 0.12246826811251642
+    },
+    {
+      "term": "fe_date_2020-08-31",
+      "coefficient": 0.27737934786814833,
+      "std_error": 0.20250982749589932,
+      "t_stat": 1.3697080842842804,
+      "p_value": 0.17077804409855424
+    },
+    {
+      "term": "fe_date_2020-09-30",
+      "coefficient": 0.8837331045549446,
+      "std_error": 0.3027119397695925,
+      "t_stat": 2.9193863487102396,
+      "p_value": 0.003507212546976576
+    },
+    {
+      "term": "fe_date_2020-10-31",
+      "coefficient": 0.7199348372632848,
+      "std_error": 0.19966990722559036,
+      "t_stat": 3.605625140346715,
+      "p_value": 0.0003114023824000338
+    },
+    {
+      "term": "fe_date_2020-11-30",
+      "coefficient": 1.0081045175442744,
+      "std_error": 0.2454420010604718,
+      "t_stat": 4.107302389927543,
+      "p_value": 4.003070044977045e-05
+    },
+    {
+      "term": "fe_date_2020-12-31",
+      "coefficient": 0.6914436217995563,
+      "std_error": 0.2530961382746028,
+      "t_stat": 2.731940623484969,
+      "p_value": 0.00629624869370356
+    }
+  ],
+  "narrative": [
+    "Fixed effects model run on panel_dataset.csv.",
+    "Outcome variable: outcome_y.",
+    "Slope regressors: size, leverage, post.",
+    "Fixed effects: firm_id, date.",
+    "Observations used: 648."
+  ],
+  "sample_columns": [
+    "outcome_y",
+    "size",
+    "leverage",
+    "post",
+    "firm_id",
+    "date"
+  ],
+  "sample_preview": [
+    {
+      "outcome_y": 8.281342947667275,
+      "size": 8.519775911467494,
+      "leverage": 0.3577590135791016,
+      "post": 0,
+      "firm_id": "firm_01",
+      "date": "2018-01-31"
+    },
+    {
+      "outcome_y": 7.161166663415577,
+      "size": 7.55721041465215,
+      "leverage": 0.3378183221465689,
+      "post": 0,
+      "firm_id": "firm_01",
+      "date": "2018-02-28"
+    },
+    {
+      "outcome_y": 7.582391886802917,
+      "size": 7.823590785770317,
+      "leverage": 0.3343232278441892,
+      "post": 0,
+      "firm_id": "firm_01",
+      "date": "2018-03-31"
+    },
+    {
+      "outcome_y": 8.19643779930995,
+      "size": 8.058331858128255,
+      "leverage": 0.3581110765958445,
+      "post": 0,
+      "firm_id": "firm_01",
+      "date": "2018-04-30"
+    },
+    {
+      "outcome_y": 6.775339604671813,
+      "size": 7.790582349444769,
+      "leverage": 0.3323010132904619,
+      "post": 0,
+      "firm_id": "firm_01",
+      "date": "2018-05-31"
+    }
+  ],
+  "specification": {
+    "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+    "model_family": "econometrics_baseline",
+    "model_type": "fixed_effects",
+    "dependent": "outcome_y",
+    "independents": [
+      "size",
+      "leverage"
+    ],
+    "controls": [
+      "post"
+    ],
+    "entity_column": "firm_id",
+    "time_column": "date",
+    "include_time_effects": true,
+    "model_label": "Fixed Effects",
+    "regressors": [
+      "size",
+      "leverage",
+      "post"
+    ],
+    "covariance_type": "HC1",
+    "equation": "outcome_y ~ size + leverage + post"
+  },
+  "audit_trail": {
+    "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+    "sample_title": "panel_dataset.csv",
+    "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+    "rows_used": 648,
+    "sample_columns": [
+      "outcome_y",
+      "size",
+      "leverage",
+      "post",
+      "firm_id",
+      "date"
+    ],
+    "covariance_type": "HC1",
+    "manual_checklist": [
+      "Download the prepared sample asset referenced in sample_asset_id.",
+      "Rebuild any derived regressors listed in derived_columns before estimation.",
+      "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+      "Compare the reproduced coefficient table with the coefficients array term by term."
+    ],
+    "derived_columns": [
+      "size",
+      "leverage",
+      "post",
+      "fe_firm_id_firm_02",
+      "fe_firm_id_firm_03",
+      "fe_firm_id_firm_04",
+      "fe_firm_id_firm_05",
+      "fe_firm_id_firm_06",
+      "fe_firm_id_firm_07",
+      "fe_firm_id_firm_08",
+      "fe_firm_id_firm_09",
+      "fe_firm_id_firm_10",
+      "fe_firm_id_firm_11",
+      "fe_firm_id_firm_12",
+      "fe_firm_id_firm_13",
+      "fe_firm_id_firm_14",
+      "fe_firm_id_firm_15",
+      "fe_firm_id_firm_16",
+      "fe_firm_id_firm_17",
+      "fe_firm_id_firm_18",
+      "fe_date_2018-02-28",
+      "fe_date_2018-03-31",
+      "fe_date_2018-04-30",
+      "fe_date_2018-05-31",
+      "fe_date_2018-06-30",
+      "fe_date_2018-07-31",
+      "fe_date_2018-08-31",
+      "fe_date_2018-09-30",
+      "fe_date_2018-10-31",
+      "fe_date_2018-11-30",
+      "fe_date_2018-12-31",
+      "fe_date_2019-01-31",
+      "fe_date_2019-02-28",
+      "fe_date_2019-03-31",
+      "fe_date_2019-04-30",
+      "fe_date_2019-05-31",
+      "fe_date_2019-06-30",
+      "fe_date_2019-07-31",
+      "fe_date_2019-08-31",
+      "fe_date_2019-09-30",
+      "fe_date_2019-10-31",
+      "fe_date_2019-11-30",
+      "fe_date_2019-12-31",
+      "fe_date_2020-01-31",
+      "fe_date_2020-02-29",
+      "fe_date_2020-03-31",
+      "fe_date_2020-04-30",
+      "fe_date_2020-05-31",
+      "fe_date_2020-06-30",
+      "fe_date_2020-07-31",
+      "fe_date_2020-08-31",
+      "fe_date_2020-09-30",
+      "fe_date_2020-10-31",
+      "fe_date_2020-11-30",
+      "fe_date_2020-12-31"
+    ],
+    "filters": [
+      "Rows with missing outcome, slope regressors, entity ids, or time ids are dropped."
+    ],
+    "fixed_effects": [
+      "firm_id",
+      "date"
+    ]
+  },
+  "entity_column": "firm_id",
+  "time_column": "date",
+  "include_time_effects": true,
+  "entity_count": 18,
+  "time_count": 36,
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "Fixed Effects estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": []
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "",
+  "variant_spec": {},
+  "result_record_id": "c8f34e40-f15e-465c-90bd-f0651e3be922",
+  "result_detail_path": "/data-lab/results/models/c8f34e40-f15e-465c-90bd-f0651e3be922"
+}

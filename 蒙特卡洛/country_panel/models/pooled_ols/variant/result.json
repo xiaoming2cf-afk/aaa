@@ -1,0 +1,291 @@
+{
+  "model_type": "pooled_ols",
+  "model_label": "Pooled OLS",
+  "asset": {
+    "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "kind": "dataset_csv",
+    "title": "upgrade_panel.csv",
+    "filename": "upgrade_panel.csv",
+    "description": "upgrade_panel.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 289095,
+      "original_filename": "upgrade_panel.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:26.995002",
+    "updated_at": "2026-04-02T02:57:27.013674"
+  },
+  "dependent": "outcome_y",
+  "regressors": [
+    "const",
+    "size",
+    "leverage",
+    "endogenous_x",
+    "post"
+  ],
+  "observations": 648,
+  "r_squared": 0.6273462233972651,
+  "adj_r_squared": null,
+  "pseudo_r_squared": null,
+  "aic": null,
+  "bic": null,
+  "log_likelihood": null,
+  "coefficients": [
+    {
+      "term": "const",
+      "coefficient": 3.568618913386441,
+      "std_error": 0.714692104472696,
+      "t_stat": 4.9932256017007335,
+      "p_value": 7.657620362255813e-07
+    },
+    {
+      "term": "size",
+      "coefficient": 0.588276797657442,
+      "std_error": 0.06061509674735552,
+      "t_stat": 9.705120163535943,
+      "p_value": 0.0
+    },
+    {
+      "term": "leverage",
+      "coefficient": -1.2058791070741712,
+      "std_error": 1.264695271226888,
+      "t_stat": -0.9534938055902914,
+      "p_value": 0.3406982311003932
+    },
+    {
+      "term": "endogenous_x",
+      "coefficient": 0.6425269567205819,
+      "std_error": 0.05712395103890939,
+      "t_stat": 11.247943201319028,
+      "p_value": 0.0
+    },
+    {
+      "term": "post",
+      "coefficient": 2.106593629796464,
+      "std_error": 0.09222246600690202,
+      "t_stat": 22.842521144888973,
+      "p_value": 0.0
+    }
+  ],
+  "narrative": [
+    "Pooled OLS estimated with linearmodels on upgrade_panel.csv.",
+    "Dependent variable: outcome_y.",
+    "Observations used: 648."
+  ],
+  "sample_columns": [
+    "firm_id",
+    "month_index",
+    "outcome_y",
+    "size",
+    "leverage",
+    "endogenous_x",
+    "post"
+  ],
+  "sample_preview": [
+    {
+      "firm_id": "firm_01",
+      "month_index": "1970-01-01T00:00:00.000000001",
+      "outcome_y": 8.281342947667275,
+      "size": 8.519775911467494,
+      "leverage": 0.3577590135791016,
+      "endogenous_x": 0.2785972991161518,
+      "post": 0
+    },
+    {
+      "firm_id": "firm_01",
+      "month_index": "1970-01-01T00:00:00.000000002",
+      "outcome_y": 7.161166663415577,
+      "size": 7.55721041465215,
+      "leverage": 0.3378183221465689,
+      "endogenous_x": 1.1977342200420291,
+      "post": 0
+    },
+    {
+      "firm_id": "firm_01",
+      "month_index": "1970-01-01T00:00:00.000000003",
+      "outcome_y": 7.582391886802917,
+      "size": 7.823590785770317,
+      "leverage": 0.3343232278441892,
+      "endogenous_x": 0.2791971515539841,
+      "post": 0
+    },
+    {
+      "firm_id": "firm_01",
+      "month_index": "1970-01-01T00:00:00.000000004",
+      "outcome_y": 8.19643779930995,
+      "size": 8.058331858128255,
+      "leverage": 0.3581110765958445,
+      "endogenous_x": 1.693126004491981,
+      "post": 0
+    },
+    {
+      "firm_id": "firm_01",
+      "month_index": "1970-01-01T00:00:00.000000005",
+      "outcome_y": 6.775339604671813,
+      "size": 7.790582349444769,
+      "leverage": 0.3323010132904619,
+      "endogenous_x": -0.6336680485148168,
+      "post": 0
+    }
+  ],
+  "specification": {
+    "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "model_family": "econometrics_baseline",
+    "model_type": "pooled_ols",
+    "dependent": "outcome_y",
+    "independents": [
+      "size",
+      "leverage",
+      "endogenous_x"
+    ],
+    "controls": [
+      "post"
+    ],
+    "entity_column": "firm_id",
+    "time_column": "month_index",
+    "engine": "linearmodels",
+    "variant_label": "pooled_endog"
+  },
+  "audit_trail": {
+    "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "sample_title": "upgrade_panel.csv",
+    "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+    "rows_used": 648,
+    "sample_columns": [
+      "firm_id",
+      "month_index",
+      "outcome_y",
+      "size",
+      "leverage",
+      "endogenous_x",
+      "post"
+    ],
+    "covariance_type": "nonrobust",
+    "manual_checklist": [
+      "Download the prepared sample asset referenced in sample_asset_id.",
+      "Rebuild any derived regressors listed in derived_columns before estimation.",
+      "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+      "Compare the reproduced coefficient table with the coefficients array term by term."
+    ],
+    "engine": "linearmodels",
+    "derived_columns": [],
+    "filters": [
+      "Rows with missing panel identifiers or regressors are dropped."
+    ]
+  },
+  "engine": "linearmodels",
+  "primary_tables": [
+    "fit_summary_table",
+    "sample_audit_table"
+  ],
+  "robustness_tables": [],
+  "tables": {
+    "fit_summary_table": [
+      {
+        "metric": "nobs",
+        "value": 648.0
+      },
+      {
+        "metric": "rsquared",
+        "value": 0.6273462233972651
+      },
+      {
+        "metric": "rsquared_within",
+        "value": 0.6889842484172792
+      },
+      {
+        "metric": "loglik",
+        "value": -980.6627764658951
+      }
+    ],
+    "sample_audit_table": [
+      {
+        "entities": 18,
+        "periods": 36,
+        "observations": 648,
+        "dependent_mean": 9.81688999287978,
+        "dependent_std": 1.8003528988882065
+      }
+    ]
+  },
+  "figures": [
+    {
+      "asset_id": "1d2a56aa-a18a-456f-9106-7a518d00097c",
+      "title": "Pooled OLS residual diagnostic",
+      "summary": "Histogram of model residuals for manual diagnostics.",
+      "download_url": "/api/assets/1d2a56aa-a18a-456f-9106-7a518d00097c/download",
+      "asset": {
+        "id": "1d2a56aa-a18a-456f-9106-7a518d00097c",
+        "kind": "chart_png",
+        "title": "upgrade_panel-pooled_ols_residual_diagnostic.png",
+        "filename": "upgrade_panel-pooled_ols_residual_diagnostic.png",
+        "description": "Histogram of model residuals for manual diagnostics.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 28780,
+          "original_filename": "upgrade_panel-pooled_ols_residual_diagnostic.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Pooled OLS residual diagnostic",
+          "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+          "summary": "Histogram of model residuals for manual diagnostics."
+        },
+        "created_at": "2026-04-02T02:57:32.932770+00:00",
+        "updated_at": "2026-04-02T02:57:32.946466+00:00"
+      }
+    }
+  ],
+  "metrics": {},
+  "paper_output_contract": {
+    "primary_tables": [
+      "fit_summary_table",
+      "sample_audit_table"
+    ],
+    "robustness_tables": [],
+    "figure_count": 1
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "Pooled OLS estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+          "Supporting tables included: fit_summary_table, sample_audit_table.",
+          "Figures included: Pooled OLS residual diagnostic."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "fit_summary_table",
+      "sample_audit_table",
+      "Pooled OLS residual diagnostic"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "pooled_endog",
+  "variant_spec": {},
+  "result_record_id": "3b25e2ed-ea06-43c8-8310-9f3869abbeec",
+  "result_detail_path": "/data-lab/results/models/3b25e2ed-ea06-43c8-8310-9f3869abbeec"
+}

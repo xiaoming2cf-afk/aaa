@@ -1,0 +1,19 @@
+{
+  "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "model_family": "time_series_finance",
+  "model_type": "bk_connectedness",
+  "series_columns": [
+    "return_a",
+    "return_b",
+    "return_c"
+  ],
+  "time_column": "date",
+  "var_lags": 2,
+  "bk_short_horizon": 5,
+  "bk_medium_horizon": 20,
+  "lags": 2,
+  "short_horizon": 5,
+  "medium_horizon": 20,
+  "truncation_horizon": 80,
+  "identification": "Barunik-Krehlik style frequency connectedness decomposition"
+}

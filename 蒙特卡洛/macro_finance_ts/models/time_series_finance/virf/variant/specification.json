@@ -1,0 +1,22 @@
+{
+  "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "model_family": "time_series_finance",
+  "model_type": "virf",
+  "dependent": "asset_return",
+  "time_column": "date",
+  "garch_p": 1,
+  "garch_q": 1,
+  "irf_horizon": 10,
+  "virf_shock_size": 1.25,
+  "return_column": "asset_return",
+  "p": 1,
+  "q": 1,
+  "horizon": 10,
+  "shock_size": 1.25,
+  "equation": "E[h_{t+s}|shock] for a fitted GARCH(1,1) process",
+  "variant_label": "virf_larger_shock",
+  "variant_spec": {
+    "irf_horizon": 12,
+    "virf_shock_size": 1.5
+  }
+}

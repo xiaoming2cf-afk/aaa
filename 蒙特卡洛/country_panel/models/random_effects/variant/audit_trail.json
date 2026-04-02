@@ -1,0 +1,27 @@
+{
+  "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "sample_title": "upgrade_panel.csv",
+  "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+  "rows_used": 648,
+  "sample_columns": [
+    "firm_id",
+    "month_index",
+    "outcome_y",
+    "size",
+    "leverage",
+    "post",
+    "treated"
+  ],
+  "covariance_type": "nonrobust",
+  "manual_checklist": [
+    "Download the prepared sample asset referenced in sample_asset_id.",
+    "Rebuild any derived regressors listed in derived_columns before estimation.",
+    "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+    "Compare the reproduced coefficient table with the coefficients array term by term."
+  ],
+  "engine": "linearmodels",
+  "derived_columns": [],
+  "filters": [
+    "Rows with missing panel identifiers or regressors are dropped."
+  ]
+}

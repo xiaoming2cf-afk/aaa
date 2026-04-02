@@ -1,0 +1,16 @@
+{
+  "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "model_family": "econometrics_baseline",
+  "model_type": "mixedlm",
+  "dependent": "outcome_y",
+  "independents": [
+    "size",
+    "leverage",
+    "post",
+    "treated"
+  ],
+  "entity_column": "firm_id",
+  "engine": "statsmodels",
+  "group_column": "firm_id",
+  "variant_label": "mixed_treated"
+}

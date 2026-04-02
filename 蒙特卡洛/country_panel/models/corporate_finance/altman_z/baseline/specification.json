@@ -1,0 +1,22 @@
+{
+  "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "model_family": "corporate_finance",
+  "model_type": "altman_z",
+  "working_capital_column": "working_capital",
+  "retained_earnings_column": "retained_earnings",
+  "ebit_column": "ebit",
+  "market_equity_column": "market_equity",
+  "total_assets_column": "total_assets",
+  "total_liabilities_column": "total_liabilities",
+  "sales_column": "sales",
+  "equation": "1.2*(WC/TA)+1.4*(RE/TA)+3.3*(EBIT/TA)+0.6*(MVE/TL)+1.0*(Sales/TA)",
+  "input_columns": {
+    "working_capital": "working_capital",
+    "retained_earnings": "retained_earnings",
+    "ebit": "ebit",
+    "market_equity": "market_equity",
+    "sales": "sales",
+    "total_assets": "total_assets",
+    "total_liabilities": "total_liabilities"
+  }
+}

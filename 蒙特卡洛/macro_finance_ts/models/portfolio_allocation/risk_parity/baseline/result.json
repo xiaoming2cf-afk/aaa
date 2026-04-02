@@ -1,0 +1,198 @@
+{
+  "model_type": "risk_parity",
+  "model_label": "Risk Parity",
+  "asset": {
+    "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "kind": "dataset_csv",
+    "title": "timeseries_dataset.csv",
+    "filename": "timeseries_dataset.csv",
+    "description": "timeseries_dataset.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 93948,
+      "original_filename": "timeseries_dataset.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T03:16:14.454310",
+    "updated_at": "2026-04-02T03:16:14.458473"
+  },
+  "observations": 240,
+  "narrative": [
+    "Hierarchical risk parity allocation estimated from the sample covariance structure."
+  ],
+  "specification": {
+    "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "model_family": "portfolio_allocation",
+    "model_type": "risk_parity",
+    "series_columns": [
+      "return_a",
+      "return_b",
+      "return_c"
+    ],
+    "long_only": true,
+    "engine": "pypfopt"
+  },
+  "audit_trail": {
+    "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "sample_title": "timeseries_dataset.csv",
+    "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+    "engine": "pypfopt",
+    "derived_columns": [],
+    "filters": [
+      "Rows with missing return observations are dropped before optimization."
+    ]
+  },
+  "metrics": {},
+  "tables": {
+    "weights_table": [
+      {
+        "asset": "return_a",
+        "weight": 0.15158217669226628
+      },
+      {
+        "asset": "return_b",
+        "weight": 0.5692337889094405
+      },
+      {
+        "asset": "return_c",
+        "weight": 0.27918403439829315
+      }
+    ],
+    "portfolio_metrics": [
+      {
+        "portfolio": "portfolio",
+        "metric": "expected_return",
+        "value": 0.008192856621027991
+      },
+      {
+        "portfolio": "portfolio",
+        "metric": "volatility",
+        "value": 0.06615811341358287
+      },
+      {
+        "portfolio": "portfolio",
+        "metric": "sharpe",
+        "value": 0.12383751891186671
+      }
+    ]
+  },
+  "sample_columns": [
+    "date",
+    "return_a",
+    "return_b",
+    "return_c"
+  ],
+  "sample_preview": [
+    {
+      "date": "2005-01-31T00:00:00",
+      "return_a": 1.1688157461773752,
+      "return_b": 0.3374757548649373,
+      "return_c": 0.8996990649038376
+    },
+    {
+      "date": "2005-02-28T00:00:00",
+      "return_a": 0.5343520409140631,
+      "return_b": 0.562932504678913,
+      "return_c": 0.3807846207439792
+    },
+    {
+      "date": "2005-03-31T00:00:00",
+      "return_a": 0.3152683060245842,
+      "return_b": 0.4289423809695991,
+      "return_c": 0.2694936932673371
+    },
+    {
+      "date": "2005-04-30T00:00:00",
+      "return_a": 0.2563147569235233,
+      "return_b": 0.2318914039278177,
+      "return_c": 0.1440411095196035
+    },
+    {
+      "date": "2005-05-31T00:00:00",
+      "return_a": 0.1639044786851478,
+      "return_b": 0.1299938142922835,
+      "return_c": 0.0690812146746108
+    }
+  ],
+  "engine": "pypfopt",
+  "figures": [
+    {
+      "asset_id": "1fb34595-c4a4-4d14-80b4-f06973e3aa05",
+      "title": "Hierarchical risk parity weights",
+      "summary": "Weight allocation from the hierarchical risk parity optimizer.",
+      "download_url": "/api/assets/1fb34595-c4a4-4d14-80b4-f06973e3aa05/download",
+      "asset": {
+        "id": "1fb34595-c4a4-4d14-80b4-f06973e3aa05",
+        "kind": "chart_png",
+        "title": "timeseries_dataset-hrp_weights.png",
+        "filename": "timeseries_dataset-hrp_weights.png",
+        "description": "Weight allocation from the hierarchical risk parity optimizer.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 19275,
+          "original_filename": "timeseries_dataset-hrp_weights.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Hierarchical risk parity weights",
+          "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+          "summary": "Weight allocation from the hierarchical risk parity optimizer."
+        },
+        "created_at": "2026-04-02T03:16:40.846960+00:00",
+        "updated_at": "2026-04-02T03:16:40.858957+00:00"
+      }
+    }
+  ],
+  "primary_tables": [
+    "weights_table",
+    "portfolio_metrics"
+  ],
+  "paper_output_contract": {
+    "primary_tables": [
+      "weights_table",
+      "portfolio_metrics"
+    ],
+    "figure_count": 1
+  },
+  "workflow_type": "model",
+  "model_family": "portfolio_allocation",
+  "interpretation": {
+    "headline": "Risk Parity estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: weights_table, portfolio_metrics.",
+          "Figures included: Hierarchical risk parity weights."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "weights_table",
+      "portfolio_metrics",
+      "Hierarchical risk parity weights"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "",
+  "variant_spec": {},
+  "result_record_id": "f917117f-710b-4a42-86aa-73d08b0d6dce",
+  "result_detail_path": "/data-lab/results/models/f917117f-710b-4a42-86aa-73d08b0d6dce"
+}

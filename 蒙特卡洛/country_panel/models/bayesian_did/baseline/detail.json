@@ -1,0 +1,610 @@
+{
+  "record": {
+    "id": "47430a19-e273-4f2d-b4d1-2d9311427403",
+    "title": "Bayesian DID summary for upgrade_panel.csv",
+    "content": "Bayesian difference-in-differences model estimated with a posterior on the treatment interaction.",
+    "content_excerpt": "Bayesian difference-in-differences model estimated with a posterior on the treatment interaction.",
+    "content_length": 97,
+    "tags": [
+      "bayesian_did",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "bayesian_did",
+      "model_label": "Bayesian DID",
+      "asset": {
+        "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "kind": "dataset_csv",
+        "title": "upgrade_panel.csv",
+        "filename": "upgrade_panel.csv",
+        "description": "upgrade_panel.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 289095,
+          "original_filename": "upgrade_panel.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T02:57:26.995002",
+        "updated_at": "2026-04-02T02:57:27.013674"
+      },
+      "observations": 648,
+      "narrative": [
+        "Bayesian difference-in-differences model estimated with a posterior on the treatment interaction."
+      ],
+      "specification": {
+        "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "model_family": "bayesian",
+        "model_type": "bayesian_did",
+        "dependent": "outcome_y",
+        "controls": [
+          "size",
+          "leverage"
+        ],
+        "treatment_column": "treated",
+        "post_column": "post",
+        "draws": 100,
+        "tune": 100,
+        "chains": 1,
+        "engine": "pymc",
+        "treated_column": "treated"
+      },
+      "audit_trail": {
+        "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "sample_title": "upgrade_panel.csv",
+        "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+        "engine": "pymc",
+        "derived_columns": [
+          "did_term"
+        ],
+        "filters": []
+      },
+      "metrics": {},
+      "tables": {
+        "posterior_treatment_effect_table": [
+          {
+            "index": "beta[0]",
+            "mean": 0.353,
+            "sd": 0.662,
+            "hdi_3%": -0.867,
+            "hdi_97%": 1.533,
+            "mcse_mean": 0.021,
+            "mcse_sd": 0.015,
+            "ess_bulk": 994.0,
+            "ess_tail": 935.0,
+            "r_hat": null
+          },
+          {
+            "index": "beta[1]",
+            "mean": 0.336,
+            "sd": 0.661,
+            "hdi_3%": -0.978,
+            "hdi_97%": 1.51,
+            "mcse_mean": 0.022,
+            "mcse_sd": 0.015,
+            "ess_bulk": 887.0,
+            "ess_tail": 983.0,
+            "r_hat": null
+          },
+          {
+            "index": "beta[2]",
+            "mean": 0.384,
+            "sd": 0.681,
+            "hdi_3%": -0.91,
+            "hdi_97%": 1.535,
+            "mcse_mean": 0.023,
+            "mcse_sd": 0.014,
+            "ess_bulk": 906.0,
+            "ess_tail": 1032.0,
+            "r_hat": null
+          },
+          {
+            "index": "beta[3]",
+            "mean": 0.37,
+            "sd": 0.563,
+            "hdi_3%": -0.735,
+            "hdi_97%": 1.37,
+            "mcse_mean": 0.019,
+            "mcse_sd": 0.014,
+            "ess_bulk": 879.0,
+            "ess_tail": 741.0,
+            "r_hat": null
+          },
+          {
+            "index": "beta[4]",
+            "mean": 0.344,
+            "sd": 0.658,
+            "hdi_3%": -0.867,
+            "hdi_97%": 1.559,
+            "mcse_mean": 0.023,
+            "mcse_sd": 0.015,
+            "ess_bulk": 812.0,
+            "ess_tail": 892.0,
+            "r_hat": null
+          }
+        ],
+        "cell_mean_posterior_table": [
+          {
+            "treated": 0,
+            "post": 0,
+            "mean_outcome": 9.031738576080604
+          },
+          {
+            "treated": 0,
+            "post": 1,
+            "mean_outcome": 10.820814344829785
+          },
+          {
+            "treated": 1,
+            "post": 0,
+            "mean_outcome": 8.070741492696929
+          },
+          {
+            "treated": 1,
+            "post": 1,
+            "mean_outcome": 11.3442655579118
+          }
+        ]
+      },
+      "sample_columns": [
+        "outcome_y",
+        "treated",
+        "post",
+        "size",
+        "leverage",
+        "did_term"
+      ],
+      "sample_preview": [
+        {
+          "outcome_y": 8.281342947667275,
+          "treated": 1,
+          "post": 0,
+          "size": 8.519775911467494,
+          "leverage": 0.3577590135791016,
+          "did_term": 0
+        },
+        {
+          "outcome_y": 7.161166663415577,
+          "treated": 1,
+          "post": 0,
+          "size": 7.55721041465215,
+          "leverage": 0.3378183221465689,
+          "did_term": 0
+        },
+        {
+          "outcome_y": 7.582391886802917,
+          "treated": 1,
+          "post": 0,
+          "size": 7.823590785770317,
+          "leverage": 0.3343232278441892,
+          "did_term": 0
+        },
+        {
+          "outcome_y": 8.19643779930995,
+          "treated": 1,
+          "post": 0,
+          "size": 8.058331858128255,
+          "leverage": 0.3581110765958445,
+          "did_term": 0
+        },
+        {
+          "outcome_y": 6.775339604671813,
+          "treated": 1,
+          "post": 0,
+          "size": 7.790582349444769,
+          "leverage": 0.3323010132904619,
+          "did_term": 0
+        }
+      ],
+      "engine": "pymc",
+      "figures": [
+        {
+          "asset_id": "3b3bf8da-6ce5-479b-ba44-62e76cd1469d",
+          "title": "Bayesian DID trace",
+          "summary": "Trace plots for the Bayesian DID model.",
+          "download_url": "/api/assets/3b3bf8da-6ce5-479b-ba44-62e76cd1469d/download",
+          "asset": {
+            "id": "3b3bf8da-6ce5-479b-ba44-62e76cd1469d",
+            "kind": "chart_png",
+            "title": "upgrade_panel-bayes_did_trace.png",
+            "filename": "upgrade_panel-bayes_did_trace.png",
+            "description": "Trace plots for the Bayesian DID model.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 164912,
+              "original_filename": "upgrade_panel-bayes_did_trace.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "Bayesian DID trace",
+              "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+              "summary": "Trace plots for the Bayesian DID model."
+            },
+            "created_at": "2026-04-02T03:06:00.476672+00:00",
+            "updated_at": "2026-04-02T03:06:00.490085+00:00"
+          }
+        },
+        {
+          "asset_id": "b398b9f2-2d89-4a32-942f-f8b777f241ff",
+          "title": "Posterior DID effect",
+          "summary": "Posterior mean of the treatment interaction term.",
+          "download_url": "/api/assets/b398b9f2-2d89-4a32-942f-f8b777f241ff/download",
+          "asset": {
+            "id": "b398b9f2-2d89-4a32-942f-f8b777f241ff",
+            "kind": "chart_png",
+            "title": "upgrade_panel-bayes_did_effect.png",
+            "filename": "upgrade_panel-bayes_did_effect.png",
+            "description": "Posterior mean of the treatment interaction term.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 25010,
+              "original_filename": "upgrade_panel-bayes_did_effect.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "Posterior DID effect",
+              "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+              "summary": "Posterior mean of the treatment interaction term."
+            },
+            "created_at": "2026-04-02T03:06:00.733525+00:00",
+            "updated_at": "2026-04-02T03:06:00.737786+00:00"
+          }
+        }
+      ],
+      "primary_tables": [
+        "posterior_treatment_effect_table",
+        "cell_mean_posterior_table"
+      ],
+      "paper_output_contract": {
+        "primary_tables": [
+          "posterior_treatment_effect_table",
+          "cell_mean_posterior_table"
+        ],
+        "figure_count": 2
+      },
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "Bayesian DID estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Supporting tables included: posterior_treatment_effect_table, cell_mean_posterior_table.",
+              "Figures included: Bayesian DID trace, Posterior DID effect."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "posterior_treatment_effect_table",
+          "cell_mean_posterior_table",
+          "Bayesian DID trace",
+          "Posterior DID effect"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "",
+      "variant_spec": {},
+      "result_record_id": "47430a19-e273-4f2d-b4d1-2d9311427403",
+      "result_detail_path": "/data-lab/results/models/47430a19-e273-4f2d-b4d1-2d9311427403"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:06:00.757715",
+    "updated_at": "2026-04-02T03:06:00.759330"
+  },
+  "result": {
+    "model_type": "bayesian_did",
+    "model_label": "Bayesian DID",
+    "asset": {
+      "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "kind": "dataset_csv",
+      "title": "upgrade_panel.csv",
+      "filename": "upgrade_panel.csv",
+      "description": "upgrade_panel.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 289095,
+        "original_filename": "upgrade_panel.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T02:57:26.995002",
+      "updated_at": "2026-04-02T02:57:27.013674"
+    },
+    "observations": 648,
+    "narrative": [
+      "Bayesian difference-in-differences model estimated with a posterior on the treatment interaction."
+    ],
+    "specification": {
+      "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "model_family": "bayesian",
+      "model_type": "bayesian_did",
+      "dependent": "outcome_y",
+      "controls": [
+        "size",
+        "leverage"
+      ],
+      "treatment_column": "treated",
+      "post_column": "post",
+      "draws": 100,
+      "tune": 100,
+      "chains": 1,
+      "engine": "pymc",
+      "treated_column": "treated"
+    },
+    "audit_trail": {
+      "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "sample_title": "upgrade_panel.csv",
+      "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+      "engine": "pymc",
+      "derived_columns": [
+        "did_term"
+      ],
+      "filters": []
+    },
+    "metrics": {},
+    "tables": {
+      "posterior_treatment_effect_table": [
+        {
+          "index": "beta[0]",
+          "mean": 0.353,
+          "sd": 0.662,
+          "hdi_3%": -0.867,
+          "hdi_97%": 1.533,
+          "mcse_mean": 0.021,
+          "mcse_sd": 0.015,
+          "ess_bulk": 994.0,
+          "ess_tail": 935.0,
+          "r_hat": null
+        },
+        {
+          "index": "beta[1]",
+          "mean": 0.336,
+          "sd": 0.661,
+          "hdi_3%": -0.978,
+          "hdi_97%": 1.51,
+          "mcse_mean": 0.022,
+          "mcse_sd": 0.015,
+          "ess_bulk": 887.0,
+          "ess_tail": 983.0,
+          "r_hat": null
+        },
+        {
+          "index": "beta[2]",
+          "mean": 0.384,
+          "sd": 0.681,
+          "hdi_3%": -0.91,
+          "hdi_97%": 1.535,
+          "mcse_mean": 0.023,
+          "mcse_sd": 0.014,
+          "ess_bulk": 906.0,
+          "ess_tail": 1032.0,
+          "r_hat": null
+        },
+        {
+          "index": "beta[3]",
+          "mean": 0.37,
+          "sd": 0.563,
+          "hdi_3%": -0.735,
+          "hdi_97%": 1.37,
+          "mcse_mean": 0.019,
+          "mcse_sd": 0.014,
+          "ess_bulk": 879.0,
+          "ess_tail": 741.0,
+          "r_hat": null
+        },
+        {
+          "index": "beta[4]",
+          "mean": 0.344,
+          "sd": 0.658,
+          "hdi_3%": -0.867,
+          "hdi_97%": 1.559,
+          "mcse_mean": 0.023,
+          "mcse_sd": 0.015,
+          "ess_bulk": 812.0,
+          "ess_tail": 892.0,
+          "r_hat": null
+        }
+      ],
+      "cell_mean_posterior_table": [
+        {
+          "treated": 0,
+          "post": 0,
+          "mean_outcome": 9.031738576080604
+        },
+        {
+          "treated": 0,
+          "post": 1,
+          "mean_outcome": 10.820814344829785
+        },
+        {
+          "treated": 1,
+          "post": 0,
+          "mean_outcome": 8.070741492696929
+        },
+        {
+          "treated": 1,
+          "post": 1,
+          "mean_outcome": 11.3442655579118
+        }
+      ]
+    },
+    "sample_columns": [
+      "outcome_y",
+      "treated",
+      "post",
+      "size",
+      "leverage",
+      "did_term"
+    ],
+    "sample_preview": [
+      {
+        "outcome_y": 8.281342947667275,
+        "treated": 1,
+        "post": 0,
+        "size": 8.519775911467494,
+        "leverage": 0.3577590135791016,
+        "did_term": 0
+      },
+      {
+        "outcome_y": 7.161166663415577,
+        "treated": 1,
+        "post": 0,
+        "size": 7.55721041465215,
+        "leverage": 0.3378183221465689,
+        "did_term": 0
+      },
+      {
+        "outcome_y": 7.582391886802917,
+        "treated": 1,
+        "post": 0,
+        "size": 7.823590785770317,
+        "leverage": 0.3343232278441892,
+        "did_term": 0
+      },
+      {
+        "outcome_y": 8.19643779930995,
+        "treated": 1,
+        "post": 0,
+        "size": 8.058331858128255,
+        "leverage": 0.3581110765958445,
+        "did_term": 0
+      },
+      {
+        "outcome_y": 6.775339604671813,
+        "treated": 1,
+        "post": 0,
+        "size": 7.790582349444769,
+        "leverage": 0.3323010132904619,
+        "did_term": 0
+      }
+    ],
+    "engine": "pymc",
+    "figures": [
+      {
+        "asset_id": "3b3bf8da-6ce5-479b-ba44-62e76cd1469d",
+        "title": "Bayesian DID trace",
+        "summary": "Trace plots for the Bayesian DID model.",
+        "download_url": "/api/assets/3b3bf8da-6ce5-479b-ba44-62e76cd1469d/download",
+        "asset": {
+          "id": "3b3bf8da-6ce5-479b-ba44-62e76cd1469d",
+          "kind": "chart_png",
+          "title": "upgrade_panel-bayes_did_trace.png",
+          "filename": "upgrade_panel-bayes_did_trace.png",
+          "description": "Trace plots for the Bayesian DID model.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 164912,
+            "original_filename": "upgrade_panel-bayes_did_trace.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "Bayesian DID trace",
+            "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+            "summary": "Trace plots for the Bayesian DID model."
+          },
+          "created_at": "2026-04-02T03:06:00.476672+00:00",
+          "updated_at": "2026-04-02T03:06:00.490085+00:00"
+        }
+      },
+      {
+        "asset_id": "b398b9f2-2d89-4a32-942f-f8b777f241ff",
+        "title": "Posterior DID effect",
+        "summary": "Posterior mean of the treatment interaction term.",
+        "download_url": "/api/assets/b398b9f2-2d89-4a32-942f-f8b777f241ff/download",
+        "asset": {
+          "id": "b398b9f2-2d89-4a32-942f-f8b777f241ff",
+          "kind": "chart_png",
+          "title": "upgrade_panel-bayes_did_effect.png",
+          "filename": "upgrade_panel-bayes_did_effect.png",
+          "description": "Posterior mean of the treatment interaction term.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 25010,
+            "original_filename": "upgrade_panel-bayes_did_effect.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "Posterior DID effect",
+            "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+            "summary": "Posterior mean of the treatment interaction term."
+          },
+          "created_at": "2026-04-02T03:06:00.733525+00:00",
+          "updated_at": "2026-04-02T03:06:00.737786+00:00"
+        }
+      }
+    ],
+    "primary_tables": [
+      "posterior_treatment_effect_table",
+      "cell_mean_posterior_table"
+    ],
+    "paper_output_contract": {
+      "primary_tables": [
+        "posterior_treatment_effect_table",
+        "cell_mean_posterior_table"
+      ],
+      "figure_count": 2
+    },
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "Bayesian DID estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Supporting tables included: posterior_treatment_effect_table, cell_mean_posterior_table.",
+            "Figures included: Bayesian DID trace, Posterior DID effect."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "posterior_treatment_effect_table",
+        "cell_mean_posterior_table",
+        "Bayesian DID trace",
+        "Posterior DID effect"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "",
+    "variant_spec": {},
+    "result_record_id": "47430a19-e273-4f2d-b4d1-2d9311427403",
+    "result_detail_path": "/data-lab/results/models/47430a19-e273-4f2d-b4d1-2d9311427403"
+  },
+  "workspace_id": "1127ef60-f949-49b8-b32e-bae8138f3568"
+}

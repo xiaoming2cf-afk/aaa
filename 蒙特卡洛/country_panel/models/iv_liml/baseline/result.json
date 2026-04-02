@@ -1,0 +1,286 @@
+{
+  "model_type": "iv_liml",
+  "model_label": "IV-LIML",
+  "asset": {
+    "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "kind": "dataset_csv",
+    "title": "upgrade_panel.csv",
+    "filename": "upgrade_panel.csv",
+    "description": "upgrade_panel.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 289095,
+      "original_filename": "upgrade_panel.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:26.995002",
+    "updated_at": "2026-04-02T02:57:27.013674"
+  },
+  "dependent": "outcome_y",
+  "regressors": [
+    "const",
+    "size",
+    "leverage",
+    "endogenous_x"
+  ],
+  "observations": 648,
+  "r_squared": 0.333609833377462,
+  "adj_r_squared": 0.33050553135903404,
+  "pseudo_r_squared": null,
+  "aic": null,
+  "bic": null,
+  "log_likelihood": null,
+  "coefficients": [
+    {
+      "term": "const",
+      "coefficient": 0.10774651444398842,
+      "std_error": 0.8589998448923057,
+      "t_stat": 0.1254325190914287,
+      "p_value": 0.9001811448931683
+    },
+    {
+      "term": "size",
+      "coefficient": 1.1228012275623769,
+      "std_error": 0.06695955386319333,
+      "t_stat": 16.768349888596912,
+      "p_value": 0.0
+    },
+    {
+      "term": "leverage",
+      "coefficient": -2.7788400804415687,
+      "std_error": 1.6439384787856843,
+      "t_stat": -1.690355275639143,
+      "p_value": 0.09096000598650433
+    },
+    {
+      "term": "endogenous_x",
+      "coefficient": 0.6127154738586196,
+      "std_error": 0.08434552107303614,
+      "t_stat": 7.264351041569349,
+      "p_value": 3.7481129311345285e-13
+    }
+  ],
+  "narrative": [
+    "IV-LIML estimated with linearmodels on upgrade_panel.csv.",
+    "Endogenous regressor: endogenous_x.",
+    "Instruments: instrument_z."
+  ],
+  "sample_columns": [
+    "outcome_y",
+    "size",
+    "leverage",
+    "endogenous_x",
+    "instrument_z"
+  ],
+  "sample_preview": [
+    {
+      "outcome_y": 8.281342947667275,
+      "size": 8.519775911467494,
+      "leverage": 0.3577590135791016,
+      "endogenous_x": 0.2785972991161518,
+      "instrument_z": -0.1435168424451554
+    },
+    {
+      "outcome_y": 7.161166663415577,
+      "size": 7.55721041465215,
+      "leverage": 0.3378183221465689,
+      "endogenous_x": 1.1977342200420291,
+      "instrument_z": 1.4316570462193818
+    },
+    {
+      "outcome_y": 7.582391886802917,
+      "size": 7.823590785770317,
+      "leverage": 0.3343232278441892,
+      "endogenous_x": 0.2791971515539841,
+      "instrument_z": 1.0577328335812757
+    },
+    {
+      "outcome_y": 8.19643779930995,
+      "size": 8.058331858128255,
+      "leverage": 0.3581110765958445,
+      "endogenous_x": 1.693126004491981,
+      "instrument_z": 1.2478999752354007
+    },
+    {
+      "outcome_y": 6.775339604671813,
+      "size": 7.790582349444769,
+      "leverage": 0.3323010132904619,
+      "endogenous_x": -0.6336680485148168,
+      "instrument_z": -0.7576141862667286
+    }
+  ],
+  "specification": {
+    "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "model_family": "econometrics_baseline",
+    "model_type": "iv_liml",
+    "dependent": "outcome_y",
+    "independents": [
+      "size"
+    ],
+    "controls": [
+      "leverage"
+    ],
+    "endogenous_column": "endogenous_x",
+    "instrument_columns": [
+      "instrument_z"
+    ],
+    "engine": "linearmodels"
+  },
+  "audit_trail": {
+    "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "sample_title": "upgrade_panel.csv",
+    "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+    "rows_used": 648,
+    "sample_columns": [
+      "outcome_y",
+      "size",
+      "leverage",
+      "endogenous_x",
+      "instrument_z"
+    ],
+    "covariance_type": "robust",
+    "manual_checklist": [
+      "Download the prepared sample asset referenced in sample_asset_id.",
+      "Rebuild any derived regressors listed in derived_columns before estimation.",
+      "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+      "Compare the reproduced coefficient table with the coefficients array term by term."
+    ],
+    "engine": "linearmodels",
+    "derived_columns": [],
+    "filters": [
+      "Rows with missing variables are dropped."
+    ]
+  },
+  "engine": "linearmodels",
+  "primary_tables": [
+    "first_stage_diagnostics",
+    "weak_instrument_diagnostics"
+  ],
+  "robustness_tables": [
+    "liml_vs_2sls"
+  ],
+  "tables": {
+    "first_stage_diagnostics": [
+      {
+        "index": "endogenous_x",
+        "rsquared": 0.7739226466374831,
+        "partial.rsquared": 0.7732743819688914,
+        "shea.rsquared": 0.7732743819688905,
+        "f.stat": 2049.5745373126997,
+        "f.pval": 0.0,
+        "f.dist": "chi2(1)"
+      }
+    ],
+    "weak_instrument_diagnostics": [
+      {
+        "kappa": 1.0000000000000009,
+        "nobs": 648.0,
+        "rsquared": 0.333609833377462
+      }
+    ],
+    "liml_vs_2sls": [
+      {
+        "term": "const",
+        "liml": 0.10774651444398842,
+        "iv_2sls": 0.10774651444398842
+      },
+      {
+        "term": "size",
+        "liml": 1.1228012275623769,
+        "iv_2sls": 1.1228012275623769
+      },
+      {
+        "term": "leverage",
+        "liml": -2.7788400804415687,
+        "iv_2sls": -2.7788400804415687
+      },
+      {
+        "term": "endogenous_x",
+        "liml": 0.6127154738586196,
+        "iv_2sls": 0.6127154738586196
+      }
+    ]
+  },
+  "figures": [
+    {
+      "asset_id": "a61162a1-444c-4ae5-a20c-eef81b595757",
+      "title": "IV-LIML First-stage Fit",
+      "summary": "Observed endogenous regressor versus first-stage fitted values.",
+      "download_url": "/api/assets/a61162a1-444c-4ae5-a20c-eef81b595757/download",
+      "asset": {
+        "id": "a61162a1-444c-4ae5-a20c-eef81b595757",
+        "kind": "chart_png",
+        "title": "upgrade_panel-iv_liml_first_stage_fit.png",
+        "filename": "upgrade_panel-iv_liml_first_stage_fit.png",
+        "description": "Observed endogenous regressor versus first-stage fitted values.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 136077,
+          "original_filename": "upgrade_panel-iv_liml_first_stage_fit.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "IV-LIML First-stage Fit",
+          "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+          "summary": "Observed endogenous regressor versus first-stage fitted values."
+        },
+        "created_at": "2026-04-02T02:57:36.075940+00:00",
+        "updated_at": "2026-04-02T02:57:36.090900+00:00"
+      }
+    }
+  ],
+  "metrics": {},
+  "paper_output_contract": {
+    "primary_tables": [
+      "first_stage_diagnostics",
+      "weak_instrument_diagnostics"
+    ],
+    "robustness_tables": [
+      "liml_vs_2sls"
+    ],
+    "figure_count": 1
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "IV-LIML estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+          "Supporting tables included: first_stage_diagnostics, weak_instrument_diagnostics, liml_vs_2sls.",
+          "Figures included: IV-LIML First-stage Fit."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "first_stage_diagnostics",
+      "weak_instrument_diagnostics",
+      "liml_vs_2sls",
+      "IV-LIML First-stage Fit"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "",
+  "variant_spec": {},
+  "result_record_id": "c981091e-5d49-4dc9-8163-0e542928d438",
+  "result_detail_path": "/data-lab/results/models/c981091e-5d49-4dc9-8163-0e542928d438"
+}

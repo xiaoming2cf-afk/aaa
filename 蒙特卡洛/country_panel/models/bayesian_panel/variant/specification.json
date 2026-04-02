@@ -1,0 +1,23 @@
+{
+  "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "model_family": "bayesian",
+  "model_type": "bayesian_panel",
+  "dependent": "outcome_y",
+  "independents": [
+    "size",
+    "leverage",
+    "post"
+  ],
+  "entity_column": "firm_id",
+  "time_column": "date",
+  "draws": 120,
+  "tune": 120,
+  "chains": 1,
+  "engine": "pymc",
+  "regressors": [
+    "size",
+    "leverage",
+    "post"
+  ],
+  "variant_label": "bayes_panel_post"
+}

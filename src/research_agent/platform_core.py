@@ -6731,7 +6731,18 @@ def _infer_model_family(model_type: str) -> str:
         "capm": "asset_pricing",
         "fama_french_3": "asset_pricing",
     }
-    return mapping.get(model_type, "econometrics_baseline")
+    if model_type in mapping:
+        return mapping[model_type]
+    try:
+        from .data_lab_catalog import get_data_lab_catalog
+
+        for family in get_data_lab_catalog():
+            for method in family.get("methods", []):
+                if str(method.get("slug") or "").strip().lower() == model_type:
+                    return str(family.get("slug") or "econometrics_baseline")
+    except Exception:
+        pass
+    return "econometrics_baseline"
 
 
 def run_model_analysis(
@@ -6815,6 +6826,45 @@ def run_model_analysis(
     dsge_shock_size: float = 0.01,
     dsge_impulse_horizon: int = 12,
     robust_covariance: bool = True,
+    feature_columns: list[str] | None = None,
+    factor_columns: list[str] | None = None,
+    secondary_dependent: str = "",
+    glm_family: str = "",
+    gee_family: str = "",
+    gee_group_column: str = "",
+    count_family: str = "",
+    inflation_regressors: list[str] | None = None,
+    quantile: float = 0.5,
+    varmax_order: list[int] | tuple[int, int] | None = None,
+    coint_rank: int = 1,
+    vecm_diff_lags: int = 1,
+    markov_regimes: int = 2,
+    seasonal: str | None = None,
+    seasonal_periods: int = 12,
+    distribution: str = "",
+    garch_o: int = 0,
+    forecast_simulations: int = 500,
+    harx_lags: list[int] | None = None,
+    unit_root_lags: int | None = None,
+    trend: str = "",
+    portfolio_objective: str = "",
+    cvar_beta: float = 0.95,
+    cdar_beta: float = 0.95,
+    split_ratio: float = 0.7,
+    n_estimators: int = 120,
+    learning_rate: float = 0.05,
+    num_leaves: int = 31,
+    iterations: int = 180,
+    depth: int = 6,
+    treated_unit: str = "",
+    control_units: list[str] | None = None,
+    treatment_time: float | int | str | None = None,
+    treatment_time_column: str = "",
+    treatment_index: int = 0,
+    intervention_at: float | int | str | None = None,
+    draws: int = 150,
+    tune: int = 150,
+    chains: int = 2,
     template_id: str = "",
     template_name: str = "",
     variant_label: str = "",
@@ -6822,6 +6872,126 @@ def run_model_analysis(
     effective_specification: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     normalized_model = model_type.strip().lower()
+    runtime_options = {
+        "asset_id": asset_id,
+        "dependent": dependent,
+        "independents": independents or [],
+        "controls": controls or [],
+        "series_columns": series_columns or [],
+        "treatment_column": treatment_column,
+        "post_column": post_column,
+        "event_time_column": event_time_column,
+        "lead_window": lead_window,
+        "lag_window": lag_window,
+        "omitted_period": omitted_period,
+        "origin_mass_column": origin_mass_column,
+        "destination_mass_column": destination_mass_column,
+        "distance_column": distance_column,
+        "running_column": running_column,
+        "cutoff": cutoff,
+        "bandwidth": bandwidth,
+        "polynomial_order": polynomial_order,
+        "treat_above_cutoff": treat_above_cutoff,
+        "entity_column": entity_column,
+        "time_column": time_column,
+        "include_time_effects": include_time_effects,
+        "endogenous_column": endogenous_column,
+        "instrument_columns": instrument_columns or [],
+        "market_column": market_column,
+        "risk_free_column": risk_free_column,
+        "smb_column": smb_column,
+        "hml_column": hml_column,
+        "spot_column": spot_column,
+        "strike_column": strike_column,
+        "maturity_column": maturity_column,
+        "rate_column": rate_column,
+        "volatility_column": volatility_column,
+        "working_capital_column": working_capital_column,
+        "retained_earnings_column": retained_earnings_column,
+        "ebit_column": ebit_column,
+        "market_equity_column": market_equity_column,
+        "total_assets_column": total_assets_column,
+        "total_liabilities_column": total_liabilities_column,
+        "sales_column": sales_column,
+        "net_income_column": net_income_column,
+        "revenue_column": revenue_column,
+        "equity_column": equity_column,
+        "inflation_gap_column": inflation_gap_column,
+        "output_gap_column": output_gap_column,
+        "arima_p": arima_p,
+        "arima_d": arima_d,
+        "arima_q": arima_q,
+        "garch_p": garch_p,
+        "garch_q": garch_q,
+        "forecast_steps": forecast_steps,
+        "var_lags": var_lags,
+        "irf_horizon": irf_horizon,
+        "impulse_column": impulse_column,
+        "response_column": response_column,
+        "virf_shock_size": virf_shock_size,
+        "bk_short_horizon": bk_short_horizon,
+        "bk_medium_horizon": bk_medium_horizon,
+        "confidence_level": confidence_level,
+        "holding_period_days": holding_period_days,
+        "ewma_lambda": ewma_lambda,
+        "option_type": option_type,
+        "option_steps": option_steps,
+        "risk_aversion": risk_aversion,
+        "long_only": long_only,
+        "dsge_alpha": dsge_alpha,
+        "dsge_beta": dsge_beta,
+        "dsge_delta": dsge_delta,
+        "dsge_productivity": dsge_productivity,
+        "dsge_labor": dsge_labor,
+        "dsge_shock_persistence": dsge_shock_persistence,
+        "dsge_shock_size": dsge_shock_size,
+        "dsge_impulse_horizon": dsge_impulse_horizon,
+        "robust_covariance": robust_covariance,
+        "feature_columns": feature_columns or [],
+        "factor_columns": factor_columns or [],
+        "secondary_dependent": secondary_dependent,
+        "glm_family": glm_family,
+        "gee_family": gee_family,
+        "gee_group_column": gee_group_column,
+        "count_family": count_family,
+        "inflation_regressors": inflation_regressors or [],
+        "quantile": quantile,
+        "varmax_order": list(varmax_order or (1, 1)),
+        "coint_rank": coint_rank,
+        "vecm_diff_lags": vecm_diff_lags,
+        "markov_regimes": markov_regimes,
+        "seasonal": seasonal or None,
+        "seasonal_periods": seasonal_periods,
+        "distribution": distribution,
+        "garch_o": garch_o,
+        "forecast_simulations": forecast_simulations,
+        "harx_lags": harx_lags or [1, 5, 22],
+        "unit_root_lags": unit_root_lags,
+        "trend": trend,
+        "portfolio_objective": portfolio_objective,
+        "cvar_beta": cvar_beta,
+        "cdar_beta": cdar_beta,
+        "split_ratio": split_ratio,
+        "n_estimators": n_estimators,
+        "learning_rate": learning_rate,
+        "num_leaves": num_leaves,
+        "iterations": iterations,
+        "depth": depth,
+        "treated_unit": treated_unit,
+        "control_units": control_units or [],
+        "treatment_time": treatment_time,
+        "treatment_time_column": treatment_time_column,
+        "treatment_index": treatment_index,
+        "intervention_at": intervention_at,
+        "draws": draws,
+        "tune": tune,
+        "chains": chains,
+        "template_id": template_id,
+        "template_name": template_name,
+        "variant_label": variant_label,
+        "variant_spec": variant_spec,
+        "effective_specification": effective_specification,
+    }
 
     def attach(payload: dict[str, Any]) -> dict[str, Any]:
         family = _infer_model_family(normalized_model)
@@ -6846,6 +7016,7 @@ def run_model_analysis(
         if isinstance(variant_spec, dict) and variant_spec:
             specification.setdefault("variant_spec", dict(variant_spec))
         payload["specification"] = specification
+        payload["interpretation"] = _build_model_result_interpretation(payload)
         payload["template_id"] = template_id
         payload["template_name"] = template_name
         payload["variant_label"] = variant_label
@@ -6864,6 +7035,46 @@ def run_model_analysis(
             payload.setdefault("result_record_id", record.id)
             payload.setdefault("result_detail_path", f"/data-lab/results/models/{record.id}")
         return payload
+
+    try:
+        from .model_engine_runtime import has_candidate, run_candidate_model_analysis, run_extension_model_analysis, supports_model
+        from .model_engine_selection import get_winning_engine
+    except Exception:
+        has_candidate = None
+        run_candidate_model_analysis = None
+        supports_model = None
+        run_extension_model_analysis = None
+        get_winning_engine = None
+
+    if (
+        has_candidate
+        and run_candidate_model_analysis
+        and get_winning_engine
+        and has_candidate(normalized_model)
+        and get_winning_engine(normalized_model) != "baseline"
+    ):
+        return attach(
+            run_candidate_model_analysis(
+                settings,
+                db,
+                model_type=normalized_model,
+                user=user,
+                workspace=workspace,
+                **runtime_options,
+            )
+        )
+
+    if supports_model and run_extension_model_analysis and supports_model(normalized_model):
+        return attach(
+            run_extension_model_analysis(
+                settings,
+                db,
+                model_type=normalized_model,
+                user=user,
+                workspace=workspace,
+                **runtime_options,
+            )
+        )
 
     if normalized_model == "ols":
         return attach(

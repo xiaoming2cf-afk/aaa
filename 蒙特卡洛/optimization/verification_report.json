@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "workspace_id": "6a4410f1-3c32-47a9-9cac-5b4f8e584444",
+  "catalog_summary": {
+    "optimizer_count": 234,
+    "optimizer_available_count": 232,
+    "function_count": 323,
+    "function_available_count": 321
+  },
+  "suite_requirements": {
+    "min_algorithms": 3,
+    "min_functions": 3,
+    "min_runs": 3
+  },
+  "disabled_optimizers": {
+    "mealpy.bio_based.BCO.OriginalBCO": "Disabled due to an upstream Mealpy bug: the implementation references undefined attributes such as self.dim/self.positions during evolve().",
+    "mealpy.human_based.CHIO.OriginalCHIO": "Disabled due to an upstream Mealpy instability: under baseline benchmark settings the implementation can exhaust its candidate pool and fail with an empty argmin sequence."
+  },
+  "optimizer_health": {
+    "tested": 232,
+    "failed": 0,
+    "default_function": "Ackley01"
+  },
+  "function_health": {
+    "tested": 321,
+    "failed": 0,
+    "default_optimizer": "mealpy.swarm_based.PSO.OriginalPSO"
+  },
+  "small_suite_error": "Optimization suites require at least 3 algorithms to produce valid ranking and Friedman outputs; got 2.",
+  "standard_suite": {
+    "record_id": "09450d00-0c4c-4774-b73c-7b5af7cb998b",
+    "task_count": 27,
+    "success_count": 27,
+    "failure_count": 0,
+    "figure_count": 8,
+    "table_count": 7
+  }
+}

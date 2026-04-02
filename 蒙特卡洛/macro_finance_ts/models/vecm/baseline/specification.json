@@ -1,0 +1,15 @@
+{
+  "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+  "model_family": "time_series_finance",
+  "model_type": "vecm",
+  "series_columns": [
+    "level_a",
+    "level_b",
+    "level_c"
+  ],
+  "time_column": "date",
+  "forecast_steps": 5,
+  "coint_rank": 1,
+  "vecm_diff_lags": 1,
+  "engine": "statsmodels"
+}

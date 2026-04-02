@@ -1,0 +1,27 @@
+{
+  "headline": "Taylor Rule estimates are exposed in full so you can read the result and reproduce it manually.",
+  "sections": [
+    {
+      "title": "What is shown on this page",
+      "items": [
+        "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars."
+      ]
+    },
+    {
+      "title": "How to read the main result",
+      "items": [
+        "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+        "The specification block records the exact equation or parameterization that should be reproduced manually."
+      ]
+    },
+    {
+      "title": "Manual replication focus",
+      "items": [
+        "Download the referenced sample and rebuild all listed derived columns before estimation.",
+        "Match the equation, regressors, covariance type, and sample filters exactly.",
+        "Compare the resulting table or figure object term by term with the result shown here."
+      ]
+    }
+  ],
+  "paper_outputs": []
+}

@@ -1,0 +1,22 @@
+{
+  "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "sample_title": "timeseries_dataset.csv",
+  "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+  "rows_used": 240,
+  "sample_columns": [
+    "asset_return",
+    "date",
+    "ewma_volatility"
+  ],
+  "manual_checklist": [
+    "Download the sample asset and sort it by the listed time_column if one is provided.",
+    "Recompute the return distribution statistics and the stated risk metric formula.",
+    "Compare the reproduced VaR/ES or EWMA volatility against the metrics block."
+  ],
+  "derived_columns": [
+    "ewma_volatility"
+  ],
+  "filters": [
+    "Rows with missing selected return values are dropped."
+  ]
+}

@@ -1,0 +1,258 @@
+{
+  "model_type": "inverse_propensity_weighting",
+  "model_label": "Inverse Propensity Weighting",
+  "asset": {
+    "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "kind": "dataset_csv",
+    "title": "upgrade_panel.csv",
+    "filename": "upgrade_panel.csv",
+    "description": "upgrade_panel.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 289095,
+      "original_filename": "upgrade_panel.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:26.995002",
+    "updated_at": "2026-04-02T02:57:27.013674"
+  },
+  "observations": 648,
+  "narrative": [
+    "Inverse propensity weighting estimated with a logistic propensity model."
+  ],
+  "specification": {
+    "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "model_family": "causal_inference",
+    "model_type": "inverse_propensity_weighting",
+    "dependent": "outcome_y",
+    "controls": [
+      "size",
+      "leverage",
+      "post",
+      "endogenous_x"
+    ],
+    "treatment_column": "treated",
+    "engine": "causalpy",
+    "outcome_variable": "outcome_y",
+    "covariates": [
+      "size",
+      "leverage",
+      "post",
+      "endogenous_x"
+    ],
+    "variant_label": "ipw_endog"
+  },
+  "audit_trail": {
+    "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "sample_title": "upgrade_panel.csv",
+    "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+    "engine": "causalpy",
+    "derived_columns": [
+      "_propensity",
+      "_weight"
+    ],
+    "filters": []
+  },
+  "metrics": {},
+  "tables": {
+    "treatment_effect_table": [
+      {
+        "weighted_ate": 0.38172042520163885,
+        "treated_mean": 9.896994379142448,
+        "control_mean": 9.51527395394081
+      }
+    ],
+    "propensity_summary_table": [
+      {
+        "min_propensity": 0.00035798173407811844,
+        "max_propensity": 0.999771468122381,
+        "mean_weight": 1.457092646898533
+      }
+    ],
+    "balance_before_table": [
+      {
+        "covariate": "size",
+        "smd": -2.1095710148995024
+      },
+      {
+        "covariate": "leverage",
+        "smd": -0.11880889190610276
+      },
+      {
+        "covariate": "post",
+        "smd": 0.0
+      },
+      {
+        "covariate": "endogenous_x",
+        "smd": -0.04861515103327814
+      }
+    ],
+    "balance_after_table": [
+      {
+        "covariate": "size",
+        "weighted_mean_diff": -0.66704213054809
+      },
+      {
+        "covariate": "leverage",
+        "weighted_mean_diff": -0.0031686716024159622
+      },
+      {
+        "covariate": "post",
+        "weighted_mean_diff": 0.013171171702226814
+      },
+      {
+        "covariate": "endogenous_x",
+        "weighted_mean_diff": -0.051791643816376395
+      }
+    ]
+  },
+  "sample_columns": [
+    "outcome_y",
+    "treated",
+    "size",
+    "leverage",
+    "post",
+    "endogenous_x",
+    "_propensity",
+    "_weight"
+  ],
+  "sample_preview": [
+    {
+      "outcome_y": 8.281342947667275,
+      "treated": 1,
+      "size": 8.519775911467494,
+      "leverage": 0.3577590135791016,
+      "post": 0,
+      "endogenous_x": 0.2785972991161518,
+      "_propensity": 0.9736010177708551,
+      "_weight": 1.0271147849553277
+    },
+    {
+      "outcome_y": 7.161166663415577,
+      "treated": 1,
+      "size": 7.55721041465215,
+      "leverage": 0.3378183221465689,
+      "post": 0,
+      "endogenous_x": 1.1977342200420291,
+      "_propensity": 0.99973447462972,
+      "_weight": 1.0002655958927278
+    },
+    {
+      "outcome_y": 7.582391886802917,
+      "treated": 1,
+      "size": 7.823590785770317,
+      "leverage": 0.3343232278441892,
+      "post": 0,
+      "endogenous_x": 0.2791971515539841,
+      "_propensity": 0.9990905622339977,
+      "_weight": 1.0009102655959123
+    },
+    {
+      "outcome_y": 8.19643779930995,
+      "treated": 1,
+      "size": 8.058331858128255,
+      "leverage": 0.3581110765958445,
+      "post": 0,
+      "endogenous_x": 1.693126004491981,
+      "_propensity": 0.9968417152234231,
+      "_weight": 1.0031682911422592
+    },
+    {
+      "outcome_y": 6.775339604671813,
+      "treated": 1,
+      "size": 7.790582349444769,
+      "leverage": 0.3323010132904619,
+      "post": 0,
+      "endogenous_x": -0.6336680485148168,
+      "_propensity": 0.9992747687179209,
+      "_weight": 1.0007257576242115
+    }
+  ],
+  "engine": "causalpy",
+  "figures": [
+    {
+      "asset_id": "d2e016ee-cb15-40ea-886a-96c787ab7737",
+      "title": "Propensity score overlap",
+      "summary": "Propensity score overlap by treatment status.",
+      "download_url": "/api/assets/d2e016ee-cb15-40ea-886a-96c787ab7737/download",
+      "asset": {
+        "id": "d2e016ee-cb15-40ea-886a-96c787ab7737",
+        "kind": "chart_png",
+        "title": "upgrade_panel-ipw_overlap.png",
+        "filename": "upgrade_panel-ipw_overlap.png",
+        "description": "Propensity score overlap by treatment status.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 28695,
+          "original_filename": "upgrade_panel-ipw_overlap.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Propensity score overlap",
+          "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+          "summary": "Propensity score overlap by treatment status."
+        },
+        "created_at": "2026-04-02T02:58:04.322920+00:00",
+        "updated_at": "2026-04-02T02:58:04.337142+00:00"
+      }
+    }
+  ],
+  "primary_tables": [
+    "treatment_effect_table",
+    "propensity_summary_table",
+    "balance_before_table",
+    "balance_after_table"
+  ],
+  "paper_output_contract": {
+    "primary_tables": [
+      "treatment_effect_table",
+      "propensity_summary_table",
+      "balance_before_table",
+      "balance_after_table"
+    ],
+    "figure_count": 1
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "Inverse Propensity Weighting estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: treatment_effect_table, propensity_summary_table, balance_before_table, balance_after_table.",
+          "Figures included: Propensity score overlap."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "treatment_effect_table",
+      "propensity_summary_table",
+      "balance_before_table",
+      "balance_after_table",
+      "Propensity score overlap"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "ipw_endog",
+  "variant_spec": {},
+  "result_record_id": "55a7a05f-fafb-4628-bd3a-c1385a58f73f",
+  "result_detail_path": "/data-lab/results/models/55a7a05f-fafb-4628-bd3a-c1385a58f73f"
+}

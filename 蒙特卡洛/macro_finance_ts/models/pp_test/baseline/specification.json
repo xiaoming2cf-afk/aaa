@@ -1,0 +1,10 @@
+{
+  "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+  "model_family": "time_series_finance",
+  "model_type": "pp_test",
+  "dependent": "policy_rate",
+  "time_column": "date",
+  "unit_root_lags": 2,
+  "trend": "c",
+  "engine": "arch"
+}

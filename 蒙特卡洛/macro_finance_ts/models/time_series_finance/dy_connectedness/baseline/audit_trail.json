@@ -1,0 +1,21 @@
+{
+  "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "sample_title": "timeseries_dataset.csv",
+  "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+  "rows_used": 240,
+  "sample_columns": [
+    "date",
+    "return_a",
+    "return_b",
+    "return_c"
+  ],
+  "manual_checklist": [
+    "Re-estimate the VAR using the same lag order and sample.",
+    "Rebuild the generalized FEVD at the documented horizon.",
+    "Compare the connectedness matrix, directional spillovers, and heatmap cell by cell."
+  ],
+  "derived_columns": [],
+  "filters": [
+    "Rows with missing selected series values are dropped."
+  ]
+}

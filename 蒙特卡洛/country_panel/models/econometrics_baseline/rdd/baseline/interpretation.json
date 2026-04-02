@@ -1,0 +1,42 @@
+{
+  "headline": "RDD estimates are exposed in full so you can read the result and reproduce it manually.",
+  "sections": [
+    {
+      "title": "What is shown on this page",
+      "items": [
+        "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+        "Supporting tables included: bandwidth_sensitivity, rdd_design_audit.",
+        "Figures included: RDD scatter and fitted lines."
+      ]
+    },
+    {
+      "title": "How to read the main result",
+      "items": [
+        "The cutoff effect is `rdd_treatment` = 0.8782**.",
+        "The fitted-line figure should show a visible jump at the cutoff if the local treatment effect is economically meaningful.",
+        "Polynomial and bandwidth choices matter; always read the cutoff estimate together with the selected window."
+      ]
+    },
+    {
+      "title": "What a normal paper should report",
+      "items": [
+        "A local treatment-effect table around the cutoff.",
+        "An RDD figure with separate fits on each side of the threshold.",
+        "Bandwidth, polynomial-order, and treatment-assignment-rule disclosure."
+      ]
+    },
+    {
+      "title": "Manual replication focus",
+      "items": [
+        "Confirm the running variable and cutoff coding in the downloaded sample.",
+        "Check whether the bandwidth filter leaves the same number of observations as reported.",
+        "Rebuild the fitted lines using the same polynomial order and compare the local effect row."
+      ]
+    }
+  ],
+  "paper_outputs": [
+    "bandwidth_sensitivity",
+    "rdd_design_audit",
+    "RDD scatter and fitted lines"
+  ]
+}

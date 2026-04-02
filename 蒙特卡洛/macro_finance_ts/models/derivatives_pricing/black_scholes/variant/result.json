@@ -1,0 +1,518 @@
+{
+  "model_type": "black_scholes",
+  "model_label": "Black-Scholes",
+  "asset": {
+    "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "kind": "dataset_csv",
+    "title": "timeseries_dataset.csv",
+    "filename": "timeseries_dataset.csv",
+    "description": "timeseries_dataset.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 93948,
+      "original_filename": "timeseries_dataset.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T03:16:14.454310",
+    "updated_at": "2026-04-02T03:16:14.458473"
+  },
+  "observations": 240,
+  "narrative": [
+    "Black-Scholes run on timeseries_dataset.csv.",
+    "Option type: call.",
+    "Latest price: 147.9523."
+  ],
+  "specification": {
+    "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "model_family": "derivatives_pricing",
+    "model_type": "black_scholes",
+    "spot_column": "spot_price",
+    "strike_column": "strike_price",
+    "maturity_column": "time_to_maturity",
+    "rate_column": "risk_free_rate",
+    "volatility_column": "implied_vol",
+    "option_type": "call",
+    "equation": "Closed-form Black-Scholes-Merton pricing formula",
+    "input_columns": {
+      "spot": "spot_price",
+      "strike": "strike_price",
+      "maturity": "time_to_maturity",
+      "rate": "risk_free_rate",
+      "volatility": "implied_vol"
+    },
+    "option_steps": 50,
+    "variant_label": "bs_put",
+    "variant_spec": {
+      "option_type": "put"
+    }
+  },
+  "audit_trail": {
+    "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "sample_title": "timeseries_dataset.csv",
+    "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+    "rows_used": 240,
+    "sample_columns": [
+      "spot_price",
+      "strike_price",
+      "time_to_maturity",
+      "risk_free_rate",
+      "implied_vol",
+      "price",
+      "delta",
+      "gamma",
+      "d1",
+      "d2"
+    ],
+    "manual_checklist": [
+      "Download the sample asset and reproduce the pricing inputs row by row.",
+      "Use the same option_type and option_steps when applicable.",
+      "Compare the reproduced option values against the preview table and latest price metric."
+    ],
+    "derived_columns": [
+      "price",
+      "delta",
+      "gamma",
+      "d1",
+      "d2"
+    ],
+    "filters": [
+      "Rows with missing pricing inputs are dropped.",
+      "Only the first 500 complete rows are priced for stability."
+    ]
+  },
+  "metrics": {
+    "latest_price": 147.95228228553964,
+    "mean_price": 37.618442391650795
+  },
+  "tables": {
+    "pricing_table": [
+      {
+        "spot_price": 103.39395529246993,
+        "strike_price": 101.32607618662053,
+        "time_to_maturity": 0.2,
+        "risk_free_rate": 0.02,
+        "implied_vol": 0.2,
+        "price": 5.012720792749448,
+        "delta": 0.623739075444159,
+        "gamma": 0.0410468899180278,
+        "d1": 0.3153158535575214,
+        "d2": 0.22587313445752982
+      },
+      {
+        "spot_price": 104.13171825492292,
+        "strike_price": 102.04908388982447,
+        "time_to_maturity": 0.205439330543933,
+        "risk_free_rate": 0.0202493494667704,
+        "implied_vol": 0.2425908683187975,
+        "price": 5.873870778640388,
+        "delta": 0.6089359910285459,
+        "gamma": 0.03353542041733577,
+        "d1": 0.27654693204338515,
+        "d2": 0.1665916126062872
+      },
+      {
+        "spot_price": 105.18477400217768,
+        "strike_price": 103.08107852213412,
+        "time_to_maturity": 0.2108786610878661,
+        "risk_free_rate": 0.020494807918509,
+        "implied_vol": 0.2569439174852359,
+        "price": 6.267677396033534,
+        "delta": 0.605205815917354,
+        "gamma": 0.031019890927323934,
+        "d1": 0.2668451778104462,
+        "d2": 0.14885260823859744
+      },
+      {
+        "spot_price": 110.24166401618464,
+        "strike_price": 108.03683073586092,
+        "time_to_maturity": 0.2163179916317991,
+        "risk_free_rate": 0.020732545058172,
+        "implied_vol": 0.2673869696850949,
+        "price": 6.849300094545036,
+        "delta": 0.6028360649795604,
+        "gamma": 0.0281267810006991,
+        "d1": 0.26069480829161934,
+        "d2": 0.13633313397104052
+      },
+      {
+        "spot_price": 113.63202950137324,
+        "strike_price": 111.35938891134576,
+        "time_to_maturity": 0.2217573221757322,
+        "risk_free_rate": 0.0209588510772084,
+        "implied_vol": 0.308038176475022,
+        "price": 7.978826705894228,
+        "delta": 0.596323682471802,
+        "gamma": 0.023493858986788036,
+        "d1": 0.2438427173031505,
+        "d2": 0.09878410178374777
+      },
+      {
+        "spot_price": 113.4459954163128,
+        "strike_price": 111.17707550798654,
+        "time_to_maturity": 0.2271966527196652,
+        "risk_free_rate": 0.0211701945458809,
+        "implied_vol": 0.3158736044845614,
+        "price": 8.217240388736684,
+        "delta": 0.5953808655289178,
+        "gamma": 0.022685671534599376,
+        "d1": 0.24140883104906488,
+        "d2": 0.09084720357248488
+      },
+      {
+        "spot_price": 113.66745032226385,
+        "strike_price": 111.39410131581856,
+        "time_to_maturity": 0.2326359832635983,
+        "risk_free_rate": 0.0213632775200466,
+        "implied_vol": 0.3157875098616468,
+        "price": 8.319871896119253,
+        "delta": 0.5953875000829975,
+        "gamma": 0.022381222397790283,
+        "d1": 0.24142595316864096,
+        "d2": 0.08911420809909917
+      },
+      {
+        "spot_price": 104.58511512452384,
+        "strike_price": 102.49341282203336,
+        "time_to_maturity": 0.2380753138075313,
+        "risk_free_rate": 0.021535087004472,
+        "implied_vol": 0.3141499047263056,
+        "price": 7.703029227762485,
+        "delta": 0.5955670230797933,
+        "gamma": 0.024167999008981787,
+        "d1": 0.24188928387119427,
+        "d2": 0.08860624032062267
+      },
+      {
+        "spot_price": 109.05895816199494,
+        "strike_price": 106.87777899875503,
+        "time_to_maturity": 0.2435146443514644,
+        "risk_free_rate": 0.0216829419696157,
+        "implied_vol": 0.4677431886481464,
+        "price": 11.326158209324333,
+        "delta": 0.5893258791489849,
+        "gamma": 0.015449207811621285,
+        "d1": 0.22581123087017324,
+        "d2": -0.005006949931337351
+      },
+      {
+        "spot_price": 111.69042043299646,
+        "strike_price": 109.45661202433654,
+        "time_to_maturity": 0.2489539748953975,
+        "risk_free_rate": 0.0218045351881981,
+        "implied_vol": 0.4526439711563201,
+        "price": 11.39162660316643,
+        "delta": 0.5895594939262502,
+        "gamma": 0.015415101267508759,
+        "d1": 0.22641197871322133,
+        "d2": 0.0005639663999661704
+      },
+      {
+        "spot_price": 111.62945928910534,
+        "strike_price": 109.39687010332324,
+        "time_to_maturity": 0.2543933054393306,
+        "risk_free_rate": 0.0218979692387111,
+        "implied_vol": 0.4271932254034958,
+        "price": 10.942551940935466,
+        "delta": 0.5899242319497147,
+        "gamma": 0.016163303564810157,
+        "d1": 0.22735007765061338,
+        "d2": 0.011884848278880339
+      },
+      {
+        "spot_price": 112.37354330296984,
+        "strike_price": 110.12607243691043,
+        "time_to_maturity": 0.2598326359832636,
+        "risk_free_rate": 0.0219617861140463,
+        "implied_vol": 0.4048486141122593,
+        "price": 10.625592872084958,
+        "delta": 0.5904614583057656,
+        "gamma": 0.01675890681114749,
+        "d1": 0.228732177859813,
+        "d2": 0.02236553150782772
+      },
+      {
+        "spot_price": 111.55120794179696,
+        "strike_price": 109.32018378296104,
+        "time_to_maturity": 0.2652719665271966,
+        "risk_free_rate": 0.0219949899732081,
+        "implied_vol": 0.3847097523525775,
+        "price": 10.198506216830431,
+        "delta": 0.59113998111864,
+        "gamma": 0.017576078679778482,
+        "d1": 0.23047841064149965,
+        "d2": 0.03233534674184693
+      },
+      {
+        "spot_price": 111.08424606610754,
+        "strike_price": 108.8625611447854,
+        "time_to_maturity": 0.2707112970711297,
+        "risk_free_rate": 0.0219970626810796,
+        "implied_vol": 0.3737017830506535,
+        "price": 10.002577787767038,
+        "delta": 0.5916332411377289,
+        "gamma": 0.017981124500731,
+        "d1": 0.23174829579483294,
+        "d2": 0.03731154283155377
+      },
+      {
+        "spot_price": 116.78775025403688,
+        "strike_price": 114.45199524895612,
+        "time_to_maturity": 0.2761506276150627,
+        "risk_free_rate": 0.0219679718937478,
+        "implied_vol": 0.3629742075922315,
+        "price": 10.355191775649729,
+        "delta": 0.5921549187877311,
+        "gamma": 0.017428740264940703,
+        "d1": 0.23309174820622489,
+        "d2": 0.04234867170310927
+      },
+      {
+        "spot_price": 116.61631787308885,
+        "strike_price": 114.28399151562704,
+        "time_to_maturity": 0.2815899581589958,
+        "risk_free_rate": 0.0219081715632193,
+        "implied_vol": 0.3811074624643382,
+        "price": 10.866397713603817,
+        "delta": 0.5915443499281148,
+        "gamma": 0.016468549330535858,
+        "d1": 0.2315194201282328,
+        "d2": 0.029284552819186904
+      },
+      {
+        "spot_price": 111.72914171071652,
+        "strike_price": 109.4945588765022,
+        "time_to_maturity": 0.2870292887029289,
+        "risk_free_rate": 0.0218185948536513,
+        "implied_vol": 0.3676016647639192,
+        "price": 10.186619581268126,
+        "delta": 0.5920618019092054,
+        "gamma": 0.017645310281097757,
+        "d1": 0.23285191782336667,
+        "d2": 0.035908905250635836
+      },
+      {
+        "spot_price": 114.72531830387848,
+        "strike_price": 112.43081193780093,
+        "time_to_maturity": 0.2924686192468619,
+        "risk_free_rate": 0.0217006395796369,
+        "implied_vol": 0.405523301543037,
+        "price": 11.461143692902041,
+        "delta": 0.5912315572016742,
+        "gamma": 0.015439627179005391,
+        "d1": 0.2307141427418318,
+        "d2": 0.011405649337035417
+      },
+      {
+        "spot_price": 121.34843310790528,
+        "strike_price": 118.92146444574718,
+        "time_to_maturity": 0.297907949790795,
+        "risk_free_rate": 0.0215561463937758,
+        "implied_vol": 0.3899549192797152,
+        "price": 11.822436883467432,
+        "delta": 0.591541200285765,
+        "gamma": 0.015037716631109697,
+        "d1": 0.2315113107019633,
+        "d2": 0.01867023279935376
+      },
+      {
+        "spot_price": 120.33130262956404,
+        "strike_price": 117.92467657697276,
+        "time_to_maturity": 0.303347280334728,
+        "risk_free_rate": 0.0213873700639065,
+        "implied_vol": 0.4103610136106425,
+        "price": 12.342955045427694,
+        "delta": 0.5913811578852032,
+        "gamma": 0.014282299837028818,
+        "d1": 0.23109926742215436,
+        "d2": 0.005084848397016645
+      },
+      {
+        "spot_price": 118.15774403234734,
+        "strike_price": 115.7945891517004,
+        "time_to_maturity": 0.3087866108786611,
+        "risk_free_rate": 0.0211969442882079,
+        "implied_vol": 0.3950920462098867,
+        "price": 11.826522236748332,
+        "delta": 0.5915781180155715,
+        "gamma": 0.014971739178219335,
+        "d1": 0.23160636423127742,
+        "d2": 0.012059359100432404
+      },
+      {
+        "spot_price": 127.75694175993944,
+        "strike_price": 125.20180292474066,
+        "time_to_maturity": 0.3142259414225942,
+        "risk_free_rate": 0.0209878405972201,
+        "implied_vol": 0.3910395140126019,
+        "price": 12.77324007580247,
+        "delta": 0.5916734912519279,
+        "gamma": 0.013867911988842645,
+        "d1": 0.2318519351383588,
+        "d2": 0.012651373529604354
+      },
+      {
+        "spot_price": 139.52343003481508,
+        "strike_price": 136.73296143411878,
+        "time_to_maturity": 0.3196652719665272,
+        "risk_free_rate": 0.0207633219841046,
+        "implied_vol": 0.4519015655574838,
+        "price": 15.919443837814384,
+        "delta": 0.5920412700591151,
+        "gamma": 0.010891882983048705,
+        "d1": 0.23279903811247293,
+        "d2": -0.022701356195147127
+      },
+      {
+        "spot_price": 137.1966385605958,
+        "strike_price": 134.45270578938388,
+        "time_to_maturity": 0.3251046025104602,
+        "risk_free_rate": 0.0205268919867268,
+        "implied_vol": 0.5144791271058812,
+        "price": 17.67115776702495,
+        "delta": 0.5941726812082894,
+        "gamma": 0.009635116924345431,
+        "d1": 0.2382919847315458,
+        "d2": -0.05505343978372626
+      },
+      {
+        "spot_price": 140.97396653991152,
+        "strike_price": 138.15448720911328,
+        "time_to_maturity": 0.3305439330543933,
+        "risk_free_rate": 0.0202822400161197,
+        "implied_vol": 0.4863389874802344,
+        "price": 17.408676707295626,
+        "delta": 0.5932972942463511,
+        "gamma": 0.00984282200237566,
+        "d1": 0.23603512857958675,
+        "d2": -0.04357550362738549
+      }
+    ],
+    "pricing_greeks_summary": [
+      {
+        "latest_price": 147.95228228553964,
+        "mean_price": 37.618442391650795,
+        "delta": 0.6512002510793906,
+        "gamma": 0.0010534561283732458,
+        "d1": 0.3885629241709772,
+        "d2": -0.23785090916588553,
+        "option_type": "call",
+        "option_steps": 50
+      }
+    ]
+  },
+  "sample_columns": [
+    "spot_price",
+    "strike_price",
+    "time_to_maturity",
+    "risk_free_rate",
+    "implied_vol",
+    "price",
+    "delta",
+    "gamma",
+    "d1",
+    "d2"
+  ],
+  "sample_preview": [
+    {
+      "spot_price": 103.39395529246993,
+      "strike_price": 101.32607618662053,
+      "time_to_maturity": 0.2,
+      "risk_free_rate": 0.02,
+      "implied_vol": 0.2,
+      "price": 5.012720792749448,
+      "delta": 0.623739075444159,
+      "gamma": 0.0410468899180278,
+      "d1": 0.3153158535575214,
+      "d2": 0.22587313445752982
+    },
+    {
+      "spot_price": 104.13171825492292,
+      "strike_price": 102.04908388982447,
+      "time_to_maturity": 0.205439330543933,
+      "risk_free_rate": 0.0202493494667704,
+      "implied_vol": 0.2425908683187975,
+      "price": 5.873870778640388,
+      "delta": 0.6089359910285459,
+      "gamma": 0.03353542041733577,
+      "d1": 0.27654693204338515,
+      "d2": 0.1665916126062872
+    },
+    {
+      "spot_price": 105.18477400217768,
+      "strike_price": 103.08107852213412,
+      "time_to_maturity": 0.2108786610878661,
+      "risk_free_rate": 0.020494807918509,
+      "implied_vol": 0.2569439174852359,
+      "price": 6.267677396033534,
+      "delta": 0.605205815917354,
+      "gamma": 0.031019890927323934,
+      "d1": 0.2668451778104462,
+      "d2": 0.14885260823859744
+    },
+    {
+      "spot_price": 110.24166401618464,
+      "strike_price": 108.03683073586092,
+      "time_to_maturity": 0.2163179916317991,
+      "risk_free_rate": 0.020732545058172,
+      "implied_vol": 0.2673869696850949,
+      "price": 6.849300094545036,
+      "delta": 0.6028360649795604,
+      "gamma": 0.0281267810006991,
+      "d1": 0.26069480829161934,
+      "d2": 0.13633313397104052
+    },
+    {
+      "spot_price": 113.63202950137324,
+      "strike_price": 111.35938891134576,
+      "time_to_maturity": 0.2217573221757322,
+      "risk_free_rate": 0.0209588510772084,
+      "implied_vol": 0.308038176475022,
+      "price": 7.978826705894228,
+      "delta": 0.596323682471802,
+      "gamma": 0.023493858986788036,
+      "d1": 0.2438427173031505,
+      "d2": 0.09878410178374777
+    }
+  ],
+  "workflow_type": "model",
+  "model_family": "derivatives_pricing",
+  "interpretation": {
+    "headline": "Black-Scholes estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: pricing_table, pricing_greeks_summary."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "pricing_table",
+      "pricing_greeks_summary"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "bs_put",
+  "variant_spec": {
+    "option_type": "put"
+  },
+  "result_record_id": "2b4878ad-3013-4664-b04b-235c9dff88c8",
+  "result_detail_path": "/data-lab/results/models/2b4878ad-3013-4664-b04b-235c9dff88c8"
+}

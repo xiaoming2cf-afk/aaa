@@ -1,0 +1,23 @@
+{
+  "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "model_family": "econometrics_baseline",
+  "model_type": "mnlogit",
+  "dependent": "multiclass_outcome",
+  "independents": [
+    "size",
+    "leverage",
+    "endogenous_x"
+  ],
+  "controls": [
+    "post"
+  ],
+  "engine": "statsmodels",
+  "regressors": [
+    "size",
+    "leverage",
+    "endogenous_x",
+    "post"
+  ],
+  "formula": "multiclass_outcome ~ size + leverage + endogenous_x + post",
+  "variant_label": "mnlogit_extra"
+}

@@ -1,0 +1,592 @@
+{
+  "record": {
+    "id": "d6d88e3d-f725-407e-a856-d8ce79ef4332",
+    "title": "EWMA Volatility summary for timeseries_dataset.csv",
+    "content": "EWMA Volatility run on timeseries_dataset.csv.\nReturn series: asset_return.",
+    "content_excerpt": "EWMA Volatility run on timeseries_dataset.csv. Return series: asset_return.",
+    "content_length": 75,
+    "tags": [
+      "ewma_volatility",
+      "risk_management",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "ewma_volatility",
+      "model_label": "EWMA Volatility",
+      "asset": {
+        "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "kind": "dataset_csv",
+        "title": "timeseries_dataset.csv",
+        "filename": "timeseries_dataset.csv",
+        "description": "timeseries_dataset.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 93948,
+          "original_filename": "timeseries_dataset.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T03:16:14.454310",
+        "updated_at": "2026-04-02T03:16:14.458473"
+      },
+      "observations": 240,
+      "narrative": [
+        "EWMA Volatility run on timeseries_dataset.csv.",
+        "Return series: asset_return."
+      ],
+      "specification": {
+        "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "model_family": "risk_management",
+        "model_type": "ewma_volatility",
+        "dependent": "asset_return",
+        "time_column": "date",
+        "confidence_level": 0.95,
+        "holding_period_days": 1,
+        "ewma_lambda": 0.94,
+        "equation": "sigma_t^2 = lambda*sigma_{t-1}^2 + (1-lambda)*r_{t-1}^2",
+        "return_column": "asset_return",
+        "variant_label": "ewma_slow_decay",
+        "variant_spec": {
+          "confidence_level": 0.99,
+          "holding_period_days": 2,
+          "ewma_lambda": 0.97
+        }
+      },
+      "audit_trail": {
+        "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "sample_title": "timeseries_dataset.csv",
+        "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+        "rows_used": 240,
+        "sample_columns": [
+          "asset_return",
+          "date",
+          "ewma_volatility"
+        ],
+        "manual_checklist": [
+          "Download the sample asset and sort it by the listed time_column if one is provided.",
+          "Recompute the return distribution statistics and the stated risk metric formula.",
+          "Compare the reproduced VaR/ES or EWMA volatility against the metrics block."
+        ],
+        "derived_columns": [
+          "ewma_volatility"
+        ],
+        "filters": [
+          "Rows with missing selected return values are dropped."
+        ]
+      },
+      "metrics": {
+        "ewma_lambda": 0.94,
+        "latest_volatility": 0.5232809495060101,
+        "mean_return": -0.02817401134408786,
+        "volatility": 0.4708883453422171
+      },
+      "tables": {
+        "risk_summary": [
+          {
+            "confidence_level": 0.95,
+            "holding_period_days": 1,
+            "var": null,
+            "expected_shortfall": null,
+            "mean_return": -0.02817401134408786,
+            "volatility": 0.4708883453422171,
+            "ewma_lambda": 0.94,
+            "latest_volatility": 0.5232809495060101
+          }
+        ],
+        "series_preview": [
+          {
+            "asset_return": 0.233763149235475,
+            "date": "2005-01-31",
+            "ewma_volatility": 0.45917527263545477
+          },
+          {
+            "asset_return": -0.0288988145034342,
+            "date": "2005-02-28",
+            "ewma_volatility": 0.4452432185094297
+          },
+          {
+            "asset_return": 0.0006193654776038,
+            "date": "2005-03-31",
+            "ewma_volatility": 0.43167934306349814
+          },
+          {
+            "asset_return": 0.3695634562880727,
+            "date": "2005-04-30",
+            "ewma_volatility": 0.4282065632466234
+          },
+          {
+            "asset_return": 0.2029051474483442,
+            "date": "2005-05-31",
+            "ewma_volatility": 0.4181261042923504
+          },
+          {
+            "asset_return": -0.1163850400538102,
+            "date": "2005-06-30",
+            "ewma_volatility": 0.40638947008769216
+          },
+          {
+            "asset_return": -0.0804982945490824,
+            "date": "2005-07-31",
+            "ewma_volatility": 0.3945022887636833
+          },
+          {
+            "asset_return": -0.9327584424241318,
+            "date": "2005-08-31",
+            "ewma_volatility": 0.44552938309858653
+          },
+          {
+            "asset_return": 0.3188739788392657,
+            "date": "2005-09-30",
+            "ewma_volatility": 0.43896182316324694
+          },
+          {
+            "asset_return": 0.1384230426677176,
+            "date": "2005-10-31",
+            "ewma_volatility": 0.4269378052920553
+          },
+          {
+            "asset_return": -0.1054595359339426,
+            "date": "2005-11-30",
+            "ewma_volatility": 0.4147368310573649
+          },
+          {
+            "asset_return": -0.0335645735071341,
+            "date": "2005-12-31",
+            "ewma_volatility": 0.40218631942056143
+          },
+          {
+            "asset_return": -0.1734478036387745,
+            "date": "2006-01-31",
+            "ewma_volatility": 0.39224183080408603
+          },
+          {
+            "asset_return": -0.1419486251662635,
+            "date": "2006-02-28",
+            "ewma_volatility": 0.3818787757047835
+          },
+          {
+            "asset_return": 0.4006929992595364,
+            "date": "2006-03-31",
+            "ewma_volatility": 0.38303369062406695
+          },
+          {
+            "asset_return": -0.1146897535378277,
+            "date": "2006-04-30",
+            "ewma_volatility": 0.3724260249202543
+          },
+          {
+            "asset_return": -0.5281164686434854,
+            "date": "2006-05-31",
+            "ewma_volatility": 0.38355377154028314
+          },
+          {
+            "asset_return": 0.1646317005761763,
+            "date": "2006-06-30",
+            "ewma_volatility": 0.3740493306144062
+          },
+          {
+            "asset_return": 0.461252851455402,
+            "date": "2006-07-31",
+            "ewma_volatility": 0.379846520594364
+          },
+          {
+            "asset_return": -0.1841722604927872,
+            "date": "2006-08-31",
+            "ewma_volatility": 0.3710276832627012
+          },
+          {
+            "asset_return": -0.2822824830874965,
+            "date": "2006-09-30",
+            "ewma_volatility": 0.3663097777263564
+          },
+          {
+            "asset_return": 0.681090206781533,
+            "date": "2006-10-31",
+            "ewma_volatility": 0.3923836314741982
+          },
+          {
+            "asset_return": 0.7810297815981323,
+            "date": "2006-11-30",
+            "ewma_volatility": 0.4258256340082643
+          },
+          {
+            "asset_return": -0.2681732969255492,
+            "date": "2006-12-31",
+            "ewma_volatility": 0.41804645360876214
+          },
+          {
+            "asset_return": 0.1716002415796854,
+            "date": "2007-01-31",
+            "ewma_volatility": 0.40748480426512046
+          }
+        ]
+      },
+      "sample_columns": [
+        "asset_return",
+        "date",
+        "ewma_volatility"
+      ],
+      "sample_preview": [
+        {
+          "asset_return": 0.233763149235475,
+          "date": "2005-01-31",
+          "ewma_volatility": 0.45917527263545477
+        },
+        {
+          "asset_return": -0.0288988145034342,
+          "date": "2005-02-28",
+          "ewma_volatility": 0.4452432185094297
+        },
+        {
+          "asset_return": 0.0006193654776038,
+          "date": "2005-03-31",
+          "ewma_volatility": 0.43167934306349814
+        },
+        {
+          "asset_return": 0.3695634562880727,
+          "date": "2005-04-30",
+          "ewma_volatility": 0.4282065632466234
+        },
+        {
+          "asset_return": 0.2029051474483442,
+          "date": "2005-05-31",
+          "ewma_volatility": 0.4181261042923504
+        }
+      ],
+      "workflow_type": "model",
+      "model_family": "risk_management",
+      "interpretation": {
+        "headline": "EWMA Volatility estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Supporting tables included: risk_summary, series_preview."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "risk_summary",
+          "series_preview"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "ewma_slow_decay",
+      "variant_spec": {
+        "confidence_level": 0.99,
+        "holding_period_days": 2,
+        "ewma_lambda": 0.97
+      },
+      "result_record_id": "d6d88e3d-f725-407e-a856-d8ce79ef4332",
+      "result_detail_path": "/data-lab/results/models/d6d88e3d-f725-407e-a856-d8ce79ef4332"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:16:37.702825",
+    "updated_at": "2026-04-02T03:16:37.706275"
+  },
+  "result": {
+    "model_type": "ewma_volatility",
+    "model_label": "EWMA Volatility",
+    "asset": {
+      "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "kind": "dataset_csv",
+      "title": "timeseries_dataset.csv",
+      "filename": "timeseries_dataset.csv",
+      "description": "timeseries_dataset.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 93948,
+        "original_filename": "timeseries_dataset.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T03:16:14.454310",
+      "updated_at": "2026-04-02T03:16:14.458473"
+    },
+    "observations": 240,
+    "narrative": [
+      "EWMA Volatility run on timeseries_dataset.csv.",
+      "Return series: asset_return."
+    ],
+    "specification": {
+      "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "model_family": "risk_management",
+      "model_type": "ewma_volatility",
+      "dependent": "asset_return",
+      "time_column": "date",
+      "confidence_level": 0.95,
+      "holding_period_days": 1,
+      "ewma_lambda": 0.94,
+      "equation": "sigma_t^2 = lambda*sigma_{t-1}^2 + (1-lambda)*r_{t-1}^2",
+      "return_column": "asset_return",
+      "variant_label": "ewma_slow_decay",
+      "variant_spec": {
+        "confidence_level": 0.99,
+        "holding_period_days": 2,
+        "ewma_lambda": 0.97
+      }
+    },
+    "audit_trail": {
+      "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "sample_title": "timeseries_dataset.csv",
+      "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+      "rows_used": 240,
+      "sample_columns": [
+        "asset_return",
+        "date",
+        "ewma_volatility"
+      ],
+      "manual_checklist": [
+        "Download the sample asset and sort it by the listed time_column if one is provided.",
+        "Recompute the return distribution statistics and the stated risk metric formula.",
+        "Compare the reproduced VaR/ES or EWMA volatility against the metrics block."
+      ],
+      "derived_columns": [
+        "ewma_volatility"
+      ],
+      "filters": [
+        "Rows with missing selected return values are dropped."
+      ]
+    },
+    "metrics": {
+      "ewma_lambda": 0.94,
+      "latest_volatility": 0.5232809495060101,
+      "mean_return": -0.02817401134408786,
+      "volatility": 0.4708883453422171
+    },
+    "tables": {
+      "risk_summary": [
+        {
+          "confidence_level": 0.95,
+          "holding_period_days": 1,
+          "var": null,
+          "expected_shortfall": null,
+          "mean_return": -0.02817401134408786,
+          "volatility": 0.4708883453422171,
+          "ewma_lambda": 0.94,
+          "latest_volatility": 0.5232809495060101
+        }
+      ],
+      "series_preview": [
+        {
+          "asset_return": 0.233763149235475,
+          "date": "2005-01-31",
+          "ewma_volatility": 0.45917527263545477
+        },
+        {
+          "asset_return": -0.0288988145034342,
+          "date": "2005-02-28",
+          "ewma_volatility": 0.4452432185094297
+        },
+        {
+          "asset_return": 0.0006193654776038,
+          "date": "2005-03-31",
+          "ewma_volatility": 0.43167934306349814
+        },
+        {
+          "asset_return": 0.3695634562880727,
+          "date": "2005-04-30",
+          "ewma_volatility": 0.4282065632466234
+        },
+        {
+          "asset_return": 0.2029051474483442,
+          "date": "2005-05-31",
+          "ewma_volatility": 0.4181261042923504
+        },
+        {
+          "asset_return": -0.1163850400538102,
+          "date": "2005-06-30",
+          "ewma_volatility": 0.40638947008769216
+        },
+        {
+          "asset_return": -0.0804982945490824,
+          "date": "2005-07-31",
+          "ewma_volatility": 0.3945022887636833
+        },
+        {
+          "asset_return": -0.9327584424241318,
+          "date": "2005-08-31",
+          "ewma_volatility": 0.44552938309858653
+        },
+        {
+          "asset_return": 0.3188739788392657,
+          "date": "2005-09-30",
+          "ewma_volatility": 0.43896182316324694
+        },
+        {
+          "asset_return": 0.1384230426677176,
+          "date": "2005-10-31",
+          "ewma_volatility": 0.4269378052920553
+        },
+        {
+          "asset_return": -0.1054595359339426,
+          "date": "2005-11-30",
+          "ewma_volatility": 0.4147368310573649
+        },
+        {
+          "asset_return": -0.0335645735071341,
+          "date": "2005-12-31",
+          "ewma_volatility": 0.40218631942056143
+        },
+        {
+          "asset_return": -0.1734478036387745,
+          "date": "2006-01-31",
+          "ewma_volatility": 0.39224183080408603
+        },
+        {
+          "asset_return": -0.1419486251662635,
+          "date": "2006-02-28",
+          "ewma_volatility": 0.3818787757047835
+        },
+        {
+          "asset_return": 0.4006929992595364,
+          "date": "2006-03-31",
+          "ewma_volatility": 0.38303369062406695
+        },
+        {
+          "asset_return": -0.1146897535378277,
+          "date": "2006-04-30",
+          "ewma_volatility": 0.3724260249202543
+        },
+        {
+          "asset_return": -0.5281164686434854,
+          "date": "2006-05-31",
+          "ewma_volatility": 0.38355377154028314
+        },
+        {
+          "asset_return": 0.1646317005761763,
+          "date": "2006-06-30",
+          "ewma_volatility": 0.3740493306144062
+        },
+        {
+          "asset_return": 0.461252851455402,
+          "date": "2006-07-31",
+          "ewma_volatility": 0.379846520594364
+        },
+        {
+          "asset_return": -0.1841722604927872,
+          "date": "2006-08-31",
+          "ewma_volatility": 0.3710276832627012
+        },
+        {
+          "asset_return": -0.2822824830874965,
+          "date": "2006-09-30",
+          "ewma_volatility": 0.3663097777263564
+        },
+        {
+          "asset_return": 0.681090206781533,
+          "date": "2006-10-31",
+          "ewma_volatility": 0.3923836314741982
+        },
+        {
+          "asset_return": 0.7810297815981323,
+          "date": "2006-11-30",
+          "ewma_volatility": 0.4258256340082643
+        },
+        {
+          "asset_return": -0.2681732969255492,
+          "date": "2006-12-31",
+          "ewma_volatility": 0.41804645360876214
+        },
+        {
+          "asset_return": 0.1716002415796854,
+          "date": "2007-01-31",
+          "ewma_volatility": 0.40748480426512046
+        }
+      ]
+    },
+    "sample_columns": [
+      "asset_return",
+      "date",
+      "ewma_volatility"
+    ],
+    "sample_preview": [
+      {
+        "asset_return": 0.233763149235475,
+        "date": "2005-01-31",
+        "ewma_volatility": 0.45917527263545477
+      },
+      {
+        "asset_return": -0.0288988145034342,
+        "date": "2005-02-28",
+        "ewma_volatility": 0.4452432185094297
+      },
+      {
+        "asset_return": 0.0006193654776038,
+        "date": "2005-03-31",
+        "ewma_volatility": 0.43167934306349814
+      },
+      {
+        "asset_return": 0.3695634562880727,
+        "date": "2005-04-30",
+        "ewma_volatility": 0.4282065632466234
+      },
+      {
+        "asset_return": 0.2029051474483442,
+        "date": "2005-05-31",
+        "ewma_volatility": 0.4181261042923504
+      }
+    ],
+    "workflow_type": "model",
+    "model_family": "risk_management",
+    "interpretation": {
+      "headline": "EWMA Volatility estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Supporting tables included: risk_summary, series_preview."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "risk_summary",
+        "series_preview"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "ewma_slow_decay",
+    "variant_spec": {
+      "confidence_level": 0.99,
+      "holding_period_days": 2,
+      "ewma_lambda": 0.97
+    },
+    "result_record_id": "d6d88e3d-f725-407e-a856-d8ce79ef4332",
+    "result_detail_path": "/data-lab/results/models/d6d88e3d-f725-407e-a856-d8ce79ef4332"
+  },
+  "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4"
+}

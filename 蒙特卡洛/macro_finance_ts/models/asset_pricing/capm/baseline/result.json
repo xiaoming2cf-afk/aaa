@@ -1,0 +1,156 @@
+{
+  "model_type": "capm",
+  "model_label": "CAPM",
+  "asset": {
+    "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "kind": "dataset_csv",
+    "title": "timeseries_dataset.csv",
+    "filename": "timeseries_dataset.csv",
+    "description": "timeseries_dataset.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 93948,
+      "original_filename": "timeseries_dataset.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T03:16:14.454310",
+    "updated_at": "2026-04-02T03:16:14.458473"
+  },
+  "dependent": "asset_excess",
+  "regressors": [
+    "market_excess"
+  ],
+  "observations": 240,
+  "r_squared": 0.9974385401002938,
+  "adj_r_squared": 0.9974277776637404,
+  "pseudo_r_squared": null,
+  "aic": -1109.6745843358754,
+  "bic": -1102.7133064891914,
+  "log_likelihood": 556.8372921679377,
+  "coefficients": [
+    {
+      "term": "const",
+      "coefficient": 0.006980264636655596,
+      "std_error": 0.001581304746107455,
+      "t_stat": 4.414243778018272,
+      "p_value": 1.0136368750210518e-05
+    },
+    {
+      "term": "market_excess",
+      "coefficient": 1.356940785531868,
+      "std_error": 0.004200442395614523,
+      "t_stat": 323.0471121205194,
+      "p_value": 0.0
+    }
+  ],
+  "narrative": [
+    "CAPM run on timeseries_dataset.csv.",
+    "Asset return column: asset_return.",
+    "Market factor column: market_return."
+  ],
+  "sample_columns": [
+    "asset_excess",
+    "market_excess"
+  ],
+  "sample_preview": [
+    {
+      "asset_excess": 0.21376314923547501,
+      "market_excess": 0.1032070887143996
+    },
+    {
+      "asset_excess": -0.0491481639702046,
+      "market_excess": 0.045611592272011406
+    },
+    {
+      "asset_excess": -0.019875442440905198,
+      "market_excess": 0.04227616143870691
+    },
+    {
+      "asset_excess": 0.3488309112299007,
+      "market_excess": 0.3145376761414168
+    },
+    {
+      "asset_excess": 0.1819462963711358,
+      "market_excess": 0.16607709262653908
+    }
+  ],
+  "specification": {
+    "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "model_family": "asset_pricing",
+    "model_type": "capm",
+    "dependent": "asset_excess",
+    "market_column": "market_return",
+    "risk_free_column": "risk_free_rate",
+    "model_label": "CAPM",
+    "regressors": [
+      "market_excess"
+    ],
+    "covariance_type": "HC1",
+    "equation": "asset_excess ~ market_excess"
+  },
+  "audit_trail": {
+    "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "sample_title": "timeseries_dataset.csv",
+    "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+    "rows_used": 240,
+    "sample_columns": [
+      "asset_excess",
+      "market_excess"
+    ],
+    "covariance_type": "HC1",
+    "manual_checklist": [
+      "Download the prepared sample asset referenced in sample_asset_id.",
+      "Rebuild any derived regressors listed in derived_columns before estimation.",
+      "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+      "Compare the reproduced coefficient table with the coefficients array term by term."
+    ],
+    "derived_columns": [
+      "asset_excess",
+      "market_excess"
+    ],
+    "filters": [
+      "Rows with missing factor or return inputs are dropped."
+    ]
+  },
+  "model_family": "asset_pricing",
+  "asset_return_column": "asset_return",
+  "market_column": "market_return",
+  "risk_free_column": "risk_free_rate",
+  "smb_column": "",
+  "hml_column": "",
+  "workflow_type": "model",
+  "interpretation": {
+    "headline": "CAPM estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": []
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "",
+  "variant_spec": {},
+  "result_record_id": "95e2f31f-2efa-42ba-8e62-d3b9bc6276ca",
+  "result_detail_path": "/data-lab/results/models/95e2f31f-2efa-42ba-8e62-d3b9bc6276ca"
+}

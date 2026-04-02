@@ -1,0 +1,16 @@
+{
+  "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "model_family": "econometrics_baseline",
+  "model_type": "ols",
+  "dependent": "outcome_y",
+  "independents": [
+    "size",
+    "leverage"
+  ],
+  "controls": [
+    "post"
+  ],
+  "engine": "statsmodels",
+  "template_id": "ace19b19-7a56-4053-80db-4ba394f5c57d",
+  "template_name": "OLS baseline template"
+}

@@ -1,0 +1,21 @@
+{
+  "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "sample_title": "timeseries_dataset.csv",
+  "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+  "rows_used": 240,
+  "sample_columns": [
+    "date",
+    "return_a",
+    "return_b",
+    "return_c"
+  ],
+  "manual_checklist": [
+    "Download the sample asset and sort it by the listed time_column if one is provided.",
+    "Estimate a VAR with the same lag order on the listed series columns.",
+    "Compare coefficient blocks and forecast rows equation by equation."
+  ],
+  "derived_columns": [],
+  "filters": [
+    "Rows with missing selected series values are dropped."
+  ]
+}

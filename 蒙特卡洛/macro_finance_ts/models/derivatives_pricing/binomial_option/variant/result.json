@@ -1,0 +1,388 @@
+{
+  "model_type": "binomial_option",
+  "model_label": "Binomial Option Pricing",
+  "asset": {
+    "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "kind": "dataset_csv",
+    "title": "timeseries_dataset.csv",
+    "filename": "timeseries_dataset.csv",
+    "description": "timeseries_dataset.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 93948,
+      "original_filename": "timeseries_dataset.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T03:16:14.454310",
+    "updated_at": "2026-04-02T03:16:14.458473"
+  },
+  "observations": 240,
+  "narrative": [
+    "Binomial Option Pricing run on timeseries_dataset.csv.",
+    "Option type: put.",
+    "Latest price: 121.8569."
+  ],
+  "specification": {
+    "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "model_family": "derivatives_pricing",
+    "model_type": "binomial_option",
+    "spot_column": "spot_price",
+    "strike_column": "strike_price",
+    "maturity_column": "time_to_maturity",
+    "rate_column": "risk_free_rate",
+    "volatility_column": "implied_vol",
+    "option_type": "put",
+    "option_steps": 40,
+    "equation": "CRR binomial tree backward induction",
+    "input_columns": {
+      "spot": "spot_price",
+      "strike": "strike_price",
+      "maturity": "time_to_maturity",
+      "rate": "risk_free_rate",
+      "volatility": "implied_vol"
+    },
+    "variant_label": "binomial_call",
+    "variant_spec": {
+      "option_type": "call",
+      "option_steps": 60
+    }
+  },
+  "audit_trail": {
+    "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "sample_title": "timeseries_dataset.csv",
+    "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+    "rows_used": 240,
+    "sample_columns": [
+      "spot_price",
+      "strike_price",
+      "time_to_maturity",
+      "risk_free_rate",
+      "implied_vol",
+      "price"
+    ],
+    "manual_checklist": [
+      "Download the sample asset and reproduce the pricing inputs row by row.",
+      "Use the same option_type and option_steps when applicable.",
+      "Compare the reproduced option values against the preview table and latest price metric."
+    ],
+    "derived_columns": [
+      "price"
+    ],
+    "filters": [
+      "Rows with missing pricing inputs are dropped.",
+      "Only the first 500 complete rows are priced for stability."
+    ]
+  },
+  "metrics": {
+    "latest_price": 121.85685093236809,
+    "mean_price": 30.387758228023426
+  },
+  "tables": {
+    "pricing_table": [
+      {
+        "spot_price": 103.39395529246993,
+        "strike_price": 101.32607618662053,
+        "time_to_maturity": 0.2,
+        "risk_free_rate": 0.02,
+        "implied_vol": 0.2,
+        "price": 2.5544088070799464
+      },
+      {
+        "spot_price": 104.13171825492292,
+        "strike_price": 102.04908388982447,
+        "time_to_maturity": 0.205439330543933,
+        "risk_free_rate": 0.0202493494667704,
+        "implied_vol": 0.2425908683187975,
+        "price": 3.393656324700268
+      },
+      {
+        "spot_price": 105.18477400217768,
+        "strike_price": 103.08107852213412,
+        "time_to_maturity": 0.2108786610878661,
+        "risk_free_rate": 0.020494807918509,
+        "implied_vol": 0.2569439174852359,
+        "price": 3.7488430628890783
+      },
+      {
+        "spot_price": 110.24166401618464,
+        "strike_price": 108.03683073586092,
+        "time_to_maturity": 0.2163179916317991,
+        "risk_free_rate": 0.020732545058172,
+        "implied_vol": 0.2673869696850949,
+        "price": 4.193909736751188
+      },
+      {
+        "spot_price": 113.63202950137324,
+        "strike_price": 111.35938891134576,
+        "time_to_maturity": 0.2217573221757322,
+        "risk_free_rate": 0.0209588510772084,
+        "implied_vol": 0.308038176475022,
+        "price": 5.228273172809886
+      },
+      {
+        "spot_price": 113.4459954163128,
+        "strike_price": 111.17707550798654,
+        "time_to_maturity": 0.2271966527196652,
+        "risk_free_rate": 0.0211701945458809,
+        "implied_vol": 0.3158736044845614,
+        "price": 5.4539880411903905
+      },
+      {
+        "spot_price": 113.66745032226385,
+        "strike_price": 111.39410131581856,
+        "time_to_maturity": 0.2326359832635983,
+        "risk_free_rate": 0.0213632775200466,
+        "implied_vol": 0.3157875098616468,
+        "price": 5.53367125915282
+      },
+      {
+        "spot_price": 104.58511512452384,
+        "strike_price": 102.49341282203336,
+        "time_to_maturity": 0.2380753138075313,
+        "risk_free_rate": 0.021535087004472,
+        "implied_vol": 0.3141499047263056,
+        "price": 5.123518684818732
+      },
+      {
+        "spot_price": 109.05895816199494,
+        "strike_price": 106.87777899875503,
+        "time_to_maturity": 0.2435146443514644,
+        "risk_free_rate": 0.0216829419696157,
+        "implied_vol": 0.4677431886481464,
+        "price": 8.618122015797606
+      },
+      {
+        "spot_price": 111.69042043299646,
+        "strike_price": 109.45661202433654,
+        "time_to_maturity": 0.2489539748953975,
+        "risk_free_rate": 0.0218045351881981,
+        "implied_vol": 0.4526439711563201,
+        "price": 8.602635003411132
+      },
+      {
+        "spot_price": 111.62945928910534,
+        "strike_price": 109.39687010332324,
+        "time_to_maturity": 0.2543933054393306,
+        "risk_free_rate": 0.0218979692387111,
+        "implied_vol": 0.4271932254034958,
+        "price": 8.140563816235236
+      },
+      {
+        "spot_price": 112.37354330296984,
+        "strike_price": 110.12607243691043,
+        "time_to_maturity": 0.2598326359832636,
+        "risk_free_rate": 0.0219617861140463,
+        "implied_vol": 0.4048486141122593,
+        "price": 7.7907630901351945
+      },
+      {
+        "spot_price": 111.55120794179696,
+        "strike_price": 109.32018378296104,
+        "time_to_maturity": 0.2652719665271966,
+        "risk_free_rate": 0.0219949899732081,
+        "implied_vol": 0.3847097523525775,
+        "price": 7.370956774441564
+      },
+      {
+        "spot_price": 111.08424606610754,
+        "strike_price": 108.8625611447854,
+        "time_to_maturity": 0.2707112970711297,
+        "risk_free_rate": 0.0219970626810796,
+        "implied_vol": 0.3737017830506535,
+        "price": 7.174016496259316
+      },
+      {
+        "spot_price": 116.78775025403688,
+        "strike_price": 114.45199524895612,
+        "time_to_maturity": 0.2761506276150627,
+        "risk_free_rate": 0.0219679718937478,
+        "implied_vol": 0.3629742075922315,
+        "price": 7.368835913350217
+      },
+      {
+        "spot_price": 116.61631787308885,
+        "strike_price": 114.28399151562704,
+        "time_to_maturity": 0.2815899581589958,
+        "risk_free_rate": 0.0219081715632193,
+        "implied_vol": 0.3811074624643382,
+        "price": 7.87221052515929
+      },
+      {
+        "spot_price": 111.72914171071652,
+        "strike_price": 109.4945588765022,
+        "time_to_maturity": 0.2870292887029289,
+        "risk_free_rate": 0.0218185948536513,
+        "implied_vol": 0.3676016647639192,
+        "price": 7.308018760845152
+      },
+      {
+        "spot_price": 114.72531830387848,
+        "strike_price": 112.43081193780093,
+        "time_to_maturity": 0.2924686192468619,
+        "risk_free_rate": 0.0217006395796369,
+        "implied_vol": 0.405523301543037,
+        "price": 8.494316022349235
+      },
+      {
+        "spot_price": 121.34843310790528,
+        "strike_price": 118.92146444574718,
+        "time_to_maturity": 0.297907949790795,
+        "risk_free_rate": 0.0215561463937758,
+        "implied_vol": 0.3899549192797152,
+        "price": 8.676073410904268
+      },
+      {
+        "spot_price": 120.33130262956404,
+        "strike_price": 117.92467657697276,
+        "time_to_maturity": 0.303347280334728,
+        "risk_free_rate": 0.0213873700639065,
+        "implied_vol": 0.4103610136106425,
+        "price": 9.213915443317905
+      },
+      {
+        "spot_price": 118.15774403234734,
+        "strike_price": 115.7945891517004,
+        "time_to_maturity": 0.3087866108786611,
+        "risk_free_rate": 0.0211969442882079,
+        "implied_vol": 0.3950920462098867,
+        "price": 8.748049073768462
+      },
+      {
+        "spot_price": 127.75694175993944,
+        "strike_price": 125.20180292474066,
+        "time_to_maturity": 0.3142259414225942,
+        "risk_free_rate": 0.0209878405972201,
+        "implied_vol": 0.3910395140126019,
+        "price": 9.438534930233097
+      },
+      {
+        "spot_price": 139.52343003481508,
+        "strike_price": 136.73296143411878,
+        "time_to_maturity": 0.3196652719665272,
+        "risk_free_rate": 0.0207633219841046,
+        "implied_vol": 0.4519015655574838,
+        "price": 12.266475726953992
+      },
+      {
+        "spot_price": 137.1966385605958,
+        "strike_price": 134.45270578938388,
+        "time_to_maturity": 0.3251046025104602,
+        "risk_free_rate": 0.0205268919867268,
+        "implied_vol": 0.5144791271058812,
+        "price": 14.066870733287105
+      },
+      {
+        "spot_price": 140.97396653991152,
+        "strike_price": 138.15448720911328,
+        "time_to_maturity": 0.3305439330543933,
+        "risk_free_rate": 0.0202822400161197,
+        "implied_vol": 0.4863389874802344,
+        "price": 13.70387758665471
+      }
+    ],
+    "pricing_greeks_summary": [
+      {
+        "latest_price": 121.85685093236809,
+        "mean_price": 30.387758228023426,
+        "delta": null,
+        "gamma": null,
+        "d1": null,
+        "d2": null,
+        "option_type": "put",
+        "option_steps": 40
+      }
+    ]
+  },
+  "sample_columns": [
+    "spot_price",
+    "strike_price",
+    "time_to_maturity",
+    "risk_free_rate",
+    "implied_vol",
+    "price"
+  ],
+  "sample_preview": [
+    {
+      "spot_price": 103.39395529246993,
+      "strike_price": 101.32607618662053,
+      "time_to_maturity": 0.2,
+      "risk_free_rate": 0.02,
+      "implied_vol": 0.2,
+      "price": 2.5544088070799464
+    },
+    {
+      "spot_price": 104.13171825492292,
+      "strike_price": 102.04908388982447,
+      "time_to_maturity": 0.205439330543933,
+      "risk_free_rate": 0.0202493494667704,
+      "implied_vol": 0.2425908683187975,
+      "price": 3.393656324700268
+    },
+    {
+      "spot_price": 105.18477400217768,
+      "strike_price": 103.08107852213412,
+      "time_to_maturity": 0.2108786610878661,
+      "risk_free_rate": 0.020494807918509,
+      "implied_vol": 0.2569439174852359,
+      "price": 3.7488430628890783
+    },
+    {
+      "spot_price": 110.24166401618464,
+      "strike_price": 108.03683073586092,
+      "time_to_maturity": 0.2163179916317991,
+      "risk_free_rate": 0.020732545058172,
+      "implied_vol": 0.2673869696850949,
+      "price": 4.193909736751188
+    },
+    {
+      "spot_price": 113.63202950137324,
+      "strike_price": 111.35938891134576,
+      "time_to_maturity": 0.2217573221757322,
+      "risk_free_rate": 0.0209588510772084,
+      "implied_vol": 0.308038176475022,
+      "price": 5.228273172809886
+    }
+  ],
+  "workflow_type": "model",
+  "model_family": "derivatives_pricing",
+  "interpretation": {
+    "headline": "Binomial Option Pricing estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: pricing_table, pricing_greeks_summary."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "pricing_table",
+      "pricing_greeks_summary"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "binomial_call",
+  "variant_spec": {
+    "option_type": "call",
+    "option_steps": 60
+  },
+  "result_record_id": "663ecbd8-3c9f-4ff8-83e3-6f81d367314d",
+  "result_detail_path": "/data-lab/results/models/663ecbd8-3c9f-4ff8-83e3-6f81d367314d"
+}

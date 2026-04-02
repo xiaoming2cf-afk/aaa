@@ -1,0 +1,42 @@
+{
+  "headline": "DY Connectedness estimates are exposed in full so you can read the result and reproduce it manually.",
+  "sections": [
+    {
+      "title": "What is shown on this page",
+      "items": [
+        "Supporting tables included: connectedness_matrix, directional_spillovers.",
+        "Figures included: DY connectedness heatmap, DY net directional spillovers."
+      ]
+    },
+    {
+      "title": "How to read the main result",
+      "items": [
+        "The total connectedness index is n/a percent.",
+        "The connectedness matrix shows how much of each variable's forecast error variance comes from shocks to the other variables.",
+        "The directional spillover chart highlights which variables are net transmitters and receivers of shocks."
+      ]
+    },
+    {
+      "title": "What a normal paper should report",
+      "items": [
+        "A generalized FEVD connectedness matrix.",
+        "Directional spillover measures (to, from, and net).",
+        "A visual summary such as a heatmap or bar chart of net spillovers."
+      ]
+    },
+    {
+      "title": "Manual replication focus",
+      "items": [
+        "Rebuild the generalized FEVD with the same horizon and lag order.",
+        "Check that row normalization matches the reported connectedness matrix.",
+        "Recompute net spillovers from the matrix and compare them with the directional bar chart."
+      ]
+    }
+  ],
+  "paper_outputs": [
+    "connectedness_matrix",
+    "directional_spillovers",
+    "DY connectedness heatmap",
+    "DY net directional spillovers"
+  ]
+}

@@ -1,0 +1,229 @@
+{
+  "model_type": "egarch",
+  "model_label": "EGARCH",
+  "asset": {
+    "id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "kind": "dataset_csv",
+    "title": "upgrade_ts.csv",
+    "filename": "upgrade_ts.csv",
+    "description": "upgrade_ts.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 93948,
+      "original_filename": "upgrade_ts.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:27.052169",
+    "updated_at": "2026-04-02T02:57:27.059647"
+  },
+  "observations": 240,
+  "narrative": [
+    "EGARCH estimated with distribution=normal.",
+    "Forecast horizon: 5.",
+    "Forecast method: simulation."
+  ],
+  "specification": {
+    "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "model_family": "time_series_finance",
+    "model_type": "egarch",
+    "dependent": "asset_return",
+    "time_column": "date",
+    "garch_p": 1,
+    "garch_q": 1,
+    "forecast_steps": 5,
+    "engine": "arch",
+    "distribution": "normal",
+    "forecast_method": "simulation"
+  },
+  "audit_trail": {
+    "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "sample_title": "upgrade_ts.csv",
+    "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+    "engine": "arch",
+    "derived_columns": [],
+    "filters": [
+      "Rows with missing dependent are dropped."
+    ]
+  },
+  "metrics": {
+    "loglikelihood": -155.70766387857975,
+    "aic": 319.4153277571595,
+    "bic": 333.33788345052744
+  },
+  "tables": {
+    "parameter_table": [
+      {
+        "term": "mu",
+        "coefficient": -0.030400801051564716
+      },
+      {
+        "term": "omega",
+        "coefficient": -0.20240176004106866
+      },
+      {
+        "term": "alpha[1]",
+        "coefficient": 0.2017469835079717
+      },
+      {
+        "term": "beta[1]",
+        "coefficient": 0.8644660833871386
+      }
+    ],
+    "forecast_volatility": [
+      {
+        "forecast_date": "2025-01-31T00:00:00",
+        "forecast_variance": 0.24064081345527574
+      },
+      {
+        "forecast_date": "2025-02-28T00:00:00",
+        "forecast_variance": 0.24158404997117727
+      },
+      {
+        "forecast_date": "2025-03-31T00:00:00",
+        "forecast_variance": 0.24058423442685228
+      },
+      {
+        "forecast_date": "2025-04-30T00:00:00",
+        "forecast_variance": 0.23969917037757782
+      },
+      {
+        "forecast_date": "2025-05-31T00:00:00",
+        "forecast_variance": 0.23803901351173554
+      }
+    ]
+  },
+  "sample_columns": [
+    "date",
+    "asset_return"
+  ],
+  "sample_preview": [
+    {
+      "date": "2005-01-31T00:00:00",
+      "asset_return": 0.233763149235475
+    },
+    {
+      "date": "2005-02-28T00:00:00",
+      "asset_return": -0.0288988145034342
+    },
+    {
+      "date": "2005-03-31T00:00:00",
+      "asset_return": 0.0006193654776038
+    },
+    {
+      "date": "2005-04-30T00:00:00",
+      "asset_return": 0.3695634562880727
+    },
+    {
+      "date": "2005-05-31T00:00:00",
+      "asset_return": 0.2029051474483442
+    }
+  ],
+  "engine": "arch",
+  "figures": [
+    {
+      "asset_id": "02d21176-9293-4f07-b91c-f0b7fa7604d1",
+      "title": "EGARCH conditional volatility",
+      "summary": "In-sample conditional volatility from the fitted volatility model.",
+      "download_url": "/api/assets/02d21176-9293-4f07-b91c-f0b7fa7604d1/download",
+      "asset": {
+        "id": "02d21176-9293-4f07-b91c-f0b7fa7604d1",
+        "kind": "chart_png",
+        "title": "upgrade_ts-egarch_conditional_volatility.png",
+        "filename": "upgrade_ts-egarch_conditional_volatility.png",
+        "description": "In-sample conditional volatility from the fitted volatility model.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 108983,
+          "original_filename": "upgrade_ts-egarch_conditional_volatility.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "EGARCH conditional volatility",
+          "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+          "summary": "In-sample conditional volatility from the fitted volatility model."
+        },
+        "created_at": "2026-04-02T03:05:18.426037+00:00",
+        "updated_at": "2026-04-02T03:05:18.439036+00:00"
+      }
+    },
+    {
+      "asset_id": "f778bd8e-397a-4373-81ba-113122bc8270",
+      "title": "EGARCH forecast volatility",
+      "summary": "Out-of-sample volatility forecast from the fitted model.",
+      "download_url": "/api/assets/f778bd8e-397a-4373-81ba-113122bc8270/download",
+      "asset": {
+        "id": "f778bd8e-397a-4373-81ba-113122bc8270",
+        "kind": "chart_png",
+        "title": "upgrade_ts-egarch_forecast_volatility.png",
+        "filename": "upgrade_ts-egarch_forecast_volatility.png",
+        "description": "Out-of-sample volatility forecast from the fitted model.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 63291,
+          "original_filename": "upgrade_ts-egarch_forecast_volatility.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "EGARCH forecast volatility",
+          "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+          "summary": "Out-of-sample volatility forecast from the fitted model."
+        },
+        "created_at": "2026-04-02T03:05:18.604818+00:00",
+        "updated_at": "2026-04-02T03:05:18.607810+00:00"
+      }
+    }
+  ],
+  "primary_tables": [
+    "parameter_table",
+    "forecast_volatility"
+  ],
+  "paper_output_contract": {
+    "primary_tables": [
+      "parameter_table",
+      "forecast_volatility"
+    ],
+    "figure_count": 2
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "EGARCH estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: parameter_table, forecast_volatility.",
+          "Figures included: EGARCH conditional volatility, EGARCH forecast volatility."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "parameter_table",
+      "forecast_volatility",
+      "EGARCH conditional volatility",
+      "EGARCH forecast volatility"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "",
+  "variant_spec": {},
+  "result_record_id": "30509101-1e18-42d3-ac2e-72b85f63af86",
+  "result_detail_path": "/data-lab/results/models/30509101-1e18-42d3-ac2e-72b85f63af86"
+}

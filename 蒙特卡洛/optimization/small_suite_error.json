@@ -1,0 +1,3 @@
+{
+  "detail": "Optimization suites require at least 3 algorithms to produce valid ranking and Friedman outputs; got 2."
+}

@@ -1,0 +1,278 @@
+{
+  "model_type": "interrupted_time_series",
+  "model_label": "Interrupted Time Series",
+  "asset": {
+    "id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "kind": "dataset_csv",
+    "title": "upgrade_ts.csv",
+    "filename": "upgrade_ts.csv",
+    "description": "upgrade_ts.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 93948,
+      "original_filename": "upgrade_ts.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:27.052169",
+    "updated_at": "2026-04-02T02:57:27.059647"
+  },
+  "dependent": "policy_rate",
+  "regressors": [
+    "_time_index",
+    "post_treatment",
+    "time_after_treatment",
+    "inflation_gap",
+    "output_gap"
+  ],
+  "observations": 240,
+  "r_squared": 0.8403515617108831,
+  "adj_r_squared": 0.836940270294449,
+  "pseudo_r_squared": null,
+  "aic": 13.78330258331897,
+  "bic": 34.667136123370916,
+  "log_likelihood": -0.8916512916594854,
+  "coefficients": [
+    {
+      "term": "Intercept",
+      "coefficient": 0.10089551493571686,
+      "std_error": 0.051333978195200275,
+      "t_stat": 1.9654723534586802,
+      "p_value": 0.04935959244128367
+    },
+    {
+      "term": "_time_index",
+      "coefficient": -0.0011370387278192388,
+      "std_error": 0.0004695967654536397,
+      "t_stat": -2.4213086875094576,
+      "p_value": 0.015464738819323991
+    },
+    {
+      "term": "post_treatment",
+      "coefficient": 0.06574642556050958,
+      "std_error": 0.07052503154471151,
+      "t_stat": 0.9322424126648935,
+      "p_value": 0.35121126122312063
+    },
+    {
+      "term": "time_after_treatment",
+      "coefficient": 0.0025469219025298874,
+      "std_error": 0.001463873826315941,
+      "t_stat": 1.7398507007530832,
+      "p_value": 0.08188523713743714
+    },
+    {
+      "term": "inflation_gap",
+      "coefficient": 1.9732614633076628,
+      "std_error": 0.06056450041255825,
+      "t_stat": 32.58115645082578,
+      "p_value": 7.583566120746728e-233
+    },
+    {
+      "term": "output_gap",
+      "coefficient": 0.9248162120002603,
+      "std_error": 0.06314172256218477,
+      "t_stat": 14.64667377563956,
+      "p_value": 1.414739133200787e-48
+    }
+  ],
+  "narrative": [
+    "Interrupted time-series estimated with level and slope changes after intervention."
+  ],
+  "sample_columns": [
+    "policy_rate",
+    "_time_index",
+    "post_treatment",
+    "time_after_treatment",
+    "inflation_gap",
+    "output_gap"
+  ],
+  "sample_preview": [
+    {
+      "policy_rate": 2.4984724687964475,
+      "_time_index": 0,
+      "post_treatment": 0,
+      "time_after_treatment": 0,
+      "inflation_gap": 0.3614152365499934,
+      "output_gap": 0.1614719746247687
+    },
+    {
+      "policy_rate": 1.6212191346234608,
+      "_time_index": 1,
+      "post_treatment": 0,
+      "time_after_treatment": 0,
+      "inflation_gap": 0.4140040747084316,
+      "output_gap": 0.017434358755067
+    },
+    {
+      "policy_rate": 1.2044706806320091,
+      "_time_index": 2,
+      "post_treatment": 0,
+      "time_after_treatment": 0,
+      "inflation_gap": 0.3839373276526551,
+      "output_gap": -0.0625753978694966
+    },
+    {
+      "policy_rate": 0.9502435898913666,
+      "_time_index": 3,
+      "post_treatment": 0,
+      "time_after_treatment": 0,
+      "inflation_gap": 0.0700593909970158,
+      "output_gap": 0.4360635873681854
+    },
+    {
+      "policy_rate": 0.6420261781796007,
+      "_time_index": 4,
+      "post_treatment": 0,
+      "time_after_treatment": 0,
+      "inflation_gap": -0.0788133004629155,
+      "output_gap": 0.4764731832288586
+    }
+  ],
+  "specification": {
+    "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "model_family": "causal_inference",
+    "model_type": "interrupted_time_series",
+    "dependent": "policy_rate",
+    "controls": [
+      "inflation_gap",
+      "output_gap"
+    ],
+    "time_column": "date",
+    "treatment_time": "2019-07-31",
+    "engine": "causalpy"
+  },
+  "audit_trail": {
+    "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "sample_title": "upgrade_ts.csv",
+    "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+    "rows_used": 240,
+    "sample_columns": [
+      "policy_rate",
+      "_time_index",
+      "post_treatment",
+      "time_after_treatment",
+      "inflation_gap",
+      "output_gap"
+    ],
+    "covariance_type": "HC1",
+    "manual_checklist": [
+      "Download the prepared sample asset referenced in sample_asset_id.",
+      "Rebuild any derived regressors listed in derived_columns before estimation.",
+      "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+      "Compare the reproduced coefficient table with the coefficients array term by term."
+    ],
+    "engine": "causalpy",
+    "derived_columns": [
+      "_time_index",
+      "post_treatment",
+      "time_after_treatment"
+    ],
+    "filters": []
+  },
+  "engine": "causalpy",
+  "primary_tables": [
+    "pre_post_summary"
+  ],
+  "robustness_tables": [
+    "break_audit"
+  ],
+  "tables": {
+    "pre_post_summary": [
+      {
+        "segment": "pre",
+        "mean": -0.04868861628533481,
+        "slope": -0.0011370387278192388
+      },
+      {
+        "segment": "post",
+        "mean": 0.08759544000001218,
+        "slope": 0.0014098831747106485
+      }
+    ],
+    "break_audit": [
+      {
+        "intervention_index": 174
+      }
+    ]
+  },
+  "figures": [
+    {
+      "asset_id": "0d06edfd-1806-40d2-9be9-df0f3ab00b5d",
+      "title": "Interrupted time-series observed vs fitted",
+      "summary": "Observed series and fitted interrupted time-series path.",
+      "download_url": "/api/assets/0d06edfd-1806-40d2-9be9-df0f3ab00b5d/download",
+      "asset": {
+        "id": "0d06edfd-1806-40d2-9be9-df0f3ab00b5d",
+        "kind": "chart_png",
+        "title": "upgrade_ts-its_observed_fitted.png",
+        "filename": "upgrade_ts-its_observed_fitted.png",
+        "description": "Observed series and fitted interrupted time-series path.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 144478,
+          "original_filename": "upgrade_ts-its_observed_fitted.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Interrupted time-series observed vs fitted",
+          "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+          "summary": "Observed series and fitted interrupted time-series path."
+        },
+        "created_at": "2026-04-02T03:05:28.550757+00:00",
+        "updated_at": "2026-04-02T03:05:28.562832+00:00"
+      }
+    }
+  ],
+  "metrics": {},
+  "paper_output_contract": {
+    "primary_tables": [
+      "pre_post_summary"
+    ],
+    "robustness_tables": [
+      "break_audit"
+    ],
+    "figure_count": 1
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "Interrupted Time Series estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+          "Supporting tables included: pre_post_summary, break_audit.",
+          "Figures included: Interrupted time-series observed vs fitted."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "pre_post_summary",
+      "break_audit",
+      "Interrupted time-series observed vs fitted"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "",
+  "variant_spec": {},
+  "result_record_id": "29fad7d3-30da-4e04-8bc7-02abda2815f8",
+  "result_detail_path": "/data-lab/results/models/29fad7d3-30da-4e04-8bc7-02abda2815f8"
+}

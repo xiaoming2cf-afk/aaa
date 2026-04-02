@@ -1,0 +1,17 @@
+{
+  "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "model_family": "causal_inference",
+  "model_type": "instrumental_causal",
+  "dependent": "outcome_y",
+  "independents": [
+    "size"
+  ],
+  "controls": [
+    "leverage"
+  ],
+  "endogenous_column": "endogenous_x",
+  "instrument_columns": [
+    "instrument_z"
+  ],
+  "engine": "causalpy"
+}

@@ -1,0 +1,309 @@
+{
+  "model_type": "bayesian_linear_regression",
+  "model_label": "Bayesian Linear Regression",
+  "asset": {
+    "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "kind": "dataset_csv",
+    "title": "upgrade_panel.csv",
+    "filename": "upgrade_panel.csv",
+    "description": "upgrade_panel.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 289095,
+      "original_filename": "upgrade_panel.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:26.995002",
+    "updated_at": "2026-04-02T02:57:27.013674"
+  },
+  "observations": 648,
+  "narrative": [
+    "Bayesian linear regression estimated with PyMC using weakly informative priors."
+  ],
+  "specification": {
+    "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "model_family": "bayesian",
+    "model_type": "bayesian_linear_regression",
+    "dependent": "outcome_y",
+    "independents": [
+      "size",
+      "leverage",
+      "post",
+      "treated"
+    ],
+    "draws": 120,
+    "tune": 120,
+    "chains": 1,
+    "engine": "pymc",
+    "regressors": [
+      "size",
+      "leverage",
+      "post",
+      "treated"
+    ],
+    "variant_label": "bayes_linear_treated"
+  },
+  "audit_trail": {
+    "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "sample_title": "upgrade_panel.csv",
+    "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+    "engine": "pymc",
+    "derived_columns": [
+      "_posterior_mean"
+    ],
+    "filters": []
+  },
+  "metrics": {},
+  "tables": {
+    "posterior_summary_table": [
+      {
+        "term": "alpha",
+        "mean": 0.4109,
+        "sd": 0.6854,
+        "hdi_3%": -1.0177,
+        "hdi_97%": 1.5294,
+        "mcse_mean": 0.0194,
+        "mcse_sd": 0.0133,
+        "ess_bulk": 1249.1131,
+        "ess_tail": 1120.7788,
+        "r_hat": null
+      },
+      {
+        "term": "beta[0]",
+        "mean": 0.4143,
+        "sd": 0.5549,
+        "hdi_3%": -0.5972,
+        "hdi_97%": 1.4918,
+        "mcse_mean": 0.016,
+        "mcse_sd": 0.011,
+        "ess_bulk": 1206.3912,
+        "ess_tail": 1113.3249,
+        "r_hat": null
+      },
+      {
+        "term": "beta[1]",
+        "mean": 0.4421,
+        "sd": 0.6658,
+        "hdi_3%": -0.8062,
+        "hdi_97%": 1.7102,
+        "mcse_mean": 0.0226,
+        "mcse_sd": 0.0146,
+        "ess_bulk": 846.702,
+        "ess_tail": 1201.0597,
+        "r_hat": null
+      },
+      {
+        "term": "beta[2]",
+        "mean": 0.4528,
+        "sd": 0.6758,
+        "hdi_3%": -0.8062,
+        "hdi_97%": 1.7278,
+        "mcse_mean": 0.0199,
+        "mcse_sd": 0.0149,
+        "ess_bulk": 1156.804,
+        "ess_tail": 1123.103,
+        "r_hat": null
+      },
+      {
+        "term": "beta[3]",
+        "mean": 0.3984,
+        "sd": 0.6681,
+        "hdi_3%": -0.8599,
+        "hdi_97%": 1.6088,
+        "mcse_mean": 0.0206,
+        "mcse_sd": 0.0148,
+        "ess_bulk": 1062.5811,
+        "ess_tail": 1124.8866,
+        "r_hat": null
+      },
+      {
+        "term": "sigma",
+        "mean": 1.8326,
+        "sd": 1.1408,
+        "hdi_3%": 0.3225,
+        "hdi_97%": 3.8232,
+        "mcse_mean": 0.0326,
+        "mcse_sd": 0.0594,
+        "ess_bulk": 1266.3298,
+        "ess_tail": 1055.4596,
+        "r_hat": null
+      }
+    ],
+    "predictor_contribution_table": [
+      {
+        "term": "size",
+        "posterior_mean": 0.414
+      },
+      {
+        "term": "leverage",
+        "posterior_mean": 0.442
+      },
+      {
+        "term": "post",
+        "posterior_mean": 0.453
+      },
+      {
+        "term": "treated",
+        "posterior_mean": 0.398
+      }
+    ]
+  },
+  "sample_columns": [
+    "outcome_y",
+    "size",
+    "leverage",
+    "post",
+    "treated",
+    "_posterior_mean"
+  ],
+  "sample_preview": [
+    {
+      "outcome_y": 8.281342947667275,
+      "size": 8.519775911467494,
+      "leverage": 0.3577590135791016,
+      "post": 0,
+      "treated": 1,
+      "_posterior_mean": 4.592725917012529
+    },
+    {
+      "outcome_y": 7.161166663415577,
+      "size": 7.55721041465215,
+      "leverage": 0.3378183221465689,
+      "post": 0,
+      "treated": 1,
+      "_posterior_mean": 4.010278091646031
+    },
+    {
+      "outcome_y": 7.582391886802917,
+      "size": 7.823590785770317,
+      "leverage": 0.3343232278441892,
+      "post": 0,
+      "treated": 1,
+      "_posterior_mean": 4.252112889774821
+    },
+    {
+      "outcome_y": 8.19643779930995,
+      "size": 8.058331858128255,
+      "leverage": 0.3581110765958445,
+      "post": 0,
+      "treated": 1,
+      "_posterior_mean": 4.437162554976042
+    },
+    {
+      "outcome_y": 6.775339604671813,
+      "size": 7.790582349444769,
+      "leverage": 0.3323010132904619,
+      "post": 0,
+      "treated": 1,
+      "_posterior_mean": 4.1081027471009435
+    }
+  ],
+  "engine": "pymc",
+  "figures": [
+    {
+      "asset_id": "3d346276-8c1a-43e6-a7b7-e3b06714b2be",
+      "title": "Bayesian linear trace",
+      "summary": "Trace plots for the Bayesian linear regression.",
+      "download_url": "/api/assets/3d346276-8c1a-43e6-a7b7-e3b06714b2be/download",
+      "asset": {
+        "id": "3d346276-8c1a-43e6-a7b7-e3b06714b2be",
+        "kind": "chart_png",
+        "title": "upgrade_panel-bayes_linear_trace.png",
+        "filename": "upgrade_panel-bayes_linear_trace.png",
+        "description": "Trace plots for the Bayesian linear regression.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 141554,
+          "original_filename": "upgrade_panel-bayes_linear_trace.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Bayesian linear trace",
+          "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+          "summary": "Trace plots for the Bayesian linear regression."
+        },
+        "created_at": "2026-04-02T03:02:04.143129+00:00",
+        "updated_at": "2026-04-02T03:02:04.155591+00:00"
+      }
+    },
+    {
+      "asset_id": "ffa5d3b8-e08f-483a-aa56-754940e4bcd2",
+      "title": "Posterior predictive fit",
+      "summary": "Observed series against posterior predictive mean.",
+      "download_url": "/api/assets/ffa5d3b8-e08f-483a-aa56-754940e4bcd2/download",
+      "asset": {
+        "id": "ffa5d3b8-e08f-483a-aa56-754940e4bcd2",
+        "kind": "chart_png",
+        "title": "upgrade_panel-bayes_linear_predictive.png",
+        "filename": "upgrade_panel-bayes_linear_predictive.png",
+        "description": "Observed series against posterior predictive mean.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 192538,
+          "original_filename": "upgrade_panel-bayes_linear_predictive.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Posterior predictive fit",
+          "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+          "summary": "Observed series against posterior predictive mean."
+        },
+        "created_at": "2026-04-02T03:02:04.364341+00:00",
+        "updated_at": "2026-04-02T03:02:04.367441+00:00"
+      }
+    }
+  ],
+  "primary_tables": [
+    "posterior_summary_table",
+    "predictor_contribution_table"
+  ],
+  "paper_output_contract": {
+    "primary_tables": [
+      "posterior_summary_table",
+      "predictor_contribution_table"
+    ],
+    "figure_count": 2
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "Bayesian Linear Regression estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: posterior_summary_table, predictor_contribution_table.",
+          "Figures included: Bayesian linear trace, Posterior predictive fit."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "posterior_summary_table",
+      "predictor_contribution_table",
+      "Bayesian linear trace",
+      "Posterior predictive fit"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "bayes_linear_treated",
+  "variant_spec": {},
+  "result_record_id": "a0f2eb2a-c644-4994-a597-9bde910337bd",
+  "result_detail_path": "/data-lab/results/models/a0f2eb2a-c644-4994-a597-9bde910337bd"
+}

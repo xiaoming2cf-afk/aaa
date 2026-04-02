@@ -1,0 +1,13 @@
+{
+  "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "model_family": "time_series_finance",
+  "model_type": "garch",
+  "dependent": "asset_return",
+  "time_column": "date",
+  "garch_p": 1,
+  "garch_q": 1,
+  "forecast_steps": 5,
+  "engine": "arch",
+  "distribution": "normal",
+  "forecast_method": "analytic"
+}

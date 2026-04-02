@@ -1,0 +1,24 @@
+{
+  "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "model_family": "macro_finance_dsge",
+  "model_type": "rbc_dsge",
+  "dsge_alpha": 0.33,
+  "dsge_beta": 0.99,
+  "dsge_delta": 0.025,
+  "dsge_productivity": 1.0,
+  "dsge_labor": 0.33,
+  "dsge_shock_persistence": 0.92,
+  "dsge_shock_size": 0.02,
+  "dsge_impulse_horizon": 10,
+  "equation": "Calibrated Cobb-Douglas RBC steady state with a productivity shock impulse path",
+  "parameters": {
+    "alpha": 0.33,
+    "beta": 0.99,
+    "delta": 0.025,
+    "productivity": 1.0,
+    "labor": 0.33,
+    "shock_persistence": 0.92,
+    "shock_size": 0.02,
+    "impulse_horizon": 10
+  }
+}

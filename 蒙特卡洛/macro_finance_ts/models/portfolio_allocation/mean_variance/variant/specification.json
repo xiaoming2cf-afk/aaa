@@ -1,0 +1,18 @@
+{
+  "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "model_family": "portfolio_allocation",
+  "model_type": "mean_variance",
+  "series_columns": [
+    "return_a",
+    "return_b",
+    "return_c"
+  ],
+  "risk_aversion": 3.0,
+  "long_only": true,
+  "engine": "pypfopt",
+  "portfolio_objective": "max_sharpe",
+  "variant_label": "more_aggressive_mv",
+  "variant_spec": {
+    "risk_aversion": 2.0
+  }
+}

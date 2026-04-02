@@ -1,0 +1,42 @@
+{
+  "headline": "VIRF estimates are exposed in full so you can read the result and reproduce it manually.",
+  "sections": [
+    {
+      "title": "What is shown on this page",
+      "items": [
+        "Supporting tables included: parameter_table, virf_path.",
+        "Figures included: Volatility impulse response, Variance impulse response."
+      ]
+    },
+    {
+      "title": "How to read the main result",
+      "items": [
+        "The reported shock size is 1.25 sigma.",
+        "The volatility path shows the level of implied volatility after the shock, while the variance-response plot shows the raw variance adjustment.",
+        "Persistence close to 1 means the shock decays slowly."
+      ]
+    },
+    {
+      "title": "What a normal paper should report",
+      "items": [
+        "Estimated GARCH parameters and persistence.",
+        "A volatility impulse-response plot.",
+        "A table listing volatility or variance responses by horizon."
+      ]
+    },
+    {
+      "title": "Manual replication focus",
+      "items": [
+        "Recover omega, alpha, and beta from the fitted GARCH(1,1) specification.",
+        "Rebuild the VIRF path from the documented recurrence formula and shock size.",
+        "Compare both the volatility and variance response outputs horizon by horizon."
+      ]
+    }
+  ],
+  "paper_outputs": [
+    "parameter_table",
+    "virf_path",
+    "Volatility impulse response",
+    "Variance impulse response"
+  ]
+}

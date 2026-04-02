@@ -1,0 +1,434 @@
+{
+  "record": {
+    "id": "fca1025e-bb01-4410-b218-3da1b022061c",
+    "title": "IV-2SLS summary for panel_dataset.csv",
+    "content": "IV-2SLS run on panel_dataset.csv.\nOutcome variable: outcome_y.\nEndogenous regressor: endogenous_x.\nInstruments: instrument_z.\nObservations used: 648.",
+    "content_excerpt": "IV-2SLS run on panel_dataset.csv. Outcome variable: outcome_y. Endogenous regressor: endogenous_x. Instruments: instrument_z. Observations used: 648.",
+    "content_length": 149,
+    "tags": [
+      "iv_2sls",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "iv_2sls",
+      "model_label": "IV-2SLS",
+      "asset": {
+        "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "kind": "dataset_csv",
+        "title": "panel_dataset.csv",
+        "filename": "panel_dataset.csv",
+        "description": "panel_dataset.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 289095,
+          "original_filename": "panel_dataset.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T03:16:14.412741",
+        "updated_at": "2026-04-02T03:16:14.426020"
+      },
+      "dependent": "outcome_y",
+      "regressors": [
+        "size",
+        "leverage",
+        "endogenous_x"
+      ],
+      "observations": 648,
+      "r_squared": 0.333609833377462,
+      "adj_r_squared": 0.33050553135903404,
+      "pseudo_r_squared": null,
+      "aic": null,
+      "bic": null,
+      "log_likelihood": null,
+      "coefficients": [
+        {
+          "term": "const",
+          "coefficient": 0.10774651444332045,
+          "std_error": 0.9487091567894083,
+          "t_stat": 0.11357170284721697,
+          "p_value": 0.9096127152201875
+        },
+        {
+          "term": "size",
+          "coefficient": 1.1228012275624386,
+          "std_error": 0.0771204343866124,
+          "t_stat": 14.55906254279799,
+          "p_value": 1.0200151648832657e-41
+        },
+        {
+          "term": "leverage",
+          "coefficient": -2.7788400804406637,
+          "std_error": 1.759985672957632,
+          "t_stat": -1.5788992621575497,
+          "p_value": 0.114850192447854
+        },
+        {
+          "term": "endogenous_x",
+          "coefficient": 0.6127154738586168,
+          "std_error": 0.0834961908187274,
+          "t_stat": 7.338244629492613,
+          "p_value": 6.543500052063737e-13
+        }
+      ],
+      "narrative": [
+        "IV-2SLS run on panel_dataset.csv.",
+        "Outcome variable: outcome_y.",
+        "Endogenous regressor: endogenous_x.",
+        "Instruments: instrument_z.",
+        "Observations used: 648."
+      ],
+      "sample_columns": [
+        "outcome_y",
+        "size",
+        "leverage",
+        "endogenous_x",
+        "instrument_z"
+      ],
+      "sample_preview": [
+        {
+          "outcome_y": 8.281342947667275,
+          "size": 8.519775911467494,
+          "leverage": 0.3577590135791016,
+          "endogenous_x": 0.2785972991161518,
+          "instrument_z": -0.1435168424451554
+        },
+        {
+          "outcome_y": 7.161166663415577,
+          "size": 7.55721041465215,
+          "leverage": 0.3378183221465689,
+          "endogenous_x": 1.1977342200420291,
+          "instrument_z": 1.4316570462193818
+        },
+        {
+          "outcome_y": 7.582391886802917,
+          "size": 7.823590785770317,
+          "leverage": 0.3343232278441892,
+          "endogenous_x": 0.2791971515539841,
+          "instrument_z": 1.0577328335812757
+        },
+        {
+          "outcome_y": 8.19643779930995,
+          "size": 8.058331858128255,
+          "leverage": 0.3581110765958445,
+          "endogenous_x": 1.693126004491981,
+          "instrument_z": 1.2478999752354007
+        },
+        {
+          "outcome_y": 6.775339604671813,
+          "size": 7.790582349444769,
+          "leverage": 0.3323010132904619,
+          "endogenous_x": -0.6336680485148168,
+          "instrument_z": -0.7576141862667286
+        }
+      ],
+      "specification": {
+        "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "model_family": "econometrics_baseline",
+        "model_type": "iv_2sls",
+        "dependent": "outcome_y",
+        "independents": [
+          "size"
+        ],
+        "controls": [
+          "leverage"
+        ],
+        "endogenous_column": "endogenous_x",
+        "instrument_columns": [
+          "instrument_z"
+        ],
+        "model_label": "IV-2SLS",
+        "regressors": [
+          "size",
+          "leverage",
+          "endogenous_x"
+        ],
+        "covariance_type": "nonrobust",
+        "equation": "outcome_y ~ size + leverage + endogenous_x"
+      },
+      "audit_trail": {
+        "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "sample_title": "panel_dataset.csv",
+        "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+        "rows_used": 648,
+        "sample_columns": [
+          "outcome_y",
+          "size",
+          "leverage",
+          "endogenous_x",
+          "instrument_z"
+        ],
+        "covariance_type": "nonrobust",
+        "manual_checklist": [
+          "Download the prepared sample asset referenced in sample_asset_id.",
+          "Rebuild any derived regressors listed in derived_columns before estimation.",
+          "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+          "Compare the reproduced coefficient table with the coefficients array term by term."
+        ],
+        "derived_columns": [],
+        "filters": [
+          "Rows with missing dependent, endogenous regressor, exogenous regressors, or instruments are dropped."
+        ]
+      },
+      "endogenous_column": "endogenous_x",
+      "instrument_columns": [
+        "instrument_z"
+      ],
+      "exogenous_columns": [
+        "size",
+        "leverage"
+      ],
+      "covariance_type": "nonrobust",
+      "covariance_note": "IV-2SLS uses conventional covariance when robust covariance is unavailable in the current backend.",
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "IV-2SLS estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": []
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "",
+      "variant_spec": {},
+      "result_record_id": "fca1025e-bb01-4410-b218-3da1b022061c",
+      "result_detail_path": "/data-lab/results/models/fca1025e-bb01-4410-b218-3da1b022061c"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:16:20.062415",
+    "updated_at": "2026-04-02T03:16:20.062935"
+  },
+  "result": {
+    "model_type": "iv_2sls",
+    "model_label": "IV-2SLS",
+    "asset": {
+      "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "kind": "dataset_csv",
+      "title": "panel_dataset.csv",
+      "filename": "panel_dataset.csv",
+      "description": "panel_dataset.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 289095,
+        "original_filename": "panel_dataset.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T03:16:14.412741",
+      "updated_at": "2026-04-02T03:16:14.426020"
+    },
+    "dependent": "outcome_y",
+    "regressors": [
+      "size",
+      "leverage",
+      "endogenous_x"
+    ],
+    "observations": 648,
+    "r_squared": 0.333609833377462,
+    "adj_r_squared": 0.33050553135903404,
+    "pseudo_r_squared": null,
+    "aic": null,
+    "bic": null,
+    "log_likelihood": null,
+    "coefficients": [
+      {
+        "term": "const",
+        "coefficient": 0.10774651444332045,
+        "std_error": 0.9487091567894083,
+        "t_stat": 0.11357170284721697,
+        "p_value": 0.9096127152201875
+      },
+      {
+        "term": "size",
+        "coefficient": 1.1228012275624386,
+        "std_error": 0.0771204343866124,
+        "t_stat": 14.55906254279799,
+        "p_value": 1.0200151648832657e-41
+      },
+      {
+        "term": "leverage",
+        "coefficient": -2.7788400804406637,
+        "std_error": 1.759985672957632,
+        "t_stat": -1.5788992621575497,
+        "p_value": 0.114850192447854
+      },
+      {
+        "term": "endogenous_x",
+        "coefficient": 0.6127154738586168,
+        "std_error": 0.0834961908187274,
+        "t_stat": 7.338244629492613,
+        "p_value": 6.543500052063737e-13
+      }
+    ],
+    "narrative": [
+      "IV-2SLS run on panel_dataset.csv.",
+      "Outcome variable: outcome_y.",
+      "Endogenous regressor: endogenous_x.",
+      "Instruments: instrument_z.",
+      "Observations used: 648."
+    ],
+    "sample_columns": [
+      "outcome_y",
+      "size",
+      "leverage",
+      "endogenous_x",
+      "instrument_z"
+    ],
+    "sample_preview": [
+      {
+        "outcome_y": 8.281342947667275,
+        "size": 8.519775911467494,
+        "leverage": 0.3577590135791016,
+        "endogenous_x": 0.2785972991161518,
+        "instrument_z": -0.1435168424451554
+      },
+      {
+        "outcome_y": 7.161166663415577,
+        "size": 7.55721041465215,
+        "leverage": 0.3378183221465689,
+        "endogenous_x": 1.1977342200420291,
+        "instrument_z": 1.4316570462193818
+      },
+      {
+        "outcome_y": 7.582391886802917,
+        "size": 7.823590785770317,
+        "leverage": 0.3343232278441892,
+        "endogenous_x": 0.2791971515539841,
+        "instrument_z": 1.0577328335812757
+      },
+      {
+        "outcome_y": 8.19643779930995,
+        "size": 8.058331858128255,
+        "leverage": 0.3581110765958445,
+        "endogenous_x": 1.693126004491981,
+        "instrument_z": 1.2478999752354007
+      },
+      {
+        "outcome_y": 6.775339604671813,
+        "size": 7.790582349444769,
+        "leverage": 0.3323010132904619,
+        "endogenous_x": -0.6336680485148168,
+        "instrument_z": -0.7576141862667286
+      }
+    ],
+    "specification": {
+      "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "model_family": "econometrics_baseline",
+      "model_type": "iv_2sls",
+      "dependent": "outcome_y",
+      "independents": [
+        "size"
+      ],
+      "controls": [
+        "leverage"
+      ],
+      "endogenous_column": "endogenous_x",
+      "instrument_columns": [
+        "instrument_z"
+      ],
+      "model_label": "IV-2SLS",
+      "regressors": [
+        "size",
+        "leverage",
+        "endogenous_x"
+      ],
+      "covariance_type": "nonrobust",
+      "equation": "outcome_y ~ size + leverage + endogenous_x"
+    },
+    "audit_trail": {
+      "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "sample_title": "panel_dataset.csv",
+      "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+      "rows_used": 648,
+      "sample_columns": [
+        "outcome_y",
+        "size",
+        "leverage",
+        "endogenous_x",
+        "instrument_z"
+      ],
+      "covariance_type": "nonrobust",
+      "manual_checklist": [
+        "Download the prepared sample asset referenced in sample_asset_id.",
+        "Rebuild any derived regressors listed in derived_columns before estimation.",
+        "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+        "Compare the reproduced coefficient table with the coefficients array term by term."
+      ],
+      "derived_columns": [],
+      "filters": [
+        "Rows with missing dependent, endogenous regressor, exogenous regressors, or instruments are dropped."
+      ]
+    },
+    "endogenous_column": "endogenous_x",
+    "instrument_columns": [
+      "instrument_z"
+    ],
+    "exogenous_columns": [
+      "size",
+      "leverage"
+    ],
+    "covariance_type": "nonrobust",
+    "covariance_note": "IV-2SLS uses conventional covariance when robust covariance is unavailable in the current backend.",
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "IV-2SLS estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": []
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "",
+    "variant_spec": {},
+    "result_record_id": "fca1025e-bb01-4410-b218-3da1b022061c",
+    "result_detail_path": "/data-lab/results/models/fca1025e-bb01-4410-b218-3da1b022061c"
+  },
+  "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4"
+}

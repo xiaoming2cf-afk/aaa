@@ -1,0 +1,15 @@
+{
+  "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "model_family": "econometrics_baseline",
+  "model_type": "glm",
+  "dependent": "count_outcome",
+  "independents": [
+    "size",
+    "leverage"
+  ],
+  "controls": [
+    "post"
+  ],
+  "glm_family": "poisson",
+  "engine": "statsmodels"
+}

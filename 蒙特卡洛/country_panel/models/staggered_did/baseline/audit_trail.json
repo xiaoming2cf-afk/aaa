@@ -1,0 +1,41 @@
+{
+  "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "sample_title": "upgrade_panel.csv",
+  "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+  "rows_used": 648,
+  "sample_columns": [
+    "outcome_y",
+    "event_m4",
+    "event_m3",
+    "event_m2",
+    "event_p0",
+    "event_p1",
+    "event_p2",
+    "event_p3",
+    "event_p4",
+    "size",
+    "leverage"
+  ],
+  "covariance_type": "HC1",
+  "manual_checklist": [
+    "Download the prepared sample asset referenced in sample_asset_id.",
+    "Rebuild any derived regressors listed in derived_columns before estimation.",
+    "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+    "Compare the reproduced coefficient table with the coefficients array term by term."
+  ],
+  "engine": "causalpy",
+  "derived_columns": [
+    "_event_time",
+    "event_m4",
+    "event_m3",
+    "event_m2",
+    "event_p0",
+    "event_p1",
+    "event_p2",
+    "event_p3",
+    "event_p4"
+  ],
+  "filters": [
+    "Rows without dependent variable are excluded."
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "model_family": "econometrics_baseline",
+  "model_type": "event_study",
+  "dependent": "outcome_y",
+  "controls": [
+    "size",
+    "leverage"
+  ],
+  "treatment_column": "treated",
+  "event_time_column": "event_time",
+  "lead_window": 4,
+  "lag_window": 4,
+  "omitted_period": -1,
+  "entity_column": "firm_id",
+  "time_column": "date",
+  "include_time_effects": true,
+  "engine": "causalpy",
+  "treated_column": "treated",
+  "treatment_time_column": "treatment_time"
+}

@@ -1,0 +1,36 @@
+{
+  "headline": "Difference-in-Differences estimates are exposed in full so you can read the result and reproduce it manually.",
+  "sections": [
+    {
+      "title": "What is shown on this page",
+      "items": [
+        "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars."
+      ]
+    },
+    {
+      "title": "How to read the main result",
+      "items": [
+        "The focal DID coefficient is `did_interaction` = 1.4601***.",
+        "A positive sign means the treated group rose more after treatment than the control group did over the same period.",
+        "The 2x2 cell-means table should tell the same story as the regression coefficient."
+      ]
+    },
+    {
+      "title": "What a normal paper should report",
+      "items": [
+        "A coefficient table with treatment, post, and DID interaction terms.",
+        "A 2x2 before/after by treated/control summary or plot.",
+        "A discussion of parallel-trends plausibility and sample construction."
+      ]
+    },
+    {
+      "title": "Manual replication focus",
+      "items": [
+        "Check that treatment and post indicators are coded exactly as intended in the downloaded sample.",
+        "Recompute the 2x2 cell means manually before trusting the DID coefficient.",
+        "Re-estimate the regression with the documented covariance type and compare the `did_interaction` row term by term."
+      ]
+    }
+  ],
+  "paper_outputs": []
+}

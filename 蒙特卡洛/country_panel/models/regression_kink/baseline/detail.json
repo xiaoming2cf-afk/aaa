@@ -1,0 +1,544 @@
+{
+  "record": {
+    "id": "d7fb12be-0791-4a32-ae85-895957dda6e4",
+    "title": "Regression Kink summary for upgrade_panel.csv",
+    "content": "Regression kink estimated with a slope break at the specified kink point.",
+    "content_excerpt": "Regression kink estimated with a slope break at the specified kink point.",
+    "content_length": 73,
+    "tags": [
+      "regression_kink",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "regression_kink",
+      "model_label": "Regression Kink",
+      "asset": {
+        "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "kind": "dataset_csv",
+        "title": "upgrade_panel.csv",
+        "filename": "upgrade_panel.csv",
+        "description": "upgrade_panel.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 289095,
+          "original_filename": "upgrade_panel.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T02:57:26.995002",
+        "updated_at": "2026-04-02T02:57:27.013674"
+      },
+      "dependent": "outcome_y",
+      "regressors": [
+        "running_centered",
+        "kink_term",
+        "size",
+        "leverage"
+      ],
+      "observations": 443,
+      "r_squared": 0.3451848384831815,
+      "adj_r_squared": 0.33920479134604153,
+      "pseudo_r_squared": null,
+      "aic": 1602.962816302748,
+      "bic": 1623.4306651529737,
+      "log_likelihood": -796.481408151374,
+      "coefficients": [
+        {
+          "term": "Intercept",
+          "coefficient": -0.49655866750138533,
+          "std_error": 1.081132798662152,
+          "t_stat": -0.4592947953441538,
+          "p_value": 0.6460224847772296
+        },
+        {
+          "term": "running_centered",
+          "coefficient": 0.8472945772603764,
+          "std_error": 0.24472697083277864,
+          "t_stat": 3.4622035093930483,
+          "p_value": 0.0005357718656531938
+        },
+        {
+          "term": "kink_term",
+          "coefficient": 0.30857004853752046,
+          "std_error": 0.4624162326158669,
+          "t_stat": 0.6672993436929197,
+          "p_value": 0.5045809455262791
+        },
+        {
+          "term": "size",
+          "coefficient": 1.201319982050419,
+          "std_error": 0.07793354186099061,
+          "t_stat": 15.414671954640573,
+          "p_value": 1.3043148821655405e-53
+        },
+        {
+          "term": "leverage",
+          "coefficient": -3.2463780347870816,
+          "std_error": 2.0844282672512433,
+          "t_stat": -1.5574429141033064,
+          "p_value": 0.11936536408506175
+        }
+      ],
+      "narrative": [
+        "Regression kink estimated with a slope break at the specified kink point."
+      ],
+      "sample_columns": [
+        "outcome_y",
+        "running_centered",
+        "kink_term",
+        "size",
+        "leverage"
+      ],
+      "sample_preview": [
+        {
+          "outcome_y": 11.201953121801624,
+          "running_centered": -0.9994969096593872,
+          "kink_term": 0.0,
+          "size": 10.992947435840197,
+          "leverage": 0.3591670822919155
+        },
+        {
+          "outcome_y": 12.487022189417583,
+          "running_centered": -0.9948262204173858,
+          "kink_term": 0.0,
+          "size": 9.5694487638562,
+          "leverage": 0.3506413458369021
+        },
+        {
+          "outcome_y": 10.102457851989278,
+          "running_centered": -0.9947646295745926,
+          "kink_term": 0.0,
+          "size": 8.828685864134732,
+          "leverage": 0.307679590267131
+        },
+        {
+          "outcome_y": 11.665854033986,
+          "running_centered": -0.9881938886440718,
+          "kink_term": 0.0,
+          "size": 11.162012940901125,
+          "leverage": 0.3485585030573602
+        },
+        {
+          "outcome_y": 10.873854290958503,
+          "running_centered": -0.9881673729959922,
+          "kink_term": 0.0,
+          "size": 10.677646711157015,
+          "leverage": 0.3660063833239336
+        }
+      ],
+      "specification": {
+        "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "model_family": "causal_inference",
+        "model_type": "regression_kink",
+        "dependent": "outcome_y",
+        "controls": [
+          "size",
+          "leverage"
+        ],
+        "running_column": "running_score",
+        "bandwidth": 1.0,
+        "kink_point": 0.0,
+        "engine": "causalpy"
+      },
+      "audit_trail": {
+        "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "sample_title": "upgrade_panel.csv",
+        "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+        "rows_used": 443,
+        "sample_columns": [
+          "outcome_y",
+          "running_centered",
+          "kink_term",
+          "size",
+          "leverage"
+        ],
+        "covariance_type": "HC1",
+        "manual_checklist": [
+          "Download the prepared sample asset referenced in sample_asset_id.",
+          "Rebuild any derived regressors listed in derived_columns before estimation.",
+          "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+          "Compare the reproduced coefficient table with the coefficients array term by term."
+        ],
+        "engine": "causalpy",
+        "derived_columns": [
+          "running_centered",
+          "kink_term"
+        ],
+        "filters": [
+          "Bandwidth restriction: ±1.0."
+        ]
+      },
+      "engine": "causalpy",
+      "primary_tables": [
+        "bandwidth_audit"
+      ],
+      "robustness_tables": [
+        "kink_design_table"
+      ],
+      "tables": {
+        "bandwidth_audit": [
+          {
+            "bandwidth": 1.0,
+            "kink_point": 0.0,
+            "sample_size": 443
+          }
+        ],
+        "kink_design_table": [
+          {
+            "bandwidth": 1.0,
+            "kink_point": 0.0,
+            "sample_size": 443
+          }
+        ]
+      },
+      "figures": [
+        {
+          "asset_id": "8bb37a2b-537a-4c94-8f6d-88615d20259d",
+          "title": "Regression kink fit",
+          "summary": "Observed outcomes and fitted piecewise-linear kink regression.",
+          "download_url": "/api/assets/8bb37a2b-537a-4c94-8f6d-88615d20259d/download",
+          "asset": {
+            "id": "8bb37a2b-537a-4c94-8f6d-88615d20259d",
+            "kind": "chart_png",
+            "title": "upgrade_panel-regression_kink_fit.png",
+            "filename": "upgrade_panel-regression_kink_fit.png",
+            "description": "Observed outcomes and fitted piecewise-linear kink regression.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 236853,
+              "original_filename": "upgrade_panel-regression_kink_fit.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "Regression kink fit",
+              "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+              "summary": "Observed outcomes and fitted piecewise-linear kink regression."
+            },
+            "created_at": "2026-04-02T02:58:00.454567+00:00",
+            "updated_at": "2026-04-02T02:58:00.463976+00:00"
+          }
+        }
+      ],
+      "metrics": {},
+      "paper_output_contract": {
+        "primary_tables": [
+          "bandwidth_audit"
+        ],
+        "robustness_tables": [
+          "kink_design_table"
+        ],
+        "figure_count": 1
+      },
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "Regression Kink estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+              "Supporting tables included: bandwidth_audit, kink_design_table.",
+              "Figures included: Regression kink fit."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "bandwidth_audit",
+          "kink_design_table",
+          "Regression kink fit"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "",
+      "variant_spec": {},
+      "result_record_id": "d7fb12be-0791-4a32-ae85-895957dda6e4",
+      "result_detail_path": "/data-lab/results/models/d7fb12be-0791-4a32-ae85-895957dda6e4"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T02:58:00.495907",
+    "updated_at": "2026-04-02T02:58:00.498892"
+  },
+  "result": {
+    "model_type": "regression_kink",
+    "model_label": "Regression Kink",
+    "asset": {
+      "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "kind": "dataset_csv",
+      "title": "upgrade_panel.csv",
+      "filename": "upgrade_panel.csv",
+      "description": "upgrade_panel.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 289095,
+        "original_filename": "upgrade_panel.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T02:57:26.995002",
+      "updated_at": "2026-04-02T02:57:27.013674"
+    },
+    "dependent": "outcome_y",
+    "regressors": [
+      "running_centered",
+      "kink_term",
+      "size",
+      "leverage"
+    ],
+    "observations": 443,
+    "r_squared": 0.3451848384831815,
+    "adj_r_squared": 0.33920479134604153,
+    "pseudo_r_squared": null,
+    "aic": 1602.962816302748,
+    "bic": 1623.4306651529737,
+    "log_likelihood": -796.481408151374,
+    "coefficients": [
+      {
+        "term": "Intercept",
+        "coefficient": -0.49655866750138533,
+        "std_error": 1.081132798662152,
+        "t_stat": -0.4592947953441538,
+        "p_value": 0.6460224847772296
+      },
+      {
+        "term": "running_centered",
+        "coefficient": 0.8472945772603764,
+        "std_error": 0.24472697083277864,
+        "t_stat": 3.4622035093930483,
+        "p_value": 0.0005357718656531938
+      },
+      {
+        "term": "kink_term",
+        "coefficient": 0.30857004853752046,
+        "std_error": 0.4624162326158669,
+        "t_stat": 0.6672993436929197,
+        "p_value": 0.5045809455262791
+      },
+      {
+        "term": "size",
+        "coefficient": 1.201319982050419,
+        "std_error": 0.07793354186099061,
+        "t_stat": 15.414671954640573,
+        "p_value": 1.3043148821655405e-53
+      },
+      {
+        "term": "leverage",
+        "coefficient": -3.2463780347870816,
+        "std_error": 2.0844282672512433,
+        "t_stat": -1.5574429141033064,
+        "p_value": 0.11936536408506175
+      }
+    ],
+    "narrative": [
+      "Regression kink estimated with a slope break at the specified kink point."
+    ],
+    "sample_columns": [
+      "outcome_y",
+      "running_centered",
+      "kink_term",
+      "size",
+      "leverage"
+    ],
+    "sample_preview": [
+      {
+        "outcome_y": 11.201953121801624,
+        "running_centered": -0.9994969096593872,
+        "kink_term": 0.0,
+        "size": 10.992947435840197,
+        "leverage": 0.3591670822919155
+      },
+      {
+        "outcome_y": 12.487022189417583,
+        "running_centered": -0.9948262204173858,
+        "kink_term": 0.0,
+        "size": 9.5694487638562,
+        "leverage": 0.3506413458369021
+      },
+      {
+        "outcome_y": 10.102457851989278,
+        "running_centered": -0.9947646295745926,
+        "kink_term": 0.0,
+        "size": 8.828685864134732,
+        "leverage": 0.307679590267131
+      },
+      {
+        "outcome_y": 11.665854033986,
+        "running_centered": -0.9881938886440718,
+        "kink_term": 0.0,
+        "size": 11.162012940901125,
+        "leverage": 0.3485585030573602
+      },
+      {
+        "outcome_y": 10.873854290958503,
+        "running_centered": -0.9881673729959922,
+        "kink_term": 0.0,
+        "size": 10.677646711157015,
+        "leverage": 0.3660063833239336
+      }
+    ],
+    "specification": {
+      "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "model_family": "causal_inference",
+      "model_type": "regression_kink",
+      "dependent": "outcome_y",
+      "controls": [
+        "size",
+        "leverage"
+      ],
+      "running_column": "running_score",
+      "bandwidth": 1.0,
+      "kink_point": 0.0,
+      "engine": "causalpy"
+    },
+    "audit_trail": {
+      "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "sample_title": "upgrade_panel.csv",
+      "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+      "rows_used": 443,
+      "sample_columns": [
+        "outcome_y",
+        "running_centered",
+        "kink_term",
+        "size",
+        "leverage"
+      ],
+      "covariance_type": "HC1",
+      "manual_checklist": [
+        "Download the prepared sample asset referenced in sample_asset_id.",
+        "Rebuild any derived regressors listed in derived_columns before estimation.",
+        "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+        "Compare the reproduced coefficient table with the coefficients array term by term."
+      ],
+      "engine": "causalpy",
+      "derived_columns": [
+        "running_centered",
+        "kink_term"
+      ],
+      "filters": [
+        "Bandwidth restriction: ±1.0."
+      ]
+    },
+    "engine": "causalpy",
+    "primary_tables": [
+      "bandwidth_audit"
+    ],
+    "robustness_tables": [
+      "kink_design_table"
+    ],
+    "tables": {
+      "bandwidth_audit": [
+        {
+          "bandwidth": 1.0,
+          "kink_point": 0.0,
+          "sample_size": 443
+        }
+      ],
+      "kink_design_table": [
+        {
+          "bandwidth": 1.0,
+          "kink_point": 0.0,
+          "sample_size": 443
+        }
+      ]
+    },
+    "figures": [
+      {
+        "asset_id": "8bb37a2b-537a-4c94-8f6d-88615d20259d",
+        "title": "Regression kink fit",
+        "summary": "Observed outcomes and fitted piecewise-linear kink regression.",
+        "download_url": "/api/assets/8bb37a2b-537a-4c94-8f6d-88615d20259d/download",
+        "asset": {
+          "id": "8bb37a2b-537a-4c94-8f6d-88615d20259d",
+          "kind": "chart_png",
+          "title": "upgrade_panel-regression_kink_fit.png",
+          "filename": "upgrade_panel-regression_kink_fit.png",
+          "description": "Observed outcomes and fitted piecewise-linear kink regression.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 236853,
+            "original_filename": "upgrade_panel-regression_kink_fit.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "Regression kink fit",
+            "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+            "summary": "Observed outcomes and fitted piecewise-linear kink regression."
+          },
+          "created_at": "2026-04-02T02:58:00.454567+00:00",
+          "updated_at": "2026-04-02T02:58:00.463976+00:00"
+        }
+      }
+    ],
+    "metrics": {},
+    "paper_output_contract": {
+      "primary_tables": [
+        "bandwidth_audit"
+      ],
+      "robustness_tables": [
+        "kink_design_table"
+      ],
+      "figure_count": 1
+    },
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "Regression Kink estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+            "Supporting tables included: bandwidth_audit, kink_design_table.",
+            "Figures included: Regression kink fit."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "bandwidth_audit",
+        "kink_design_table",
+        "Regression kink fit"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "",
+    "variant_spec": {},
+    "result_record_id": "d7fb12be-0791-4a32-ae85-895957dda6e4",
+    "result_detail_path": "/data-lab/results/models/d7fb12be-0791-4a32-ae85-895957dda6e4"
+  },
+  "workspace_id": "1127ef60-f949-49b8-b32e-bae8138f3568"
+}

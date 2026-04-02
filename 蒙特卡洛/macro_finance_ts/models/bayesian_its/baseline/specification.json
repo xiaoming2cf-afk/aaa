@@ -1,0 +1,12 @@
+{
+  "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+  "model_family": "bayesian",
+  "model_type": "bayesian_its",
+  "dependent": "policy_rate",
+  "time_column": "date",
+  "treatment_index": 18,
+  "draws": 100,
+  "tune": 100,
+  "chains": 1,
+  "engine": "pymc"
+}

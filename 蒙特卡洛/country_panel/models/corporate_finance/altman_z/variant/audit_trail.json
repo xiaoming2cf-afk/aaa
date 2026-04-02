@@ -1,0 +1,28 @@
+{
+  "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "sample_title": "panel_dataset.csv",
+  "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+  "rows_used": 648,
+  "sample_columns": [
+    "working_capital",
+    "retained_earnings",
+    "ebit",
+    "market_equity",
+    "sales",
+    "total_assets",
+    "total_liabilities"
+  ],
+  "manual_checklist": [
+    "Recompute each ratio term using the listed accounting columns.",
+    "Apply the standard Altman weights to reproduce altman_z.",
+    "Check the distress-zone cutoff against 1.81 and 2.99."
+  ],
+  "derived_columns": [
+    "altman_z",
+    "distress_zone"
+  ],
+  "filters": [
+    "Rows with missing inputs are dropped.",
+    "Rows with nonpositive total assets or total liabilities are removed."
+  ]
+}

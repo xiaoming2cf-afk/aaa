@@ -1,0 +1,28 @@
+{
+  "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+  "sample_title": "upgrade_ts.csv",
+  "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+  "rows_used": 240,
+  "sample_columns": [
+    "policy_rate",
+    "_time_index",
+    "post_treatment",
+    "time_after_treatment",
+    "inflation_gap",
+    "output_gap"
+  ],
+  "covariance_type": "HC1",
+  "manual_checklist": [
+    "Download the prepared sample asset referenced in sample_asset_id.",
+    "Rebuild any derived regressors listed in derived_columns before estimation.",
+    "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+    "Compare the reproduced coefficient table with the coefficients array term by term."
+  ],
+  "engine": "causalpy",
+  "derived_columns": [
+    "_time_index",
+    "post_treatment",
+    "time_after_treatment"
+  ],
+  "filters": []
+}

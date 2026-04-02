@@ -1,0 +1,225 @@
+{
+  "model_type": "ols",
+  "model_label": "OLS",
+  "asset": {
+    "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+    "kind": "dataset_csv",
+    "title": "panel_dataset.csv",
+    "filename": "panel_dataset.csv",
+    "description": "panel_dataset.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 289095,
+      "original_filename": "panel_dataset.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T03:16:14.412741",
+    "updated_at": "2026-04-02T03:16:14.426020"
+  },
+  "dependent": "outcome_y",
+  "regressors": [
+    "const",
+    "size",
+    "leverage",
+    "post"
+  ],
+  "observations": 648,
+  "r_squared": 0.5485189178762324,
+  "adj_r_squared": 0.5464157451334198,
+  "pseudo_r_squared": null,
+  "aic": 2093.6661880660936,
+  "bic": 2111.561750851503,
+  "log_likelihood": -1042.8330940330468,
+  "coefficients": [
+    {
+      "term": "const",
+      "coefficient": 3.341095532186896,
+      "std_error": 0.8086999905902925,
+      "t_stat": 4.131440053249089,
+      "p_value": 3.604977093413951e-05
+    },
+    {
+      "term": "size",
+      "coefficient": 0.6031223285482458,
+      "std_error": 0.06644184293256868,
+      "t_stat": 9.077447312235906,
+      "p_value": 1.1115100624843278e-19
+    },
+    {
+      "term": "leverage",
+      "coefficient": -0.9982913157246998,
+      "std_error": 1.4273865574024573,
+      "t_stat": -0.6993839969611172,
+      "p_value": 0.48431208611890375
+    },
+    {
+      "term": "post",
+      "coefficient": 2.185960710828044,
+      "std_error": 0.10251841357115757,
+      "t_stat": 21.322615466642766,
+      "p_value": 7.003304380776171e-101
+    }
+  ],
+  "narrative": [
+    "Candidate OLS estimated with statsmodels."
+  ],
+  "sample_columns": [
+    "outcome_y",
+    "size",
+    "leverage",
+    "post"
+  ],
+  "sample_preview": [
+    {
+      "outcome_y": 8.281342947667275,
+      "size": 8.519775911467494,
+      "leverage": 0.3577590135791016,
+      "post": 0
+    },
+    {
+      "outcome_y": 7.161166663415577,
+      "size": 7.55721041465215,
+      "leverage": 0.3378183221465689,
+      "post": 0
+    },
+    {
+      "outcome_y": 7.582391886802917,
+      "size": 7.823590785770317,
+      "leverage": 0.3343232278441892,
+      "post": 0
+    },
+    {
+      "outcome_y": 8.19643779930995,
+      "size": 8.058331858128255,
+      "leverage": 0.3581110765958445,
+      "post": 0
+    },
+    {
+      "outcome_y": 6.775339604671813,
+      "size": 7.790582349444769,
+      "leverage": 0.3323010132904619,
+      "post": 0
+    }
+  ],
+  "specification": {
+    "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+    "model_family": "econometrics_baseline",
+    "model_type": "ols",
+    "dependent": "outcome_y",
+    "independents": [
+      "size",
+      "leverage"
+    ],
+    "controls": [
+      "post"
+    ],
+    "engine": "statsmodels",
+    "variant_label": "robust_with_treatment",
+    "variant_spec": {
+      "controls": [
+        "post",
+        "treated"
+      ],
+      "independents": [
+        "size",
+        "leverage",
+        "endogenous_x"
+      ]
+    }
+  },
+  "audit_trail": {
+    "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+    "sample_title": "panel_dataset.csv",
+    "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+    "rows_used": 648,
+    "sample_columns": [
+      "outcome_y",
+      "size",
+      "leverage",
+      "post"
+    ],
+    "covariance_type": "HC1",
+    "manual_checklist": [
+      "Download the prepared sample asset referenced in sample_asset_id.",
+      "Rebuild any derived regressors listed in derived_columns before estimation.",
+      "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+      "Compare the reproduced coefficient table with the coefficients array term by term."
+    ],
+    "engine": "statsmodels",
+    "derived_columns": [],
+    "filters": [
+      "Rows with missing dependent or regressors are dropped."
+    ]
+  },
+  "engine": "statsmodels",
+  "primary_tables": [
+    "design_audit_table"
+  ],
+  "robustness_tables": [],
+  "tables": {
+    "design_audit_table": [
+      {
+        "observation_count": 648,
+        "regressor_count": 3
+      }
+    ]
+  },
+  "figures": [],
+  "metrics": {},
+  "paper_output_contract": {
+    "primary_tables": [
+      "design_audit_table"
+    ],
+    "robustness_tables": [],
+    "figure_count": 0
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "OLS estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+          "Supporting tables included: design_audit_table."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "design_audit_table"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "robust_with_treatment",
+  "variant_spec": {
+    "controls": [
+      "post",
+      "treated"
+    ],
+    "independents": [
+      "size",
+      "leverage",
+      "endogenous_x"
+    ]
+  },
+  "result_record_id": "f9d09b65-d6ad-467d-95d3-06e6a3ef21fa",
+  "result_detail_path": "/data-lab/results/models/f9d09b65-d6ad-467d-95d3-06e6a3ef21fa"
+}

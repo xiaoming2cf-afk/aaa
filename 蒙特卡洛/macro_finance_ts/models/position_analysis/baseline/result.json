@@ -1,0 +1,438 @@
+{
+  "model_type": "position_analysis",
+  "model_label": "Position Analysis",
+  "asset": {
+    "id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "kind": "dataset_csv",
+    "title": "upgrade_ts.csv",
+    "filename": "upgrade_ts.csv",
+    "description": "upgrade_ts.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 93948,
+      "original_filename": "upgrade_ts.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:27.052169",
+    "updated_at": "2026-04-02T02:57:27.059647"
+  },
+  "observations": 72,
+  "narrative": [
+    "Position analysis ranks predictions into deciles and summarizes realized outcomes across buckets."
+  ],
+  "specification": {
+    "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "model_family": "quant_research",
+    "model_type": "position_analysis",
+    "dependent": "asset_return",
+    "time_column": "date",
+    "feature_columns": [
+      "market_return",
+      "smb",
+      "hml",
+      "policy_rate",
+      "inflation_gap"
+    ],
+    "split_ratio": 0.7,
+    "engine": "qlib"
+  },
+  "audit_trail": {
+    "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "sample_title": "upgrade_ts.csv",
+    "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+    "engine": "qlib",
+    "derived_columns": [
+      "prediction",
+      "signal",
+      "decile",
+      "strategy_return",
+      "cumulative_return"
+    ],
+    "filters": []
+  },
+  "metrics": {},
+  "tables": {
+    "position_analysis_table": [
+      {
+        "decile": 1,
+        "mean_prediction": -0.8161071878841126,
+        "mean_actual": -0.8203846605012031,
+        "count": 8
+      },
+      {
+        "decile": 2,
+        "mean_prediction": -0.4913130438173856,
+        "mean_actual": -0.49783677967804263,
+        "count": 7
+      },
+      {
+        "decile": 3,
+        "mean_prediction": -0.28311492806493205,
+        "mean_actual": -0.27702048977705224,
+        "count": 7
+      },
+      {
+        "decile": 4,
+        "mean_prediction": -0.06422708573816616,
+        "mean_actual": -0.06284974745996083,
+        "count": 7
+      },
+      {
+        "decile": 5,
+        "mean_prediction": 0.020332763453446596,
+        "mean_actual": 0.035187865692192746,
+        "count": 7
+      },
+      {
+        "decile": 6,
+        "mean_prediction": 0.11773787901250311,
+        "mean_actual": 0.10640115614304853,
+        "count": 7
+      },
+      {
+        "decile": 7,
+        "mean_prediction": 0.2720151541355561,
+        "mean_actual": 0.2735505702979841,
+        "count": 7
+      },
+      {
+        "decile": 8,
+        "mean_prediction": 0.4225266268667013,
+        "mean_actual": 0.4222243488700745,
+        "count": 7
+      },
+      {
+        "decile": 9,
+        "mean_prediction": 0.5914864407379277,
+        "mean_actual": 0.5875897191296414,
+        "count": 7
+      },
+      {
+        "decile": 10,
+        "mean_prediction": 1.061076625904026,
+        "mean_actual": 1.0440917809020758,
+        "count": 8
+      }
+    ],
+    "top_positions_table": [
+      {
+        "date": "2021-04-30",
+        "prediction": 1.5178165996006987,
+        "signal": 1.0,
+        "decile": 10
+      },
+      {
+        "date": "2021-10-31",
+        "prediction": 1.3558771288555902,
+        "signal": 1.0,
+        "decile": 10
+      },
+      {
+        "date": "2023-02-28",
+        "prediction": 1.2665853709863324,
+        "signal": 1.0,
+        "decile": 10
+      },
+      {
+        "date": "2021-03-31",
+        "prediction": 1.2442724216846748,
+        "signal": 1.0,
+        "decile": 10
+      },
+      {
+        "date": "2023-08-31",
+        "prediction": 0.9464044059430607,
+        "signal": 1.0,
+        "decile": 10
+      },
+      {
+        "date": "2024-01-31",
+        "prediction": 0.8357869436683135,
+        "signal": 1.0,
+        "decile": 10
+      },
+      {
+        "date": "2023-11-30",
+        "prediction": 0.6625858317039737,
+        "signal": 1.0,
+        "decile": 10
+      },
+      {
+        "date": "2024-07-31",
+        "prediction": 0.6592843047895645,
+        "signal": 1.0,
+        "decile": 10
+      },
+      {
+        "date": "2023-03-31",
+        "prediction": 0.6324184329990532,
+        "signal": 1.0,
+        "decile": 9
+      },
+      {
+        "date": "2023-07-31",
+        "prediction": 0.6283597314749995,
+        "signal": 1.0,
+        "decile": 9
+      },
+      {
+        "date": "2022-01-31",
+        "prediction": 0.608581558336784,
+        "signal": 1.0,
+        "decile": 9
+      },
+      {
+        "date": "2022-08-31",
+        "prediction": 0.6069856980475317,
+        "signal": 1.0,
+        "decile": 9
+      },
+      {
+        "date": "2019-01-31",
+        "prediction": 0.575748530352665,
+        "signal": 1.0,
+        "decile": 9
+      },
+      {
+        "date": "2023-01-31",
+        "prediction": 0.5442607115578432,
+        "signal": 1.0,
+        "decile": 9
+      },
+      {
+        "date": "2021-05-31",
+        "prediction": 0.5440504223966168,
+        "signal": 1.0,
+        "decile": 9
+      },
+      {
+        "date": "2019-05-31",
+        "prediction": 0.49204092865576815,
+        "signal": 1.0,
+        "decile": 8
+      },
+      {
+        "date": "2021-12-31",
+        "prediction": 0.4744243234479139,
+        "signal": 1.0,
+        "decile": 8
+      },
+      {
+        "date": "2019-02-28",
+        "prediction": 0.457964498753317,
+        "signal": 1.0,
+        "decile": 8
+      },
+      {
+        "date": "2023-12-31",
+        "prediction": 0.4121580063616364,
+        "signal": 1.0,
+        "decile": 8
+      },
+      {
+        "date": "2024-05-31",
+        "prediction": 0.40170494130613527,
+        "signal": 1.0,
+        "decile": 8
+      }
+    ],
+    "feature_label_spec_table": [
+      {
+        "feature_columns": "market_return, smb, hml, policy_rate, inflation_gap",
+        "label_column": "asset_return",
+        "observation_count": 72
+      }
+    ]
+  },
+  "sample_columns": [
+    "asset_return",
+    "date",
+    "market_return",
+    "smb",
+    "hml",
+    "policy_rate",
+    "inflation_gap",
+    "prediction",
+    "signal",
+    "decile",
+    "actual"
+  ],
+  "sample_preview": [
+    {
+      "asset_return": 0.6103892668004385,
+      "date": "2019-01-31",
+      "market_return": 0.4225926355792506,
+      "smb": -0.0136058496547306,
+      "hml": -0.0192287942645375,
+      "policy_rate": -0.3345769907881513,
+      "inflation_gap": -0.2074551072599538,
+      "prediction": 0.575748530352665,
+      "signal": 1.0,
+      "decile": 9,
+      "actual": 0.6103892668004385
+    },
+    {
+      "asset_return": 0.4503262844625377,
+      "date": "2019-02-28",
+      "market_return": 0.3349344561814909,
+      "smb": -0.0167020927825678,
+      "hml": 0.0072888668322776,
+      "policy_rate": -0.4559838589237863,
+      "inflation_gap": -0.1326960810005057,
+      "prediction": 0.457964498753317,
+      "signal": 1.0,
+      "decile": 8,
+      "actual": 0.4503262844625377
+    },
+    {
+      "asset_return": 0.2467740170886707,
+      "date": "2019-03-31",
+      "market_return": 0.2019138766498448,
+      "smb": 0.0195913903342569,
+      "hml": 0.02137588314334,
+      "policy_rate": -0.2995034675668274,
+      "inflation_gap": 0.1324236341952334,
+      "prediction": 0.2754948219861656,
+      "signal": 1.0,
+      "decile": 7,
+      "actual": 0.2467740170886707
+    },
+    {
+      "asset_return": 0.0710026348466687,
+      "date": "2019-04-30",
+      "market_return": 0.0635426508870538,
+      "smb": 0.026483922439306,
+      "hml": 0.0046933269170794,
+      "policy_rate": -0.2177090678308658,
+      "inflation_gap": 0.1549082949178815,
+      "prediction": 0.0874044086936036,
+      "signal": 1.0,
+      "decile": 6,
+      "actual": 0.0710026348466687
+    },
+    {
+      "asset_return": 0.4764258880914624,
+      "date": "2019-05-31",
+      "market_return": 0.3644843160133288,
+      "smb": 0.0208036038691824,
+      "hml": 0.0247712637277533,
+      "policy_rate": -0.3247775101464531,
+      "inflation_gap": -0.0341333875747654,
+      "prediction": 0.49204092865576815,
+      "signal": 1.0,
+      "decile": 8,
+      "actual": 0.4764258880914624
+    }
+  ],
+  "engine": "qlib",
+  "figures": [
+    {
+      "asset_id": "3db9c715-3753-43ec-8c22-e2dc526e803f",
+      "title": "Position decile outcomes",
+      "summary": "Average realized outcomes by prediction decile.",
+      "download_url": "/api/assets/3db9c715-3753-43ec-8c22-e2dc526e803f/download",
+      "asset": {
+        "id": "3db9c715-3753-43ec-8c22-e2dc526e803f",
+        "kind": "chart_png",
+        "title": "upgrade_ts-quant_position_deciles.png",
+        "filename": "upgrade_ts-quant_position_deciles.png",
+        "description": "Average realized outcomes by prediction decile.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 25225,
+          "original_filename": "upgrade_ts-quant_position_deciles.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Position decile outcomes",
+          "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+          "summary": "Average realized outcomes by prediction decile."
+        },
+        "created_at": "2026-04-02T03:07:46.780050+00:00",
+        "updated_at": "2026-04-02T03:07:46.785331+00:00"
+      }
+    },
+    {
+      "asset_id": "3b005e50-500a-41ac-86c8-4d2c4b017a44",
+      "title": "Position analysis strategy curve",
+      "summary": "Strategy curve implied by ranked predictive positions.",
+      "download_url": "/api/assets/3b005e50-500a-41ac-86c8-4d2c4b017a44/download",
+      "asset": {
+        "id": "3b005e50-500a-41ac-86c8-4d2c4b017a44",
+        "kind": "chart_png",
+        "title": "upgrade_ts-quant_position_curve.png",
+        "filename": "upgrade_ts-quant_position_curve.png",
+        "description": "Strategy curve implied by ranked predictive positions.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 57636,
+          "original_filename": "upgrade_ts-quant_position_curve.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Position analysis strategy curve",
+          "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+          "summary": "Strategy curve implied by ranked predictive positions."
+        },
+        "created_at": "2026-04-02T03:07:46.446783+00:00",
+        "updated_at": "2026-04-02T03:07:46.460845+00:00"
+      }
+    }
+  ],
+  "primary_tables": [
+    "position_analysis_table",
+    "top_positions_table",
+    "feature_label_spec_table"
+  ],
+  "paper_output_contract": {
+    "primary_tables": [
+      "position_analysis_table",
+      "top_positions_table",
+      "feature_label_spec_table"
+    ],
+    "figure_count": 2
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "Position Analysis estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: position_analysis_table, top_positions_table, feature_label_spec_table.",
+          "Figures included: Position decile outcomes, Position analysis strategy curve."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "position_analysis_table",
+      "top_positions_table",
+      "feature_label_spec_table",
+      "Position decile outcomes",
+      "Position analysis strategy curve"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "",
+  "variant_spec": {},
+  "result_record_id": "8ab0ca72-1b08-4b35-a8c4-c02151d5ae10",
+  "result_detail_path": "/data-lab/results/models/8ab0ca72-1b08-4b35-a8c4-c02151d5ae10"
+}

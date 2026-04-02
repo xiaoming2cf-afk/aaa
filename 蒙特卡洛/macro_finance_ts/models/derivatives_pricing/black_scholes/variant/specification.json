@@ -1,0 +1,24 @@
+{
+  "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "model_family": "derivatives_pricing",
+  "model_type": "black_scholes",
+  "spot_column": "spot_price",
+  "strike_column": "strike_price",
+  "maturity_column": "time_to_maturity",
+  "rate_column": "risk_free_rate",
+  "volatility_column": "implied_vol",
+  "option_type": "call",
+  "equation": "Closed-form Black-Scholes-Merton pricing formula",
+  "input_columns": {
+    "spot": "spot_price",
+    "strike": "strike_price",
+    "maturity": "time_to_maturity",
+    "rate": "risk_free_rate",
+    "volatility": "implied_vol"
+  },
+  "option_steps": 50,
+  "variant_label": "bs_put",
+  "variant_spec": {
+    "option_type": "put"
+  }
+}

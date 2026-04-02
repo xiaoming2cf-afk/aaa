@@ -1,0 +1,19 @@
+{
+  "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "model_family": "causal_inference",
+  "model_type": "inverse_propensity_weighting",
+  "dependent": "outcome_y",
+  "controls": [
+    "size",
+    "leverage",
+    "post"
+  ],
+  "treatment_column": "treated",
+  "engine": "causalpy",
+  "outcome_variable": "outcome_y",
+  "covariates": [
+    "size",
+    "leverage",
+    "post"
+  ]
+}

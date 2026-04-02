@@ -1,0 +1,116 @@
+{
+  "source_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "source_asset_title": "panel_dataset.csv",
+  "prepared_asset_id": "66ec9f81-4e7c-4f9f-89dc-53a1258ab91b",
+  "prepared_download_url": "/api/assets/66ec9f81-4e7c-4f9f-89dc-53a1258ab91b/download",
+  "template_id": "e663c46c-2ac5-4cad-9fd9-112e407d3bf9",
+  "template_name": "Panel sample prep template",
+  "variant_label": "add_endogenous",
+  "variant_spec": {
+    "include_columns": [
+      "firm_id",
+      "date",
+      "treated",
+      "post",
+      "size",
+      "leverage",
+      "outcome_y",
+      "endogenous_x"
+    ],
+    "required_columns": [
+      "firm_id",
+      "date",
+      "treated",
+      "post",
+      "outcome_y",
+      "endogenous_x"
+    ]
+  },
+  "effective_specification": {
+    "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+    "workflow_group": "sample_preparation",
+    "include_columns": [
+      "firm_id",
+      "date",
+      "treated",
+      "post",
+      "size",
+      "leverage",
+      "outcome_y",
+      "endogenous_x"
+    ],
+    "required_columns": [
+      "firm_id",
+      "date",
+      "treated",
+      "post",
+      "outcome_y",
+      "endogenous_x"
+    ],
+    "numeric_columns": [
+      "size",
+      "leverage",
+      "outcome_y"
+    ],
+    "binary_columns": [
+      "treated",
+      "post"
+    ],
+    "date_columns": [
+      "date"
+    ],
+    "drop_duplicates": true,
+    "drop_missing_required": true
+  },
+  "manual_checklist": [
+    "Download the prepared asset and compare row/column counts with rows_after_prepare and columns.",
+    "Reapply each cleaning step in order: imputation, winsorization, transforms, outlier filter, and missing-value filtering.",
+    "Verify the preview_rows against the downloaded prepared sample."
+  ],
+  "operations": {
+    "required_columns": [
+      "firm_id",
+      "date",
+      "treated",
+      "post",
+      "outcome_y",
+      "endogenous_x"
+    ],
+    "numeric_columns": [
+      "size",
+      "leverage",
+      "outcome_y"
+    ],
+    "binary_columns": [
+      "treated",
+      "post"
+    ],
+    "date_columns": [
+      "date"
+    ],
+    "imputed_columns": {},
+    "winsorized_columns": {},
+    "transformed_columns": {
+      "log": [],
+      "zscore": [],
+      "minmax": []
+    },
+    "time_series_features": {
+      "sort_column": "",
+      "group_column": "",
+      "difference_columns": [],
+      "return_columns": [],
+      "lag_columns": [],
+      "lead_columns": [],
+      "rolling_mean_columns": [],
+      "rolling_volatility_columns": []
+    },
+    "derived_columns": [],
+    "outlier_columns": [],
+    "outlier_method": "none",
+    "outlier_threshold": 1.5,
+    "drop_duplicates": true,
+    "drop_missing_required": true,
+    "workflow_group": "sample_preparation"
+  }
+}

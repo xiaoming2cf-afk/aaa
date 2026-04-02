@@ -1,0 +1,25 @@
+{
+  "winners": {
+    "ols": "statsmodels",
+    "ppml": "baseline",
+    "logit": "baseline",
+    "probit": "baseline",
+    "did": "baseline",
+    "event_study": "causalpy",
+    "rdd": "baseline",
+    "fixed_effects": "baseline",
+    "panel_iv": "baseline",
+    "arima": "statsmodels",
+    "arch": "arch",
+    "garch": "arch",
+    "var": "baseline",
+    "svar_irf": "baseline",
+    "mean_variance": "pypfopt",
+    "minimum_variance": "pypfopt",
+    "risk_parity": "pypfopt",
+    "capm": "baseline",
+    "fama_french_3": "baseline"
+  },
+  "generated_at": "2026-04-02T11:16:07.498112+08:00",
+  "source": "scripts/finalize_unified_monte_carlo.py"
+}

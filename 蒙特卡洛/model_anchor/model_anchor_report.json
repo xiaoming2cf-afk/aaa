@@ -1,0 +1,332 @@
+[
+  {
+    "label": "econometrics_baseline/ols",
+    "group": "country_panel",
+    "baseline_record_id": "5afc480e-1a07-483f-ba1a-497630574981",
+    "variant_record_id": "f9d09b65-d6ad-467d-95d3-06e6a3ef21fa",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 1,
+    "variant_table_count": 1
+  },
+  {
+    "label": "econometrics_baseline/ppml",
+    "group": "country_panel",
+    "baseline_record_id": "0dab396f-eea3-4bfd-b789-790aa4788c89",
+    "variant_record_id": "2025091c-ff84-4e63-839f-1aba10e5dbf5",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 0,
+    "variant_table_count": 0
+  },
+  {
+    "label": "econometrics_baseline/logit",
+    "group": "country_panel",
+    "baseline_record_id": "98489771-7257-4389-98fc-2c67c8f26619",
+    "variant_record_id": "09c64197-5c03-42ea-adc9-8b218297edad",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 0,
+    "variant_table_count": 0
+  },
+  {
+    "label": "econometrics_baseline/probit",
+    "group": "country_panel",
+    "baseline_record_id": "5be0508e-b951-4cca-b946-734fb5813701",
+    "variant_record_id": "efd187e5-d75c-4db4-a722-1ce260404ab9",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 0,
+    "variant_table_count": 0
+  },
+  {
+    "label": "econometrics_baseline/did",
+    "group": "country_panel",
+    "baseline_record_id": "1f1cef31-6c1e-44ba-8d4e-a9b742ac6945",
+    "variant_record_id": "bf98d41c-aeeb-49fc-a134-126f67d9bd56",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 0,
+    "variant_table_count": 0
+  },
+  {
+    "label": "econometrics_baseline/event_study",
+    "group": "country_panel",
+    "baseline_record_id": "204462d5-4587-4b7f-9efd-f8729af39bc6",
+    "variant_record_id": "73917378-0e6e-40ea-8258-8b331986b539",
+    "baseline_figures": 1,
+    "variant_figures": 1,
+    "baseline_table_count": 5,
+    "variant_table_count": 5
+  },
+  {
+    "label": "econometrics_baseline/rdd",
+    "group": "country_panel",
+    "baseline_record_id": "8f6c0a77-efb7-4d49-8e1a-f8c6ede8dc06",
+    "variant_record_id": "549f6a51-ba45-4402-af67-024a16222392",
+    "baseline_figures": 1,
+    "variant_figures": 1,
+    "baseline_table_count": 2,
+    "variant_table_count": 2
+  },
+  {
+    "label": "econometrics_baseline/fixed_effects",
+    "group": "country_panel",
+    "baseline_record_id": "c8f34e40-f15e-465c-90bd-f0651e3be922",
+    "variant_record_id": "037e121d-f3e5-4685-b4d8-c11d38a179b8",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 0,
+    "variant_table_count": 0
+  },
+  {
+    "label": "econometrics_baseline/gravity",
+    "group": "country_panel",
+    "baseline_record_id": "97a68746-771c-4e4b-9316-7de37eb8ac9a",
+    "variant_record_id": "81f59c64-beb4-4b69-b305-d961ab2a9a06",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 0,
+    "variant_table_count": 0
+  },
+  {
+    "label": "econometrics_baseline/iv_2sls",
+    "group": "country_panel",
+    "baseline_record_id": "fca1025e-bb01-4410-b218-3da1b022061c",
+    "variant_record_id": "c9bb49cc-d45b-4022-9253-42924e77dc59",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 0,
+    "variant_table_count": 0
+  },
+  {
+    "label": "econometrics_baseline/panel_iv",
+    "group": "country_panel",
+    "baseline_record_id": "16d70836-aa4f-40b0-b55a-01407dcc7909",
+    "variant_record_id": "dfcdf213-57e4-49f3-9ce9-75cf05544984",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 0,
+    "variant_table_count": 0
+  },
+  {
+    "label": "time_series_finance/arima",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "f2561570-d16b-4ac6-a9cd-9e26de203e36",
+    "variant_record_id": "e2544d60-8c26-4a50-a205-db929aa1fa8f",
+    "baseline_figures": 1,
+    "variant_figures": 1,
+    "baseline_table_count": 2,
+    "variant_table_count": 2
+  },
+  {
+    "label": "time_series_finance/arch",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "3008ffa2-094d-499b-91d3-14db1126ec91",
+    "variant_record_id": "55f69d48-e766-4ebf-9029-a630db90c418",
+    "baseline_figures": 2,
+    "variant_figures": 2,
+    "baseline_table_count": 2,
+    "variant_table_count": 2
+  },
+  {
+    "label": "time_series_finance/garch",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "effce52f-e91b-4df7-a1c6-49e73705ed90",
+    "variant_record_id": "bfcb159c-feee-412d-92d8-a80095d2c62d",
+    "baseline_figures": 2,
+    "variant_figures": 2,
+    "baseline_table_count": 2,
+    "variant_table_count": 2
+  },
+  {
+    "label": "time_series_finance/var",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "94750207-adf2-41e4-82d6-2760edb3893f",
+    "variant_record_id": "6dabbb0b-4fe2-412d-b9a6-a3889b1ddd4b",
+    "baseline_figures": 1,
+    "variant_figures": 1,
+    "baseline_table_count": 2,
+    "variant_table_count": 2
+  },
+  {
+    "label": "time_series_finance/svar_irf",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "3f8f353f-a789-488c-8dbe-be55414abd48",
+    "variant_record_id": "d1cc90dd-e8cc-4407-beeb-c061f4ab16a5",
+    "baseline_figures": 2,
+    "variant_figures": 2,
+    "baseline_table_count": 1,
+    "variant_table_count": 1
+  },
+  {
+    "label": "time_series_finance/virf",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "4d3101ee-dee4-4fd1-b69f-0df27248f79d",
+    "variant_record_id": "0254a265-55ca-4f66-b405-bf98ea8812c2",
+    "baseline_figures": 2,
+    "variant_figures": 2,
+    "baseline_table_count": 2,
+    "variant_table_count": 2
+  },
+  {
+    "label": "time_series_finance/dy_connectedness",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "eb16d553-ebb9-4c70-b0d9-df431bcba241",
+    "variant_record_id": "431306f5-f90f-47dd-af8c-234de86e65bf",
+    "baseline_figures": 2,
+    "variant_figures": 2,
+    "baseline_table_count": 2,
+    "variant_table_count": 2
+  },
+  {
+    "label": "time_series_finance/bk_connectedness",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "b53e28f1-6ae9-4850-9309-8fad777d9c92",
+    "variant_record_id": "47ac0bce-ee22-4283-ab79-82f06182bc00",
+    "baseline_figures": 2,
+    "variant_figures": 2,
+    "baseline_table_count": 7,
+    "variant_table_count": 7
+  },
+  {
+    "label": "risk_management/historical_var",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "7bbb084e-4bb2-4791-9069-038b193a3951",
+    "variant_record_id": "96b046b4-58b6-46be-984d-c64b9ed0e9bb",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 2,
+    "variant_table_count": 2
+  },
+  {
+    "label": "risk_management/parametric_var",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "e181b7bb-e797-4492-8dd4-abb778f02f91",
+    "variant_record_id": "7ec729fa-fb12-4689-b74c-bb9de5b9895c",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 2,
+    "variant_table_count": 2
+  },
+  {
+    "label": "risk_management/ewma_volatility",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "cdbd886b-e09e-479f-8a54-c53f30940ec7",
+    "variant_record_id": "d6d88e3d-f725-407e-a856-d8ce79ef4332",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 2,
+    "variant_table_count": 2
+  },
+  {
+    "label": "corporate_finance/altman_z",
+    "group": "country_panel",
+    "baseline_record_id": "03756433-90b5-4c83-a2f2-54d31b9fa1f4",
+    "variant_record_id": "2a73e573-03cb-481f-bf44-ff81bbfc8ac1",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 1,
+    "variant_table_count": 1
+  },
+  {
+    "label": "corporate_finance/dupont",
+    "group": "country_panel",
+    "baseline_record_id": "9e259ba8-5c46-4a14-9151-4f2155a84de3",
+    "variant_record_id": "1d42641e-b29c-43bd-9724-05335996291d",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 1,
+    "variant_table_count": 1
+  },
+  {
+    "label": "derivatives_pricing/black_scholes",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "b639ceca-5339-4262-b5d8-be469b7db260",
+    "variant_record_id": "2b4878ad-3013-4664-b04b-235c9dff88c8",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 2,
+    "variant_table_count": 2
+  },
+  {
+    "label": "derivatives_pricing/binomial_option",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "ab2cbc32-1545-417d-ab82-abbcde26d8a0",
+    "variant_record_id": "663ecbd8-3c9f-4ff8-83e3-6f81d367314d",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 2,
+    "variant_table_count": 2
+  },
+  {
+    "label": "macro_finance_dsge/taylor_rule",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "5398cf61-e468-4f44-91b0-1eed36af6b67",
+    "variant_record_id": "53f95dc1-9b84-490c-afde-ab5a4c141603",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 0,
+    "variant_table_count": 0
+  },
+  {
+    "label": "macro_finance_dsge/rbc_dsge",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "ac31b99e-c6ea-47e3-9ee2-298692c65f7b",
+    "variant_record_id": "568707d2-8013-4e6c-bd03-fcb9dacd8c84",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 2,
+    "variant_table_count": 2
+  },
+  {
+    "label": "portfolio_allocation/mean_variance",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "2c2c1417-b24e-4611-a9a1-28ae70ae5ca5",
+    "variant_record_id": "0f37d863-bf20-400d-bc9b-8e865526f156",
+    "baseline_figures": 1,
+    "variant_figures": 1,
+    "baseline_table_count": 3,
+    "variant_table_count": 3
+  },
+  {
+    "label": "portfolio_allocation/minimum_variance",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "541b2f27-75c2-4212-abea-703dfdd5a6b3",
+    "variant_record_id": "d80bdea5-085c-4753-b7f0-e54031abcfe9",
+    "baseline_figures": 1,
+    "variant_figures": 1,
+    "baseline_table_count": 3,
+    "variant_table_count": 3
+  },
+  {
+    "label": "portfolio_allocation/risk_parity",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "f917117f-710b-4a42-86aa-73d08b0d6dce",
+    "variant_record_id": "4d317cd3-3ee8-47f5-9860-9e5515f22f9f",
+    "baseline_figures": 1,
+    "variant_figures": 1,
+    "baseline_table_count": 2,
+    "variant_table_count": 2
+  },
+  {
+    "label": "asset_pricing/capm",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "95e2f31f-2efa-42ba-8e62-d3b9bc6276ca",
+    "variant_record_id": "67067bb5-8a19-4831-a9b7-89ef35e86c8b",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 0,
+    "variant_table_count": 0
+  },
+  {
+    "label": "asset_pricing/fama_french_3",
+    "group": "macro_finance_ts",
+    "baseline_record_id": "1cea32d4-6558-409d-840c-672fb7cc6ba8",
+    "variant_record_id": "435a1915-af0e-4344-994e-e3ba07d29252",
+    "baseline_figures": 0,
+    "variant_figures": 0,
+    "baseline_table_count": 0,
+    "variant_table_count": 0
+  }
+]

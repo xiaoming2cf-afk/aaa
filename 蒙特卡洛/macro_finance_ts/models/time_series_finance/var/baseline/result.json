@@ -1,0 +1,364 @@
+{
+  "model_type": "var",
+  "model_label": "Vector Autoregression",
+  "asset": {
+    "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "kind": "dataset_csv",
+    "title": "timeseries_dataset.csv",
+    "filename": "timeseries_dataset.csv",
+    "description": "timeseries_dataset.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 93948,
+      "original_filename": "timeseries_dataset.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T03:16:14.454310",
+    "updated_at": "2026-04-02T03:16:14.458473"
+  },
+  "observations": 240,
+  "narrative": [
+    "VAR(2) run on timeseries_dataset.csv.",
+    "Series: return_a, return_b, return_c.",
+    "Forecast horizon: 5 step(s)."
+  ],
+  "specification": {
+    "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "model_family": "time_series_finance",
+    "model_type": "var",
+    "series_columns": [
+      "return_a",
+      "return_b",
+      "return_c"
+    ],
+    "time_column": "date",
+    "forecast_steps": 5,
+    "var_lags": 2,
+    "lags": 2
+  },
+  "audit_trail": {
+    "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "sample_title": "timeseries_dataset.csv",
+    "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+    "rows_used": 240,
+    "sample_columns": [
+      "date",
+      "return_a",
+      "return_b",
+      "return_c"
+    ],
+    "manual_checklist": [
+      "Download the sample asset and sort it by the listed time_column if one is provided.",
+      "Estimate a VAR with the same lag order on the listed series columns.",
+      "Compare coefficient blocks and forecast rows equation by equation."
+    ],
+    "derived_columns": [],
+    "filters": [
+      "Rows with missing selected series values are dropped."
+    ]
+  },
+  "metrics": {
+    "lag_order": 2,
+    "aic": -20.220644916832327,
+    "bic": -19.914268092684843
+  },
+  "tables": {
+    "coefficients": [
+      {
+        "equation": "return_a",
+        "term": "const",
+        "coefficient": -0.003660861269814681,
+        "std_error": 0.0026489815350430367,
+        "p_value": 0.16697531891945094
+      },
+      {
+        "equation": "return_a",
+        "term": "L1.return_a",
+        "coefficient": 0.5007122642201699,
+        "std_error": 0.06514486593417584,
+        "p_value": 1.5164594391828844e-14
+      },
+      {
+        "equation": "return_a",
+        "term": "L1.return_b",
+        "coefficient": 0.12260564399741067,
+        "std_error": 0.07267688680993517,
+        "p_value": 0.09160405057367538
+      },
+      {
+        "equation": "return_a",
+        "term": "L1.return_c",
+        "coefficient": 0.13467579548401887,
+        "std_error": 0.09323063690984226,
+        "p_value": 0.14858589665503255
+      },
+      {
+        "equation": "return_a",
+        "term": "L2.return_a",
+        "coefficient": -0.06518668453947832,
+        "std_error": 0.05615756386105585,
+        "p_value": 0.24573059928451668
+      },
+      {
+        "equation": "return_a",
+        "term": "L2.return_b",
+        "coefficient": 0.028762132684319014,
+        "std_error": 0.05920935608841396,
+        "p_value": 0.6271302015146596
+      },
+      {
+        "equation": "return_a",
+        "term": "L2.return_c",
+        "coefficient": -0.007527798855212264,
+        "std_error": 0.07455156563867109,
+        "p_value": 0.9195707901623567
+      },
+      {
+        "equation": "return_b",
+        "term": "const",
+        "coefficient": -0.001128283223057132,
+        "std_error": 0.002409764699145924,
+        "p_value": 0.6396322575176547
+      },
+      {
+        "equation": "return_b",
+        "term": "L1.return_a",
+        "coefficient": 0.1669386640789664,
+        "std_error": 0.059261945084196424,
+        "p_value": 0.004848021864358165
+      },
+      {
+        "equation": "return_b",
+        "term": "L1.return_b",
+        "coefficient": 0.3478857520813873,
+        "std_error": 0.06611378522710634,
+        "p_value": 1.4255523973224314e-07
+      },
+      {
+        "equation": "return_b",
+        "term": "L1.return_c",
+        "coefficient": 0.18198721939773482,
+        "std_error": 0.08481142459174558,
+        "p_value": 0.031890007285789335
+      },
+      {
+        "equation": "return_b",
+        "term": "L2.return_a",
+        "coefficient": 0.006331281416211268,
+        "std_error": 0.051086243219210174,
+        "p_value": 0.9013681686015415
+      },
+      {
+        "equation": "return_b",
+        "term": "L2.return_b",
+        "coefficient": -0.0014323712077214112,
+        "std_error": 0.05386244270619376,
+        "p_value": 0.9787842488396273
+      },
+      {
+        "equation": "return_b",
+        "term": "L2.return_c",
+        "coefficient": 0.05653976118429574,
+        "std_error": 0.06781917078905238,
+        "p_value": 0.4044590466662731
+      },
+      {
+        "equation": "return_c",
+        "term": "const",
+        "coefficient": 0.0022207010949797288,
+        "std_error": 0.0018480274481222775,
+        "p_value": 0.2294951941925426
+      },
+      {
+        "equation": "return_c",
+        "term": "L1.return_a",
+        "coefficient": -0.004094440158256385,
+        "std_error": 0.04544746679355277,
+        "p_value": 0.9282143341011966
+      },
+      {
+        "equation": "return_c",
+        "term": "L1.return_b",
+        "coefficient": 0.1626764132944426,
+        "std_error": 0.050702083005140335,
+        "p_value": 0.0013344047486342071
+      },
+      {
+        "equation": "return_c",
+        "term": "L1.return_c",
+        "coefficient": 0.3153993874011553,
+        "std_error": 0.06504113891926817,
+        "p_value": 1.2394217067721515e-06
+      },
+      {
+        "equation": "return_c",
+        "term": "L2.return_a",
+        "coefficient": -0.055405462882778034,
+        "std_error": 0.03917759261890242,
+        "p_value": 0.15729935644429482
+      },
+      {
+        "equation": "return_c",
+        "term": "L2.return_b",
+        "coefficient": -0.03323017768357686,
+        "std_error": 0.041306635697351955,
+        "p_value": 0.421122395360397
+      },
+      {
+        "equation": "return_c",
+        "term": "L2.return_c",
+        "coefficient": 0.14911081922593517,
+        "std_error": 0.052009928260415554,
+        "p_value": 0.004144244299142805
+      }
+    ],
+    "forecast": [
+      {
+        "step": 1,
+        "return_a": -0.011268745659384734,
+        "return_b": 0.004185033338611139,
+        "return_c": 0.016956458785748675
+      },
+      {
+        "step": 2,
+        "return_a": -0.00350321135024126,
+        "return_b": 0.001963924916374809,
+        "return_c": 0.011461748863858938
+      },
+      {
+        "step": 3,
+        "return_a": -0.0029032558904312873,
+        "return_b": 0.0019373826649233094,
+        "return_c": 0.009183229744424013
+      },
+      {
+        "step": 4,
+        "return_a": -0.0034416966178639056,
+        "return_b": 0.0013553210459432365,
+        "return_c": 0.007282046036711077
+      },
+      {
+        "step": 5,
+        "return_a": -0.004061428246919268,
+        "return_b": 0.0005919619679556967,
+        "return_c": 0.006217820118057702
+      }
+    ]
+  },
+  "sample_columns": [
+    "date",
+    "return_a",
+    "return_b",
+    "return_c"
+  ],
+  "sample_preview": [
+    {
+      "date": "2005-01-31",
+      "return_a": 1.1688157461773752,
+      "return_b": 0.3374757548649373,
+      "return_c": 0.8996990649038376
+    },
+    {
+      "date": "2005-02-28",
+      "return_a": 0.5343520409140631,
+      "return_b": 0.562932504678913,
+      "return_c": 0.3807846207439792
+    },
+    {
+      "date": "2005-03-31",
+      "return_a": 0.3152683060245842,
+      "return_b": 0.4289423809695991,
+      "return_c": 0.2694936932673371
+    },
+    {
+      "date": "2005-04-30",
+      "return_a": 0.2563147569235233,
+      "return_b": 0.2318914039278177,
+      "return_c": 0.1440411095196035
+    },
+    {
+      "date": "2005-05-31",
+      "return_a": 0.1639044786851478,
+      "return_b": 0.1299938142922835,
+      "return_c": 0.0690812146746108
+    }
+  ],
+  "figures": [
+    {
+      "asset_id": "23476ecf-ef1b-473e-96e4-33d574f2398b",
+      "title": "VAR forecast paths",
+      "summary": "Observed and forecast paths for each endogenous series from the fitted VAR.",
+      "download_url": "/api/assets/23476ecf-ef1b-473e-96e4-33d574f2398b/download",
+      "asset": {
+        "id": "23476ecf-ef1b-473e-96e4-33d574f2398b",
+        "kind": "chart_png",
+        "title": "timeseries_dataset-var-forecast.png",
+        "filename": "timeseries_dataset-var-forecast.png",
+        "description": "Observed and forecast paths for each endogenous series from the fitted VAR.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 228328,
+          "original_filename": "timeseries_dataset-var-forecast.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "VAR forecast paths",
+          "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+          "summary": "Observed and forecast paths for each endogenous series from the fitted VAR."
+        },
+        "created_at": "2026-04-02T03:16:27.487071+00:00",
+        "updated_at": "2026-04-02T03:16:27.491396+00:00"
+      }
+    }
+  ],
+  "workflow_type": "model",
+  "model_family": "time_series_finance",
+  "interpretation": {
+    "headline": "Vector Autoregression estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: coefficients, forecast.",
+          "Figures included: VAR forecast paths."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Read the coefficient table equation by equation because each endogenous series has its own regression block.",
+          "The forecast table and figure summarize the joint path implied by the fitted system.",
+          "Use the selected lag order `2` consistently when reproducing the system."
+        ]
+      },
+      {
+        "title": "What a normal paper should report",
+        "items": [
+          "Equation-level coefficient blocks or a compact companion-form summary.",
+          "Forecast tables or dynamic plots for each series.",
+          "Lag-order choice with AIC/BIC or another stated criterion."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Sort the sample by the declared time column before estimation.",
+          "Re-estimate the VAR with the documented lag order and compare coefficient blocks equation by equation.",
+          "Regenerate the forecast path using the final lag_order observations from the sample."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "coefficients",
+      "forecast",
+      "VAR forecast paths"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "",
+  "variant_spec": {},
+  "result_record_id": "94750207-adf2-41e4-82d6-2760edb3893f",
+  "result_detail_path": "/data-lab/results/models/94750207-adf2-41e4-82d6-2760edb3893f"
+}

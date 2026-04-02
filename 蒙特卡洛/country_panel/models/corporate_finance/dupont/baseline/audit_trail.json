@@ -1,0 +1,27 @@
+{
+  "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "sample_title": "panel_dataset.csv",
+  "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+  "rows_used": 648,
+  "sample_columns": [
+    "net_income",
+    "revenue",
+    "total_assets",
+    "equity"
+  ],
+  "manual_checklist": [
+    "Compute profit margin, asset turnover, and equity multiplier from the listed accounting columns.",
+    "Multiply the three terms to reproduce roe_dupont.",
+    "Compare the latest-row decomposition with the preview table."
+  ],
+  "derived_columns": [
+    "profit_margin",
+    "asset_turnover",
+    "equity_multiplier",
+    "roe_dupont"
+  ],
+  "filters": [
+    "Rows with missing inputs are dropped.",
+    "Rows with zero revenue, assets, or equity are removed."
+  ]
+}

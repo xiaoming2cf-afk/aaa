@@ -1,0 +1,13 @@
+{
+  "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+  "model_family": "causal_inference",
+  "model_type": "interrupted_time_series",
+  "dependent": "output_gap",
+  "controls": [
+    "inflation_gap"
+  ],
+  "time_column": "date",
+  "treatment_time": "2018-12-31",
+  "engine": "causalpy",
+  "variant_label": "its_gap_focus"
+}

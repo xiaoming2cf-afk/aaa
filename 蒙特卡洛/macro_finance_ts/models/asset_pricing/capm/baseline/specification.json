@@ -1,0 +1,14 @@
+{
+  "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "model_family": "asset_pricing",
+  "model_type": "capm",
+  "dependent": "asset_excess",
+  "market_column": "market_return",
+  "risk_free_column": "risk_free_rate",
+  "model_label": "CAPM",
+  "regressors": [
+    "market_excess"
+  ],
+  "covariance_type": "HC1",
+  "equation": "asset_excess ~ market_excess"
+}

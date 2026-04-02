@@ -1,0 +1,464 @@
+{
+  "record": {
+    "id": "f2561570-d16b-4ac6-a9cd-9e26de203e36",
+    "title": "ARIMA Forecast summary for timeseries_dataset.csv",
+    "content": "Candidate ARIMA estimated with statsmodels.",
+    "content_excerpt": "Candidate ARIMA estimated with statsmodels.",
+    "content_length": 43,
+    "tags": [
+      "arima",
+      "time_series_finance",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "arima",
+      "model_label": "ARIMA Forecast",
+      "asset": {
+        "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "kind": "dataset_csv",
+        "title": "timeseries_dataset.csv",
+        "filename": "timeseries_dataset.csv",
+        "description": "timeseries_dataset.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 93948,
+          "original_filename": "timeseries_dataset.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T03:16:14.454310",
+        "updated_at": "2026-04-02T03:16:14.458473"
+      },
+      "observations": 240,
+      "narrative": [
+        "Candidate ARIMA estimated with statsmodels."
+      ],
+      "specification": {
+        "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "model_family": "time_series_finance",
+        "model_type": "arima",
+        "dependent": "policy_rate",
+        "time_column": "date",
+        "arima_p": 1,
+        "arima_d": 0,
+        "arima_q": 1,
+        "forecast_steps": 6,
+        "engine": "statsmodels",
+        "order": [
+          1,
+          0,
+          1
+        ]
+      },
+      "audit_trail": {
+        "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "sample_title": "timeseries_dataset.csv",
+        "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+        "engine": "statsmodels",
+        "derived_columns": [],
+        "filters": [
+          "Rows with missing series values are dropped."
+        ]
+      },
+      "metrics": {},
+      "tables": {
+        "parameter_table": [
+          {
+            "term": "const",
+            "coefficient": 0.04415978870885079
+          },
+          {
+            "term": "ar.L1",
+            "coefficient": 0.8276097457129469
+          },
+          {
+            "term": "ma.L1",
+            "coefficient": 0.19259839757436187
+          },
+          {
+            "term": "sigma2",
+            "coefficient": 0.09986152876191948
+          }
+        ],
+        "forecast_summary": [
+          {
+            "step": "2025-01-31T00:00:00",
+            "mean": 0.10304807356498964,
+            "mean_se": 0.3160087479199262,
+            "mean_ci_lower": -0.5163176911576625,
+            "mean_ci_upper": 0.7224138382876418
+          },
+          {
+            "step": "2025-02-28T00:00:00",
+            "mean": 0.09289630716411144,
+            "mean_se": 0.45144198967996263,
+            "mean_ci_lower": -0.791913733717718,
+            "mean_ci_upper": 0.9777063480459409
+          },
+          {
+            "step": "2025-03-31T00:00:00",
+            "mean": 0.0844946063545434,
+            "mean_se": 0.5243960128950143,
+            "mean_ci_lower": -0.9433026925560862,
+            "mean_ci_upper": 1.112291905265173
+          },
+          {
+            "step": "2025-04-30T00:00:00",
+            "mean": 0.07754127688398053,
+            "mean_se": 0.5689927968918157,
+            "mean_ci_lower": -1.0376641124866923,
+            "mean_ci_upper": 1.1927466662546533
+          },
+          {
+            "step": "2025-05-31T00:00:00",
+            "mean": 0.07178663364898966,
+            "mean_se": 0.5976215250660954,
+            "mean_ci_lower": -1.0995300318664587,
+            "mean_ci_upper": 1.243103299164438
+          },
+          {
+            "step": "2025-06-30T00:00:00",
+            "mean": 0.06702403482461014,
+            "mean_se": 0.6164637147641092,
+            "mean_ci_lower": -1.141222643888817,
+            "mean_ci_upper": 1.275270713538037
+          }
+        ]
+      },
+      "sample_columns": [
+        "date",
+        "policy_rate"
+      ],
+      "sample_preview": [
+        {
+          "date": "2005-01-31T00:00:00",
+          "policy_rate": 2.4984724687964475
+        },
+        {
+          "date": "2005-02-28T00:00:00",
+          "policy_rate": 1.6212191346234608
+        },
+        {
+          "date": "2005-03-31T00:00:00",
+          "policy_rate": 1.2044706806320091
+        },
+        {
+          "date": "2005-04-30T00:00:00",
+          "policy_rate": 0.9502435898913666
+        },
+        {
+          "date": "2005-05-31T00:00:00",
+          "policy_rate": 0.6420261781796007
+        }
+      ],
+      "engine": "statsmodels",
+      "figures": [
+        {
+          "asset_id": "2f5f008d-4192-4973-9478-2ab63a89c2df",
+          "title": "Candidate ARIMA forecast",
+          "summary": "Forecast path from candidate ARIMA.",
+          "download_url": "/api/assets/2f5f008d-4192-4973-9478-2ab63a89c2df/download",
+          "asset": {
+            "id": "2f5f008d-4192-4973-9478-2ab63a89c2df",
+            "kind": "chart_png",
+            "title": "timeseries_dataset-candidate_arima_forecast.png",
+            "filename": "timeseries_dataset-candidate_arima_forecast.png",
+            "description": "Forecast path from candidate ARIMA.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 86025,
+              "original_filename": "timeseries_dataset-candidate_arima_forecast.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "Candidate ARIMA forecast",
+              "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+              "summary": "Forecast path from candidate ARIMA."
+            },
+            "created_at": "2026-04-02T03:16:21.023364+00:00",
+            "updated_at": "2026-04-02T03:16:21.034292+00:00"
+          }
+        }
+      ],
+      "primary_tables": [
+        "parameter_table",
+        "forecast_summary"
+      ],
+      "paper_output_contract": {
+        "primary_tables": [
+          "parameter_table",
+          "forecast_summary"
+        ],
+        "figure_count": 1
+      },
+      "workflow_type": "model",
+      "model_family": "time_series_finance",
+      "interpretation": {
+        "headline": "ARIMA Forecast estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Supporting tables included: parameter_table, forecast_summary.",
+              "Figures included: Candidate ARIMA forecast."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "parameter_table",
+          "forecast_summary",
+          "Candidate ARIMA forecast"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "",
+      "variant_spec": {},
+      "result_record_id": "f2561570-d16b-4ac6-a9cd-9e26de203e36",
+      "result_detail_path": "/data-lab/results/models/f2561570-d16b-4ac6-a9cd-9e26de203e36"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:16:21.039017",
+    "updated_at": "2026-04-02T03:16:21.039799"
+  },
+  "result": {
+    "model_type": "arima",
+    "model_label": "ARIMA Forecast",
+    "asset": {
+      "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "kind": "dataset_csv",
+      "title": "timeseries_dataset.csv",
+      "filename": "timeseries_dataset.csv",
+      "description": "timeseries_dataset.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 93948,
+        "original_filename": "timeseries_dataset.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T03:16:14.454310",
+      "updated_at": "2026-04-02T03:16:14.458473"
+    },
+    "observations": 240,
+    "narrative": [
+      "Candidate ARIMA estimated with statsmodels."
+    ],
+    "specification": {
+      "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "model_family": "time_series_finance",
+      "model_type": "arima",
+      "dependent": "policy_rate",
+      "time_column": "date",
+      "arima_p": 1,
+      "arima_d": 0,
+      "arima_q": 1,
+      "forecast_steps": 6,
+      "engine": "statsmodels",
+      "order": [
+        1,
+        0,
+        1
+      ]
+    },
+    "audit_trail": {
+      "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "sample_title": "timeseries_dataset.csv",
+      "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+      "engine": "statsmodels",
+      "derived_columns": [],
+      "filters": [
+        "Rows with missing series values are dropped."
+      ]
+    },
+    "metrics": {},
+    "tables": {
+      "parameter_table": [
+        {
+          "term": "const",
+          "coefficient": 0.04415978870885079
+        },
+        {
+          "term": "ar.L1",
+          "coefficient": 0.8276097457129469
+        },
+        {
+          "term": "ma.L1",
+          "coefficient": 0.19259839757436187
+        },
+        {
+          "term": "sigma2",
+          "coefficient": 0.09986152876191948
+        }
+      ],
+      "forecast_summary": [
+        {
+          "step": "2025-01-31T00:00:00",
+          "mean": 0.10304807356498964,
+          "mean_se": 0.3160087479199262,
+          "mean_ci_lower": -0.5163176911576625,
+          "mean_ci_upper": 0.7224138382876418
+        },
+        {
+          "step": "2025-02-28T00:00:00",
+          "mean": 0.09289630716411144,
+          "mean_se": 0.45144198967996263,
+          "mean_ci_lower": -0.791913733717718,
+          "mean_ci_upper": 0.9777063480459409
+        },
+        {
+          "step": "2025-03-31T00:00:00",
+          "mean": 0.0844946063545434,
+          "mean_se": 0.5243960128950143,
+          "mean_ci_lower": -0.9433026925560862,
+          "mean_ci_upper": 1.112291905265173
+        },
+        {
+          "step": "2025-04-30T00:00:00",
+          "mean": 0.07754127688398053,
+          "mean_se": 0.5689927968918157,
+          "mean_ci_lower": -1.0376641124866923,
+          "mean_ci_upper": 1.1927466662546533
+        },
+        {
+          "step": "2025-05-31T00:00:00",
+          "mean": 0.07178663364898966,
+          "mean_se": 0.5976215250660954,
+          "mean_ci_lower": -1.0995300318664587,
+          "mean_ci_upper": 1.243103299164438
+        },
+        {
+          "step": "2025-06-30T00:00:00",
+          "mean": 0.06702403482461014,
+          "mean_se": 0.6164637147641092,
+          "mean_ci_lower": -1.141222643888817,
+          "mean_ci_upper": 1.275270713538037
+        }
+      ]
+    },
+    "sample_columns": [
+      "date",
+      "policy_rate"
+    ],
+    "sample_preview": [
+      {
+        "date": "2005-01-31T00:00:00",
+        "policy_rate": 2.4984724687964475
+      },
+      {
+        "date": "2005-02-28T00:00:00",
+        "policy_rate": 1.6212191346234608
+      },
+      {
+        "date": "2005-03-31T00:00:00",
+        "policy_rate": 1.2044706806320091
+      },
+      {
+        "date": "2005-04-30T00:00:00",
+        "policy_rate": 0.9502435898913666
+      },
+      {
+        "date": "2005-05-31T00:00:00",
+        "policy_rate": 0.6420261781796007
+      }
+    ],
+    "engine": "statsmodels",
+    "figures": [
+      {
+        "asset_id": "2f5f008d-4192-4973-9478-2ab63a89c2df",
+        "title": "Candidate ARIMA forecast",
+        "summary": "Forecast path from candidate ARIMA.",
+        "download_url": "/api/assets/2f5f008d-4192-4973-9478-2ab63a89c2df/download",
+        "asset": {
+          "id": "2f5f008d-4192-4973-9478-2ab63a89c2df",
+          "kind": "chart_png",
+          "title": "timeseries_dataset-candidate_arima_forecast.png",
+          "filename": "timeseries_dataset-candidate_arima_forecast.png",
+          "description": "Forecast path from candidate ARIMA.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 86025,
+            "original_filename": "timeseries_dataset-candidate_arima_forecast.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "Candidate ARIMA forecast",
+            "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+            "summary": "Forecast path from candidate ARIMA."
+          },
+          "created_at": "2026-04-02T03:16:21.023364+00:00",
+          "updated_at": "2026-04-02T03:16:21.034292+00:00"
+        }
+      }
+    ],
+    "primary_tables": [
+      "parameter_table",
+      "forecast_summary"
+    ],
+    "paper_output_contract": {
+      "primary_tables": [
+        "parameter_table",
+        "forecast_summary"
+      ],
+      "figure_count": 1
+    },
+    "workflow_type": "model",
+    "model_family": "time_series_finance",
+    "interpretation": {
+      "headline": "ARIMA Forecast estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Supporting tables included: parameter_table, forecast_summary.",
+            "Figures included: Candidate ARIMA forecast."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "parameter_table",
+        "forecast_summary",
+        "Candidate ARIMA forecast"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "",
+    "variant_spec": {},
+    "result_record_id": "f2561570-d16b-4ac6-a9cd-9e26de203e36",
+    "result_detail_path": "/data-lab/results/models/f2561570-d16b-4ac6-a9cd-9e26de203e36"
+  },
+  "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4"
+}

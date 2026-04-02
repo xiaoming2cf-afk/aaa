@@ -1,0 +1,564 @@
+{
+  "record": {
+    "id": "56b549f6-6d90-4d56-8e72-9dc89e52b048",
+    "title": "Efficient Frontier summary for upgrade_ts.csv",
+    "content": "Efficient frontier optimized with objective max_sharpe.\nAssets: return_a, return_b, return_c.",
+    "content_excerpt": "Efficient frontier optimized with objective max_sharpe. Assets: return_a, return_b, return_c.",
+    "content_length": 93,
+    "tags": [
+      "efficient_frontier",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "efficient_frontier",
+      "model_label": "Efficient Frontier",
+      "asset": {
+        "id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+        "kind": "dataset_csv",
+        "title": "upgrade_ts.csv",
+        "filename": "upgrade_ts.csv",
+        "description": "upgrade_ts.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 93948,
+          "original_filename": "upgrade_ts.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T02:57:27.052169",
+        "updated_at": "2026-04-02T02:57:27.059647"
+      },
+      "observations": 240,
+      "narrative": [
+        "Efficient frontier optimized with objective max_sharpe.",
+        "Assets: return_a, return_b, return_c."
+      ],
+      "specification": {
+        "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+        "model_family": "portfolio_allocation",
+        "model_type": "efficient_frontier",
+        "series_columns": [
+          "return_a",
+          "return_b",
+          "return_c"
+        ],
+        "time_column": "date",
+        "long_only": true,
+        "portfolio_objective": "max_sharpe",
+        "engine": "pypfopt"
+      },
+      "audit_trail": {
+        "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+        "sample_title": "upgrade_ts.csv",
+        "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+        "engine": "pypfopt",
+        "derived_columns": [],
+        "filters": [
+          "Rows with missing return observations are dropped before optimization."
+        ]
+      },
+      "metrics": {},
+      "tables": {
+        "weights_table": [
+          {
+            "asset": "return_a",
+            "weight": 0.0
+          },
+          {
+            "asset": "return_b",
+            "weight": 0.0
+          },
+          {
+            "asset": "return_c",
+            "weight": 1.0
+          }
+        ],
+        "portfolio_metrics": [
+          {
+            "portfolio": "portfolio",
+            "metric": "expected_return",
+            "value": 12.74544679302274
+          },
+          {
+            "portfolio": "portfolio",
+            "metric": "volatility",
+            "value": 1.156489386789978
+          },
+          {
+            "portfolio": "portfolio",
+            "metric": "sharpe",
+            "value": 11.020807400922005
+          }
+        ],
+        "frontier_table": [
+          {
+            "target_return": 0.5818447359820869,
+            "expected_return": 6.629431801113405,
+            "volatility": 1.0099142316119007,
+            "sharpe": 6.564351301924246
+          },
+          {
+            "target_return": 1.687626741167601,
+            "expected_return": 6.629431801113405,
+            "volatility": 1.0099142316119007,
+            "sharpe": 6.564351301924246
+          },
+          {
+            "target_return": 2.7934087463531148,
+            "expected_return": 6.629431801113405,
+            "volatility": 1.0099142316119007,
+            "sharpe": 6.564351301924246
+          },
+          {
+            "target_return": 3.8991907515386295,
+            "expected_return": 6.629431801113405,
+            "volatility": 1.0099142316119007,
+            "sharpe": 6.564351301924246
+          },
+          {
+            "target_return": 5.004972756724143,
+            "expected_return": 6.629431801113405,
+            "volatility": 1.0099142316119007,
+            "sharpe": 6.564351301924246
+          },
+          {
+            "target_return": 6.110754761909657,
+            "expected_return": 6.629431801113405,
+            "volatility": 1.0099142316119007,
+            "sharpe": 6.564351301924246
+          },
+          {
+            "target_return": 7.216536767095172,
+            "expected_return": 7.216536767095171,
+            "volatility": 1.0113618980726529,
+            "sharpe": 7.135464348466843
+          },
+          {
+            "target_return": 8.322318772280685,
+            "expected_return": 8.322318772280685,
+            "volatility": 1.021888172441498,
+            "sharpe": 8.144060178715032
+          },
+          {
+            "target_return": 9.428100777466199,
+            "expected_return": 9.428100777466199,
+            "volatility": 1.0423138645895735,
+            "sharpe": 9.045356775695057
+          },
+          {
+            "target_return": 10.533882782651713,
+            "expected_return": 10.533882782651713,
+            "volatility": 1.072073297350792,
+            "sharpe": 9.825711365707985
+          },
+          {
+            "target_return": 11.639664787837226,
+            "expected_return": 11.639664787837226,
+            "volatility": 1.1104162844206982,
+            "sharpe": 10.482253323499858
+          }
+        ]
+      },
+      "sample_columns": [
+        "date",
+        "return_a",
+        "return_b",
+        "return_c"
+      ],
+      "sample_preview": [
+        {
+          "date": "2005-01-31T00:00:00",
+          "return_a": 1.1688157461773752,
+          "return_b": 0.3374757548649373,
+          "return_c": 0.8996990649038376
+        },
+        {
+          "date": "2005-02-28T00:00:00",
+          "return_a": 0.5343520409140631,
+          "return_b": 0.562932504678913,
+          "return_c": 0.3807846207439792
+        },
+        {
+          "date": "2005-03-31T00:00:00",
+          "return_a": 0.3152683060245842,
+          "return_b": 0.4289423809695991,
+          "return_c": 0.2694936932673371
+        },
+        {
+          "date": "2005-04-30T00:00:00",
+          "return_a": 0.2563147569235233,
+          "return_b": 0.2318914039278177,
+          "return_c": 0.1440411095196035
+        },
+        {
+          "date": "2005-05-31T00:00:00",
+          "return_a": 0.1639044786851478,
+          "return_b": 0.1299938142922835,
+          "return_c": 0.0690812146746108
+        }
+      ],
+      "engine": "pypfopt",
+      "figures": [
+        {
+          "asset_id": "f7c046d3-6d7c-403a-94df-f46ed5ed81f1",
+          "title": "Efficient frontier",
+          "summary": "Mean-variance frontier implied by the return sample.",
+          "download_url": "/api/assets/f7c046d3-6d7c-403a-94df-f46ed5ed81f1/download",
+          "asset": {
+            "id": "f7c046d3-6d7c-403a-94df-f46ed5ed81f1",
+            "kind": "chart_png",
+            "title": "upgrade_ts-efficient_frontier.png",
+            "filename": "upgrade_ts-efficient_frontier.png",
+            "description": "Mean-variance frontier implied by the return sample.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 24128,
+              "original_filename": "upgrade_ts-efficient_frontier.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "Efficient frontier",
+              "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+              "summary": "Mean-variance frontier implied by the return sample."
+            },
+            "created_at": "2026-04-02T03:07:48.968413+00:00",
+            "updated_at": "2026-04-02T03:07:48.983157+00:00"
+          }
+        }
+      ],
+      "primary_tables": [
+        "weights_table",
+        "portfolio_metrics",
+        "frontier_table"
+      ],
+      "paper_output_contract": {
+        "primary_tables": [
+          "weights_table",
+          "portfolio_metrics",
+          "frontier_table"
+        ],
+        "figure_count": 1
+      },
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "Efficient Frontier estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Supporting tables included: weights_table, portfolio_metrics, frontier_table.",
+              "Figures included: Efficient frontier."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "weights_table",
+          "portfolio_metrics",
+          "frontier_table",
+          "Efficient frontier"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "",
+      "variant_spec": {},
+      "result_record_id": "56b549f6-6d90-4d56-8e72-9dc89e52b048",
+      "result_detail_path": "/data-lab/results/models/56b549f6-6d90-4d56-8e72-9dc89e52b048"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:07:48.999325",
+    "updated_at": "2026-04-02T03:07:49.000853"
+  },
+  "result": {
+    "model_type": "efficient_frontier",
+    "model_label": "Efficient Frontier",
+    "asset": {
+      "id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+      "kind": "dataset_csv",
+      "title": "upgrade_ts.csv",
+      "filename": "upgrade_ts.csv",
+      "description": "upgrade_ts.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 93948,
+        "original_filename": "upgrade_ts.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T02:57:27.052169",
+      "updated_at": "2026-04-02T02:57:27.059647"
+    },
+    "observations": 240,
+    "narrative": [
+      "Efficient frontier optimized with objective max_sharpe.",
+      "Assets: return_a, return_b, return_c."
+    ],
+    "specification": {
+      "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+      "model_family": "portfolio_allocation",
+      "model_type": "efficient_frontier",
+      "series_columns": [
+        "return_a",
+        "return_b",
+        "return_c"
+      ],
+      "time_column": "date",
+      "long_only": true,
+      "portfolio_objective": "max_sharpe",
+      "engine": "pypfopt"
+    },
+    "audit_trail": {
+      "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+      "sample_title": "upgrade_ts.csv",
+      "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+      "engine": "pypfopt",
+      "derived_columns": [],
+      "filters": [
+        "Rows with missing return observations are dropped before optimization."
+      ]
+    },
+    "metrics": {},
+    "tables": {
+      "weights_table": [
+        {
+          "asset": "return_a",
+          "weight": 0.0
+        },
+        {
+          "asset": "return_b",
+          "weight": 0.0
+        },
+        {
+          "asset": "return_c",
+          "weight": 1.0
+        }
+      ],
+      "portfolio_metrics": [
+        {
+          "portfolio": "portfolio",
+          "metric": "expected_return",
+          "value": 12.74544679302274
+        },
+        {
+          "portfolio": "portfolio",
+          "metric": "volatility",
+          "value": 1.156489386789978
+        },
+        {
+          "portfolio": "portfolio",
+          "metric": "sharpe",
+          "value": 11.020807400922005
+        }
+      ],
+      "frontier_table": [
+        {
+          "target_return": 0.5818447359820869,
+          "expected_return": 6.629431801113405,
+          "volatility": 1.0099142316119007,
+          "sharpe": 6.564351301924246
+        },
+        {
+          "target_return": 1.687626741167601,
+          "expected_return": 6.629431801113405,
+          "volatility": 1.0099142316119007,
+          "sharpe": 6.564351301924246
+        },
+        {
+          "target_return": 2.7934087463531148,
+          "expected_return": 6.629431801113405,
+          "volatility": 1.0099142316119007,
+          "sharpe": 6.564351301924246
+        },
+        {
+          "target_return": 3.8991907515386295,
+          "expected_return": 6.629431801113405,
+          "volatility": 1.0099142316119007,
+          "sharpe": 6.564351301924246
+        },
+        {
+          "target_return": 5.004972756724143,
+          "expected_return": 6.629431801113405,
+          "volatility": 1.0099142316119007,
+          "sharpe": 6.564351301924246
+        },
+        {
+          "target_return": 6.110754761909657,
+          "expected_return": 6.629431801113405,
+          "volatility": 1.0099142316119007,
+          "sharpe": 6.564351301924246
+        },
+        {
+          "target_return": 7.216536767095172,
+          "expected_return": 7.216536767095171,
+          "volatility": 1.0113618980726529,
+          "sharpe": 7.135464348466843
+        },
+        {
+          "target_return": 8.322318772280685,
+          "expected_return": 8.322318772280685,
+          "volatility": 1.021888172441498,
+          "sharpe": 8.144060178715032
+        },
+        {
+          "target_return": 9.428100777466199,
+          "expected_return": 9.428100777466199,
+          "volatility": 1.0423138645895735,
+          "sharpe": 9.045356775695057
+        },
+        {
+          "target_return": 10.533882782651713,
+          "expected_return": 10.533882782651713,
+          "volatility": 1.072073297350792,
+          "sharpe": 9.825711365707985
+        },
+        {
+          "target_return": 11.639664787837226,
+          "expected_return": 11.639664787837226,
+          "volatility": 1.1104162844206982,
+          "sharpe": 10.482253323499858
+        }
+      ]
+    },
+    "sample_columns": [
+      "date",
+      "return_a",
+      "return_b",
+      "return_c"
+    ],
+    "sample_preview": [
+      {
+        "date": "2005-01-31T00:00:00",
+        "return_a": 1.1688157461773752,
+        "return_b": 0.3374757548649373,
+        "return_c": 0.8996990649038376
+      },
+      {
+        "date": "2005-02-28T00:00:00",
+        "return_a": 0.5343520409140631,
+        "return_b": 0.562932504678913,
+        "return_c": 0.3807846207439792
+      },
+      {
+        "date": "2005-03-31T00:00:00",
+        "return_a": 0.3152683060245842,
+        "return_b": 0.4289423809695991,
+        "return_c": 0.2694936932673371
+      },
+      {
+        "date": "2005-04-30T00:00:00",
+        "return_a": 0.2563147569235233,
+        "return_b": 0.2318914039278177,
+        "return_c": 0.1440411095196035
+      },
+      {
+        "date": "2005-05-31T00:00:00",
+        "return_a": 0.1639044786851478,
+        "return_b": 0.1299938142922835,
+        "return_c": 0.0690812146746108
+      }
+    ],
+    "engine": "pypfopt",
+    "figures": [
+      {
+        "asset_id": "f7c046d3-6d7c-403a-94df-f46ed5ed81f1",
+        "title": "Efficient frontier",
+        "summary": "Mean-variance frontier implied by the return sample.",
+        "download_url": "/api/assets/f7c046d3-6d7c-403a-94df-f46ed5ed81f1/download",
+        "asset": {
+          "id": "f7c046d3-6d7c-403a-94df-f46ed5ed81f1",
+          "kind": "chart_png",
+          "title": "upgrade_ts-efficient_frontier.png",
+          "filename": "upgrade_ts-efficient_frontier.png",
+          "description": "Mean-variance frontier implied by the return sample.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 24128,
+            "original_filename": "upgrade_ts-efficient_frontier.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "Efficient frontier",
+            "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+            "summary": "Mean-variance frontier implied by the return sample."
+          },
+          "created_at": "2026-04-02T03:07:48.968413+00:00",
+          "updated_at": "2026-04-02T03:07:48.983157+00:00"
+        }
+      }
+    ],
+    "primary_tables": [
+      "weights_table",
+      "portfolio_metrics",
+      "frontier_table"
+    ],
+    "paper_output_contract": {
+      "primary_tables": [
+        "weights_table",
+        "portfolio_metrics",
+        "frontier_table"
+      ],
+      "figure_count": 1
+    },
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "Efficient Frontier estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Supporting tables included: weights_table, portfolio_metrics, frontier_table.",
+            "Figures included: Efficient frontier."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "weights_table",
+        "portfolio_metrics",
+        "frontier_table",
+        "Efficient frontier"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "",
+    "variant_spec": {},
+    "result_record_id": "56b549f6-6d90-4d56-8e72-9dc89e52b048",
+    "result_detail_path": "/data-lab/results/models/56b549f6-6d90-4d56-8e72-9dc89e52b048"
+  },
+  "workspace_id": "015bd6ef-9f0c-4365-a59a-a9b472406eb1"
+}

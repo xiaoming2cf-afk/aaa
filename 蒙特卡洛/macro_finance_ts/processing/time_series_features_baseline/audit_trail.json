@@ -1,0 +1,91 @@
+{
+  "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "source_asset_title": "timeseries_dataset.csv",
+  "prepared_asset_id": "d0aa61ea-2e26-425b-81cb-aaaa8bc816c9",
+  "prepared_download_url": "/api/assets/d0aa61ea-2e26-425b-81cb-aaaa8bc816c9/download",
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "",
+  "variant_spec": {},
+  "effective_specification": {
+    "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+    "workflow_group": "time_series_features",
+    "sort_column": "date",
+    "difference_columns": [
+      "policy_rate"
+    ],
+    "return_columns": [
+      "spot_price"
+    ],
+    "return_method": "log",
+    "lag_columns": [
+      "asset_return"
+    ],
+    "lag_periods": 2,
+    "lead_columns": [
+      "asset_return"
+    ],
+    "lead_periods": 1,
+    "rolling_mean_columns": [
+      "asset_return"
+    ],
+    "rolling_volatility_columns": [
+      "asset_return"
+    ],
+    "rolling_window": 12
+  },
+  "manual_checklist": [
+    "Download the prepared asset and compare row/column counts with rows_after_prepare and columns.",
+    "Reapply each cleaning step in order: imputation, winsorization, transforms, outlier filter, and missing-value filtering.",
+    "Verify the preview_rows against the downloaded prepared sample."
+  ],
+  "operations": {
+    "required_columns": [],
+    "numeric_columns": [],
+    "binary_columns": [],
+    "date_columns": [],
+    "imputed_columns": {},
+    "winsorized_columns": {},
+    "transformed_columns": {
+      "log": [],
+      "zscore": [],
+      "minmax": []
+    },
+    "time_series_features": {
+      "sort_column": "date",
+      "group_column": "",
+      "difference_columns": [
+        "diff_policy_rate"
+      ],
+      "return_columns": [
+        "logret_spot_price"
+      ],
+      "lag_columns": [
+        "lag2_asset_return"
+      ],
+      "lead_columns": [
+        "lead1_asset_return"
+      ],
+      "rolling_mean_columns": [
+        "rollmean12_asset_return"
+      ],
+      "rolling_volatility_columns": [
+        "rollvol12_asset_return"
+      ]
+    },
+    "derived_columns": [
+      "diff_policy_rate",
+      "logret_spot_price",
+      "lag2_asset_return",
+      "lead1_asset_return",
+      "rollmean12_asset_return",
+      "rollvol12_asset_return"
+    ],
+    "outlier_columns": [],
+    "outlier_method": "none",
+    "outlier_threshold": 1.5,
+    "drop_duplicates": true,
+    "drop_missing_required": true,
+    "workflow_group": "time_series_features"
+  }
+}

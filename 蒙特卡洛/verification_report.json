@@ -1,0 +1,1074 @@
+{
+  "status": "passed",
+  "completed_at": "2026-04-02T11:17:26.136001+08:00",
+  "steps": {
+    "comparison": {
+      "report": {
+        "status": "passed",
+        "model_count": 19,
+        "winners": {
+          "ols": "statsmodels",
+          "ppml": "baseline",
+          "logit": "baseline",
+          "probit": "baseline",
+          "did": "baseline",
+          "event_study": "causalpy",
+          "rdd": "baseline",
+          "fixed_effects": "baseline",
+          "panel_iv": "baseline",
+          "arima": "statsmodels",
+          "arch": "arch",
+          "garch": "arch",
+          "var": "baseline",
+          "svar_irf": "baseline",
+          "mean_variance": "pypfopt",
+          "minimum_variance": "pypfopt",
+          "risk_parity": "pypfopt",
+          "capm": "baseline",
+          "fama_french_3": "baseline"
+        }
+      },
+      "winner_file_updated": true
+    },
+    "site_access": {
+      "report": {
+        "status": "passed",
+        "home_status": 200,
+        "public_api_status": {
+          "/api/public/briefings/latest": 200,
+          "/api/public/briefings": 200,
+          "/api/public/summary?days=7": 200
+        },
+        "private_page_redirects": {
+          "/data-lab": {
+            "status_code": 307,
+            "location": "/"
+          },
+          "/public-monitor": {
+            "status_code": 307,
+            "location": "/"
+          },
+          "/summaries/weekly": {
+            "status_code": 307,
+            "location": "/"
+          },
+          "/summaries/monthly": {
+            "status_code": 307,
+            "location": "/"
+          },
+          "/data-lab/models/econometrics_baseline/ols": {
+            "status_code": 307,
+            "location": "/"
+          },
+          "/data-lab/learn/models/econometrics_baseline/ols": {
+            "status_code": 307,
+            "location": "/"
+          }
+        },
+        "legacy_optimization_redirect": {
+          "status_code": 307,
+          "location": "/data-lab#optimization-module"
+        },
+        "private_api_status": {
+          "/api/data-lab/catalog": 401,
+          "/api/optimization/catalog": 401,
+          "/api/openalex/search?q=inflation&max_results=1": 401,
+          "/api/auth/me": 401
+        },
+        "authenticated_pages": {
+          "/data-lab": 200,
+          "/public-monitor": 200,
+          "/summaries/weekly": 200,
+          "/summaries/monthly": 200,
+          "/data-lab/models/econometrics_baseline/ols": 200,
+          "/data-lab/learn/models/econometrics_baseline/ols": 200
+        },
+        "authenticated_private_api_status": {
+          "/api/data-lab/catalog": 200,
+          "/api/optimization/catalog": 200,
+          "/api/openalex/search?q=inflation&max_results=1": 200,
+          "/api/auth/me": 200
+        }
+      }
+    },
+    "data_lab_full": {
+      "report": {
+        "status": "passed",
+        "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4",
+        "panel_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "timeseries_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "processing_run_count": 6,
+        "model_count": 33,
+        "checked_method_pages": 90,
+        "model_anchor_rows": [
+          {
+            "label": "econometrics_baseline/ols",
+            "group": "country_panel",
+            "baseline_record_id": "5afc480e-1a07-483f-ba1a-497630574981",
+            "variant_record_id": "f9d09b65-d6ad-467d-95d3-06e6a3ef21fa",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 1,
+            "variant_table_count": 1
+          },
+          {
+            "label": "econometrics_baseline/ppml",
+            "group": "country_panel",
+            "baseline_record_id": "0dab396f-eea3-4bfd-b789-790aa4788c89",
+            "variant_record_id": "2025091c-ff84-4e63-839f-1aba10e5dbf5",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 0,
+            "variant_table_count": 0
+          },
+          {
+            "label": "econometrics_baseline/logit",
+            "group": "country_panel",
+            "baseline_record_id": "98489771-7257-4389-98fc-2c67c8f26619",
+            "variant_record_id": "09c64197-5c03-42ea-adc9-8b218297edad",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 0,
+            "variant_table_count": 0
+          },
+          {
+            "label": "econometrics_baseline/probit",
+            "group": "country_panel",
+            "baseline_record_id": "5be0508e-b951-4cca-b946-734fb5813701",
+            "variant_record_id": "efd187e5-d75c-4db4-a722-1ce260404ab9",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 0,
+            "variant_table_count": 0
+          },
+          {
+            "label": "econometrics_baseline/did",
+            "group": "country_panel",
+            "baseline_record_id": "1f1cef31-6c1e-44ba-8d4e-a9b742ac6945",
+            "variant_record_id": "bf98d41c-aeeb-49fc-a134-126f67d9bd56",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 0,
+            "variant_table_count": 0
+          },
+          {
+            "label": "econometrics_baseline/event_study",
+            "group": "country_panel",
+            "baseline_record_id": "204462d5-4587-4b7f-9efd-f8729af39bc6",
+            "variant_record_id": "73917378-0e6e-40ea-8258-8b331986b539",
+            "baseline_figures": 1,
+            "variant_figures": 1,
+            "baseline_table_count": 5,
+            "variant_table_count": 5
+          },
+          {
+            "label": "econometrics_baseline/rdd",
+            "group": "country_panel",
+            "baseline_record_id": "8f6c0a77-efb7-4d49-8e1a-f8c6ede8dc06",
+            "variant_record_id": "549f6a51-ba45-4402-af67-024a16222392",
+            "baseline_figures": 1,
+            "variant_figures": 1,
+            "baseline_table_count": 2,
+            "variant_table_count": 2
+          },
+          {
+            "label": "econometrics_baseline/fixed_effects",
+            "group": "country_panel",
+            "baseline_record_id": "c8f34e40-f15e-465c-90bd-f0651e3be922",
+            "variant_record_id": "037e121d-f3e5-4685-b4d8-c11d38a179b8",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 0,
+            "variant_table_count": 0
+          },
+          {
+            "label": "econometrics_baseline/gravity",
+            "group": "country_panel",
+            "baseline_record_id": "97a68746-771c-4e4b-9316-7de37eb8ac9a",
+            "variant_record_id": "81f59c64-beb4-4b69-b305-d961ab2a9a06",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 0,
+            "variant_table_count": 0
+          },
+          {
+            "label": "econometrics_baseline/iv_2sls",
+            "group": "country_panel",
+            "baseline_record_id": "fca1025e-bb01-4410-b218-3da1b022061c",
+            "variant_record_id": "c9bb49cc-d45b-4022-9253-42924e77dc59",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 0,
+            "variant_table_count": 0
+          },
+          {
+            "label": "econometrics_baseline/panel_iv",
+            "group": "country_panel",
+            "baseline_record_id": "16d70836-aa4f-40b0-b55a-01407dcc7909",
+            "variant_record_id": "dfcdf213-57e4-49f3-9ce9-75cf05544984",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 0,
+            "variant_table_count": 0
+          },
+          {
+            "label": "time_series_finance/arima",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "f2561570-d16b-4ac6-a9cd-9e26de203e36",
+            "variant_record_id": "e2544d60-8c26-4a50-a205-db929aa1fa8f",
+            "baseline_figures": 1,
+            "variant_figures": 1,
+            "baseline_table_count": 2,
+            "variant_table_count": 2
+          },
+          {
+            "label": "time_series_finance/arch",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "3008ffa2-094d-499b-91d3-14db1126ec91",
+            "variant_record_id": "55f69d48-e766-4ebf-9029-a630db90c418",
+            "baseline_figures": 2,
+            "variant_figures": 2,
+            "baseline_table_count": 2,
+            "variant_table_count": 2
+          },
+          {
+            "label": "time_series_finance/garch",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "effce52f-e91b-4df7-a1c6-49e73705ed90",
+            "variant_record_id": "bfcb159c-feee-412d-92d8-a80095d2c62d",
+            "baseline_figures": 2,
+            "variant_figures": 2,
+            "baseline_table_count": 2,
+            "variant_table_count": 2
+          },
+          {
+            "label": "time_series_finance/var",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "94750207-adf2-41e4-82d6-2760edb3893f",
+            "variant_record_id": "6dabbb0b-4fe2-412d-b9a6-a3889b1ddd4b",
+            "baseline_figures": 1,
+            "variant_figures": 1,
+            "baseline_table_count": 2,
+            "variant_table_count": 2
+          },
+          {
+            "label": "time_series_finance/svar_irf",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "3f8f353f-a789-488c-8dbe-be55414abd48",
+            "variant_record_id": "d1cc90dd-e8cc-4407-beeb-c061f4ab16a5",
+            "baseline_figures": 2,
+            "variant_figures": 2,
+            "baseline_table_count": 1,
+            "variant_table_count": 1
+          },
+          {
+            "label": "time_series_finance/virf",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "4d3101ee-dee4-4fd1-b69f-0df27248f79d",
+            "variant_record_id": "0254a265-55ca-4f66-b405-bf98ea8812c2",
+            "baseline_figures": 2,
+            "variant_figures": 2,
+            "baseline_table_count": 2,
+            "variant_table_count": 2
+          },
+          {
+            "label": "time_series_finance/dy_connectedness",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "eb16d553-ebb9-4c70-b0d9-df431bcba241",
+            "variant_record_id": "431306f5-f90f-47dd-af8c-234de86e65bf",
+            "baseline_figures": 2,
+            "variant_figures": 2,
+            "baseline_table_count": 2,
+            "variant_table_count": 2
+          },
+          {
+            "label": "time_series_finance/bk_connectedness",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "b53e28f1-6ae9-4850-9309-8fad777d9c92",
+            "variant_record_id": "47ac0bce-ee22-4283-ab79-82f06182bc00",
+            "baseline_figures": 2,
+            "variant_figures": 2,
+            "baseline_table_count": 7,
+            "variant_table_count": 7
+          },
+          {
+            "label": "risk_management/historical_var",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "7bbb084e-4bb2-4791-9069-038b193a3951",
+            "variant_record_id": "96b046b4-58b6-46be-984d-c64b9ed0e9bb",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 2,
+            "variant_table_count": 2
+          },
+          {
+            "label": "risk_management/parametric_var",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "e181b7bb-e797-4492-8dd4-abb778f02f91",
+            "variant_record_id": "7ec729fa-fb12-4689-b74c-bb9de5b9895c",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 2,
+            "variant_table_count": 2
+          },
+          {
+            "label": "risk_management/ewma_volatility",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "cdbd886b-e09e-479f-8a54-c53f30940ec7",
+            "variant_record_id": "d6d88e3d-f725-407e-a856-d8ce79ef4332",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 2,
+            "variant_table_count": 2
+          },
+          {
+            "label": "corporate_finance/altman_z",
+            "group": "country_panel",
+            "baseline_record_id": "03756433-90b5-4c83-a2f2-54d31b9fa1f4",
+            "variant_record_id": "2a73e573-03cb-481f-bf44-ff81bbfc8ac1",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 1,
+            "variant_table_count": 1
+          },
+          {
+            "label": "corporate_finance/dupont",
+            "group": "country_panel",
+            "baseline_record_id": "9e259ba8-5c46-4a14-9151-4f2155a84de3",
+            "variant_record_id": "1d42641e-b29c-43bd-9724-05335996291d",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 1,
+            "variant_table_count": 1
+          },
+          {
+            "label": "derivatives_pricing/black_scholes",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "b639ceca-5339-4262-b5d8-be469b7db260",
+            "variant_record_id": "2b4878ad-3013-4664-b04b-235c9dff88c8",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 2,
+            "variant_table_count": 2
+          },
+          {
+            "label": "derivatives_pricing/binomial_option",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "ab2cbc32-1545-417d-ab82-abbcde26d8a0",
+            "variant_record_id": "663ecbd8-3c9f-4ff8-83e3-6f81d367314d",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 2,
+            "variant_table_count": 2
+          },
+          {
+            "label": "macro_finance_dsge/taylor_rule",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "5398cf61-e468-4f44-91b0-1eed36af6b67",
+            "variant_record_id": "53f95dc1-9b84-490c-afde-ab5a4c141603",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 0,
+            "variant_table_count": 0
+          },
+          {
+            "label": "macro_finance_dsge/rbc_dsge",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "ac31b99e-c6ea-47e3-9ee2-298692c65f7b",
+            "variant_record_id": "568707d2-8013-4e6c-bd03-fcb9dacd8c84",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 2,
+            "variant_table_count": 2
+          },
+          {
+            "label": "portfolio_allocation/mean_variance",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "2c2c1417-b24e-4611-a9a1-28ae70ae5ca5",
+            "variant_record_id": "0f37d863-bf20-400d-bc9b-8e865526f156",
+            "baseline_figures": 1,
+            "variant_figures": 1,
+            "baseline_table_count": 3,
+            "variant_table_count": 3
+          },
+          {
+            "label": "portfolio_allocation/minimum_variance",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "541b2f27-75c2-4212-abea-703dfdd5a6b3",
+            "variant_record_id": "d80bdea5-085c-4753-b7f0-e54031abcfe9",
+            "baseline_figures": 1,
+            "variant_figures": 1,
+            "baseline_table_count": 3,
+            "variant_table_count": 3
+          },
+          {
+            "label": "portfolio_allocation/risk_parity",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "f917117f-710b-4a42-86aa-73d08b0d6dce",
+            "variant_record_id": "4d317cd3-3ee8-47f5-9860-9e5515f22f9f",
+            "baseline_figures": 1,
+            "variant_figures": 1,
+            "baseline_table_count": 2,
+            "variant_table_count": 2
+          },
+          {
+            "label": "asset_pricing/capm",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "95e2f31f-2efa-42ba-8e62-d3b9bc6276ca",
+            "variant_record_id": "67067bb5-8a19-4831-a9b7-89ef35e86c8b",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 0,
+            "variant_table_count": 0
+          },
+          {
+            "label": "asset_pricing/fama_french_3",
+            "group": "macro_finance_ts",
+            "baseline_record_id": "1cea32d4-6558-409d-840c-672fb7cc6ba8",
+            "variant_record_id": "435a1915-af0e-4344-994e-e3ba07d29252",
+            "baseline_figures": 0,
+            "variant_figures": 0,
+            "baseline_table_count": 0,
+            "variant_table_count": 0
+          }
+        ]
+      }
+    },
+    "model_upgrade": {
+      "report": {
+        "status": "passed",
+        "model_count": 57,
+        "group_counts": {
+          "country_panel": 26,
+          "macro_finance_ts": 31
+        },
+        "groups": [
+          "country_panel",
+          "macro_finance_ts"
+        ],
+        "methods": [],
+        "models": [
+          {
+            "group": "country_panel",
+            "method": "random_effects",
+            "baseline_record_id": "b5e9626e-5021-46ef-8ea1-12e22bf66f8b",
+            "variant_record_id": "8e447a2e-12b2-4cc6-9fee-b66376354cb0",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "first_difference",
+            "baseline_record_id": "1d0dcded-4648-4c33-bfff-ffc061bf896f",
+            "variant_record_id": "8a214147-76f4-42bd-9378-8b433c959b73",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "between_ols",
+            "baseline_record_id": "9ea717cf-e663-4128-937e-7ca05594ed66",
+            "variant_record_id": "a57b22ec-23d9-4478-b833-be268afcc4c3",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "pooled_ols",
+            "baseline_record_id": "255d4b06-58cc-4621-b3f0-dc20d8dc7e99",
+            "variant_record_id": "3b25e2ed-ea06-43c8-8310-9f3869abbeec",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "fama_macbeth",
+            "baseline_record_id": "cf8ecc3b-a63b-43fc-a7fb-967a376cde2f",
+            "variant_record_id": "26720f3e-38fe-487e-a414-fdfa79cd457d",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "iv_liml",
+            "baseline_record_id": "c981091e-5d49-4dc9-8163-0e542928d438",
+            "variant_record_id": "c45fcceb-aed9-4f71-af37-ab55d81417c1",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "iv_gmm",
+            "baseline_record_id": "31bab314-1602-430d-bc22-a01b5e818d2e",
+            "variant_record_id": "d37c88eb-1021-449c-ae7e-4c96e3d52441",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "absorbing_ls",
+            "baseline_record_id": "5ceb5b19-653b-488e-a9d2-8d27ab0473c4",
+            "variant_record_id": "5bf1e2a7-473f-4cbf-8905-8424c7a3fe6b",
+            "baseline_tables": 1,
+            "variant_tables": 1,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "sur",
+            "baseline_record_id": "fc424716-b470-4ddd-a8c6-880ec6d07359",
+            "variant_record_id": "e271f34e-460c-49cf-baf5-11d33c5dae24",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "iv_3sls",
+            "baseline_record_id": "69d27edb-ac90-4687-b5cb-c47957cd4005",
+            "variant_record_id": "6eab0975-2ca7-4411-ae8f-e83a08638caa",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "system_gmm",
+            "baseline_record_id": "8164211a-75f0-4c94-bb97-28466cc0bb7b",
+            "variant_record_id": "429280af-90ab-4918-a731-d5e89a19b53b",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "glm",
+            "baseline_record_id": "576e2f0c-a00a-4390-80e7-f189be43c267",
+            "variant_record_id": "c2642e65-b06a-4d86-957d-5c981ad73d54",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "quantile_regression",
+            "baseline_record_id": "59a06c6f-802f-4468-bb7c-42e21c409283",
+            "variant_record_id": "8aa37152-2174-4e26-8267-907113c346df",
+            "baseline_tables": 1,
+            "variant_tables": 1,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "gee",
+            "baseline_record_id": "cf745447-4f1c-410c-9326-92288e13e59d",
+            "variant_record_id": "aa12cabe-03d7-4a0f-8a42-a20ee23bccae",
+            "baseline_tables": 1,
+            "variant_tables": 1,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "mnlogit",
+            "baseline_record_id": "65e5f75d-dc4f-44fa-ad24-39e69ad75f53",
+            "variant_record_id": "b38d5dc4-bbab-4537-b7a7-cabd678a83c4",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "negative_binomial",
+            "baseline_record_id": "58e28f28-951e-4c4c-9851-2cdf20288031",
+            "variant_record_id": "81e5b3da-6b55-4a13-b954-dbe0dc65c5f5",
+            "baseline_tables": 1,
+            "variant_tables": 1,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "zero_inflated_count",
+            "baseline_record_id": "a3ff8991-14c2-447b-baff-70b24a4df4e4",
+            "variant_record_id": "d07ccd0f-0109-4eb0-82ee-814c0deb4290",
+            "baseline_tables": 1,
+            "variant_tables": 1,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "mixedlm",
+            "baseline_record_id": "06c484e3-5031-45d3-a0a0-21a70547cb79",
+            "variant_record_id": "c9bb9a95-b1a0-4d92-8dec-42e7938b1cb1",
+            "baseline_tables": 1,
+            "variant_tables": 1,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "staggered_did",
+            "baseline_record_id": "99ac0df2-5fc4-48a6-b4dc-7e97ca27983b",
+            "variant_record_id": "f0dbc8ed-0a04-4a63-ade9-f402021c41bb",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "synthetic_control",
+            "baseline_record_id": "f3b304f6-4329-4659-a1e6-7f2f4044dafe",
+            "variant_record_id": "ca5d53dc-05a4-495e-a091-98a0d353b67b",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 2,
+            "variant_figures": 2
+          },
+          {
+            "group": "country_panel",
+            "method": "regression_kink",
+            "baseline_record_id": "d7fb12be-0791-4a32-ae85-895957dda6e4",
+            "variant_record_id": "331a1a04-bee2-4593-b685-2e11ca938578",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "instrumental_causal",
+            "baseline_record_id": "1a913a01-fccb-4f05-8459-2e048e1c4fad",
+            "variant_record_id": "e772ea5f-71a1-445f-97bd-0c36234e7142",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "inverse_propensity_weighting",
+            "baseline_record_id": "eb8af77b-d30f-4b25-969a-583cbe997129",
+            "variant_record_id": "55a7a05f-fafb-4628-bd3a-c1385a58f73f",
+            "baseline_tables": 4,
+            "variant_tables": 4,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "country_panel",
+            "method": "bayesian_linear_regression",
+            "baseline_record_id": "9a87831b-9491-4f8f-97e2-ffa878ea1c62",
+            "variant_record_id": "a0f2eb2a-c644-4994-a597-9bde910337bd",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 2,
+            "variant_figures": 2
+          },
+          {
+            "group": "country_panel",
+            "method": "bayesian_panel",
+            "baseline_record_id": "5a384453-5e95-4dc6-8409-2edb94880eef",
+            "variant_record_id": "43776472-2aeb-4ca1-ab77-5d33a2864d31",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 2,
+            "variant_figures": 2
+          },
+          {
+            "group": "country_panel",
+            "method": "bayesian_did",
+            "baseline_record_id": "47430a19-e273-4f2d-b4d1-2d9311427403",
+            "variant_record_id": "a5c86ad3-6467-448b-9012-0400b7b84811",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 2,
+            "variant_figures": 2
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "traded_factor_model",
+            "baseline_record_id": "a858d289-609e-4f5c-aceb-a6d51d72da63",
+            "variant_record_id": "d47e8597-2fd8-4ade-9f3e-2f6711b4744d",
+            "baseline_tables": 4,
+            "variant_tables": 4,
+            "baseline_figures": 0,
+            "variant_figures": 0
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "linear_factor_gmm",
+            "baseline_record_id": "381c44ca-680c-422e-8fcd-dfe23d7f4fd9",
+            "variant_record_id": "2afdb456-2025-4ec8-bd20-c174fc7d7714",
+            "baseline_tables": 4,
+            "variant_tables": 4,
+            "baseline_figures": 0,
+            "variant_figures": 0
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "varmax",
+            "baseline_record_id": "d788a8a8-7a0d-4375-9e76-ff34b78e867e",
+            "variant_record_id": "f93b7177-72c7-4c63-87e7-7e5baaa7d081",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "vecm",
+            "baseline_record_id": "c0e7b0b5-62bc-4144-b9ad-969a30722831",
+            "variant_record_id": "3a5bd397-214e-4826-a7f3-82ccd5420c06",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "markov_switching",
+            "baseline_record_id": "615d1f31-7b77-430f-9d1b-557780355da7",
+            "variant_record_id": "96f5a98a-96d4-4278-a99e-49421e762b9c",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "unobserved_components",
+            "baseline_record_id": "03efc7af-0897-4013-836c-7bb47e3ec147",
+            "variant_record_id": "b922f89d-d146-4fa9-b0cb-176bc8e34c23",
+            "baseline_tables": 1,
+            "variant_tables": 1,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "exponential_smoothing",
+            "baseline_record_id": "0732cd7d-cfd4-4626-892f-67cd84e63bc0",
+            "variant_record_id": "be8ffa99-d0ef-462e-814c-e0e3336d535b",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "egarch",
+            "baseline_record_id": "30509101-1e18-42d3-ac2e-72b85f63af86",
+            "variant_record_id": "29431804-9438-4a72-85b5-8834c44faf2b",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 2,
+            "variant_figures": 2
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "gjr_garch",
+            "baseline_record_id": "353aaa85-ae20-4f71-829f-6c1142a394b8",
+            "variant_record_id": "9c6662d3-0ca0-480c-bd21-95f3152e0858",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 2,
+            "variant_figures": 2
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "harx",
+            "baseline_record_id": "6946afd6-6860-463d-a089-b5e69152b002",
+            "variant_record_id": "9bb58ed8-f4aa-4d7c-9a1c-1d90758dd915",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 2,
+            "variant_figures": 2
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "adf_test",
+            "baseline_record_id": "bc3fc448-2da1-4120-acad-39f7e088e7e4",
+            "variant_record_id": "12e0b402-bd76-4cf1-bf49-826aea69f3b0",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "kpss_test",
+            "baseline_record_id": "75365232-a32c-4eb4-b11c-c6bd574f9dcb",
+            "variant_record_id": "45adc926-2205-4ba1-b73d-8660183a9cba",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "pp_test",
+            "baseline_record_id": "99b51c8e-5f5a-4b3e-af13-dc9bb3f227cd",
+            "variant_record_id": "39a20f86-134a-45b1-a1b1-83c5a6c0c3fd",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "zivot_andrews",
+            "baseline_record_id": "502fb106-b58d-4103-aa49-285b69d6e08f",
+            "variant_record_id": "a6f4561c-dfce-4ad8-957e-86c3f22f744c",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "engle_granger",
+            "baseline_record_id": "bde1f138-8345-4774-b8fe-0ab50a8eec6c",
+            "variant_record_id": "62c2af45-0623-430e-bc66-b3eb5ae56fd7",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "dynamic_ols",
+            "baseline_record_id": "57740d4c-cd91-4a0b-8f7f-c8a6b50665bc",
+            "variant_record_id": "8f4dc358-deea-45fa-82ba-394ebef924ef",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "fm_ols",
+            "baseline_record_id": "d7fa2b2b-d5da-4193-ac00-84a70f3cbf7e",
+            "variant_record_id": "9a38af92-a82c-47e1-8bb1-e92ca6594de9",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "interrupted_time_series",
+            "baseline_record_id": "29fad7d3-30da-4e04-8bc7-02abda2815f8",
+            "variant_record_id": "2439768e-a0f8-40d1-8885-89a8089b0ea3",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "bayesian_its",
+            "baseline_record_id": "85a6c916-ba4b-46e3-8fe5-181b36ef8e11",
+            "variant_record_id": "8bedce46-11c7-4bb2-8b0a-6a0a28ba67f7",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 2,
+            "variant_figures": 2
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "quant_linear_model",
+            "baseline_record_id": "66325a02-5ca8-4ab1-8f9d-90055ff283a7",
+            "variant_record_id": "87d0f00d-85b8-4c3c-a049-b0f5360c609d",
+            "baseline_tables": 4,
+            "variant_tables": 4,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "quant_lightgbm",
+            "baseline_record_id": "2c0b023f-a02e-42ae-9290-a089b7c9bb0a",
+            "variant_record_id": "b0445aeb-2cf0-42ba-84d9-42f30a904950",
+            "baseline_tables": 4,
+            "variant_tables": 4,
+            "baseline_figures": 2,
+            "variant_figures": 2
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "quant_catboost",
+            "baseline_record_id": "c0dfec4c-af7f-47e1-ab9a-18a207dedd3f",
+            "variant_record_id": "1c1d0a4e-1e81-480b-a5b5-25d2e149ac38",
+            "baseline_tables": 4,
+            "variant_tables": 4,
+            "baseline_figures": 2,
+            "variant_figures": 2
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "quant_backtest_report",
+            "baseline_record_id": "bea547a0-19a1-447c-9eeb-171561eab4e8",
+            "variant_record_id": "a0a2777f-ff4d-481f-8328-5acf345358a4",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 2,
+            "variant_figures": 2
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "position_analysis",
+            "baseline_record_id": "8ab0ca72-1b08-4b35-a8c4-c02151d5ae10",
+            "variant_record_id": "8f17f71f-ca6e-4cec-affc-4d6457890bb4",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 2,
+            "variant_figures": 2
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "efficient_frontier",
+            "baseline_record_id": "56b549f6-6d90-4d56-8e72-9dc89e52b048",
+            "variant_record_id": "fd19699b-c358-4b9f-b50f-0efda0db59a0",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "semivariance_frontier",
+            "baseline_record_id": "7cad439d-eca9-4d06-90de-959d6f1bb8a9",
+            "variant_record_id": "ec76f40f-44bb-4a0c-ab64-353fa728c984",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "cvar_frontier",
+            "baseline_record_id": "62dd6afc-d5cc-437c-bd06-febe6bb9dc4b",
+            "variant_record_id": "cbefbd62-207c-492a-96ef-65be0640733f",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "cdar_frontier",
+            "baseline_record_id": "9fd3a211-e350-4845-8676-27c6cbf1554b",
+            "variant_record_id": "819c0567-a0c1-4ecc-ad6c-7bba5b3c128a",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "black_litterman",
+            "baseline_record_id": "ec63dcf3-a948-401d-a6be-e4d51ec78451",
+            "variant_record_id": "75e854b8-9190-436d-a8c6-21ef3cc4d3c3",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "hrp",
+            "baseline_record_id": "539dac0c-c84c-4b8d-b74d-e99085efc381",
+            "variant_record_id": "ebd683f1-938a-4cc3-be8c-2bd0ed895c23",
+            "baseline_tables": 2,
+            "variant_tables": 2,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          },
+          {
+            "group": "macro_finance_ts",
+            "method": "discrete_allocation",
+            "baseline_record_id": "d38e77a5-68da-42fd-8964-d5c44f2bb541",
+            "variant_record_id": "cbe064cb-08fe-4411-866b-afd16966cee8",
+            "baseline_tables": 3,
+            "variant_tables": 3,
+            "baseline_figures": 1,
+            "variant_figures": 1
+          }
+        ]
+      }
+    },
+    "optimization": {
+      "report": {
+        "status": "passed",
+        "workspace_id": "6a4410f1-3c32-47a9-9cac-5b4f8e584444",
+        "catalog_summary": {
+          "optimizer_count": 234,
+          "optimizer_available_count": 232,
+          "function_count": 323,
+          "function_available_count": 321
+        },
+        "suite_requirements": {
+          "min_algorithms": 3,
+          "min_functions": 3,
+          "min_runs": 3
+        },
+        "disabled_optimizers": {
+          "mealpy.bio_based.BCO.OriginalBCO": "Disabled due to an upstream Mealpy bug: the implementation references undefined attributes such as self.dim/self.positions during evolve().",
+          "mealpy.human_based.CHIO.OriginalCHIO": "Disabled due to an upstream Mealpy instability: under baseline benchmark settings the implementation can exhaust its candidate pool and fail with an empty argmin sequence."
+        },
+        "optimizer_health": {
+          "tested": 232,
+          "failed": 0,
+          "default_function": "Ackley01"
+        },
+        "function_health": {
+          "tested": 321,
+          "failed": 0,
+          "default_optimizer": "mealpy.swarm_based.PSO.OriginalPSO"
+        },
+        "small_suite_error": "Optimization suites require at least 3 algorithms to produce valid ranking and Friedman outputs; got 2.",
+        "standard_suite": {
+          "record_id": "09450d00-0c4c-4774-b73c-7b5af7cb998b",
+          "task_count": 27,
+          "success_count": 27,
+          "failure_count": 0,
+          "figure_count": 8,
+          "table_count": 7
+        }
+      }
+    }
+  },
+  "paths": {
+    "comparison_report": "comparison_report.json",
+    "verification_report": "verification_report.json",
+    "country_panel": "country_panel",
+    "macro_finance_ts": "macro_finance_ts",
+    "model_anchor": "model_anchor",
+    "site_access": "site_access",
+    "optimization": "optimization"
+  }
+}

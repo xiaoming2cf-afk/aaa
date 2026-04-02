@@ -1,0 +1,201 @@
+{
+  "model_type": "discrete_allocation",
+  "model_label": "Discrete Allocation",
+  "asset": {
+    "id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "kind": "dataset_csv",
+    "title": "upgrade_ts.csv",
+    "filename": "upgrade_ts.csv",
+    "description": "upgrade_ts.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 93948,
+      "original_filename": "upgrade_ts.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:27.052169",
+    "updated_at": "2026-04-02T02:57:27.059647"
+  },
+  "observations": 240,
+  "narrative": [
+    "Discrete allocation solved for capital=100000.00.",
+    "Leftover cash: 1577.67."
+  ],
+  "specification": {
+    "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "model_family": "portfolio_allocation",
+    "model_type": "discrete_allocation",
+    "series_columns": [
+      "return_a",
+      "return_b",
+      "return_c"
+    ],
+    "time_column": "date",
+    "capital": 100000.0,
+    "engine": "pypfopt"
+  },
+  "audit_trail": {
+    "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+    "sample_title": "upgrade_ts.csv",
+    "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+    "engine": "pypfopt",
+    "derived_columns": [
+      "synthetic_price_paths_from_returns"
+    ],
+    "filters": [
+      "Rows with missing return observations are dropped before optimization."
+    ]
+  },
+  "metrics": {},
+  "tables": {
+    "weights_table": [
+      {
+        "asset": "return_a",
+        "weight": 0.0
+      },
+      {
+        "asset": "return_b",
+        "weight": 0.0
+      },
+      {
+        "asset": "return_c",
+        "weight": 1.0
+      }
+    ],
+    "allocation_table": [
+      {
+        "asset": "return_c",
+        "shares": 50,
+        "latest_price": 1968.4466112736104
+      }
+    ],
+    "cash_table": [
+      {
+        "capital": 100000.0,
+        "leftover_cash": 1577.6694363194838
+      }
+    ]
+  },
+  "sample_columns": [
+    "date",
+    "return_a",
+    "return_b",
+    "return_c"
+  ],
+  "sample_preview": [
+    {
+      "date": "2005-01-31T00:00:00",
+      "return_a": 1.1688157461773752,
+      "return_b": 0.3374757548649373,
+      "return_c": 0.8996990649038376
+    },
+    {
+      "date": "2005-02-28T00:00:00",
+      "return_a": 0.5343520409140631,
+      "return_b": 0.562932504678913,
+      "return_c": 0.3807846207439792
+    },
+    {
+      "date": "2005-03-31T00:00:00",
+      "return_a": 0.3152683060245842,
+      "return_b": 0.4289423809695991,
+      "return_c": 0.2694936932673371
+    },
+    {
+      "date": "2005-04-30T00:00:00",
+      "return_a": 0.2563147569235233,
+      "return_b": 0.2318914039278177,
+      "return_c": 0.1440411095196035
+    },
+    {
+      "date": "2005-05-31T00:00:00",
+      "return_a": 0.1639044786851478,
+      "return_b": 0.1299938142922835,
+      "return_c": 0.0690812146746108
+    }
+  ],
+  "engine": "pypfopt",
+  "figures": [
+    {
+      "asset_id": "a4142b94-e4ad-4f4b-93da-5e493f80d8be",
+      "title": "Discrete allocation",
+      "summary": "Integer holdings implied by the optimized continuous weights.",
+      "download_url": "/api/assets/a4142b94-e4ad-4f4b-93da-5e493f80d8be/download",
+      "asset": {
+        "id": "a4142b94-e4ad-4f4b-93da-5e493f80d8be",
+        "kind": "chart_png",
+        "title": "upgrade_ts-discrete_allocation.png",
+        "filename": "upgrade_ts-discrete_allocation.png",
+        "description": "Integer holdings implied by the optimized continuous weights.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 20030,
+          "original_filename": "upgrade_ts-discrete_allocation.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Discrete allocation",
+          "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+          "summary": "Integer holdings implied by the optimized continuous weights."
+        },
+        "created_at": "2026-04-02T03:07:56.820139+00:00",
+        "updated_at": "2026-04-02T03:07:56.826519+00:00"
+      }
+    }
+  ],
+  "primary_tables": [
+    "weights_table",
+    "allocation_table",
+    "cash_table"
+  ],
+  "paper_output_contract": {
+    "primary_tables": [
+      "weights_table",
+      "allocation_table",
+      "cash_table"
+    ],
+    "figure_count": 1
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "Discrete Allocation estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: weights_table, allocation_table, cash_table.",
+          "Figures included: Discrete allocation."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "weights_table",
+      "allocation_table",
+      "cash_table",
+      "Discrete allocation"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "",
+  "variant_spec": {},
+  "result_record_id": "d38e77a5-68da-42fd-8964-d5c44f2bb541",
+  "result_detail_path": "/data-lab/results/models/d38e77a5-68da-42fd-8964-d5c44f2bb541"
+}

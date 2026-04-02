@@ -1,0 +1,17 @@
+{
+  "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+  "model_family": "risk_management",
+  "model_type": "historical_var",
+  "dependent": "asset_return",
+  "time_column": "date",
+  "confidence_level": 0.95,
+  "holding_period_days": 1,
+  "equation": "VaR_alpha = empirical quantile; ES_alpha = mean(returns <= VaR_alpha)",
+  "return_column": "asset_return",
+  "ewma_lambda": 0.94,
+  "variant_label": "hist_var_tail",
+  "variant_spec": {
+    "confidence_level": 0.99,
+    "holding_period_days": 2
+  }
+}

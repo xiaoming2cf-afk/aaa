@@ -1,0 +1,792 @@
+{
+  "record": {
+    "id": "8f4dc358-deea-45fa-82ba-394ebef924ef",
+    "title": "Dynamic OLS summary for upgrade_ts.csv",
+    "content": "Dynamic OLS estimated with dependent series level_a.\nCointegrating regressors: level_b.\nThe result includes parameter estimates, long-run diagnostics, and fitted-versus-observed previews for manual verification.",
+    "content_excerpt": "Dynamic OLS estimated with dependent series level_a. Cointegrating regressors: level_b. The result includes parameter estimates, long-run diagnostics, and fitted-versus-observed previews for manual verification.",
+    "content_length": 211,
+    "tags": [
+      "dynamic_ols",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "dynamic_ols",
+      "model_label": "Dynamic OLS",
+      "asset": {
+        "id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+        "kind": "dataset_csv",
+        "title": "upgrade_ts.csv",
+        "filename": "upgrade_ts.csv",
+        "description": "upgrade_ts.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 93948,
+          "original_filename": "upgrade_ts.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T02:57:27.052169",
+        "updated_at": "2026-04-02T02:57:27.059647"
+      },
+      "dependent": "level_a",
+      "regressors": [
+        "level_b"
+      ],
+      "observations": 240,
+      "r_squared": 0.7809838123812682,
+      "adj_r_squared": 0.7603832798824766,
+      "pseudo_r_squared": null,
+      "aic": null,
+      "bic": null,
+      "log_likelihood": null,
+      "coefficients": [
+        {
+          "term": "level_b",
+          "coefficient": 0.8173303556530316,
+          "std_error": 0.07889729058886769,
+          "t_stat": 10.359422352183485,
+          "p_value": 0.0
+        },
+        {
+          "term": "const",
+          "coefficient": -34.033469942508646,
+          "std_error": 13.17722490750975,
+          "t_stat": -2.582749416617519,
+          "p_value": 0.009801648538993346
+        }
+      ],
+      "narrative": [
+        "Dynamic OLS estimated with dependent series level_a.",
+        "Cointegrating regressors: level_b.",
+        "The result includes parameter estimates, long-run diagnostics, and fitted-versus-observed previews for manual verification."
+      ],
+      "sample_columns": [
+        "date",
+        "level_a",
+        "level_b"
+      ],
+      "sample_preview": [
+        {
+          "date": "2005-01-31T00:00:00",
+          "level_a": 101.17881574617738,
+          "level_b": 165.09641352437717
+        },
+        {
+          "date": "2005-02-28T00:00:00",
+          "level_a": 101.72316778709144,
+          "level_b": 166.2863571870547
+        },
+        {
+          "date": "2005-03-31T00:00:00",
+          "level_a": 102.04843609311602,
+          "level_b": 167.29368823261217
+        },
+        {
+          "date": "2005-04-30T00:00:00",
+          "level_a": 102.31475085003954,
+          "level_b": 166.90341224301218
+        },
+        {
+          "date": "2005-05-31T00:00:00",
+          "level_a": 102.48865532872468,
+          "level_b": 166.7571921183507
+        }
+      ],
+      "specification": {
+        "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+        "model_family": "time_series_finance",
+        "model_type": "dynamic_ols",
+        "dependent": "level_a",
+        "series_columns": [
+          "level_b"
+        ],
+        "time_column": "date",
+        "engine": "arch",
+        "variant_label": "dols_single"
+      },
+      "audit_trail": {
+        "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+        "sample_title": "upgrade_ts.csv",
+        "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+        "rows_used": 240,
+        "sample_columns": [
+          "date",
+          "level_a",
+          "level_b"
+        ],
+        "covariance_type": "unadjusted",
+        "manual_checklist": [
+          "Download the prepared sample asset referenced in sample_asset_id.",
+          "Rebuild any derived regressors listed in derived_columns before estimation.",
+          "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+          "Compare the reproduced coefficient table with the coefficients array term by term."
+        ],
+        "engine": "arch",
+        "derived_columns": [],
+        "filters": [
+          "Rows with missing series values are dropped before estimation."
+        ]
+      },
+      "engine": "arch",
+      "primary_tables": [
+        "cointegration_regression",
+        "residual_diagnostics",
+        "fitted_preview"
+      ],
+      "robustness_tables": [],
+      "tables": {
+        "cointegration_regression": [
+          {
+            "term": "level_b",
+            "coefficient": 0.8173303556530316,
+            "std_error": 0.07889729058886769,
+            "t_stat": 10.359422352183485,
+            "p_value": null
+          },
+          {
+            "term": "const",
+            "coefficient": -34.033469942508646,
+            "std_error": 13.17722490750975,
+            "t_stat": -2.582749416617519,
+            "p_value": null
+          }
+        ],
+        "residual_diagnostics": [
+          {
+            "residual_mean": 0.02821326253037301,
+            "residual_std": 0.6185784370564221,
+            "residual_min": -1.4927976474836129,
+            "residual_max": 1.757591652224363,
+            "residual_variance": 0.024390275189700814,
+            "long_run_variance": 0.17121170425113724,
+            "kernel": "Bartlett",
+            "bandwidth": 12.06819919300833,
+            "leads": 10.0,
+            "lags": 7.0,
+            "r_squared": 0.7809838123812682,
+            "adj_r_squared": 0.7603832798824766
+          }
+        ],
+        "fitted_preview": [
+          {
+            "date": "2005-01-31T00:00:00",
+            "observed": 101.17881574617738,
+            "fitted": 100.90484044041051,
+            "residual": 0.2739753057668679
+          },
+          {
+            "date": "2005-02-28T00:00:00",
+            "observed": 101.72316778709144,
+            "fitted": 101.87741751743383,
+            "residual": -0.15424973034238576
+          },
+          {
+            "date": "2005-03-31T00:00:00",
+            "observed": 102.04843609311602,
+            "fitted": 102.70073975915963,
+            "residual": -0.6523036660436077
+          },
+          {
+            "date": "2005-04-30T00:00:00",
+            "observed": 102.31475085003954,
+            "fitted": 102.38175534577704,
+            "residual": -0.06700449573749268
+          },
+          {
+            "date": "2005-05-31T00:00:00",
+            "observed": 102.48865532872468,
+            "fitted": 102.26224519928385,
+            "residual": 0.22641012944082206
+          },
+          {
+            "date": "2005-06-30T00:00:00",
+            "observed": 102.5697018704502,
+            "fitted": 102.37180133779941,
+            "residual": 0.19790053265079166
+          },
+          {
+            "date": "2005-07-31T00:00:00",
+            "observed": 102.61711824466845,
+            "fitted": 103.46255583397789,
+            "residual": -0.8454375893094408
+          },
+          {
+            "date": "2005-08-31T00:00:00",
+            "observed": 102.53540684083266,
+            "fitted": 102.09478267302578,
+            "residual": 0.44062416780688807
+          },
+          {
+            "date": "2005-09-30T00:00:00",
+            "observed": 102.54453362128994,
+            "fitted": 103.1545895197041,
+            "residual": -0.61005589841416
+          },
+          {
+            "date": "2005-10-31T00:00:00",
+            "observed": 102.56961147934231,
+            "fitted": 101.50418647249998,
+            "residual": 1.0654250068423323
+          },
+          {
+            "date": "2005-11-30T00:00:00",
+            "observed": 102.57173537156342,
+            "fitted": 102.66343842306827,
+            "residual": -0.09170305150485092
+          },
+          {
+            "date": "2005-12-31T00:00:00",
+            "observed": 102.56621970663925,
+            "fitted": 102.43771661536368,
+            "residual": 0.1285030912755616
+          },
+          {
+            "date": "2006-01-31T00:00:00",
+            "observed": 102.5495149248854,
+            "fitted": 101.73595203855385,
+            "residual": 0.8135628863315532
+          },
+          {
+            "date": "2006-02-28T00:00:00",
+            "observed": 102.52881164526056,
+            "fitted": 101.43891124965631,
+            "residual": 1.0899003956042463
+          },
+          {
+            "date": "2006-03-31T00:00:00",
+            "observed": 102.56977924675336,
+            "fitted": 101.83869062509055,
+            "residual": 0.7310886216628063
+          },
+          {
+            "date": "2006-04-30T00:00:00",
+            "observed": 102.56455124341754,
+            "fitted": 102.24255666307778,
+            "residual": 0.32199458033976214
+          },
+          {
+            "date": "2006-05-31T00:00:00",
+            "observed": 102.51147214327032,
+            "fitted": 102.31406406309645,
+            "residual": 0.19740808017387224
+          },
+          {
+            "date": "2006-06-30T00:00:00",
+            "observed": 102.52566010504302,
+            "fitted": 102.83182003753325,
+            "residual": -0.30615993249023177
+          },
+          {
+            "date": "2006-07-31T00:00:00",
+            "observed": 102.59270554627584,
+            "fitted": 102.93056385082423,
+            "residual": -0.3378583045483907
+          },
+          {
+            "date": "2006-08-31T00:00:00",
+            "observed": 102.60886591905084,
+            "fitted": 102.14544940995526,
+            "residual": 0.4634165090955804
+          },
+          {
+            "date": "2006-09-30T00:00:00",
+            "observed": 102.59411517772978,
+            "fitted": 101.78374415700051,
+            "residual": 0.8103710207292636
+          },
+          {
+            "date": "2006-10-31T00:00:00",
+            "observed": 102.66689852592722,
+            "fitted": 103.30918771423299,
+            "residual": -0.6422891883057673
+          },
+          {
+            "date": "2006-11-30T00:00:00",
+            "observed": 102.75498501871914,
+            "fitted": 102.554646293855,
+            "residual": 0.20033872486413884
+          },
+          {
+            "date": "2006-12-31T00:00:00",
+            "observed": 102.77059140537456,
+            "fitted": 103.06229106983548,
+            "residual": -0.2916996644609213
+          }
+        ]
+      },
+      "figures": [
+        {
+          "asset_id": "71924425-58ab-42f7-bfeb-270e028d4ea9",
+          "title": "Dynamic OLS residual path",
+          "summary": "Residual series from the Dynamic OLS cointegration regression.",
+          "download_url": "/api/assets/71924425-58ab-42f7-bfeb-270e028d4ea9/download",
+          "asset": {
+            "id": "71924425-58ab-42f7-bfeb-270e028d4ea9",
+            "kind": "chart_png",
+            "title": "upgrade_ts-dynamic_ols_residuals.png",
+            "filename": "upgrade_ts-dynamic_ols_residuals.png",
+            "description": "Residual series from the Dynamic OLS cointegration regression.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 162554,
+              "original_filename": "upgrade_ts-dynamic_ols_residuals.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "Dynamic OLS residual path",
+              "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+              "summary": "Residual series from the Dynamic OLS cointegration regression."
+            },
+            "created_at": "2026-04-02T03:05:27.453685+00:00",
+            "updated_at": "2026-04-02T03:05:27.464736+00:00"
+          }
+        }
+      ],
+      "metrics": {},
+      "paper_output_contract": {
+        "primary_tables": [
+          "cointegration_regression",
+          "residual_diagnostics",
+          "fitted_preview"
+        ],
+        "robustness_tables": [],
+        "figure_count": 1
+      },
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "Dynamic OLS estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+              "Supporting tables included: cointegration_regression, residual_diagnostics, fitted_preview.",
+              "Figures included: Dynamic OLS residual path."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "cointegration_regression",
+          "residual_diagnostics",
+          "fitted_preview",
+          "Dynamic OLS residual path"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "dols_single",
+      "variant_spec": {},
+      "result_record_id": "8f4dc358-deea-45fa-82ba-394ebef924ef",
+      "result_detail_path": "/data-lab/results/models/8f4dc358-deea-45fa-82ba-394ebef924ef"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:05:27.481547",
+    "updated_at": "2026-04-02T03:05:27.482554"
+  },
+  "result": {
+    "model_type": "dynamic_ols",
+    "model_label": "Dynamic OLS",
+    "asset": {
+      "id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+      "kind": "dataset_csv",
+      "title": "upgrade_ts.csv",
+      "filename": "upgrade_ts.csv",
+      "description": "upgrade_ts.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 93948,
+        "original_filename": "upgrade_ts.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T02:57:27.052169",
+      "updated_at": "2026-04-02T02:57:27.059647"
+    },
+    "dependent": "level_a",
+    "regressors": [
+      "level_b"
+    ],
+    "observations": 240,
+    "r_squared": 0.7809838123812682,
+    "adj_r_squared": 0.7603832798824766,
+    "pseudo_r_squared": null,
+    "aic": null,
+    "bic": null,
+    "log_likelihood": null,
+    "coefficients": [
+      {
+        "term": "level_b",
+        "coefficient": 0.8173303556530316,
+        "std_error": 0.07889729058886769,
+        "t_stat": 10.359422352183485,
+        "p_value": 0.0
+      },
+      {
+        "term": "const",
+        "coefficient": -34.033469942508646,
+        "std_error": 13.17722490750975,
+        "t_stat": -2.582749416617519,
+        "p_value": 0.009801648538993346
+      }
+    ],
+    "narrative": [
+      "Dynamic OLS estimated with dependent series level_a.",
+      "Cointegrating regressors: level_b.",
+      "The result includes parameter estimates, long-run diagnostics, and fitted-versus-observed previews for manual verification."
+    ],
+    "sample_columns": [
+      "date",
+      "level_a",
+      "level_b"
+    ],
+    "sample_preview": [
+      {
+        "date": "2005-01-31T00:00:00",
+        "level_a": 101.17881574617738,
+        "level_b": 165.09641352437717
+      },
+      {
+        "date": "2005-02-28T00:00:00",
+        "level_a": 101.72316778709144,
+        "level_b": 166.2863571870547
+      },
+      {
+        "date": "2005-03-31T00:00:00",
+        "level_a": 102.04843609311602,
+        "level_b": 167.29368823261217
+      },
+      {
+        "date": "2005-04-30T00:00:00",
+        "level_a": 102.31475085003954,
+        "level_b": 166.90341224301218
+      },
+      {
+        "date": "2005-05-31T00:00:00",
+        "level_a": 102.48865532872468,
+        "level_b": 166.7571921183507
+      }
+    ],
+    "specification": {
+      "asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+      "model_family": "time_series_finance",
+      "model_type": "dynamic_ols",
+      "dependent": "level_a",
+      "series_columns": [
+        "level_b"
+      ],
+      "time_column": "date",
+      "engine": "arch",
+      "variant_label": "dols_single"
+    },
+    "audit_trail": {
+      "sample_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+      "sample_title": "upgrade_ts.csv",
+      "sample_download_url": "/api/assets/190b1a21-686d-4fc0-adb2-956b846e5e38/download",
+      "rows_used": 240,
+      "sample_columns": [
+        "date",
+        "level_a",
+        "level_b"
+      ],
+      "covariance_type": "unadjusted",
+      "manual_checklist": [
+        "Download the prepared sample asset referenced in sample_asset_id.",
+        "Rebuild any derived regressors listed in derived_columns before estimation.",
+        "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+        "Compare the reproduced coefficient table with the coefficients array term by term."
+      ],
+      "engine": "arch",
+      "derived_columns": [],
+      "filters": [
+        "Rows with missing series values are dropped before estimation."
+      ]
+    },
+    "engine": "arch",
+    "primary_tables": [
+      "cointegration_regression",
+      "residual_diagnostics",
+      "fitted_preview"
+    ],
+    "robustness_tables": [],
+    "tables": {
+      "cointegration_regression": [
+        {
+          "term": "level_b",
+          "coefficient": 0.8173303556530316,
+          "std_error": 0.07889729058886769,
+          "t_stat": 10.359422352183485,
+          "p_value": null
+        },
+        {
+          "term": "const",
+          "coefficient": -34.033469942508646,
+          "std_error": 13.17722490750975,
+          "t_stat": -2.582749416617519,
+          "p_value": null
+        }
+      ],
+      "residual_diagnostics": [
+        {
+          "residual_mean": 0.02821326253037301,
+          "residual_std": 0.6185784370564221,
+          "residual_min": -1.4927976474836129,
+          "residual_max": 1.757591652224363,
+          "residual_variance": 0.024390275189700814,
+          "long_run_variance": 0.17121170425113724,
+          "kernel": "Bartlett",
+          "bandwidth": 12.06819919300833,
+          "leads": 10.0,
+          "lags": 7.0,
+          "r_squared": 0.7809838123812682,
+          "adj_r_squared": 0.7603832798824766
+        }
+      ],
+      "fitted_preview": [
+        {
+          "date": "2005-01-31T00:00:00",
+          "observed": 101.17881574617738,
+          "fitted": 100.90484044041051,
+          "residual": 0.2739753057668679
+        },
+        {
+          "date": "2005-02-28T00:00:00",
+          "observed": 101.72316778709144,
+          "fitted": 101.87741751743383,
+          "residual": -0.15424973034238576
+        },
+        {
+          "date": "2005-03-31T00:00:00",
+          "observed": 102.04843609311602,
+          "fitted": 102.70073975915963,
+          "residual": -0.6523036660436077
+        },
+        {
+          "date": "2005-04-30T00:00:00",
+          "observed": 102.31475085003954,
+          "fitted": 102.38175534577704,
+          "residual": -0.06700449573749268
+        },
+        {
+          "date": "2005-05-31T00:00:00",
+          "observed": 102.48865532872468,
+          "fitted": 102.26224519928385,
+          "residual": 0.22641012944082206
+        },
+        {
+          "date": "2005-06-30T00:00:00",
+          "observed": 102.5697018704502,
+          "fitted": 102.37180133779941,
+          "residual": 0.19790053265079166
+        },
+        {
+          "date": "2005-07-31T00:00:00",
+          "observed": 102.61711824466845,
+          "fitted": 103.46255583397789,
+          "residual": -0.8454375893094408
+        },
+        {
+          "date": "2005-08-31T00:00:00",
+          "observed": 102.53540684083266,
+          "fitted": 102.09478267302578,
+          "residual": 0.44062416780688807
+        },
+        {
+          "date": "2005-09-30T00:00:00",
+          "observed": 102.54453362128994,
+          "fitted": 103.1545895197041,
+          "residual": -0.61005589841416
+        },
+        {
+          "date": "2005-10-31T00:00:00",
+          "observed": 102.56961147934231,
+          "fitted": 101.50418647249998,
+          "residual": 1.0654250068423323
+        },
+        {
+          "date": "2005-11-30T00:00:00",
+          "observed": 102.57173537156342,
+          "fitted": 102.66343842306827,
+          "residual": -0.09170305150485092
+        },
+        {
+          "date": "2005-12-31T00:00:00",
+          "observed": 102.56621970663925,
+          "fitted": 102.43771661536368,
+          "residual": 0.1285030912755616
+        },
+        {
+          "date": "2006-01-31T00:00:00",
+          "observed": 102.5495149248854,
+          "fitted": 101.73595203855385,
+          "residual": 0.8135628863315532
+        },
+        {
+          "date": "2006-02-28T00:00:00",
+          "observed": 102.52881164526056,
+          "fitted": 101.43891124965631,
+          "residual": 1.0899003956042463
+        },
+        {
+          "date": "2006-03-31T00:00:00",
+          "observed": 102.56977924675336,
+          "fitted": 101.83869062509055,
+          "residual": 0.7310886216628063
+        },
+        {
+          "date": "2006-04-30T00:00:00",
+          "observed": 102.56455124341754,
+          "fitted": 102.24255666307778,
+          "residual": 0.32199458033976214
+        },
+        {
+          "date": "2006-05-31T00:00:00",
+          "observed": 102.51147214327032,
+          "fitted": 102.31406406309645,
+          "residual": 0.19740808017387224
+        },
+        {
+          "date": "2006-06-30T00:00:00",
+          "observed": 102.52566010504302,
+          "fitted": 102.83182003753325,
+          "residual": -0.30615993249023177
+        },
+        {
+          "date": "2006-07-31T00:00:00",
+          "observed": 102.59270554627584,
+          "fitted": 102.93056385082423,
+          "residual": -0.3378583045483907
+        },
+        {
+          "date": "2006-08-31T00:00:00",
+          "observed": 102.60886591905084,
+          "fitted": 102.14544940995526,
+          "residual": 0.4634165090955804
+        },
+        {
+          "date": "2006-09-30T00:00:00",
+          "observed": 102.59411517772978,
+          "fitted": 101.78374415700051,
+          "residual": 0.8103710207292636
+        },
+        {
+          "date": "2006-10-31T00:00:00",
+          "observed": 102.66689852592722,
+          "fitted": 103.30918771423299,
+          "residual": -0.6422891883057673
+        },
+        {
+          "date": "2006-11-30T00:00:00",
+          "observed": 102.75498501871914,
+          "fitted": 102.554646293855,
+          "residual": 0.20033872486413884
+        },
+        {
+          "date": "2006-12-31T00:00:00",
+          "observed": 102.77059140537456,
+          "fitted": 103.06229106983548,
+          "residual": -0.2916996644609213
+        }
+      ]
+    },
+    "figures": [
+      {
+        "asset_id": "71924425-58ab-42f7-bfeb-270e028d4ea9",
+        "title": "Dynamic OLS residual path",
+        "summary": "Residual series from the Dynamic OLS cointegration regression.",
+        "download_url": "/api/assets/71924425-58ab-42f7-bfeb-270e028d4ea9/download",
+        "asset": {
+          "id": "71924425-58ab-42f7-bfeb-270e028d4ea9",
+          "kind": "chart_png",
+          "title": "upgrade_ts-dynamic_ols_residuals.png",
+          "filename": "upgrade_ts-dynamic_ols_residuals.png",
+          "description": "Residual series from the Dynamic OLS cointegration regression.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 162554,
+            "original_filename": "upgrade_ts-dynamic_ols_residuals.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "Dynamic OLS residual path",
+            "source_asset_id": "190b1a21-686d-4fc0-adb2-956b846e5e38",
+            "summary": "Residual series from the Dynamic OLS cointegration regression."
+          },
+          "created_at": "2026-04-02T03:05:27.453685+00:00",
+          "updated_at": "2026-04-02T03:05:27.464736+00:00"
+        }
+      }
+    ],
+    "metrics": {},
+    "paper_output_contract": {
+      "primary_tables": [
+        "cointegration_regression",
+        "residual_diagnostics",
+        "fitted_preview"
+      ],
+      "robustness_tables": [],
+      "figure_count": 1
+    },
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "Dynamic OLS estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+            "Supporting tables included: cointegration_regression, residual_diagnostics, fitted_preview.",
+            "Figures included: Dynamic OLS residual path."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "cointegration_regression",
+        "residual_diagnostics",
+        "fitted_preview",
+        "Dynamic OLS residual path"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "dols_single",
+    "variant_spec": {},
+    "result_record_id": "8f4dc358-deea-45fa-82ba-394ebef924ef",
+    "result_detail_path": "/data-lab/results/models/8f4dc358-deea-45fa-82ba-394ebef924ef"
+  },
+  "workspace_id": "015bd6ef-9f0c-4365-a59a-a9b472406eb1"
+}

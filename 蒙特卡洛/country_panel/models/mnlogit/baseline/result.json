@@ -1,0 +1,253 @@
+{
+  "model_type": "mnlogit",
+  "model_label": "Multinomial Logit",
+  "asset": {
+    "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "kind": "dataset_csv",
+    "title": "upgrade_panel.csv",
+    "filename": "upgrade_panel.csv",
+    "description": "upgrade_panel.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 289095,
+      "original_filename": "upgrade_panel.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:26.995002",
+    "updated_at": "2026-04-02T02:57:27.013674"
+  },
+  "observations": 648,
+  "narrative": [
+    "Multinomial logit estimated on upgrade_panel.csv.",
+    "Estimation engine: statsmodels.",
+    "Outcome classes: [0, 1, 2]."
+  ],
+  "specification": {
+    "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "model_family": "econometrics_baseline",
+    "model_type": "mnlogit",
+    "dependent": "multiclass_outcome",
+    "independents": [
+      "size",
+      "leverage"
+    ],
+    "controls": [
+      "post"
+    ],
+    "engine": "statsmodels",
+    "regressors": [
+      "size",
+      "leverage",
+      "post"
+    ],
+    "formula": "multiclass_outcome ~ size + leverage + post"
+  },
+  "audit_trail": {
+    "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "sample_title": "upgrade_panel.csv",
+    "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+    "engine": "statsmodels",
+    "derived_columns": [],
+    "filters": [
+      "Rows with missing dependent or regressors are dropped."
+    ]
+  },
+  "metrics": {
+    "llf": -642.4361883324513,
+    "aic": 1300.8723766649025
+  },
+  "tables": {
+    "coefficient_table": [
+      {
+        "equation": "0",
+        "term": "Intercept",
+        "coefficient": -1.354902932187015
+      },
+      {
+        "equation": "0",
+        "term": "size",
+        "coefficient": 0.2790951045591411
+      },
+      {
+        "equation": "0",
+        "term": "leverage",
+        "coefficient": -0.2783425084659857
+      },
+      {
+        "equation": "0",
+        "term": "post",
+        "coefficient": -0.27319172990083773
+      },
+      {
+        "equation": "1",
+        "term": "Intercept",
+        "coefficient": -0.33684788545552546
+      },
+      {
+        "equation": "1",
+        "term": "size",
+        "coefficient": 0.026290730317799348
+      },
+      {
+        "equation": "1",
+        "term": "leverage",
+        "coefficient": 1.032003647866745
+      },
+      {
+        "equation": "1",
+        "term": "post",
+        "coefficient": 0.0931857749400469
+      }
+    ],
+    "class_audit": [
+      {
+        "class": 0,
+        "count": 122
+      },
+      {
+        "class": 1,
+        "count": 354
+      },
+      {
+        "class": 2,
+        "count": 172
+      }
+    ],
+    "class_probability_table": [
+      {
+        "class": "class_0",
+        "mean_probability": 0.18827160493827155
+      },
+      {
+        "class": "class_1",
+        "mean_probability": 0.546296296296296
+      },
+      {
+        "class": "class_2",
+        "mean_probability": 0.2654320987654317
+      }
+    ]
+  },
+  "sample_columns": [
+    "multiclass_outcome",
+    "size",
+    "leverage",
+    "post"
+  ],
+  "sample_preview": [
+    {
+      "multiclass_outcome": 0,
+      "size": 8.519775911467494,
+      "leverage": 0.3577590135791016,
+      "post": 0
+    },
+    {
+      "multiclass_outcome": 1,
+      "size": 7.55721041465215,
+      "leverage": 0.3378183221465689,
+      "post": 0
+    },
+    {
+      "multiclass_outcome": 2,
+      "size": 7.823590785770317,
+      "leverage": 0.3343232278441892,
+      "post": 0
+    },
+    {
+      "multiclass_outcome": 0,
+      "size": 8.058331858128255,
+      "leverage": 0.3581110765958445,
+      "post": 0
+    },
+    {
+      "multiclass_outcome": 1,
+      "size": 7.790582349444769,
+      "leverage": 0.3323010132904619,
+      "post": 0
+    }
+  ],
+  "engine": "statsmodels",
+  "figures": [
+    {
+      "asset_id": "5ef5ba08-4ade-4f4c-b15e-b0091e0138d0",
+      "title": "Predicted Class Distribution",
+      "summary": "Average predicted class probabilities across the estimation sample.",
+      "download_url": "/api/assets/5ef5ba08-4ade-4f4c-b15e-b0091e0138d0/download",
+      "asset": {
+        "id": "5ef5ba08-4ade-4f4c-b15e-b0091e0138d0",
+        "kind": "chart_png",
+        "title": "upgrade_panel-mnlogit_class_distribution.png",
+        "filename": "upgrade_panel-mnlogit_class_distribution.png",
+        "description": "Average predicted class probabilities across the estimation sample.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 42854,
+          "original_filename": "upgrade_panel-mnlogit_class_distribution.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Predicted Class Distribution",
+          "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+          "summary": "Average predicted class probabilities across the estimation sample."
+        },
+        "created_at": "2026-04-02T02:57:49.676144+00:00",
+        "updated_at": "2026-04-02T02:57:49.691693+00:00"
+      }
+    }
+  ],
+  "primary_tables": [
+    "coefficient_table",
+    "class_audit",
+    "class_probability_table"
+  ],
+  "paper_output_contract": {
+    "primary_tables": [
+      "coefficient_table",
+      "class_audit",
+      "class_probability_table"
+    ],
+    "figure_count": 1
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "Multinomial Logit estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: coefficient_table, class_audit, class_probability_table.",
+          "Figures included: Predicted Class Distribution."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "coefficient_table",
+      "class_audit",
+      "class_probability_table",
+      "Predicted Class Distribution"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "",
+  "variant_spec": {},
+  "result_record_id": "65e5f75d-dc4f-44fa-ad24-39e69ad75f53",
+  "result_detail_path": "/data-lab/results/models/65e5f75d-dc4f-44fa-ad24-39e69ad75f53"
+}

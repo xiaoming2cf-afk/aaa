@@ -1,0 +1,44 @@
+{
+  "headline": "Event Study estimates are exposed in full so you can read the result and reproduce it manually.",
+  "sections": [
+    {
+      "title": "What is shown on this page",
+      "items": [
+        "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+        "Supporting tables included: dynamic_effect_table, cohort_time_table, event_window_audit, event_study_table, event_study_window.",
+        "Figures included: Staggered DID dynamic effects."
+      ]
+    },
+    {
+      "title": "How to read the main result",
+      "items": [
+        "Use the dynamic-effects table and the event-study figure together: coefficients before treatment help diagnose pre-trends, while post-treatment coefficients show the effect path over time.",
+        "The omitted reference period is -1. All dynamic coefficients are relative to that period."
+      ]
+    },
+    {
+      "title": "What a normal paper should report",
+      "items": [
+        "A dynamic coefficient table by relative event time.",
+        "An event-study plot with confidence intervals and a clearly stated omitted period.",
+        "A discussion of pre-trend behavior and event-window choice."
+      ]
+    },
+    {
+      "title": "Manual replication focus",
+      "items": [
+        "Verify the relative event-time variable and omitted period in the prepared sample.",
+        "Check that the pre-treatment coefficients are approximately centered around zero if the identifying design relies on parallel pre-trends.",
+        "Reproduce the plotted points from the dynamic-effects table horizon by horizon."
+      ]
+    }
+  ],
+  "paper_outputs": [
+    "dynamic_effect_table",
+    "cohort_time_table",
+    "event_window_audit",
+    "event_study_table",
+    "event_study_window",
+    "Staggered DID dynamic effects"
+  ]
+}

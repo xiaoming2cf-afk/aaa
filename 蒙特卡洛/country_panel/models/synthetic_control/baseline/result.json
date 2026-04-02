@@ -1,0 +1,454 @@
+{
+  "model_type": "synthetic_control",
+  "model_label": "Synthetic Control",
+  "asset": {
+    "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "kind": "dataset_csv",
+    "title": "upgrade_panel.csv",
+    "filename": "upgrade_panel.csv",
+    "description": "upgrade_panel.csv",
+    "content_type": "text/csv",
+    "source_url": "",
+    "metadata": {
+      "size_bytes": 289095,
+      "original_filename": "upgrade_panel.csv",
+      "storage_backend": "local"
+    },
+    "created_at": "2026-04-02T02:57:26.995002",
+    "updated_at": "2026-04-02T02:57:27.013674"
+  },
+  "observations": 36,
+  "narrative": [
+    "Synthetic control weights estimated from donor units using pre-treatment fit."
+  ],
+  "specification": {
+    "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "model_family": "causal_inference",
+    "model_type": "synthetic_control",
+    "dependent": "outcome_y",
+    "entity_column": "firm_id",
+    "time_column": "month_index",
+    "treated_unit": "firm_01",
+    "control_units": [
+      "firm_02",
+      "firm_03",
+      "firm_04",
+      "firm_05",
+      "firm_06"
+    ],
+    "treatment_time": 18,
+    "engine": "causalpy"
+  },
+  "audit_trail": {
+    "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+    "sample_title": "upgrade_panel.csv",
+    "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+    "engine": "causalpy",
+    "derived_columns": [
+      "synthetic",
+      "gap"
+    ],
+    "filters": []
+  },
+  "metrics": {},
+  "tables": {
+    "fit_table": [
+      {
+        "period": "pre",
+        "rmse": 0.9069160626351163
+      },
+      {
+        "period": "post",
+        "rmse": 1.2181088049256588
+      }
+    ],
+    "donor_weight_table": [
+      {
+        "donor_unit": "firm_02",
+        "weight": 0.0597222539683302
+      },
+      {
+        "donor_unit": "firm_03",
+        "weight": 0.015685882456782388
+      },
+      {
+        "donor_unit": "firm_04",
+        "weight": 0.1166908463033845
+      },
+      {
+        "donor_unit": "firm_05",
+        "weight": 0.31866184553578314
+      },
+      {
+        "donor_unit": "firm_06",
+        "weight": 0.48923917173571974
+      }
+    ],
+    "path_table": [
+      {
+        "time": 1,
+        "observed": 8.281342947667275,
+        "synthetic": 6.502850943713911,
+        "gap": 1.7784920039533638
+      },
+      {
+        "time": 2,
+        "observed": 7.161166663415577,
+        "synthetic": 6.801065790455153,
+        "gap": 0.36010087296042403
+      },
+      {
+        "time": 3,
+        "observed": 7.582391886802917,
+        "synthetic": 8.021151463822282,
+        "gap": -0.43875957701936485
+      },
+      {
+        "time": 4,
+        "observed": 8.19643779930995,
+        "synthetic": 7.259332053763301,
+        "gap": 0.9371057455466483
+      },
+      {
+        "time": 5,
+        "observed": 6.775339604671813,
+        "synthetic": 6.9761741582452,
+        "gap": -0.20083455357338753
+      },
+      {
+        "time": 6,
+        "observed": 7.332408657947028,
+        "synthetic": 7.882603161300711,
+        "gap": -0.5501945033536835
+      },
+      {
+        "time": 7,
+        "observed": 9.385157683987362,
+        "synthetic": 7.533359401600397,
+        "gap": 1.851798282386965
+      },
+      {
+        "time": 8,
+        "observed": 6.077208583694369,
+        "synthetic": 6.9156872082817165,
+        "gap": -0.8384786245873475
+      },
+      {
+        "time": 9,
+        "observed": 8.615878353039573,
+        "synthetic": 8.226850149033533,
+        "gap": 0.3890282040060402
+      },
+      {
+        "time": 10,
+        "observed": 7.835612225525817,
+        "synthetic": 8.247057703522428,
+        "gap": -0.4114454779966108
+      },
+      {
+        "time": 11,
+        "observed": 7.322079734610011,
+        "synthetic": 7.682382482115032,
+        "gap": -0.36030274750502134
+      },
+      {
+        "time": 12,
+        "observed": 8.811756994695338,
+        "synthetic": 7.496824985598074,
+        "gap": 1.314932009097264
+      },
+      {
+        "time": 13,
+        "observed": 10.146094014149632,
+        "synthetic": 8.993440738764122,
+        "gap": 1.1526532753855108
+      },
+      {
+        "time": 14,
+        "observed": 8.260919234930208,
+        "synthetic": 8.20636819629219,
+        "gap": 0.054551038638017246
+      },
+      {
+        "time": 15,
+        "observed": 9.37839640571156,
+        "synthetic": 9.908648126844941,
+        "gap": -0.5302517211333804
+      },
+      {
+        "time": 16,
+        "observed": 7.558477436067536,
+        "synthetic": 8.720826795330373,
+        "gap": -1.1623493592628371
+      },
+      {
+        "time": 17,
+        "observed": 9.260759820471016,
+        "synthetic": 9.283262767990614,
+        "gap": -0.022502947519598138
+      },
+      {
+        "time": 18,
+        "observed": 7.456380545464655,
+        "synthetic": 8.321390671421103,
+        "gap": -0.8650101259564478
+      },
+      {
+        "time": 19,
+        "observed": 11.049357874509065,
+        "synthetic": 11.201151320076878,
+        "gap": -0.15179344556781338
+      },
+      {
+        "time": 20,
+        "observed": 10.342442918246832,
+        "synthetic": 10.943436967512916,
+        "gap": -0.6009940492660846
+      },
+      {
+        "time": 21,
+        "observed": 11.262537592174072,
+        "synthetic": 11.115760963833713,
+        "gap": 0.14677662834035843
+      },
+      {
+        "time": 22,
+        "observed": 11.70119725543396,
+        "synthetic": 9.650860462350675,
+        "gap": 2.050336793083286
+      },
+      {
+        "time": 23,
+        "observed": 9.277360031260905,
+        "synthetic": 10.81246609666121,
+        "gap": -1.5351060654003046
+      },
+      {
+        "time": 24,
+        "observed": 11.628291926812045,
+        "synthetic": 9.429077134883492,
+        "gap": 2.1992147919285525
+      },
+      {
+        "time": 25,
+        "observed": 12.360307334129743,
+        "synthetic": 11.361293112483061,
+        "gap": 0.9990142216466822
+      },
+      {
+        "time": 26,
+        "observed": 9.2377928445218,
+        "synthetic": 11.608178213819244,
+        "gap": -2.370385369297443
+      },
+      {
+        "time": 27,
+        "observed": 8.940164940883983,
+        "synthetic": 11.361057969746032,
+        "gap": -2.4208930288620483
+      },
+      {
+        "time": 28,
+        "observed": 11.607059634929575,
+        "synthetic": 10.978257177901956,
+        "gap": 0.6288024570276196
+      },
+      {
+        "time": 29,
+        "observed": 11.223761893189494,
+        "synthetic": 11.059594268619255,
+        "gap": 0.16416762457023815
+      },
+      {
+        "time": 30,
+        "observed": 11.718318831539484,
+        "synthetic": 11.372761904743875,
+        "gap": 0.34555692679560934
+      },
+      {
+        "time": 31,
+        "observed": 11.406386769797072,
+        "synthetic": 11.996862987583022,
+        "gap": -0.5904762177859499
+      },
+      {
+        "time": 32,
+        "observed": 11.261565722539611,
+        "synthetic": 11.332847545824269,
+        "gap": -0.07128182328465726
+      },
+      {
+        "time": 33,
+        "observed": 12.586777208725035,
+        "synthetic": 12.024306048379458,
+        "gap": 0.5624711603455772
+      },
+      {
+        "time": 34,
+        "observed": 11.733416017288029,
+        "synthetic": 10.936752998771734,
+        "gap": 0.7966630185162948
+      },
+      {
+        "time": 35,
+        "observed": 12.387312331496076,
+        "synthetic": 11.634974685830215,
+        "gap": 0.752337645665861
+      },
+      {
+        "time": 36,
+        "observed": 11.125369038295872,
+        "synthetic": 11.991948805938382,
+        "gap": -0.8665797676425093
+      }
+    ]
+  },
+  "sample_columns": [
+    "time",
+    "observed",
+    "synthetic",
+    "gap"
+  ],
+  "sample_preview": [
+    {
+      "time": 1,
+      "observed": 8.281342947667275,
+      "synthetic": 6.502850943713911,
+      "gap": 1.7784920039533638
+    },
+    {
+      "time": 2,
+      "observed": 7.161166663415577,
+      "synthetic": 6.801065790455153,
+      "gap": 0.36010087296042403
+    },
+    {
+      "time": 3,
+      "observed": 7.582391886802917,
+      "synthetic": 8.021151463822282,
+      "gap": -0.43875957701936485
+    },
+    {
+      "time": 4,
+      "observed": 8.19643779930995,
+      "synthetic": 7.259332053763301,
+      "gap": 0.9371057455466483
+    },
+    {
+      "time": 5,
+      "observed": 6.775339604671813,
+      "synthetic": 6.9761741582452,
+      "gap": -0.20083455357338753
+    }
+  ],
+  "engine": "causalpy",
+  "figures": [
+    {
+      "asset_id": "51b9ac3c-2b67-493f-8dcc-05c2a3322827",
+      "title": "Observed vs synthetic path",
+      "summary": "Observed treated path against synthetic control counterfactual.",
+      "download_url": "/api/assets/51b9ac3c-2b67-493f-8dcc-05c2a3322827/download",
+      "asset": {
+        "id": "51b9ac3c-2b67-493f-8dcc-05c2a3322827",
+        "kind": "chart_png",
+        "title": "upgrade_panel-synthetic_control_path.png",
+        "filename": "upgrade_panel-synthetic_control_path.png",
+        "description": "Observed treated path against synthetic control counterfactual.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 111786,
+          "original_filename": "upgrade_panel-synthetic_control_path.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Observed vs synthetic path",
+          "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+          "summary": "Observed treated path against synthetic control counterfactual."
+        },
+        "created_at": "2026-04-02T02:57:58.116938+00:00",
+        "updated_at": "2026-04-02T02:57:58.131901+00:00"
+      }
+    },
+    {
+      "asset_id": "79366bcd-f07d-46c5-b84a-ac81035744d0",
+      "title": "Synthetic control gap",
+      "summary": "Gap between observed treated outcome and synthetic control path.",
+      "download_url": "/api/assets/79366bcd-f07d-46c5-b84a-ac81035744d0/download",
+      "asset": {
+        "id": "79366bcd-f07d-46c5-b84a-ac81035744d0",
+        "kind": "chart_png",
+        "title": "upgrade_panel-synthetic_control_gap.png",
+        "filename": "upgrade_panel-synthetic_control_gap.png",
+        "description": "Gap between observed treated outcome and synthetic control path.",
+        "content_type": "image/png",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 79336,
+          "original_filename": "upgrade_panel-synthetic_control_gap.png",
+          "storage_backend": "local",
+          "analysis_kind": "model_figure",
+          "source_model": "Synthetic control gap",
+          "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+          "summary": "Gap between observed treated outcome and synthetic control path."
+        },
+        "created_at": "2026-04-02T02:57:58.481884+00:00",
+        "updated_at": "2026-04-02T02:57:58.493211+00:00"
+      }
+    }
+  ],
+  "primary_tables": [
+    "fit_table",
+    "donor_weight_table",
+    "path_table"
+  ],
+  "paper_output_contract": {
+    "primary_tables": [
+      "fit_table",
+      "donor_weight_table",
+      "path_table"
+    ],
+    "figure_count": 2
+  },
+  "workflow_type": "model",
+  "model_family": "econometrics_baseline",
+  "interpretation": {
+    "headline": "Synthetic Control estimates are exposed in full so you can read the result and reproduce it manually.",
+    "sections": [
+      {
+        "title": "What is shown on this page",
+        "items": [
+          "Supporting tables included: fit_table, donor_weight_table, path_table.",
+          "Figures included: Observed vs synthetic path, Synthetic control gap."
+        ]
+      },
+      {
+        "title": "How to read the main result",
+        "items": [
+          "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+          "The specification block records the exact equation or parameterization that should be reproduced manually."
+        ]
+      },
+      {
+        "title": "Manual replication focus",
+        "items": [
+          "Download the referenced sample and rebuild all listed derived columns before estimation.",
+          "Match the equation, regressors, covariance type, and sample filters exactly.",
+          "Compare the resulting table or figure object term by term with the result shown here."
+        ]
+      }
+    ],
+    "paper_outputs": [
+      "fit_table",
+      "donor_weight_table",
+      "path_table",
+      "Observed vs synthetic path",
+      "Synthetic control gap"
+    ]
+  },
+  "template_id": "",
+  "template_name": "",
+  "variant_label": "",
+  "variant_spec": {},
+  "result_record_id": "f3b304f6-4329-4659-a1e6-7f2f4044dafe",
+  "result_detail_path": "/data-lab/results/models/f3b304f6-4329-4659-a1e6-7f2f4044dafe"
+}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextvars import ContextVar
+import inspect
 from pathlib import Path
 from typing import Any
 
@@ -8,7 +9,7 @@ import requests
 from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from .asset_storage import is_remote_asset_reference, load_asset_bytes
 from .config import get_settings
@@ -86,6 +87,12 @@ from .platform_core import (
     get_owned_lab_template,
 )
 from .provider_catalog import get_provider_catalog
+
+_RUN_MODEL_ANALYSIS_PARAMETER_NAMES = {
+    name
+    for name in inspect.signature(run_model_analysis).parameters
+    if name not in {"settings", "db", "user", "workspace"}
+}
 from .platform_research import (
     build_named_public_summary,
     build_public_briefing_summary,
@@ -270,6 +277,8 @@ class DatasetPrepareRequest(BaseModel):
 
 
 class ModelRunRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     asset_id: str
     model_family: str = ""
     model_type: str = Field(default="ols")
@@ -293,6 +302,9 @@ class ModelRunRequest(BaseModel):
     rdd_cutoff: float = 0.0
     rdd_bandwidth: float = 0.0
     rdd_polynomial_order: int = 1
+    cutoff: float = 0.0
+    bandwidth: float = 0.0
+    kink_point: float = 0.0
     treat_above_cutoff: bool = True
     entity_column: str = ""
     time_column: str = ""
@@ -349,6 +361,45 @@ class ModelRunRequest(BaseModel):
     dsge_shock_size: float = 0.01
     dsge_impulse_horizon: int = 12
     robust_covariance: bool = True
+    feature_columns: list[str] = Field(default_factory=list)
+    factor_columns: list[str] = Field(default_factory=list)
+    secondary_dependent: str = ""
+    glm_family: str = ""
+    gee_family: str = ""
+    gee_group_column: str = ""
+    count_family: str = ""
+    inflation_regressors: list[str] = Field(default_factory=list)
+    quantile: float = 0.5
+    varmax_order: list[int] = Field(default_factory=lambda: [1, 1])
+    coint_rank: int = 1
+    vecm_diff_lags: int = 1
+    markov_regimes: int = 2
+    seasonal: str = ""
+    seasonal_periods: int = 12
+    distribution: str = ""
+    garch_o: int = 0
+    forecast_simulations: int = 500
+    harx_lags: list[int] = Field(default_factory=lambda: [1, 5, 22])
+    unit_root_lags: int | None = None
+    trend: str = ""
+    portfolio_objective: str = ""
+    cvar_beta: float = 0.95
+    cdar_beta: float = 0.95
+    split_ratio: float = 0.7
+    n_estimators: int = 120
+    learning_rate: float = 0.05
+    num_leaves: int = 31
+    iterations: int = 180
+    depth: int = 6
+    treated_unit: str = ""
+    control_units: list[str] = Field(default_factory=list)
+    treatment_time: float | int | str | None = None
+    treatment_time_column: str = ""
+    treatment_index: int = 0
+    intervention_at: float | int | str | None = None
+    draws: int = 150
+    tune: int = 150
+    chains: int = 2
 
 
 class PlotCreateRequest(BaseModel):
@@ -874,7 +925,6 @@ def create_app() -> FastAPI:
     ) -> dict[str, Any]:
         try:
             with session_scope() as db:
-                _require_feature_access(db, request, authorization, x_session_token)
                 get_or_build_latest_public_briefing(db, settings)
                 return {
                     "items": [
@@ -893,7 +943,6 @@ def create_app() -> FastAPI:
     ) -> dict[str, Any]:
         try:
             with session_scope() as db:
-                _require_feature_access(db, request, authorization, x_session_token)
                 briefing = get_or_build_latest_public_briefing(db, settings)
                 return {
                     "briefing": serialize_public_briefing_detail(db, briefing, public_base_url=settings.public_base_url)
@@ -912,7 +961,6 @@ def create_app() -> FastAPI:
     ) -> dict[str, Any]:
         try:
             with session_scope() as db:
-                _require_feature_access(db, request, authorization, x_session_token)
                 briefing = get_public_briefing_by_slug(db, slug=slug)
                 if not briefing:
                     raise FileNotFoundError("Public briefing not found.")
@@ -962,7 +1010,6 @@ def create_app() -> FastAPI:
     ) -> dict[str, Any]:
         try:
             with session_scope() as db:
-                _require_feature_access(db, request, authorization, x_session_token)
                 get_or_build_latest_public_briefing(db, settings)
                 return build_public_briefing_summary(db, days=days, public_base_url=settings.public_base_url)
         except Exception as exc:
@@ -977,7 +1024,6 @@ def create_app() -> FastAPI:
     ) -> dict[str, Any]:
         try:
             with session_scope() as db:
-                _require_feature_access(db, request, authorization, x_session_token)
                 get_or_build_latest_public_briefing(db, settings)
                 return build_named_public_summary(db, window=window, public_base_url=settings.public_base_url)
         except Exception as exc:
@@ -1815,92 +1861,64 @@ def create_app() -> FastAPI:
                     family=request.model_family or "",
                     method=request.model_type or "",
                 )
-                payload = resolved["payload"]
-                return run_model_analysis(
-                    settings,
-                    db,
-                    user=user,
-                    workspace=workspace,
-                    model_type=payload.get("model_type", request.model_type),
-                    asset_id=payload.get("asset_id", request.asset_id),
-                    dependent=payload.get("dependent", request.dependent),
-                    independents=payload.get("independents", request.independents),
-                    controls=payload.get("controls", request.controls),
-                    series_columns=payload.get("series_columns", request.series_columns),
-                    treatment_column=payload.get("treatment_column", request.treatment_column),
-                    post_column=payload.get("post_column", request.post_column),
-                    event_time_column=payload.get("event_time_column", request.event_time_column),
-                    lead_window=payload.get("lead_window", request.lead_window),
-                    lag_window=payload.get("lag_window", request.lag_window),
-                    omitted_period=payload.get("omitted_period", request.omitted_period),
-                    origin_mass_column=payload.get("origin_mass_column", request.origin_mass_column),
-                    destination_mass_column=payload.get("destination_mass_column", request.destination_mass_column),
-                    distance_column=payload.get("distance_column", request.distance_column),
-                    running_column=payload.get("running_column", request.running_column),
-                    cutoff=payload.get("rdd_cutoff", request.rdd_cutoff),
-                    bandwidth=payload.get("rdd_bandwidth", request.rdd_bandwidth),
-                    polynomial_order=payload.get("rdd_polynomial_order", request.rdd_polynomial_order),
-                    treat_above_cutoff=payload.get("treat_above_cutoff", request.treat_above_cutoff),
-                    entity_column=payload.get("entity_column", request.entity_column),
-                    time_column=payload.get("time_column", request.time_column),
-                    include_time_effects=payload.get("include_time_effects", request.include_time_effects),
-                    endogenous_column=payload.get("endogenous_column", request.endogenous_column),
-                    instrument_columns=payload.get("instrument_columns", request.instrument_columns),
-                    market_column=payload.get("market_column", request.market_column),
-                    risk_free_column=payload.get("risk_free_column", request.risk_free_column),
-                    smb_column=payload.get("smb_column", request.smb_column),
-                    hml_column=payload.get("hml_column", request.hml_column),
-                    spot_column=payload.get("spot_column", request.spot_column),
-                    strike_column=payload.get("strike_column", request.strike_column),
-                    maturity_column=payload.get("maturity_column", request.maturity_column),
-                    rate_column=payload.get("rate_column", request.rate_column),
-                    volatility_column=payload.get("volatility_column", request.volatility_column),
-                    working_capital_column=payload.get("working_capital_column", request.working_capital_column),
-                    retained_earnings_column=payload.get("retained_earnings_column", request.retained_earnings_column),
-                    ebit_column=payload.get("ebit_column", request.ebit_column),
-                    market_equity_column=payload.get("market_equity_column", request.market_equity_column),
-                    total_assets_column=payload.get("total_assets_column", request.total_assets_column),
-                    total_liabilities_column=payload.get("total_liabilities_column", request.total_liabilities_column),
-                    sales_column=payload.get("sales_column", request.sales_column),
-                    net_income_column=payload.get("net_income_column", request.net_income_column),
-                    revenue_column=payload.get("revenue_column", request.revenue_column),
-                    equity_column=payload.get("equity_column", request.equity_column),
-                    inflation_gap_column=payload.get("inflation_gap_column", request.inflation_gap_column),
-                    output_gap_column=payload.get("output_gap_column", request.output_gap_column),
-                    arima_p=payload.get("arima_p", request.arima_p),
-                    arima_d=payload.get("arima_d", request.arima_d),
-                    arima_q=payload.get("arima_q", request.arima_q),
-                    garch_p=payload.get("garch_p", request.garch_p),
-                    garch_q=payload.get("garch_q", request.garch_q),
-                    forecast_steps=payload.get("forecast_steps", request.forecast_steps),
-                    var_lags=payload.get("var_lags", request.var_lags),
-                    irf_horizon=payload.get("irf_horizon", request.irf_horizon),
-                    impulse_column=payload.get("impulse_column", request.impulse_column),
-                    response_column=payload.get("response_column", request.response_column),
-                    virf_shock_size=payload.get("virf_shock_size", request.virf_shock_size),
-                    bk_short_horizon=payload.get("bk_short_horizon", request.bk_short_horizon),
-                    bk_medium_horizon=payload.get("bk_medium_horizon", request.bk_medium_horizon),
-                    confidence_level=payload.get("confidence_level", request.confidence_level),
-                    holding_period_days=payload.get("holding_period_days", request.holding_period_days),
-                    ewma_lambda=payload.get("ewma_lambda", request.ewma_lambda),
-                    option_type=payload.get("option_type", request.option_type),
-                    option_steps=payload.get("option_steps", request.option_steps),
-                    risk_aversion=payload.get("risk_aversion", request.risk_aversion),
-                    long_only=payload.get("long_only", request.long_only),
-                    dsge_alpha=payload.get("dsge_alpha", request.dsge_alpha),
-                    dsge_beta=payload.get("dsge_beta", request.dsge_beta),
-                    dsge_delta=payload.get("dsge_delta", request.dsge_delta),
-                    dsge_productivity=payload.get("dsge_productivity", request.dsge_productivity),
-                    dsge_labor=payload.get("dsge_labor", request.dsge_labor),
-                    dsge_shock_persistence=payload.get("dsge_shock_persistence", request.dsge_shock_persistence),
-                    dsge_shock_size=payload.get("dsge_shock_size", request.dsge_shock_size),
-                    dsge_impulse_horizon=payload.get("dsge_impulse_horizon", request.dsge_impulse_horizon),
-                    robust_covariance=payload.get("robust_covariance", request.robust_covariance),
+                request_payload = request.model_dump()
+                payload = {**request_payload, **resolved["payload"]}
+                def _pick_defined(*values: Any) -> Any:
+                    for value in values:
+                        if value is None:
+                            continue
+                        if isinstance(value, str) and not value.strip():
+                            continue
+                        return value
+                    return None
+
+                payload["cutoff"] = _pick_defined(
+                    resolved["payload"].get("kink_point"),
+                    resolved["payload"].get("cutoff"),
+                    resolved["payload"].get("rdd_cutoff"),
+                    request_payload.get("kink_point") if request_payload.get("kink_point") not in {0, 0.0} else None,
+                    request_payload.get("cutoff") if request_payload.get("cutoff") not in {0, 0.0} else None,
+                    request_payload.get("rdd_cutoff") if request_payload.get("rdd_cutoff") not in {0, 0.0} else None,
+                    request.kink_point if request.kink_point not in {0, 0.0} else None,
+                    request.cutoff if request.cutoff not in {0, 0.0} else None,
+                    request.rdd_cutoff if request.rdd_cutoff not in {0, 0.0} else None,
+                    0.0,
+                )
+                payload["bandwidth"] = _pick_defined(
+                    resolved["payload"].get("bandwidth"),
+                    resolved["payload"].get("rdd_bandwidth"),
+                    request_payload.get("bandwidth") if request_payload.get("bandwidth") not in {0, 0.0} else None,
+                    request_payload.get("rdd_bandwidth") if request_payload.get("rdd_bandwidth") not in {0, 0.0} else None,
+                    request.bandwidth if request.bandwidth not in {0, 0.0} else None,
+                    request.rdd_bandwidth if request.rdd_bandwidth not in {0, 0.0} else None,
+                    0.0,
+                )
+                payload["polynomial_order"] = _pick_defined(
+                    resolved["payload"].get("polynomial_order"),
+                    resolved["payload"].get("rdd_polynomial_order"),
+                    request_payload.get("polynomial_order"),
+                    request_payload.get("rdd_polynomial_order"),
+                    request.rdd_polynomial_order,
+                    1,
+                )
+                model_kwargs = {
+                    name: payload[name]
+                    for name in _RUN_MODEL_ANALYSIS_PARAMETER_NAMES
+                    if name in payload
+                }
+                model_kwargs.update(
                     template_id=resolved["template_id"],
                     template_name=resolved["template_name"],
                     variant_label=resolved["variant_label"],
                     variant_spec=resolved["variant_spec"],
                     effective_specification=resolved["effective_specification"],
+                )
+                return run_model_analysis(
+                    settings,
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    **model_kwargs,
                 )
         except Exception as exc:
             _raise_http_error(exc)

@@ -1,0 +1,634 @@
+{
+  "record": {
+    "id": "2a73e573-03cb-481f-bf44-ff81bbfc8ac1",
+    "title": "Altman Z-Score summary for panel_dataset.csv",
+    "content": "Altman Z-score computed on panel_dataset.csv.\nLatest Z-score: 2.1902.\nLatest zone: grey.",
+    "content_excerpt": "Altman Z-score computed on panel_dataset.csv. Latest Z-score: 2.1902. Latest zone: grey.",
+    "content_length": 88,
+    "tags": [
+      "altman_z",
+      "corporate_finance",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "altman_z",
+      "model_label": "Altman Z-Score",
+      "asset": {
+        "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "kind": "dataset_csv",
+        "title": "panel_dataset.csv",
+        "filename": "panel_dataset.csv",
+        "description": "panel_dataset.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 289095,
+          "original_filename": "panel_dataset.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T03:16:14.412741",
+        "updated_at": "2026-04-02T03:16:14.426020"
+      },
+      "observations": 648,
+      "narrative": [
+        "Altman Z-score computed on panel_dataset.csv.",
+        "Latest Z-score: 2.1902.",
+        "Latest zone: grey."
+      ],
+      "specification": {
+        "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "model_family": "corporate_finance",
+        "model_type": "altman_z",
+        "working_capital_column": "working_capital",
+        "retained_earnings_column": "retained_earnings",
+        "ebit_column": "ebit",
+        "market_equity_column": "market_equity",
+        "total_assets_column": "total_assets",
+        "total_liabilities_column": "total_liabilities",
+        "sales_column": "sales",
+        "report_variant": "liquidity_stress",
+        "equation": "1.2*(WC/TA)+1.4*(RE/TA)+3.3*(EBIT/TA)+0.6*(MVE/TL)+1.0*(Sales/TA)",
+        "input_columns": {
+          "working_capital": "working_capital",
+          "retained_earnings": "retained_earnings",
+          "ebit": "ebit",
+          "market_equity": "market_equity",
+          "sales": "sales",
+          "total_assets": "total_assets",
+          "total_liabilities": "total_liabilities"
+        },
+        "variant_label": "altman_stress_note",
+        "variant_spec": {
+          "report_variant": "liquidity_stress"
+        }
+      },
+      "audit_trail": {
+        "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+        "sample_title": "panel_dataset.csv",
+        "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+        "rows_used": 648,
+        "sample_columns": [
+          "working_capital",
+          "retained_earnings",
+          "ebit",
+          "market_equity",
+          "sales",
+          "total_assets",
+          "total_liabilities"
+        ],
+        "manual_checklist": [
+          "Recompute each ratio term using the listed accounting columns.",
+          "Apply the standard Altman weights to reproduce altman_z.",
+          "Check the distress-zone cutoff against 1.81 and 2.99."
+        ],
+        "derived_columns": [
+          "altman_z",
+          "distress_zone"
+        ],
+        "filters": [
+          "Rows with missing inputs are dropped.",
+          "Rows with nonpositive total assets or total liabilities are removed."
+        ]
+      },
+      "metrics": {
+        "latest_score": 2.1902210843849987,
+        "mean_score": 2.1710124290771526,
+        "distress_share": 0.0
+      },
+      "tables": {
+        "score_preview": [
+          {
+            "working_capital": 61057.22892506472,
+            "retained_earnings": 41137.34917451515,
+            "ebit": 33273.31812219427,
+            "market_equity": 335260.0152858213,
+            "sales": 383648.0257341592,
+            "total_assets": 501293.02907292894,
+            "total_liabilities": 213372.0724041828,
+            "altman_z": 2.1881487982953676,
+            "distress_zone": "grey"
+          },
+          {
+            "working_capital": 25865.74300359386,
+            "retained_earnings": 15937.67861929455,
+            "ebit": 12858.699383533743,
+            "market_equity": 124948.65584723122,
+            "sales": 143429.89314427826,
+            "total_assets": 191449.74034320377,
+            "total_liabilities": 84857.58709080162,
+            "altman_z": 2.13296441074913,
+            "distress_zone": "grey"
+          },
+          {
+            "working_capital": 32363.71438557003,
+            "retained_earnings": 20439.56234734776,
+            "ebit": 16541.7141272288,
+            "market_equity": 172178.88113898985,
+            "sales": 188846.9724500364,
+            "total_assets": 249886.2196283108,
+            "total_liabilities": 107733.29948282472,
+            "altman_z": 2.203029453976033,
+            "distress_zone": "grey"
+          },
+          {
+            "working_capital": 38743.845293878185,
+            "retained_earnings": 25784.46384991348,
+            "ebit": 20876.326013351547,
+            "market_equity": 208936.74254947563,
+            "sales": 240381.6312641816,
+            "total_assets": 316001.4382922193,
+            "total_liabilities": 139897.74841078912,
+            "altman_z": 2.136169142545105,
+            "distress_zone": "grey"
+          },
+          {
+            "working_capital": 31111.809184562982,
+            "retained_earnings": 19983.230564093214,
+            "ebit": 16142.833031463188,
+            "market_equity": 161540.15909079957,
+            "sales": 184913.84896508945,
+            "total_assets": 241772.51332008973,
+            "total_liabilities": 105571.86947679768,
+            "altman_z": 2.173381647270285,
+            "distress_zone": "grey"
+          },
+          {
+            "working_capital": 56846.90050534881,
+            "retained_earnings": 36106.332343028254,
+            "ebit": 29168.07265093644,
+            "market_equity": 296217.28818743635,
+            "sales": 321302.196893001,
+            "total_assets": 436901.5219072232,
+            "total_liabilities": 194827.7331239405,
+            "altman_z": 2.139801759185935,
+            "distress_zone": "grey"
+          },
+          {
+            "working_capital": 48257.00446747969,
+            "retained_earnings": 32770.69255962545,
+            "ebit": 26465.26712255711,
+            "market_equity": 265363.41845645854,
+            "sales": 290960.9783879348,
+            "total_assets": 395840.464240584,
+            "total_liabilities": 173827.29372892028,
+            "altman_z": 2.133829226884812,
+            "distress_zone": "grey"
+          },
+          {
+            "working_capital": 34716.7539404328,
+            "retained_earnings": 22045.02114661751,
+            "ebit": 17803.667831022263,
+            "market_equity": 176719.89675633676,
+            "sales": 197118.2582333428,
+            "total_assets": 266313.1771380505,
+            "total_liabilities": 117957.3933566294,
+            "altman_z": 2.1320105199053803,
+            "distress_zone": "grey"
+          },
+          {
+            "working_capital": 43052.73517727891,
+            "retained_earnings": 26414.408294251,
+            "ebit": 21323.50284837452,
+            "market_equity": 216494.79295684,
+            "sales": 237833.45919777435,
+            "total_assets": 318334.0559034731,
+            "total_liabilities": 135184.22209391976,
+            "altman_z": 2.2075168653443793,
+            "distress_zone": "grey"
+          },
+          {
+            "working_capital": 58704.84099025859,
+            "retained_earnings": 35897.57870284135,
+            "ebit": 29049.90002135933,
+            "market_equity": 306935.700604256,
+            "sales": 324429.1798411912,
+            "total_assets": 438701.2188112944,
+            "total_liabilities": 194320.75284493383,
+            "altman_z": 2.180895784119075,
+            "distress_zone": "grey"
+          }
+        ]
+      },
+      "sample_columns": [
+        "working_capital",
+        "retained_earnings",
+        "ebit",
+        "market_equity",
+        "sales",
+        "total_assets",
+        "total_liabilities",
+        "altman_z",
+        "distress_zone"
+      ],
+      "sample_preview": [
+        {
+          "working_capital": 61057.22892506472,
+          "retained_earnings": 41137.34917451515,
+          "ebit": 33273.31812219427,
+          "market_equity": 335260.0152858213,
+          "sales": 383648.0257341592,
+          "total_assets": 501293.02907292894,
+          "total_liabilities": 213372.0724041828,
+          "altman_z": 2.1881487982953676,
+          "distress_zone": "grey"
+        },
+        {
+          "working_capital": 25865.74300359386,
+          "retained_earnings": 15937.67861929455,
+          "ebit": 12858.699383533743,
+          "market_equity": 124948.65584723122,
+          "sales": 143429.89314427826,
+          "total_assets": 191449.74034320377,
+          "total_liabilities": 84857.58709080162,
+          "altman_z": 2.13296441074913,
+          "distress_zone": "grey"
+        },
+        {
+          "working_capital": 32363.71438557003,
+          "retained_earnings": 20439.56234734776,
+          "ebit": 16541.7141272288,
+          "market_equity": 172178.88113898985,
+          "sales": 188846.9724500364,
+          "total_assets": 249886.2196283108,
+          "total_liabilities": 107733.29948282472,
+          "altman_z": 2.203029453976033,
+          "distress_zone": "grey"
+        },
+        {
+          "working_capital": 38743.845293878185,
+          "retained_earnings": 25784.46384991348,
+          "ebit": 20876.326013351547,
+          "market_equity": 208936.74254947563,
+          "sales": 240381.6312641816,
+          "total_assets": 316001.4382922193,
+          "total_liabilities": 139897.74841078912,
+          "altman_z": 2.136169142545105,
+          "distress_zone": "grey"
+        },
+        {
+          "working_capital": 31111.809184562982,
+          "retained_earnings": 19983.230564093214,
+          "ebit": 16142.833031463188,
+          "market_equity": 161540.15909079957,
+          "sales": 184913.84896508945,
+          "total_assets": 241772.51332008973,
+          "total_liabilities": 105571.86947679768,
+          "altman_z": 2.173381647270285,
+          "distress_zone": "grey"
+        }
+      ],
+      "workflow_type": "model",
+      "model_family": "corporate_finance",
+      "interpretation": {
+        "headline": "Altman Z-Score estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Supporting tables included: score_preview."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "score_preview"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "altman_stress_note",
+      "variant_spec": {
+        "report_variant": "liquidity_stress"
+      },
+      "result_record_id": "2a73e573-03cb-481f-bf44-ff81bbfc8ac1",
+      "result_detail_path": "/data-lab/results/models/2a73e573-03cb-481f-bf44-ff81bbfc8ac1"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:16:37.892058",
+    "updated_at": "2026-04-02T03:16:37.896147"
+  },
+  "result": {
+    "model_type": "altman_z",
+    "model_label": "Altman Z-Score",
+    "asset": {
+      "id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "kind": "dataset_csv",
+      "title": "panel_dataset.csv",
+      "filename": "panel_dataset.csv",
+      "description": "panel_dataset.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 289095,
+        "original_filename": "panel_dataset.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T03:16:14.412741",
+      "updated_at": "2026-04-02T03:16:14.426020"
+    },
+    "observations": 648,
+    "narrative": [
+      "Altman Z-score computed on panel_dataset.csv.",
+      "Latest Z-score: 2.1902.",
+      "Latest zone: grey."
+    ],
+    "specification": {
+      "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "model_family": "corporate_finance",
+      "model_type": "altman_z",
+      "working_capital_column": "working_capital",
+      "retained_earnings_column": "retained_earnings",
+      "ebit_column": "ebit",
+      "market_equity_column": "market_equity",
+      "total_assets_column": "total_assets",
+      "total_liabilities_column": "total_liabilities",
+      "sales_column": "sales",
+      "report_variant": "liquidity_stress",
+      "equation": "1.2*(WC/TA)+1.4*(RE/TA)+3.3*(EBIT/TA)+0.6*(MVE/TL)+1.0*(Sales/TA)",
+      "input_columns": {
+        "working_capital": "working_capital",
+        "retained_earnings": "retained_earnings",
+        "ebit": "ebit",
+        "market_equity": "market_equity",
+        "sales": "sales",
+        "total_assets": "total_assets",
+        "total_liabilities": "total_liabilities"
+      },
+      "variant_label": "altman_stress_note",
+      "variant_spec": {
+        "report_variant": "liquidity_stress"
+      }
+    },
+    "audit_trail": {
+      "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+      "sample_title": "panel_dataset.csv",
+      "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+      "rows_used": 648,
+      "sample_columns": [
+        "working_capital",
+        "retained_earnings",
+        "ebit",
+        "market_equity",
+        "sales",
+        "total_assets",
+        "total_liabilities"
+      ],
+      "manual_checklist": [
+        "Recompute each ratio term using the listed accounting columns.",
+        "Apply the standard Altman weights to reproduce altman_z.",
+        "Check the distress-zone cutoff against 1.81 and 2.99."
+      ],
+      "derived_columns": [
+        "altman_z",
+        "distress_zone"
+      ],
+      "filters": [
+        "Rows with missing inputs are dropped.",
+        "Rows with nonpositive total assets or total liabilities are removed."
+      ]
+    },
+    "metrics": {
+      "latest_score": 2.1902210843849987,
+      "mean_score": 2.1710124290771526,
+      "distress_share": 0.0
+    },
+    "tables": {
+      "score_preview": [
+        {
+          "working_capital": 61057.22892506472,
+          "retained_earnings": 41137.34917451515,
+          "ebit": 33273.31812219427,
+          "market_equity": 335260.0152858213,
+          "sales": 383648.0257341592,
+          "total_assets": 501293.02907292894,
+          "total_liabilities": 213372.0724041828,
+          "altman_z": 2.1881487982953676,
+          "distress_zone": "grey"
+        },
+        {
+          "working_capital": 25865.74300359386,
+          "retained_earnings": 15937.67861929455,
+          "ebit": 12858.699383533743,
+          "market_equity": 124948.65584723122,
+          "sales": 143429.89314427826,
+          "total_assets": 191449.74034320377,
+          "total_liabilities": 84857.58709080162,
+          "altman_z": 2.13296441074913,
+          "distress_zone": "grey"
+        },
+        {
+          "working_capital": 32363.71438557003,
+          "retained_earnings": 20439.56234734776,
+          "ebit": 16541.7141272288,
+          "market_equity": 172178.88113898985,
+          "sales": 188846.9724500364,
+          "total_assets": 249886.2196283108,
+          "total_liabilities": 107733.29948282472,
+          "altman_z": 2.203029453976033,
+          "distress_zone": "grey"
+        },
+        {
+          "working_capital": 38743.845293878185,
+          "retained_earnings": 25784.46384991348,
+          "ebit": 20876.326013351547,
+          "market_equity": 208936.74254947563,
+          "sales": 240381.6312641816,
+          "total_assets": 316001.4382922193,
+          "total_liabilities": 139897.74841078912,
+          "altman_z": 2.136169142545105,
+          "distress_zone": "grey"
+        },
+        {
+          "working_capital": 31111.809184562982,
+          "retained_earnings": 19983.230564093214,
+          "ebit": 16142.833031463188,
+          "market_equity": 161540.15909079957,
+          "sales": 184913.84896508945,
+          "total_assets": 241772.51332008973,
+          "total_liabilities": 105571.86947679768,
+          "altman_z": 2.173381647270285,
+          "distress_zone": "grey"
+        },
+        {
+          "working_capital": 56846.90050534881,
+          "retained_earnings": 36106.332343028254,
+          "ebit": 29168.07265093644,
+          "market_equity": 296217.28818743635,
+          "sales": 321302.196893001,
+          "total_assets": 436901.5219072232,
+          "total_liabilities": 194827.7331239405,
+          "altman_z": 2.139801759185935,
+          "distress_zone": "grey"
+        },
+        {
+          "working_capital": 48257.00446747969,
+          "retained_earnings": 32770.69255962545,
+          "ebit": 26465.26712255711,
+          "market_equity": 265363.41845645854,
+          "sales": 290960.9783879348,
+          "total_assets": 395840.464240584,
+          "total_liabilities": 173827.29372892028,
+          "altman_z": 2.133829226884812,
+          "distress_zone": "grey"
+        },
+        {
+          "working_capital": 34716.7539404328,
+          "retained_earnings": 22045.02114661751,
+          "ebit": 17803.667831022263,
+          "market_equity": 176719.89675633676,
+          "sales": 197118.2582333428,
+          "total_assets": 266313.1771380505,
+          "total_liabilities": 117957.3933566294,
+          "altman_z": 2.1320105199053803,
+          "distress_zone": "grey"
+        },
+        {
+          "working_capital": 43052.73517727891,
+          "retained_earnings": 26414.408294251,
+          "ebit": 21323.50284837452,
+          "market_equity": 216494.79295684,
+          "sales": 237833.45919777435,
+          "total_assets": 318334.0559034731,
+          "total_liabilities": 135184.22209391976,
+          "altman_z": 2.2075168653443793,
+          "distress_zone": "grey"
+        },
+        {
+          "working_capital": 58704.84099025859,
+          "retained_earnings": 35897.57870284135,
+          "ebit": 29049.90002135933,
+          "market_equity": 306935.700604256,
+          "sales": 324429.1798411912,
+          "total_assets": 438701.2188112944,
+          "total_liabilities": 194320.75284493383,
+          "altman_z": 2.180895784119075,
+          "distress_zone": "grey"
+        }
+      ]
+    },
+    "sample_columns": [
+      "working_capital",
+      "retained_earnings",
+      "ebit",
+      "market_equity",
+      "sales",
+      "total_assets",
+      "total_liabilities",
+      "altman_z",
+      "distress_zone"
+    ],
+    "sample_preview": [
+      {
+        "working_capital": 61057.22892506472,
+        "retained_earnings": 41137.34917451515,
+        "ebit": 33273.31812219427,
+        "market_equity": 335260.0152858213,
+        "sales": 383648.0257341592,
+        "total_assets": 501293.02907292894,
+        "total_liabilities": 213372.0724041828,
+        "altman_z": 2.1881487982953676,
+        "distress_zone": "grey"
+      },
+      {
+        "working_capital": 25865.74300359386,
+        "retained_earnings": 15937.67861929455,
+        "ebit": 12858.699383533743,
+        "market_equity": 124948.65584723122,
+        "sales": 143429.89314427826,
+        "total_assets": 191449.74034320377,
+        "total_liabilities": 84857.58709080162,
+        "altman_z": 2.13296441074913,
+        "distress_zone": "grey"
+      },
+      {
+        "working_capital": 32363.71438557003,
+        "retained_earnings": 20439.56234734776,
+        "ebit": 16541.7141272288,
+        "market_equity": 172178.88113898985,
+        "sales": 188846.9724500364,
+        "total_assets": 249886.2196283108,
+        "total_liabilities": 107733.29948282472,
+        "altman_z": 2.203029453976033,
+        "distress_zone": "grey"
+      },
+      {
+        "working_capital": 38743.845293878185,
+        "retained_earnings": 25784.46384991348,
+        "ebit": 20876.326013351547,
+        "market_equity": 208936.74254947563,
+        "sales": 240381.6312641816,
+        "total_assets": 316001.4382922193,
+        "total_liabilities": 139897.74841078912,
+        "altman_z": 2.136169142545105,
+        "distress_zone": "grey"
+      },
+      {
+        "working_capital": 31111.809184562982,
+        "retained_earnings": 19983.230564093214,
+        "ebit": 16142.833031463188,
+        "market_equity": 161540.15909079957,
+        "sales": 184913.84896508945,
+        "total_assets": 241772.51332008973,
+        "total_liabilities": 105571.86947679768,
+        "altman_z": 2.173381647270285,
+        "distress_zone": "grey"
+      }
+    ],
+    "workflow_type": "model",
+    "model_family": "corporate_finance",
+    "interpretation": {
+      "headline": "Altman Z-Score estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Supporting tables included: score_preview."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "score_preview"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "altman_stress_note",
+    "variant_spec": {
+      "report_variant": "liquidity_stress"
+    },
+    "result_record_id": "2a73e573-03cb-481f-bf44-ff81bbfc8ac1",
+    "result_detail_path": "/data-lab/results/models/2a73e573-03cb-481f-bf44-ff81bbfc8ac1"
+  },
+  "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4"
+}

@@ -1,0 +1,41 @@
+{
+  "headline": "SVAR IRF estimates are exposed in full so you can read the result and reproduce it manually.",
+  "sections": [
+    {
+      "title": "What is shown on this page",
+      "items": [
+        "Supporting tables included: irf_table.",
+        "Figures included: SVAR IRF for return_a, Cumulative SVAR IRF for return_a."
+      ]
+    },
+    {
+      "title": "How to read the main result",
+      "items": [
+        "The recursive identification is driven by the Cholesky ordering: return_a, return_b, return_c.",
+        "Shock variable: return_a. Response panels and the IRF table should match horizon by horizon.",
+        "Use the cumulative IRF figure when you care about accumulated rather than one-period responses."
+      ]
+    },
+    {
+      "title": "What a normal paper should report",
+      "items": [
+        "An orthogonalized IRF figure.",
+        "A cumulative IRF figure or cumulative response table when accumulation matters.",
+        "A clear statement of ordering or other identification assumptions."
+      ]
+    },
+    {
+      "title": "Manual replication focus",
+      "items": [
+        "Do not change the variable ordering when reproducing the result.",
+        "Rebuild the orthogonalized IRF using the same lag order and horizon.",
+        "Compare the cumulative IRF figure against the cumulative response column in the IRF table."
+      ]
+    }
+  ],
+  "paper_outputs": [
+    "irf_table",
+    "SVAR IRF for return_a",
+    "Cumulative SVAR IRF for return_a"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "model_family": "causal_inference",
+  "model_type": "regression_kink",
+  "dependent": "outcome_y",
+  "controls": [
+    "size",
+    "leverage"
+  ],
+  "running_column": "running_score",
+  "bandwidth": 1.0,
+  "kink_point": 0.0,
+  "engine": "causalpy"
+}

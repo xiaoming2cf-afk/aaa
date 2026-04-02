@@ -1,0 +1,24 @@
+{
+  "sample_asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "sample_title": "panel_dataset.csv",
+  "sample_download_url": "/api/assets/742a2af5-b7f8-4b12-8914-a535cd9ee440/download",
+  "rows_used": 648,
+  "sample_columns": [
+    "outcome_y",
+    "size",
+    "leverage",
+    "endogenous_x",
+    "instrument_z"
+  ],
+  "covariance_type": "nonrobust",
+  "manual_checklist": [
+    "Download the prepared sample asset referenced in sample_asset_id.",
+    "Rebuild any derived regressors listed in derived_columns before estimation.",
+    "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+    "Compare the reproduced coefficient table with the coefficients array term by term."
+  ],
+  "derived_columns": [],
+  "filters": [
+    "Rows with missing dependent, endogenous regressor, exogenous regressors, or instruments are dropped."
+  ]
+}

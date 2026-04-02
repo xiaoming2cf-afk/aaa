@@ -1,0 +1,2 @@
+cutoff,bandwidth,polynomial_order,treat_above_cutoff,observations
+0.0,1.1,2,True,473

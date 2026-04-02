@@ -1,0 +1,47 @@
+{
+  "headline": "BK Connectedness estimates are exposed in full so you can read the result and reproduce it manually.",
+  "sections": [
+    {
+      "title": "What is shown on this page",
+      "items": [
+        "Supporting tables included: band_total_connectedness, short_connectedness_matrix, short_directional_spillovers, medium_connectedness_matrix, medium_directional_spillovers, long_connectedness_matrix, long_directional_spillovers.",
+        "Figures included: BK frequency connectedness, BK band connectedness summary."
+      ]
+    },
+    {
+      "title": "How to read the main result",
+      "items": [
+        "Each band isolates spillovers at a different horizon segment; compare short-, medium-, and long-run connectedness rather than collapsing everything into one number.",
+        "The band-total connectedness chart summarizes how much spillover intensity sits in each frequency range.",
+        "Band-specific matrices remain normalized within band, so they are for structural comparison rather than direct level comparison across bands."
+      ]
+    },
+    {
+      "title": "What a normal paper should report",
+      "items": [
+        "Band-specific connectedness matrices.",
+        "A summary table of total connectedness by frequency band.",
+        "A figure showing how connectedness is distributed across short, medium, and long horizons."
+      ]
+    },
+    {
+      "title": "Manual replication focus",
+      "items": [
+        "Rebuild the VAR with the same lag order before moving to the frequency decomposition.",
+        "Use the documented short and medium horizon cutoffs exactly when reconstructing the bands.",
+        "Check each band's total connectedness against the band summary chart and table."
+      ]
+    }
+  ],
+  "paper_outputs": [
+    "band_total_connectedness",
+    "short_connectedness_matrix",
+    "short_directional_spillovers",
+    "medium_connectedness_matrix",
+    "medium_directional_spillovers",
+    "long_connectedness_matrix",
+    "long_directional_spillovers",
+    "BK frequency connectedness",
+    "BK band connectedness summary"
+  ]
+}

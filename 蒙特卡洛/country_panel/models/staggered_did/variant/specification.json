@@ -1,0 +1,19 @@
+{
+  "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "model_family": "causal_inference",
+  "model_type": "staggered_did",
+  "dependent": "outcome_y",
+  "controls": [
+    "size",
+    "leverage"
+  ],
+  "treatment_column": "treated",
+  "lead_window": 5,
+  "lag_window": 5,
+  "entity_column": "firm_id",
+  "time_column": "month_index",
+  "treatment_time_column": "treatment_time",
+  "engine": "causalpy",
+  "treated_column": "treated",
+  "variant_label": "staggered_wide"
+}

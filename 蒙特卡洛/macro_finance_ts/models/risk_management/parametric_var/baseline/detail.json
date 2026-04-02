@@ -1,0 +1,508 @@
+{
+  "record": {
+    "id": "e181b7bb-e797-4492-8dd4-abb778f02f91",
+    "title": "Parametric VaR / ES summary for timeseries_dataset.csv",
+    "content": "Parametric VaR / ES run on timeseries_dataset.csv.\nReturn series: asset_return.",
+    "content_excerpt": "Parametric VaR / ES run on timeseries_dataset.csv. Return series: asset_return.",
+    "content_length": 79,
+    "tags": [
+      "parametric_var",
+      "risk_management",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "parametric_var",
+      "model_label": "Parametric VaR / ES",
+      "asset": {
+        "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "kind": "dataset_csv",
+        "title": "timeseries_dataset.csv",
+        "filename": "timeseries_dataset.csv",
+        "description": "timeseries_dataset.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 93948,
+          "original_filename": "timeseries_dataset.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T03:16:14.454310",
+        "updated_at": "2026-04-02T03:16:14.458473"
+      },
+      "observations": 240,
+      "narrative": [
+        "Parametric VaR / ES run on timeseries_dataset.csv.",
+        "Return series: asset_return."
+      ],
+      "specification": {
+        "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "model_family": "risk_management",
+        "model_type": "parametric_var",
+        "dependent": "asset_return",
+        "time_column": "date",
+        "confidence_level": 0.95,
+        "holding_period_days": 1,
+        "equation": "VaR_alpha = mu + z_alpha*sigma under normality",
+        "return_column": "asset_return",
+        "ewma_lambda": 0.94
+      },
+      "audit_trail": {
+        "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "sample_title": "timeseries_dataset.csv",
+        "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+        "rows_used": 240,
+        "sample_columns": [
+          "asset_return",
+          "date"
+        ],
+        "manual_checklist": [
+          "Download the sample asset and sort it by the listed time_column if one is provided.",
+          "Recompute the return distribution statistics and the stated risk metric formula.",
+          "Compare the reproduced VaR/ES or EWMA volatility against the metrics block."
+        ],
+        "derived_columns": [],
+        "filters": [
+          "Rows with missing selected return values are dropped."
+        ]
+      },
+      "metrics": {
+        "confidence_level": 0.95,
+        "holding_period_days": 1,
+        "var": 0.8027164140694106,
+        "expected_shortfall": 0.99948143218746,
+        "mean_return": -0.02817401134408786,
+        "volatility": 0.4708883453422171
+      },
+      "tables": {
+        "risk_summary": [
+          {
+            "confidence_level": 0.95,
+            "holding_period_days": 1,
+            "var": 0.8027164140694106,
+            "expected_shortfall": 0.99948143218746,
+            "mean_return": -0.02817401134408786,
+            "volatility": 0.4708883453422171,
+            "ewma_lambda": null,
+            "latest_volatility": null
+          }
+        ],
+        "series_preview": [
+          {
+            "asset_return": 0.233763149235475,
+            "date": "2005-01-31"
+          },
+          {
+            "asset_return": -0.0288988145034342,
+            "date": "2005-02-28"
+          },
+          {
+            "asset_return": 0.0006193654776038,
+            "date": "2005-03-31"
+          },
+          {
+            "asset_return": 0.3695634562880727,
+            "date": "2005-04-30"
+          },
+          {
+            "asset_return": 0.2029051474483442,
+            "date": "2005-05-31"
+          },
+          {
+            "asset_return": -0.1163850400538102,
+            "date": "2005-06-30"
+          },
+          {
+            "asset_return": -0.0804982945490824,
+            "date": "2005-07-31"
+          },
+          {
+            "asset_return": -0.9327584424241318,
+            "date": "2005-08-31"
+          },
+          {
+            "asset_return": 0.3188739788392657,
+            "date": "2005-09-30"
+          },
+          {
+            "asset_return": 0.1384230426677176,
+            "date": "2005-10-31"
+          },
+          {
+            "asset_return": -0.1054595359339426,
+            "date": "2005-11-30"
+          },
+          {
+            "asset_return": -0.0335645735071341,
+            "date": "2005-12-31"
+          },
+          {
+            "asset_return": -0.1734478036387745,
+            "date": "2006-01-31"
+          },
+          {
+            "asset_return": -0.1419486251662635,
+            "date": "2006-02-28"
+          },
+          {
+            "asset_return": 0.4006929992595364,
+            "date": "2006-03-31"
+          },
+          {
+            "asset_return": -0.1146897535378277,
+            "date": "2006-04-30"
+          },
+          {
+            "asset_return": -0.5281164686434854,
+            "date": "2006-05-31"
+          },
+          {
+            "asset_return": 0.1646317005761763,
+            "date": "2006-06-30"
+          },
+          {
+            "asset_return": 0.461252851455402,
+            "date": "2006-07-31"
+          },
+          {
+            "asset_return": -0.1841722604927872,
+            "date": "2006-08-31"
+          },
+          {
+            "asset_return": -0.2822824830874965,
+            "date": "2006-09-30"
+          },
+          {
+            "asset_return": 0.681090206781533,
+            "date": "2006-10-31"
+          },
+          {
+            "asset_return": 0.7810297815981323,
+            "date": "2006-11-30"
+          },
+          {
+            "asset_return": -0.2681732969255492,
+            "date": "2006-12-31"
+          },
+          {
+            "asset_return": 0.1716002415796854,
+            "date": "2007-01-31"
+          }
+        ]
+      },
+      "sample_columns": [
+        "asset_return",
+        "date"
+      ],
+      "sample_preview": [
+        {
+          "asset_return": 0.233763149235475,
+          "date": "2005-01-31"
+        },
+        {
+          "asset_return": -0.0288988145034342,
+          "date": "2005-02-28"
+        },
+        {
+          "asset_return": 0.0006193654776038,
+          "date": "2005-03-31"
+        },
+        {
+          "asset_return": 0.3695634562880727,
+          "date": "2005-04-30"
+        },
+        {
+          "asset_return": 0.2029051474483442,
+          "date": "2005-05-31"
+        }
+      ],
+      "workflow_type": "model",
+      "model_family": "risk_management",
+      "interpretation": {
+        "headline": "Parametric VaR / ES estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Supporting tables included: risk_summary, series_preview."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "risk_summary",
+          "series_preview"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "",
+      "variant_spec": {},
+      "result_record_id": "e181b7bb-e797-4492-8dd4-abb778f02f91",
+      "result_detail_path": "/data-lab/results/models/e181b7bb-e797-4492-8dd4-abb778f02f91"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:16:37.478171",
+    "updated_at": "2026-04-02T03:16:37.482120"
+  },
+  "result": {
+    "model_type": "parametric_var",
+    "model_label": "Parametric VaR / ES",
+    "asset": {
+      "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "kind": "dataset_csv",
+      "title": "timeseries_dataset.csv",
+      "filename": "timeseries_dataset.csv",
+      "description": "timeseries_dataset.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 93948,
+        "original_filename": "timeseries_dataset.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T03:16:14.454310",
+      "updated_at": "2026-04-02T03:16:14.458473"
+    },
+    "observations": 240,
+    "narrative": [
+      "Parametric VaR / ES run on timeseries_dataset.csv.",
+      "Return series: asset_return."
+    ],
+    "specification": {
+      "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "model_family": "risk_management",
+      "model_type": "parametric_var",
+      "dependent": "asset_return",
+      "time_column": "date",
+      "confidence_level": 0.95,
+      "holding_period_days": 1,
+      "equation": "VaR_alpha = mu + z_alpha*sigma under normality",
+      "return_column": "asset_return",
+      "ewma_lambda": 0.94
+    },
+    "audit_trail": {
+      "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "sample_title": "timeseries_dataset.csv",
+      "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+      "rows_used": 240,
+      "sample_columns": [
+        "asset_return",
+        "date"
+      ],
+      "manual_checklist": [
+        "Download the sample asset and sort it by the listed time_column if one is provided.",
+        "Recompute the return distribution statistics and the stated risk metric formula.",
+        "Compare the reproduced VaR/ES or EWMA volatility against the metrics block."
+      ],
+      "derived_columns": [],
+      "filters": [
+        "Rows with missing selected return values are dropped."
+      ]
+    },
+    "metrics": {
+      "confidence_level": 0.95,
+      "holding_period_days": 1,
+      "var": 0.8027164140694106,
+      "expected_shortfall": 0.99948143218746,
+      "mean_return": -0.02817401134408786,
+      "volatility": 0.4708883453422171
+    },
+    "tables": {
+      "risk_summary": [
+        {
+          "confidence_level": 0.95,
+          "holding_period_days": 1,
+          "var": 0.8027164140694106,
+          "expected_shortfall": 0.99948143218746,
+          "mean_return": -0.02817401134408786,
+          "volatility": 0.4708883453422171,
+          "ewma_lambda": null,
+          "latest_volatility": null
+        }
+      ],
+      "series_preview": [
+        {
+          "asset_return": 0.233763149235475,
+          "date": "2005-01-31"
+        },
+        {
+          "asset_return": -0.0288988145034342,
+          "date": "2005-02-28"
+        },
+        {
+          "asset_return": 0.0006193654776038,
+          "date": "2005-03-31"
+        },
+        {
+          "asset_return": 0.3695634562880727,
+          "date": "2005-04-30"
+        },
+        {
+          "asset_return": 0.2029051474483442,
+          "date": "2005-05-31"
+        },
+        {
+          "asset_return": -0.1163850400538102,
+          "date": "2005-06-30"
+        },
+        {
+          "asset_return": -0.0804982945490824,
+          "date": "2005-07-31"
+        },
+        {
+          "asset_return": -0.9327584424241318,
+          "date": "2005-08-31"
+        },
+        {
+          "asset_return": 0.3188739788392657,
+          "date": "2005-09-30"
+        },
+        {
+          "asset_return": 0.1384230426677176,
+          "date": "2005-10-31"
+        },
+        {
+          "asset_return": -0.1054595359339426,
+          "date": "2005-11-30"
+        },
+        {
+          "asset_return": -0.0335645735071341,
+          "date": "2005-12-31"
+        },
+        {
+          "asset_return": -0.1734478036387745,
+          "date": "2006-01-31"
+        },
+        {
+          "asset_return": -0.1419486251662635,
+          "date": "2006-02-28"
+        },
+        {
+          "asset_return": 0.4006929992595364,
+          "date": "2006-03-31"
+        },
+        {
+          "asset_return": -0.1146897535378277,
+          "date": "2006-04-30"
+        },
+        {
+          "asset_return": -0.5281164686434854,
+          "date": "2006-05-31"
+        },
+        {
+          "asset_return": 0.1646317005761763,
+          "date": "2006-06-30"
+        },
+        {
+          "asset_return": 0.461252851455402,
+          "date": "2006-07-31"
+        },
+        {
+          "asset_return": -0.1841722604927872,
+          "date": "2006-08-31"
+        },
+        {
+          "asset_return": -0.2822824830874965,
+          "date": "2006-09-30"
+        },
+        {
+          "asset_return": 0.681090206781533,
+          "date": "2006-10-31"
+        },
+        {
+          "asset_return": 0.7810297815981323,
+          "date": "2006-11-30"
+        },
+        {
+          "asset_return": -0.2681732969255492,
+          "date": "2006-12-31"
+        },
+        {
+          "asset_return": 0.1716002415796854,
+          "date": "2007-01-31"
+        }
+      ]
+    },
+    "sample_columns": [
+      "asset_return",
+      "date"
+    ],
+    "sample_preview": [
+      {
+        "asset_return": 0.233763149235475,
+        "date": "2005-01-31"
+      },
+      {
+        "asset_return": -0.0288988145034342,
+        "date": "2005-02-28"
+      },
+      {
+        "asset_return": 0.0006193654776038,
+        "date": "2005-03-31"
+      },
+      {
+        "asset_return": 0.3695634562880727,
+        "date": "2005-04-30"
+      },
+      {
+        "asset_return": 0.2029051474483442,
+        "date": "2005-05-31"
+      }
+    ],
+    "workflow_type": "model",
+    "model_family": "risk_management",
+    "interpretation": {
+      "headline": "Parametric VaR / ES estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Supporting tables included: risk_summary, series_preview."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "risk_summary",
+        "series_preview"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "",
+    "variant_spec": {},
+    "result_record_id": "e181b7bb-e797-4492-8dd4-abb778f02f91",
+    "result_detail_path": "/data-lab/results/models/e181b7bb-e797-4492-8dd4-abb778f02f91"
+  },
+  "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4"
+}

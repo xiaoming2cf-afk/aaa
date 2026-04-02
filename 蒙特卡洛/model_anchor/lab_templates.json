@@ -1,0 +1,75 @@
+{
+  "items": [
+    {
+      "id": "ace19b19-7a56-4053-80db-4ba394f5c57d",
+      "template_scope": "workspace",
+      "workflow_type": "model",
+      "family": "econometrics_baseline",
+      "method": "ols",
+      "name": "OLS baseline template",
+      "description": "Verification OLS template",
+      "is_default": true,
+      "specification": {
+        "model_family": "econometrics_baseline",
+        "model_type": "ols",
+        "dependent": "outcome_y",
+        "independents": [
+          "size",
+          "leverage"
+        ],
+        "controls": [
+          "post"
+        ]
+      },
+      "metadata": {},
+      "created_at": "2026-04-02T03:16:14.895078",
+      "updated_at": "2026-04-02T03:16:14.895081"
+    },
+    {
+      "id": "e663c46c-2ac5-4cad-9fd9-112e407d3bf9",
+      "template_scope": "workspace",
+      "workflow_type": "data_processing",
+      "family": "sample_preparation",
+      "method": "sample_preparation",
+      "name": "Panel sample prep template",
+      "description": "Verification sample preparation template",
+      "is_default": true,
+      "specification": {
+        "workflow_group": "sample_preparation",
+        "include_columns": [
+          "firm_id",
+          "date",
+          "treated",
+          "post",
+          "size",
+          "leverage",
+          "outcome_y"
+        ],
+        "required_columns": [
+          "firm_id",
+          "date",
+          "treated",
+          "post",
+          "outcome_y"
+        ],
+        "numeric_columns": [
+          "size",
+          "leverage",
+          "outcome_y"
+        ],
+        "binary_columns": [
+          "treated",
+          "post"
+        ],
+        "date_columns": [
+          "date"
+        ],
+        "drop_duplicates": true,
+        "drop_missing_required": true
+      },
+      "metadata": {},
+      "created_at": "2026-04-02T03:16:14.873557",
+      "updated_at": "2026-04-02T03:16:14.873560"
+    }
+  ]
+}

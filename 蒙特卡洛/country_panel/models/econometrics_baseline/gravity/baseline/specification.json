@@ -1,0 +1,21 @@
+{
+  "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "model_family": "econometrics_baseline",
+  "model_type": "gravity",
+  "dependent": "ln_flow",
+  "controls": [
+    "post"
+  ],
+  "origin_mass_column": "origin_gdp",
+  "destination_mass_column": "destination_gdp",
+  "distance_column": "distance_km",
+  "model_label": "Gravity Model",
+  "regressors": [
+    "ln_origin_mass",
+    "ln_destination_mass",
+    "ln_distance",
+    "post"
+  ],
+  "covariance_type": "HC1",
+  "equation": "ln_flow ~ ln_origin_mass + ln_destination_mass + ln_distance + post"
+}

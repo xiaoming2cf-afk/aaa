@@ -1,0 +1,2 @@
+confidence_level,holding_period_days,var,expected_shortfall,mean_return,volatility,ewma_lambda,latest_volatility
+0.95,1,0.8027164140694106,0.99948143218746,-0.02817401134408786,0.4708883453422171,,

@@ -1,0 +1,608 @@
+{
+  "record": {
+    "id": "3f8f353f-a789-488c-8dbe-be55414abd48",
+    "title": "SVAR IRF summary for timeseries_dataset.csv",
+    "content": "Recursive SVAR IRF run on timeseries_dataset.csv.\nCholesky ordering: return_a, return_b, return_c.\nImpulse variable: return_a.\nResponses shown: return_b.",
+    "content_excerpt": "Recursive SVAR IRF run on timeseries_dataset.csv. Cholesky ordering: return_a, return_b, return_c. Impulse variable: return_a. Responses shown: return_b.",
+    "content_length": 153,
+    "tags": [
+      "svar_irf",
+      "time_series_finance",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "svar_irf",
+      "model_label": "SVAR IRF",
+      "asset": {
+        "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "kind": "dataset_csv",
+        "title": "timeseries_dataset.csv",
+        "filename": "timeseries_dataset.csv",
+        "description": "timeseries_dataset.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 93948,
+          "original_filename": "timeseries_dataset.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T03:16:14.454310",
+        "updated_at": "2026-04-02T03:16:14.458473"
+      },
+      "observations": 240,
+      "narrative": [
+        "Recursive SVAR IRF run on timeseries_dataset.csv.",
+        "Cholesky ordering: return_a, return_b, return_c.",
+        "Impulse variable: return_a.",
+        "Responses shown: return_b."
+      ],
+      "specification": {
+        "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "model_family": "time_series_finance",
+        "model_type": "svar_irf",
+        "series_columns": [
+          "return_a",
+          "return_b",
+          "return_c"
+        ],
+        "time_column": "date",
+        "var_lags": 2,
+        "irf_horizon": 10,
+        "impulse_column": "return_a",
+        "response_column": "return_b",
+        "lags": 2,
+        "horizon": 10,
+        "identification": "Recursive (Cholesky) ordering"
+      },
+      "audit_trail": {
+        "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+        "sample_title": "timeseries_dataset.csv",
+        "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+        "rows_used": 240,
+        "sample_columns": [
+          "date",
+          "return_a",
+          "return_b",
+          "return_c"
+        ],
+        "manual_checklist": [
+          "Verify the series ordering because recursive identification depends on it.",
+          "Re-estimate the VAR with the same lag order and reproduce the orthogonalized IRF externally.",
+          "Compare the impulse-response table and chart horizon by horizon."
+        ],
+        "derived_columns": [],
+        "filters": [
+          "Rows with missing selected series values are dropped."
+        ]
+      },
+      "metrics": {
+        "lag_order": 2,
+        "aic": -20.220644916832327,
+        "bic": -19.914268092684843,
+        "horizon": 10
+      },
+      "tables": {
+        "irf_table": [
+          {
+            "horizon": 0,
+            "impulse": "return_a",
+            "response": "return_b",
+            "irf": -0.000925356528166273,
+            "cumulative_irf": -0.000925356528166273
+          },
+          {
+            "horizon": 1,
+            "impulse": "return_a",
+            "response": "return_b",
+            "irf": 0.006329388245409138,
+            "cumulative_irf": 0.005404031717242865
+          },
+          {
+            "horizon": 2,
+            "impulse": "return_a",
+            "response": "return_b",
+            "irf": 0.005721476751761422,
+            "cumulative_irf": 0.011125508469004286
+          },
+          {
+            "horizon": 3,
+            "impulse": "return_a",
+            "response": "return_b",
+            "irf": 0.0032067375613797308,
+            "cumulative_irf": 0.014332246030384016
+          },
+          {
+            "horizon": 4,
+            "impulse": "return_a",
+            "response": "return_b",
+            "irf": 0.0015130961234766146,
+            "cumulative_irf": 0.01584534215386063
+          },
+          {
+            "horizon": 5,
+            "impulse": "return_a",
+            "response": "return_b",
+            "irf": 0.0006697863587688604,
+            "cumulative_irf": 0.01651512851262949
+          },
+          {
+            "horizon": 6,
+            "impulse": "return_a",
+            "response": "return_b",
+            "irf": 0.0002789387699899,
+            "cumulative_irf": 0.016794067282619392
+          },
+          {
+            "horizon": 7,
+            "impulse": "return_a",
+            "response": "return_b",
+            "irf": 0.00010132979666780499,
+            "cumulative_irf": 0.016895397079287198
+          },
+          {
+            "horizon": 8,
+            "impulse": "return_a",
+            "response": "return_b",
+            "irf": 2.331336161904974e-05,
+            "cumulative_irf": 0.01691871044090625
+          },
+          {
+            "horizon": 9,
+            "impulse": "return_a",
+            "response": "return_b",
+            "irf": -7.65933897667444e-06,
+            "cumulative_irf": 0.016911051101929576
+          },
+          {
+            "horizon": 10,
+            "impulse": "return_a",
+            "response": "return_b",
+            "irf": -1.7110587829752865e-05,
+            "cumulative_irf": 0.01689394051409982
+          }
+        ]
+      },
+      "sample_columns": [
+        "date",
+        "return_a",
+        "return_b",
+        "return_c"
+      ],
+      "sample_preview": [
+        {
+          "date": "2005-01-31",
+          "return_a": 1.1688157461773752,
+          "return_b": 0.3374757548649373,
+          "return_c": 0.8996990649038376
+        },
+        {
+          "date": "2005-02-28",
+          "return_a": 0.5343520409140631,
+          "return_b": 0.562932504678913,
+          "return_c": 0.3807846207439792
+        },
+        {
+          "date": "2005-03-31",
+          "return_a": 0.3152683060245842,
+          "return_b": 0.4289423809695991,
+          "return_c": 0.2694936932673371
+        },
+        {
+          "date": "2005-04-30",
+          "return_a": 0.2563147569235233,
+          "return_b": 0.2318914039278177,
+          "return_c": 0.1440411095196035
+        },
+        {
+          "date": "2005-05-31",
+          "return_a": 0.1639044786851478,
+          "return_b": 0.1299938142922835,
+          "return_c": 0.0690812146746108
+        }
+      ],
+      "figures": [
+        {
+          "asset_id": "d65c9b90-d257-433c-b49c-43c4ab6e84b3",
+          "title": "SVAR IRF for return_a",
+          "summary": "Recursive structural impulse response chart for a shock to return_a.",
+          "download_url": "/api/assets/d65c9b90-d257-433c-b49c-43c4ab6e84b3/download",
+          "asset": {
+            "id": "d65c9b90-d257-433c-b49c-43c4ab6e84b3",
+            "kind": "chart_png",
+            "title": "timeseries_dataset-svar-irf.png",
+            "filename": "timeseries_dataset-svar-irf.png",
+            "description": "Recursive structural impulse response chart for a shock to return_a.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 77197,
+              "original_filename": "timeseries_dataset-svar-irf.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "SVAR IRF for return_a",
+              "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+              "summary": "Recursive structural impulse response chart for a shock to return_a."
+            },
+            "created_at": "2026-04-02T03:16:32.381462+00:00",
+            "updated_at": "2026-04-02T03:16:32.393583+00:00"
+          }
+        },
+        {
+          "asset_id": "98057044-b8d6-4702-aec7-a8e4a9568668",
+          "title": "Cumulative SVAR IRF for return_a",
+          "summary": "Cumulative recursive structural impulse responses for a shock to return_a.",
+          "download_url": "/api/assets/98057044-b8d6-4702-aec7-a8e4a9568668/download",
+          "asset": {
+            "id": "98057044-b8d6-4702-aec7-a8e4a9568668",
+            "kind": "chart_png",
+            "title": "timeseries_dataset-svar-cumulative-irf.png",
+            "filename": "timeseries_dataset-svar-cumulative-irf.png",
+            "description": "Cumulative recursive structural impulse responses for a shock to return_a.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 70750,
+              "original_filename": "timeseries_dataset-svar-cumulative-irf.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "Cumulative SVAR IRF for return_a",
+              "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+              "summary": "Cumulative recursive structural impulse responses for a shock to return_a."
+            },
+            "created_at": "2026-04-02T03:16:32.651966+00:00",
+            "updated_at": "2026-04-02T03:16:32.655808+00:00"
+          }
+        }
+      ],
+      "workflow_type": "model",
+      "model_family": "time_series_finance",
+      "interpretation": {
+        "headline": "SVAR IRF estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Supporting tables included: irf_table.",
+              "Figures included: SVAR IRF for return_a, Cumulative SVAR IRF for return_a."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "The recursive identification is driven by the Cholesky ordering: return_a, return_b, return_c.",
+              "Shock variable: return_a. Response panels and the IRF table should match horizon by horizon.",
+              "Use the cumulative IRF figure when you care about accumulated rather than one-period responses."
+            ]
+          },
+          {
+            "title": "What a normal paper should report",
+            "items": [
+              "An orthogonalized IRF figure.",
+              "A cumulative IRF figure or cumulative response table when accumulation matters.",
+              "A clear statement of ordering or other identification assumptions."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Do not change the variable ordering when reproducing the result.",
+              "Rebuild the orthogonalized IRF using the same lag order and horizon.",
+              "Compare the cumulative IRF figure against the cumulative response column in the IRF table."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "irf_table",
+          "SVAR IRF for return_a",
+          "Cumulative SVAR IRF for return_a"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "",
+      "variant_spec": {},
+      "result_record_id": "3f8f353f-a789-488c-8dbe-be55414abd48",
+      "result_detail_path": "/data-lab/results/models/3f8f353f-a789-488c-8dbe-be55414abd48"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T03:16:32.658932",
+    "updated_at": "2026-04-02T03:16:32.660410"
+  },
+  "result": {
+    "model_type": "svar_irf",
+    "model_label": "SVAR IRF",
+    "asset": {
+      "id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "kind": "dataset_csv",
+      "title": "timeseries_dataset.csv",
+      "filename": "timeseries_dataset.csv",
+      "description": "timeseries_dataset.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 93948,
+        "original_filename": "timeseries_dataset.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T03:16:14.454310",
+      "updated_at": "2026-04-02T03:16:14.458473"
+    },
+    "observations": 240,
+    "narrative": [
+      "Recursive SVAR IRF run on timeseries_dataset.csv.",
+      "Cholesky ordering: return_a, return_b, return_c.",
+      "Impulse variable: return_a.",
+      "Responses shown: return_b."
+    ],
+    "specification": {
+      "asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "model_family": "time_series_finance",
+      "model_type": "svar_irf",
+      "series_columns": [
+        "return_a",
+        "return_b",
+        "return_c"
+      ],
+      "time_column": "date",
+      "var_lags": 2,
+      "irf_horizon": 10,
+      "impulse_column": "return_a",
+      "response_column": "return_b",
+      "lags": 2,
+      "horizon": 10,
+      "identification": "Recursive (Cholesky) ordering"
+    },
+    "audit_trail": {
+      "sample_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+      "sample_title": "timeseries_dataset.csv",
+      "sample_download_url": "/api/assets/10cade57-e6a7-4ed4-a3b2-99bac754729b/download",
+      "rows_used": 240,
+      "sample_columns": [
+        "date",
+        "return_a",
+        "return_b",
+        "return_c"
+      ],
+      "manual_checklist": [
+        "Verify the series ordering because recursive identification depends on it.",
+        "Re-estimate the VAR with the same lag order and reproduce the orthogonalized IRF externally.",
+        "Compare the impulse-response table and chart horizon by horizon."
+      ],
+      "derived_columns": [],
+      "filters": [
+        "Rows with missing selected series values are dropped."
+      ]
+    },
+    "metrics": {
+      "lag_order": 2,
+      "aic": -20.220644916832327,
+      "bic": -19.914268092684843,
+      "horizon": 10
+    },
+    "tables": {
+      "irf_table": [
+        {
+          "horizon": 0,
+          "impulse": "return_a",
+          "response": "return_b",
+          "irf": -0.000925356528166273,
+          "cumulative_irf": -0.000925356528166273
+        },
+        {
+          "horizon": 1,
+          "impulse": "return_a",
+          "response": "return_b",
+          "irf": 0.006329388245409138,
+          "cumulative_irf": 0.005404031717242865
+        },
+        {
+          "horizon": 2,
+          "impulse": "return_a",
+          "response": "return_b",
+          "irf": 0.005721476751761422,
+          "cumulative_irf": 0.011125508469004286
+        },
+        {
+          "horizon": 3,
+          "impulse": "return_a",
+          "response": "return_b",
+          "irf": 0.0032067375613797308,
+          "cumulative_irf": 0.014332246030384016
+        },
+        {
+          "horizon": 4,
+          "impulse": "return_a",
+          "response": "return_b",
+          "irf": 0.0015130961234766146,
+          "cumulative_irf": 0.01584534215386063
+        },
+        {
+          "horizon": 5,
+          "impulse": "return_a",
+          "response": "return_b",
+          "irf": 0.0006697863587688604,
+          "cumulative_irf": 0.01651512851262949
+        },
+        {
+          "horizon": 6,
+          "impulse": "return_a",
+          "response": "return_b",
+          "irf": 0.0002789387699899,
+          "cumulative_irf": 0.016794067282619392
+        },
+        {
+          "horizon": 7,
+          "impulse": "return_a",
+          "response": "return_b",
+          "irf": 0.00010132979666780499,
+          "cumulative_irf": 0.016895397079287198
+        },
+        {
+          "horizon": 8,
+          "impulse": "return_a",
+          "response": "return_b",
+          "irf": 2.331336161904974e-05,
+          "cumulative_irf": 0.01691871044090625
+        },
+        {
+          "horizon": 9,
+          "impulse": "return_a",
+          "response": "return_b",
+          "irf": -7.65933897667444e-06,
+          "cumulative_irf": 0.016911051101929576
+        },
+        {
+          "horizon": 10,
+          "impulse": "return_a",
+          "response": "return_b",
+          "irf": -1.7110587829752865e-05,
+          "cumulative_irf": 0.01689394051409982
+        }
+      ]
+    },
+    "sample_columns": [
+      "date",
+      "return_a",
+      "return_b",
+      "return_c"
+    ],
+    "sample_preview": [
+      {
+        "date": "2005-01-31",
+        "return_a": 1.1688157461773752,
+        "return_b": 0.3374757548649373,
+        "return_c": 0.8996990649038376
+      },
+      {
+        "date": "2005-02-28",
+        "return_a": 0.5343520409140631,
+        "return_b": 0.562932504678913,
+        "return_c": 0.3807846207439792
+      },
+      {
+        "date": "2005-03-31",
+        "return_a": 0.3152683060245842,
+        "return_b": 0.4289423809695991,
+        "return_c": 0.2694936932673371
+      },
+      {
+        "date": "2005-04-30",
+        "return_a": 0.2563147569235233,
+        "return_b": 0.2318914039278177,
+        "return_c": 0.1440411095196035
+      },
+      {
+        "date": "2005-05-31",
+        "return_a": 0.1639044786851478,
+        "return_b": 0.1299938142922835,
+        "return_c": 0.0690812146746108
+      }
+    ],
+    "figures": [
+      {
+        "asset_id": "d65c9b90-d257-433c-b49c-43c4ab6e84b3",
+        "title": "SVAR IRF for return_a",
+        "summary": "Recursive structural impulse response chart for a shock to return_a.",
+        "download_url": "/api/assets/d65c9b90-d257-433c-b49c-43c4ab6e84b3/download",
+        "asset": {
+          "id": "d65c9b90-d257-433c-b49c-43c4ab6e84b3",
+          "kind": "chart_png",
+          "title": "timeseries_dataset-svar-irf.png",
+          "filename": "timeseries_dataset-svar-irf.png",
+          "description": "Recursive structural impulse response chart for a shock to return_a.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 77197,
+            "original_filename": "timeseries_dataset-svar-irf.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "SVAR IRF for return_a",
+            "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+            "summary": "Recursive structural impulse response chart for a shock to return_a."
+          },
+          "created_at": "2026-04-02T03:16:32.381462+00:00",
+          "updated_at": "2026-04-02T03:16:32.393583+00:00"
+        }
+      },
+      {
+        "asset_id": "98057044-b8d6-4702-aec7-a8e4a9568668",
+        "title": "Cumulative SVAR IRF for return_a",
+        "summary": "Cumulative recursive structural impulse responses for a shock to return_a.",
+        "download_url": "/api/assets/98057044-b8d6-4702-aec7-a8e4a9568668/download",
+        "asset": {
+          "id": "98057044-b8d6-4702-aec7-a8e4a9568668",
+          "kind": "chart_png",
+          "title": "timeseries_dataset-svar-cumulative-irf.png",
+          "filename": "timeseries_dataset-svar-cumulative-irf.png",
+          "description": "Cumulative recursive structural impulse responses for a shock to return_a.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 70750,
+            "original_filename": "timeseries_dataset-svar-cumulative-irf.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "Cumulative SVAR IRF for return_a",
+            "source_asset_id": "10cade57-e6a7-4ed4-a3b2-99bac754729b",
+            "summary": "Cumulative recursive structural impulse responses for a shock to return_a."
+          },
+          "created_at": "2026-04-02T03:16:32.651966+00:00",
+          "updated_at": "2026-04-02T03:16:32.655808+00:00"
+        }
+      }
+    ],
+    "workflow_type": "model",
+    "model_family": "time_series_finance",
+    "interpretation": {
+      "headline": "SVAR IRF estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Supporting tables included: irf_table.",
+            "Figures included: SVAR IRF for return_a, Cumulative SVAR IRF for return_a."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "The recursive identification is driven by the Cholesky ordering: return_a, return_b, return_c.",
+            "Shock variable: return_a. Response panels and the IRF table should match horizon by horizon.",
+            "Use the cumulative IRF figure when you care about accumulated rather than one-period responses."
+          ]
+        },
+        {
+          "title": "What a normal paper should report",
+          "items": [
+            "An orthogonalized IRF figure.",
+            "A cumulative IRF figure or cumulative response table when accumulation matters.",
+            "A clear statement of ordering or other identification assumptions."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Do not change the variable ordering when reproducing the result.",
+            "Rebuild the orthogonalized IRF using the same lag order and horizon.",
+            "Compare the cumulative IRF figure against the cumulative response column in the IRF table."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "irf_table",
+        "SVAR IRF for return_a",
+        "Cumulative SVAR IRF for return_a"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "",
+    "variant_spec": {},
+    "result_record_id": "3f8f353f-a789-488c-8dbe-be55414abd48",
+    "result_detail_path": "/data-lab/results/models/3f8f353f-a789-488c-8dbe-be55414abd48"
+  },
+  "workspace_id": "4cd84637-1a2b-4173-a188-0d68ec5784a4"
+}

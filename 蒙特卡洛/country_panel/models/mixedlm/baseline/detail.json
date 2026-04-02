@@ -1,0 +1,510 @@
+{
+  "record": {
+    "id": "06c484e3-5031-45d3-a0a0-21a70547cb79",
+    "title": "Mixed Effects Linear Model summary for upgrade_panel.csv",
+    "content": "Linear mixed-effects model estimated with statsmodels MixedLM.",
+    "content_excerpt": "Linear mixed-effects model estimated with statsmodels MixedLM.",
+    "content_length": 62,
+    "tags": [
+      "mixedlm",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "mixedlm",
+      "model_label": "Mixed Effects Linear Model",
+      "asset": {
+        "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "kind": "dataset_csv",
+        "title": "upgrade_panel.csv",
+        "filename": "upgrade_panel.csv",
+        "description": "upgrade_panel.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 289095,
+          "original_filename": "upgrade_panel.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T02:57:26.995002",
+        "updated_at": "2026-04-02T02:57:27.013674"
+      },
+      "dependent": "outcome_y",
+      "regressors": [
+        "size",
+        "leverage",
+        "post"
+      ],
+      "observations": 648,
+      "r_squared": null,
+      "adj_r_squared": null,
+      "pseudo_r_squared": null,
+      "aic": 1993.7549038175566,
+      "bic": 2020.5982479956704,
+      "log_likelihood": -990.8774519087783,
+      "coefficients": [
+        {
+          "term": "Intercept",
+          "coefficient": -2.7447854375762404,
+          "std_error": 1.4354323854846645,
+          "t_stat": -1.9121663028729015,
+          "p_value": 0.055854866744958785
+        },
+        {
+          "term": "size",
+          "coefficient": 1.2562037175730136,
+          "std_error": 0.14545405513875562,
+          "t_stat": 8.636429671037089,
+          "p_value": 5.799707690931652e-18
+        },
+        {
+          "term": "leverage",
+          "coefficient": -0.8828118302071741,
+          "std_error": 1.4400526371898246,
+          "t_stat": -0.6130413621059907,
+          "p_value": 0.5398489908131673
+        },
+        {
+          "term": "post",
+          "coefficient": 1.8137252154017571,
+          "std_error": 0.11836122460776355,
+          "t_stat": 15.323643544684915,
+          "p_value": 5.315258230967431e-53
+        },
+        {
+          "term": "Group Var",
+          "coefficient": 0.4514288082088168,
+          "std_error": 0.18426149446351384,
+          "t_stat": 2.4499356717103233,
+          "p_value": 0.014288173877830457
+        }
+      ],
+      "narrative": [
+        "Linear mixed-effects model estimated with statsmodels MixedLM."
+      ],
+      "sample_columns": [
+        "firm_id",
+        "outcome_y",
+        "size",
+        "leverage",
+        "post"
+      ],
+      "sample_preview": [
+        {
+          "firm_id": "firm_01",
+          "outcome_y": 8.281342947667275,
+          "size": 8.519775911467494,
+          "leverage": 0.3577590135791016,
+          "post": 0
+        },
+        {
+          "firm_id": "firm_01",
+          "outcome_y": 7.161166663415577,
+          "size": 7.55721041465215,
+          "leverage": 0.3378183221465689,
+          "post": 0
+        },
+        {
+          "firm_id": "firm_01",
+          "outcome_y": 7.582391886802917,
+          "size": 7.823590785770317,
+          "leverage": 0.3343232278441892,
+          "post": 0
+        },
+        {
+          "firm_id": "firm_01",
+          "outcome_y": 8.19643779930995,
+          "size": 8.058331858128255,
+          "leverage": 0.3581110765958445,
+          "post": 0
+        },
+        {
+          "firm_id": "firm_01",
+          "outcome_y": 6.775339604671813,
+          "size": 7.790582349444769,
+          "leverage": 0.3323010132904619,
+          "post": 0
+        }
+      ],
+      "specification": {
+        "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "model_family": "econometrics_baseline",
+        "model_type": "mixedlm",
+        "dependent": "outcome_y",
+        "independents": [
+          "size",
+          "leverage",
+          "post"
+        ],
+        "entity_column": "firm_id",
+        "engine": "statsmodels",
+        "group_column": "firm_id"
+      },
+      "audit_trail": {
+        "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "sample_title": "upgrade_panel.csv",
+        "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+        "rows_used": 648,
+        "sample_columns": [
+          "firm_id",
+          "outcome_y",
+          "size",
+          "leverage",
+          "post"
+        ],
+        "covariance_type": "nonrobust",
+        "manual_checklist": [
+          "Download the prepared sample asset referenced in sample_asset_id.",
+          "Rebuild any derived regressors listed in derived_columns before estimation.",
+          "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+          "Compare the reproduced coefficient table with the coefficients array term by term."
+        ],
+        "engine": "statsmodels",
+        "derived_columns": [],
+        "filters": [
+          "Rows with missing dependent, regressor, or grouping values are dropped."
+        ]
+      },
+      "engine": "statsmodels",
+      "primary_tables": [
+        "group_variance_table"
+      ],
+      "robustness_tables": [],
+      "tables": {
+        "group_variance_table": [
+          {
+            "group_column": "firm_id",
+            "group_count": 18
+          }
+        ]
+      },
+      "figures": [
+        {
+          "asset_id": "256dc36a-c79a-4bab-b04e-b2d9a244791c",
+          "title": "Fitted vs Actual Grouped Plot",
+          "summary": "Group-level actual and fitted means from the mixed-effects model.",
+          "download_url": "/api/assets/256dc36a-c79a-4bab-b04e-b2d9a244791c/download",
+          "asset": {
+            "id": "256dc36a-c79a-4bab-b04e-b2d9a244791c",
+            "kind": "chart_png",
+            "title": "upgrade_panel-mixedlm_grouped_fit.png",
+            "filename": "upgrade_panel-mixedlm_grouped_fit.png",
+            "description": "Group-level actual and fitted means from the mixed-effects model.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 108596,
+              "original_filename": "upgrade_panel-mixedlm_grouped_fit.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "Fitted vs Actual Grouped Plot",
+              "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+              "summary": "Group-level actual and fitted means from the mixed-effects model."
+            },
+            "created_at": "2026-04-02T02:57:54.962277+00:00",
+            "updated_at": "2026-04-02T02:57:54.970565+00:00"
+          }
+        }
+      ],
+      "metrics": {},
+      "paper_output_contract": {
+        "primary_tables": [
+          "group_variance_table"
+        ],
+        "robustness_tables": [],
+        "figure_count": 1
+      },
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "Mixed Effects Linear Model estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+              "Supporting tables included: group_variance_table.",
+              "Figures included: Fitted vs Actual Grouped Plot."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "group_variance_table",
+          "Fitted vs Actual Grouped Plot"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "",
+      "variant_spec": {},
+      "result_record_id": "06c484e3-5031-45d3-a0a0-21a70547cb79",
+      "result_detail_path": "/data-lab/results/models/06c484e3-5031-45d3-a0a0-21a70547cb79"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T02:57:55.004274",
+    "updated_at": "2026-04-02T02:57:55.007852"
+  },
+  "result": {
+    "model_type": "mixedlm",
+    "model_label": "Mixed Effects Linear Model",
+    "asset": {
+      "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "kind": "dataset_csv",
+      "title": "upgrade_panel.csv",
+      "filename": "upgrade_panel.csv",
+      "description": "upgrade_panel.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 289095,
+        "original_filename": "upgrade_panel.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T02:57:26.995002",
+      "updated_at": "2026-04-02T02:57:27.013674"
+    },
+    "dependent": "outcome_y",
+    "regressors": [
+      "size",
+      "leverage",
+      "post"
+    ],
+    "observations": 648,
+    "r_squared": null,
+    "adj_r_squared": null,
+    "pseudo_r_squared": null,
+    "aic": 1993.7549038175566,
+    "bic": 2020.5982479956704,
+    "log_likelihood": -990.8774519087783,
+    "coefficients": [
+      {
+        "term": "Intercept",
+        "coefficient": -2.7447854375762404,
+        "std_error": 1.4354323854846645,
+        "t_stat": -1.9121663028729015,
+        "p_value": 0.055854866744958785
+      },
+      {
+        "term": "size",
+        "coefficient": 1.2562037175730136,
+        "std_error": 0.14545405513875562,
+        "t_stat": 8.636429671037089,
+        "p_value": 5.799707690931652e-18
+      },
+      {
+        "term": "leverage",
+        "coefficient": -0.8828118302071741,
+        "std_error": 1.4400526371898246,
+        "t_stat": -0.6130413621059907,
+        "p_value": 0.5398489908131673
+      },
+      {
+        "term": "post",
+        "coefficient": 1.8137252154017571,
+        "std_error": 0.11836122460776355,
+        "t_stat": 15.323643544684915,
+        "p_value": 5.315258230967431e-53
+      },
+      {
+        "term": "Group Var",
+        "coefficient": 0.4514288082088168,
+        "std_error": 0.18426149446351384,
+        "t_stat": 2.4499356717103233,
+        "p_value": 0.014288173877830457
+      }
+    ],
+    "narrative": [
+      "Linear mixed-effects model estimated with statsmodels MixedLM."
+    ],
+    "sample_columns": [
+      "firm_id",
+      "outcome_y",
+      "size",
+      "leverage",
+      "post"
+    ],
+    "sample_preview": [
+      {
+        "firm_id": "firm_01",
+        "outcome_y": 8.281342947667275,
+        "size": 8.519775911467494,
+        "leverage": 0.3577590135791016,
+        "post": 0
+      },
+      {
+        "firm_id": "firm_01",
+        "outcome_y": 7.161166663415577,
+        "size": 7.55721041465215,
+        "leverage": 0.3378183221465689,
+        "post": 0
+      },
+      {
+        "firm_id": "firm_01",
+        "outcome_y": 7.582391886802917,
+        "size": 7.823590785770317,
+        "leverage": 0.3343232278441892,
+        "post": 0
+      },
+      {
+        "firm_id": "firm_01",
+        "outcome_y": 8.19643779930995,
+        "size": 8.058331858128255,
+        "leverage": 0.3581110765958445,
+        "post": 0
+      },
+      {
+        "firm_id": "firm_01",
+        "outcome_y": 6.775339604671813,
+        "size": 7.790582349444769,
+        "leverage": 0.3323010132904619,
+        "post": 0
+      }
+    ],
+    "specification": {
+      "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "model_family": "econometrics_baseline",
+      "model_type": "mixedlm",
+      "dependent": "outcome_y",
+      "independents": [
+        "size",
+        "leverage",
+        "post"
+      ],
+      "entity_column": "firm_id",
+      "engine": "statsmodels",
+      "group_column": "firm_id"
+    },
+    "audit_trail": {
+      "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "sample_title": "upgrade_panel.csv",
+      "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+      "rows_used": 648,
+      "sample_columns": [
+        "firm_id",
+        "outcome_y",
+        "size",
+        "leverage",
+        "post"
+      ],
+      "covariance_type": "nonrobust",
+      "manual_checklist": [
+        "Download the prepared sample asset referenced in sample_asset_id.",
+        "Rebuild any derived regressors listed in derived_columns before estimation.",
+        "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+        "Compare the reproduced coefficient table with the coefficients array term by term."
+      ],
+      "engine": "statsmodels",
+      "derived_columns": [],
+      "filters": [
+        "Rows with missing dependent, regressor, or grouping values are dropped."
+      ]
+    },
+    "engine": "statsmodels",
+    "primary_tables": [
+      "group_variance_table"
+    ],
+    "robustness_tables": [],
+    "tables": {
+      "group_variance_table": [
+        {
+          "group_column": "firm_id",
+          "group_count": 18
+        }
+      ]
+    },
+    "figures": [
+      {
+        "asset_id": "256dc36a-c79a-4bab-b04e-b2d9a244791c",
+        "title": "Fitted vs Actual Grouped Plot",
+        "summary": "Group-level actual and fitted means from the mixed-effects model.",
+        "download_url": "/api/assets/256dc36a-c79a-4bab-b04e-b2d9a244791c/download",
+        "asset": {
+          "id": "256dc36a-c79a-4bab-b04e-b2d9a244791c",
+          "kind": "chart_png",
+          "title": "upgrade_panel-mixedlm_grouped_fit.png",
+          "filename": "upgrade_panel-mixedlm_grouped_fit.png",
+          "description": "Group-level actual and fitted means from the mixed-effects model.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 108596,
+            "original_filename": "upgrade_panel-mixedlm_grouped_fit.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "Fitted vs Actual Grouped Plot",
+            "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+            "summary": "Group-level actual and fitted means from the mixed-effects model."
+          },
+          "created_at": "2026-04-02T02:57:54.962277+00:00",
+          "updated_at": "2026-04-02T02:57:54.970565+00:00"
+        }
+      }
+    ],
+    "metrics": {},
+    "paper_output_contract": {
+      "primary_tables": [
+        "group_variance_table"
+      ],
+      "robustness_tables": [],
+      "figure_count": 1
+    },
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "Mixed Effects Linear Model estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+            "Supporting tables included: group_variance_table.",
+            "Figures included: Fitted vs Actual Grouped Plot."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "group_variance_table",
+        "Fitted vs Actual Grouped Plot"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "",
+    "variant_spec": {},
+    "result_record_id": "06c484e3-5031-45d3-a0a0-21a70547cb79",
+    "result_detail_path": "/data-lab/results/models/06c484e3-5031-45d3-a0a0-21a70547cb79"
+  },
+  "workspace_id": "1127ef60-f949-49b8-b32e-bae8138f3568"
+}

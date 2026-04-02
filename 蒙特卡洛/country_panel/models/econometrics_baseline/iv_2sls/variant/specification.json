@@ -1,0 +1,31 @@
+{
+  "asset_id": "742a2af5-b7f8-4b12-8914-a535cd9ee440",
+  "model_family": "econometrics_baseline",
+  "model_type": "iv_2sls",
+  "dependent": "outcome_y",
+  "independents": [
+    "size"
+  ],
+  "controls": [
+    "leverage"
+  ],
+  "endogenous_column": "endogenous_x",
+  "instrument_columns": [
+    "instrument_z"
+  ],
+  "model_label": "IV-2SLS",
+  "regressors": [
+    "size",
+    "leverage",
+    "endogenous_x"
+  ],
+  "covariance_type": "nonrobust",
+  "equation": "outcome_y ~ size + leverage + endogenous_x",
+  "variant_label": "iv_with_post",
+  "variant_spec": {
+    "controls": [
+      "leverage",
+      "post"
+    ]
+  }
+}

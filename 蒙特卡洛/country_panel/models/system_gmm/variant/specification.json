@@ -1,0 +1,20 @@
+{
+  "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+  "model_family": "econometrics_baseline",
+  "model_type": "system_gmm",
+  "dependent": "outcome_y",
+  "independents": [
+    "size"
+  ],
+  "controls": [
+    "leverage",
+    "post"
+  ],
+  "endogenous_column": "endogenous_x",
+  "instrument_columns": [
+    "instrument_z"
+  ],
+  "secondary_dependent": "secondary_outcome",
+  "engine": "linearmodels",
+  "variant_label": "sysgmm_post"
+}

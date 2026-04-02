@@ -1,0 +1,586 @@
+{
+  "record": {
+    "id": "8a214147-76f4-42bd-9378-8b433c959b73",
+    "title": "First-Difference Panel Regression summary for upgrade_panel.csv",
+    "content": "First-Difference Panel Regression estimated with linearmodels on upgrade_panel.csv.\nDependent variable: outcome_y.\nObservations used: 630.",
+    "content_excerpt": "First-Difference Panel Regression estimated with linearmodels on upgrade_panel.csv. Dependent variable: outcome_y. Observations used: 630.",
+    "content_length": 138,
+    "tags": [
+      "first_difference",
+      "econometrics_baseline",
+      "dataset"
+    ],
+    "metadata": {
+      "model_type": "first_difference",
+      "model_label": "First-Difference Panel Regression",
+      "asset": {
+        "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "kind": "dataset_csv",
+        "title": "upgrade_panel.csv",
+        "filename": "upgrade_panel.csv",
+        "description": "upgrade_panel.csv",
+        "content_type": "text/csv",
+        "source_url": "",
+        "metadata": {
+          "size_bytes": 289095,
+          "original_filename": "upgrade_panel.csv",
+          "storage_backend": "local"
+        },
+        "created_at": "2026-04-02T02:57:26.995002",
+        "updated_at": "2026-04-02T02:57:27.013674"
+      },
+      "dependent": "outcome_y",
+      "regressors": [
+        "size",
+        "leverage",
+        "endogenous_x",
+        "post"
+      ],
+      "observations": 630,
+      "r_squared": 0.36704049530470884,
+      "adj_r_squared": null,
+      "pseudo_r_squared": null,
+      "aic": null,
+      "bic": null,
+      "log_likelihood": null,
+      "coefficients": [
+        {
+          "term": "size",
+          "coefficient": 0.6278321189009508,
+          "std_error": 0.130032476848708,
+          "t_stat": 4.828271629643952,
+          "p_value": 1.7330018544647885e-06
+        },
+        {
+          "term": "leverage",
+          "coefficient": -0.7602442598192457,
+          "std_error": 1.0444207949145123,
+          "t_stat": -0.7279099224383722,
+          "p_value": 0.4669408994893294
+        },
+        {
+          "term": "endogenous_x",
+          "coefficient": 0.6938183161985721,
+          "std_error": 0.03839914540017086,
+          "t_stat": 18.06858743776847,
+          "p_value": 0.0
+        },
+        {
+          "term": "post",
+          "coefficient": 0.6014362997062772,
+          "std_error": 0.33247096432538403,
+          "t_stat": 1.808988947130015,
+          "p_value": 0.07093233064093551
+        }
+      ],
+      "narrative": [
+        "First-Difference Panel Regression estimated with linearmodels on upgrade_panel.csv.",
+        "Dependent variable: outcome_y.",
+        "Observations used: 630."
+      ],
+      "sample_columns": [
+        "firm_id",
+        "month_index",
+        "outcome_y",
+        "size",
+        "leverage",
+        "endogenous_x",
+        "post"
+      ],
+      "sample_preview": [
+        {
+          "firm_id": "firm_01",
+          "month_index": "1970-01-01T00:00:00.000000001",
+          "outcome_y": 8.281342947667275,
+          "size": 8.519775911467494,
+          "leverage": 0.3577590135791016,
+          "endogenous_x": 0.2785972991161518,
+          "post": 0
+        },
+        {
+          "firm_id": "firm_01",
+          "month_index": "1970-01-01T00:00:00.000000002",
+          "outcome_y": 7.161166663415577,
+          "size": 7.55721041465215,
+          "leverage": 0.3378183221465689,
+          "endogenous_x": 1.1977342200420291,
+          "post": 0
+        },
+        {
+          "firm_id": "firm_01",
+          "month_index": "1970-01-01T00:00:00.000000003",
+          "outcome_y": 7.582391886802917,
+          "size": 7.823590785770317,
+          "leverage": 0.3343232278441892,
+          "endogenous_x": 0.2791971515539841,
+          "post": 0
+        },
+        {
+          "firm_id": "firm_01",
+          "month_index": "1970-01-01T00:00:00.000000004",
+          "outcome_y": 8.19643779930995,
+          "size": 8.058331858128255,
+          "leverage": 0.3581110765958445,
+          "endogenous_x": 1.693126004491981,
+          "post": 0
+        },
+        {
+          "firm_id": "firm_01",
+          "month_index": "1970-01-01T00:00:00.000000005",
+          "outcome_y": 6.775339604671813,
+          "size": 7.790582349444769,
+          "leverage": 0.3323010132904619,
+          "endogenous_x": -0.6336680485148168,
+          "post": 0
+        }
+      ],
+      "specification": {
+        "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "model_family": "econometrics_baseline",
+        "model_type": "first_difference",
+        "dependent": "outcome_y",
+        "independents": [
+          "size",
+          "leverage",
+          "endogenous_x"
+        ],
+        "controls": [
+          "post"
+        ],
+        "entity_column": "firm_id",
+        "time_column": "month_index",
+        "engine": "linearmodels",
+        "variant_label": "fd_endog"
+      },
+      "audit_trail": {
+        "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+        "sample_title": "upgrade_panel.csv",
+        "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+        "rows_used": 648,
+        "sample_columns": [
+          "firm_id",
+          "month_index",
+          "outcome_y",
+          "size",
+          "leverage",
+          "endogenous_x",
+          "post"
+        ],
+        "covariance_type": "nonrobust",
+        "manual_checklist": [
+          "Download the prepared sample asset referenced in sample_asset_id.",
+          "Rebuild any derived regressors listed in derived_columns before estimation.",
+          "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+          "Compare the reproduced coefficient table with the coefficients array term by term."
+        ],
+        "engine": "linearmodels",
+        "derived_columns": [],
+        "filters": [
+          "Rows with missing panel identifiers or regressors are dropped."
+        ]
+      },
+      "engine": "linearmodels",
+      "primary_tables": [
+        "fit_summary_table",
+        "sample_audit_table"
+      ],
+      "robustness_tables": [],
+      "tables": {
+        "fit_summary_table": [
+          {
+            "metric": "nobs",
+            "value": 630.0
+          },
+          {
+            "metric": "rsquared",
+            "value": 0.36704049530470884
+          },
+          {
+            "metric": "rsquared_within",
+            "value": 0.5038927118683585
+          },
+          {
+            "metric": "loglik",
+            "value": -939.8377861298243
+          }
+        ],
+        "sample_audit_table": [
+          {
+            "entities": 18,
+            "periods": 36,
+            "observations": 648,
+            "dependent_mean": 9.81688999287978,
+            "dependent_std": 1.8003528988882065
+          }
+        ]
+      },
+      "figures": [
+        {
+          "asset_id": "9cf6a41e-59ac-47d4-abe3-f1071c7023c4",
+          "title": "First-Difference Panel Regression residual diagnostic",
+          "summary": "Histogram of model residuals for manual diagnostics.",
+          "download_url": "/api/assets/9cf6a41e-59ac-47d4-abe3-f1071c7023c4/download",
+          "asset": {
+            "id": "9cf6a41e-59ac-47d4-abe3-f1071c7023c4",
+            "kind": "chart_png",
+            "title": "upgrade_panel-first_difference_residual_diagnostic.png",
+            "filename": "upgrade_panel-first_difference_residual_diagnostic.png",
+            "description": "Histogram of model residuals for manual diagnostics.",
+            "content_type": "image/png",
+            "source_url": "",
+            "metadata": {
+              "size_bytes": 32115,
+              "original_filename": "upgrade_panel-first_difference_residual_diagnostic.png",
+              "storage_backend": "local",
+              "analysis_kind": "model_figure",
+              "source_model": "First-Difference Panel Regression residual diagnostic",
+              "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+              "summary": "Histogram of model residuals for manual diagnostics."
+            },
+            "created_at": "2026-04-02T02:57:29.955434+00:00",
+            "updated_at": "2026-04-02T02:57:29.969885+00:00"
+          }
+        }
+      ],
+      "metrics": {},
+      "paper_output_contract": {
+        "primary_tables": [
+          "fit_summary_table",
+          "sample_audit_table"
+        ],
+        "robustness_tables": [],
+        "figure_count": 1
+      },
+      "workflow_type": "model",
+      "model_family": "econometrics_baseline",
+      "interpretation": {
+        "headline": "First-Difference Panel Regression estimates are exposed in full so you can read the result and reproduce it manually.",
+        "sections": [
+          {
+            "title": "What is shown on this page",
+            "items": [
+              "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+              "Supporting tables included: fit_summary_table, sample_audit_table.",
+              "Figures included: First-Difference Panel Regression residual diagnostic."
+            ]
+          },
+          {
+            "title": "How to read the main result",
+            "items": [
+              "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+              "The specification block records the exact equation or parameterization that should be reproduced manually."
+            ]
+          },
+          {
+            "title": "Manual replication focus",
+            "items": [
+              "Download the referenced sample and rebuild all listed derived columns before estimation.",
+              "Match the equation, regressors, covariance type, and sample filters exactly.",
+              "Compare the resulting table or figure object term by term with the result shown here."
+            ]
+          }
+        ],
+        "paper_outputs": [
+          "fit_summary_table",
+          "sample_audit_table",
+          "First-Difference Panel Regression residual diagnostic"
+        ]
+      },
+      "template_id": "",
+      "template_name": "",
+      "variant_label": "fd_endog",
+      "variant_spec": {},
+      "result_record_id": "8a214147-76f4-42bd-9378-8b433c959b73",
+      "result_detail_path": "/data-lab/results/models/8a214147-76f4-42bd-9378-8b433c959b73"
+    },
+    "is_archived": false,
+    "archived_at": "",
+    "archived_reason": "",
+    "created_at": "2026-04-02T02:57:29.997499",
+    "updated_at": "2026-04-02T02:57:29.999338"
+  },
+  "result": {
+    "model_type": "first_difference",
+    "model_label": "First-Difference Panel Regression",
+    "asset": {
+      "id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "kind": "dataset_csv",
+      "title": "upgrade_panel.csv",
+      "filename": "upgrade_panel.csv",
+      "description": "upgrade_panel.csv",
+      "content_type": "text/csv",
+      "source_url": "",
+      "metadata": {
+        "size_bytes": 289095,
+        "original_filename": "upgrade_panel.csv",
+        "storage_backend": "local"
+      },
+      "created_at": "2026-04-02T02:57:26.995002",
+      "updated_at": "2026-04-02T02:57:27.013674"
+    },
+    "dependent": "outcome_y",
+    "regressors": [
+      "size",
+      "leverage",
+      "endogenous_x",
+      "post"
+    ],
+    "observations": 630,
+    "r_squared": 0.36704049530470884,
+    "adj_r_squared": null,
+    "pseudo_r_squared": null,
+    "aic": null,
+    "bic": null,
+    "log_likelihood": null,
+    "coefficients": [
+      {
+        "term": "size",
+        "coefficient": 0.6278321189009508,
+        "std_error": 0.130032476848708,
+        "t_stat": 4.828271629643952,
+        "p_value": 1.7330018544647885e-06
+      },
+      {
+        "term": "leverage",
+        "coefficient": -0.7602442598192457,
+        "std_error": 1.0444207949145123,
+        "t_stat": -0.7279099224383722,
+        "p_value": 0.4669408994893294
+      },
+      {
+        "term": "endogenous_x",
+        "coefficient": 0.6938183161985721,
+        "std_error": 0.03839914540017086,
+        "t_stat": 18.06858743776847,
+        "p_value": 0.0
+      },
+      {
+        "term": "post",
+        "coefficient": 0.6014362997062772,
+        "std_error": 0.33247096432538403,
+        "t_stat": 1.808988947130015,
+        "p_value": 0.07093233064093551
+      }
+    ],
+    "narrative": [
+      "First-Difference Panel Regression estimated with linearmodels on upgrade_panel.csv.",
+      "Dependent variable: outcome_y.",
+      "Observations used: 630."
+    ],
+    "sample_columns": [
+      "firm_id",
+      "month_index",
+      "outcome_y",
+      "size",
+      "leverage",
+      "endogenous_x",
+      "post"
+    ],
+    "sample_preview": [
+      {
+        "firm_id": "firm_01",
+        "month_index": "1970-01-01T00:00:00.000000001",
+        "outcome_y": 8.281342947667275,
+        "size": 8.519775911467494,
+        "leverage": 0.3577590135791016,
+        "endogenous_x": 0.2785972991161518,
+        "post": 0
+      },
+      {
+        "firm_id": "firm_01",
+        "month_index": "1970-01-01T00:00:00.000000002",
+        "outcome_y": 7.161166663415577,
+        "size": 7.55721041465215,
+        "leverage": 0.3378183221465689,
+        "endogenous_x": 1.1977342200420291,
+        "post": 0
+      },
+      {
+        "firm_id": "firm_01",
+        "month_index": "1970-01-01T00:00:00.000000003",
+        "outcome_y": 7.582391886802917,
+        "size": 7.823590785770317,
+        "leverage": 0.3343232278441892,
+        "endogenous_x": 0.2791971515539841,
+        "post": 0
+      },
+      {
+        "firm_id": "firm_01",
+        "month_index": "1970-01-01T00:00:00.000000004",
+        "outcome_y": 8.19643779930995,
+        "size": 8.058331858128255,
+        "leverage": 0.3581110765958445,
+        "endogenous_x": 1.693126004491981,
+        "post": 0
+      },
+      {
+        "firm_id": "firm_01",
+        "month_index": "1970-01-01T00:00:00.000000005",
+        "outcome_y": 6.775339604671813,
+        "size": 7.790582349444769,
+        "leverage": 0.3323010132904619,
+        "endogenous_x": -0.6336680485148168,
+        "post": 0
+      }
+    ],
+    "specification": {
+      "asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "model_family": "econometrics_baseline",
+      "model_type": "first_difference",
+      "dependent": "outcome_y",
+      "independents": [
+        "size",
+        "leverage",
+        "endogenous_x"
+      ],
+      "controls": [
+        "post"
+      ],
+      "entity_column": "firm_id",
+      "time_column": "month_index",
+      "engine": "linearmodels",
+      "variant_label": "fd_endog"
+    },
+    "audit_trail": {
+      "sample_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+      "sample_title": "upgrade_panel.csv",
+      "sample_download_url": "/api/assets/59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4/download",
+      "rows_used": 648,
+      "sample_columns": [
+        "firm_id",
+        "month_index",
+        "outcome_y",
+        "size",
+        "leverage",
+        "endogenous_x",
+        "post"
+      ],
+      "covariance_type": "nonrobust",
+      "manual_checklist": [
+        "Download the prepared sample asset referenced in sample_asset_id.",
+        "Rebuild any derived regressors listed in derived_columns before estimation.",
+        "Use the listed regressors, covariance_type, and sample filters to reproduce the model manually.",
+        "Compare the reproduced coefficient table with the coefficients array term by term."
+      ],
+      "engine": "linearmodels",
+      "derived_columns": [],
+      "filters": [
+        "Rows with missing panel identifiers or regressors are dropped."
+      ]
+    },
+    "engine": "linearmodels",
+    "primary_tables": [
+      "fit_summary_table",
+      "sample_audit_table"
+    ],
+    "robustness_tables": [],
+    "tables": {
+      "fit_summary_table": [
+        {
+          "metric": "nobs",
+          "value": 630.0
+        },
+        {
+          "metric": "rsquared",
+          "value": 0.36704049530470884
+        },
+        {
+          "metric": "rsquared_within",
+          "value": 0.5038927118683585
+        },
+        {
+          "metric": "loglik",
+          "value": -939.8377861298243
+        }
+      ],
+      "sample_audit_table": [
+        {
+          "entities": 18,
+          "periods": 36,
+          "observations": 648,
+          "dependent_mean": 9.81688999287978,
+          "dependent_std": 1.8003528988882065
+        }
+      ]
+    },
+    "figures": [
+      {
+        "asset_id": "9cf6a41e-59ac-47d4-abe3-f1071c7023c4",
+        "title": "First-Difference Panel Regression residual diagnostic",
+        "summary": "Histogram of model residuals for manual diagnostics.",
+        "download_url": "/api/assets/9cf6a41e-59ac-47d4-abe3-f1071c7023c4/download",
+        "asset": {
+          "id": "9cf6a41e-59ac-47d4-abe3-f1071c7023c4",
+          "kind": "chart_png",
+          "title": "upgrade_panel-first_difference_residual_diagnostic.png",
+          "filename": "upgrade_panel-first_difference_residual_diagnostic.png",
+          "description": "Histogram of model residuals for manual diagnostics.",
+          "content_type": "image/png",
+          "source_url": "",
+          "metadata": {
+            "size_bytes": 32115,
+            "original_filename": "upgrade_panel-first_difference_residual_diagnostic.png",
+            "storage_backend": "local",
+            "analysis_kind": "model_figure",
+            "source_model": "First-Difference Panel Regression residual diagnostic",
+            "source_asset_id": "59d06eb6-c01f-4ee6-85c9-6b572bbd5ff4",
+            "summary": "Histogram of model residuals for manual diagnostics."
+          },
+          "created_at": "2026-04-02T02:57:29.955434+00:00",
+          "updated_at": "2026-04-02T02:57:29.969885+00:00"
+        }
+      }
+    ],
+    "metrics": {},
+    "paper_output_contract": {
+      "primary_tables": [
+        "fit_summary_table",
+        "sample_audit_table"
+      ],
+      "robustness_tables": [],
+      "figure_count": 1
+    },
+    "workflow_type": "model",
+    "model_family": "econometrics_baseline",
+    "interpretation": {
+      "headline": "First-Difference Panel Regression estimates are exposed in full so you can read the result and reproduce it manually.",
+      "sections": [
+        {
+          "title": "What is shown on this page",
+          "items": [
+            "Coefficient table is shown with standard errors, test statistics, p-values, and significance stars.",
+            "Supporting tables included: fit_summary_table, sample_audit_table.",
+            "Figures included: First-Difference Panel Regression residual diagnostic."
+          ]
+        },
+        {
+          "title": "How to read the main result",
+          "items": [
+            "Use the metrics panel for headline diagnostics, then move to the coefficient table or supporting tables for the formal result.",
+            "The specification block records the exact equation or parameterization that should be reproduced manually."
+          ]
+        },
+        {
+          "title": "Manual replication focus",
+          "items": [
+            "Download the referenced sample and rebuild all listed derived columns before estimation.",
+            "Match the equation, regressors, covariance type, and sample filters exactly.",
+            "Compare the resulting table or figure object term by term with the result shown here."
+          ]
+        }
+      ],
+      "paper_outputs": [
+        "fit_summary_table",
+        "sample_audit_table",
+        "First-Difference Panel Regression residual diagnostic"
+      ]
+    },
+    "template_id": "",
+    "template_name": "",
+    "variant_label": "fd_endog",
+    "variant_spec": {},
+    "result_record_id": "8a214147-76f4-42bd-9378-8b433c959b73",
+    "result_detail_path": "/data-lab/results/models/8a214147-76f4-42bd-9378-8b433c959b73"
+  },
+  "workspace_id": "1127ef60-f949-49b8-b32e-bae8138f3568"
+}
