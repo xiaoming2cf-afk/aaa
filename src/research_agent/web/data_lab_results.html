@@ -1,0 +1,248 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Review the latest processing and model outputs, inspect charts, and export result packages."
+      data-i18n-content="Review the latest processing and model outputs, inspect charts, and export result packages."
+    />
+    <title data-i18n="Data Lab | Economic Research Platform">Data Lab | Economic Research Platform</title>
+    <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body class="page-data-lab page-data-lab-shell page-private-suite" data-page-template="data-lab-results">
+    <div class="page-bg"></div>
+
+    <header class="lab-app-bar">
+      <div class="lab-app-bar__inner">
+        <div>
+          <div class="lab-app-bar__meta">
+            <a href="/workspace" class="inline-link">Workspace</a>
+            <span class="status-pill status-pill--ready" id="data-lab-current-step-pill">Dataset</span>
+            <span class="mono-note" id="data-lab-app-workspace">No workspace selected</span>
+          </div>
+          <p class="eyebrow">Data Lab</p>
+          <h1 id="data-lab-app-title">Dataset workspace</h1>
+          <p class="lab-app-bar__copy" id="data-lab-app-copy">Latest outputs and exports.</p>
+        </div>
+        <div class="lab-app-bar__actions">
+          <a href="/workspace" class="button-link secondary-link">Workspace</a>
+          <a href="/data-lab/optimization" class="button-link">Optimization</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="lab-shell">
+      <aside class="lab-rail panel">
+        <div class="lab-rail__top">
+          <p class="eyebrow eyebrow-compact">Workbench</p>
+          <h2 id="data-lab-step-title">Dataset</h2>
+          <p class="muted" id="data-lab-step-copy">Review latest outputs.</p>
+        </div>
+        <nav class="lab-rail-nav" aria-label="Data Lab sections">
+          <a href="/data-lab" data-lab-shell-link="dataset">Dataset</a>
+          <a href="/data-lab/preparation" data-lab-shell-link="preparation">Preparation</a>
+          <a href="/data-lab/model" data-lab-shell-link="model">Model</a>
+          <a href="/data-lab/optimization" data-lab-shell-link="optimization">Optimization</a>
+          <a href="/data-lab/results" data-lab-shell-link="results">Results</a>
+          <a href="/data-lab/history" data-lab-shell-link="history">History</a>
+        </nav>
+        <div class="lab-rail__footer">
+          <a href="/data-lab/optimization" class="button-link secondary-link">Open optimization suite</a>
+          <a id="data-lab-run-link" href="#analysis-asset-select" class="button-link">Inspect dataset</a>
+        </div>
+      </aside>
+
+      <section class="lab-main">
+        <div class="lab-stage-content" id="data-lab-workbench">
+<section class="lab-stage-card panel" data-lab-stage="results">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <p class="eyebrow eyebrow-compact">Results</p>
+                <h2>Results</h2>
+                <p class="muted">Review latest outputs and exports.</p>
+              </div>
+            </div>
+            <div class="lab-stage-stack">
+              <div id="plot-preview-panel" class="plot-preview hidden">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <h3>Chart Preview</h3>
+                    <span class="muted" id="plot-preview-meta">No chart generated yet.</span>
+                  </div>
+                  <div class="actions">
+                    <button id="download-plot" type="button" class="secondary">Download chart</button>
+                  </div>
+                </div>
+                <div class="plot-preview__media">
+                  <img id="plot-preview-image" alt="Generated chart preview" />
+                </div>
+              </div>
+              <section class="result-output-card">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <h3>Latest Processing Result</h3>
+                    <span class="muted" id="prepare-result-meta">Waiting for sample preparation.</span>
+                  </div>
+                  <div class="actions">
+                    <a id="prepare-result-link" href="#" class="button-link secondary-link hidden">Open detail page</a>
+                  </div>
+                </div>
+                <div id="prepare-result-summary" class="card-list">
+                  <div class="card"><p>No prepared sample has been created in this session yet.</p></div>
+                </div>
+                <details class="result-json-toggle">
+                  <summary>Raw processing JSON</summary>
+                  <pre id="prepare-output" class="console-box">Waiting for sample preparation.</pre>
+                </details>
+              </section>
+              <section class="result-output-card">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <h3>Latest Model Result</h3>
+                    <span class="muted" id="analysis-result-meta">Waiting for model output.</span>
+                  </div>
+                  <div class="actions">
+                    <a id="analysis-result-link" href="#" class="button-link secondary-link hidden">Open detail page</a>
+                  </div>
+                </div>
+                <div id="analysis-result-summary" class="card-list">
+                  <div class="card"><p>No model has been run in this session yet.</p></div>
+                </div>
+                <details class="result-json-toggle">
+                  <summary>Raw model JSON</summary>
+                  <pre id="analysis-output" class="console-box">Waiting for model output.</pre>
+                </details>
+              </section>
+              <section class="result-output-card">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <h3>Workspace Data Assets</h3>
+                    <span class="muted">Reuse current assets.</span>
+                  </div>
+                </div>
+                <div id="asset-list" class="card-list"></div>
+              </section>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <aside class="lab-inspector">
+        <section class="panel lab-inspector-card" id="auth-panel">
+          <div class="module-session-panel__copy">
+            <div>
+              <h2 id="auth-panel-title">Workspace</h2>
+              <p class="muted" id="auth-panel-copy">Select a workspace.</p>
+            </div>
+            <div class="status-row">
+              <span class="pill" id="session-indicator">Signed out</span>
+              <span class="muted" id="user-summary">Sign in from the homepage to continue.</span>
+              <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
+            </div>
+          </div>
+          <div class="auth-grid workspace-auth-grid" id="auth-grid">
+            <div class="stack workspace-box workspace-box--read-only" id="workspace-box">
+              <h3>Workspace</h3>
+              <select id="workspace-select"></select>
+              <p class="muted">Keep this run in one workspace.</p>
+              <a href="/workspace" class="button-link secondary-link">Manage workspaces</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel lab-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Run Summary</h3>
+              <span class="muted">Current status.</span>
+            </div>
+          </div>
+          <div class="workflow-guide-grid lab-inspector-steps">
+            <article class="workflow-step-card" id="lab-step-access">
+              <span class="pill">Access</span>
+              <h4>Access workspace</h4>
+              <p class="muted" id="lab-step-access-text">Signed out</p>
+            </article>
+            <article class="workflow-step-card" id="lab-step-dataset">
+              <span class="pill">Dataset</span>
+              <h4>Inspect dataset</h4>
+              <p class="muted" id="lab-step-dataset-text">No dataset</p>
+            </article>
+            <article class="workflow-step-card" id="lab-step-workflow">
+              <span class="pill">Workflow</span>
+              <h4>Choose workflow</h4>
+              <p class="muted" id="lab-step-workflow-text">Choose a page</p>
+            </article>
+            <article class="workflow-step-card" id="lab-step-output">
+              <span class="pill">Output</span>
+              <h4>Review output</h4>
+              <p class="muted" id="lab-step-output-text">No result</p>
+            </article>
+          </div>
+          <div class="context-grid">
+            <p><strong>Access:</strong> <span id="lab-context-access">Signed out</span></p>
+            <p><strong>Workspace:</strong> <span id="lab-context-workspace">No workspace selected</span></p>
+            <p><strong>Dataset:</strong> <span id="lab-context-dataset">No dataset selected</span></p>
+            <p><strong>Workflow:</strong> <span id="lab-context-workflow">Data Processing</span></p>
+            <p><strong>Family:</strong> <span id="lab-context-family">Sample Preparation</span></p>
+            <p><strong>Model:</strong> <span id="lab-context-model">No model selected</span></p>
+          </div>
+          <div class="stack compact">
+            <label for="lab-case-select">Active case</label>
+            <select id="lab-case-select">
+              <option value="">No active case</option>
+            </select>
+            <p class="muted" id="lab-case-meta">Optional case link.</p>
+          </div>
+          <div class="actions compact-actions">
+            <span class="muted" id="lab-context-next-action">Sign in or select a workspace.</span>
+            <a id="lab-case-home-link" href="/knowledge-base" class="button-link secondary-link">Open case workspace</a>
+            <a id="lab-context-detail-link" href="/data-lab/processing/sample_preparation" class="button-link secondary-link">Open family detail</a>
+          </div>
+        </section>
+
+        <section class="panel lab-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Method Summary</h3>
+              <span class="muted">Current family and methods.</span>
+            </div>
+          </div>
+          <p class="eyebrow eyebrow-compact" id="lab-active-family-eyebrow">Data Processing Family</p>
+          <h3 id="lab-active-family-title">Sample Preparation</h3>
+          <p class="muted" id="lab-active-family-summary">Current family info.</p>
+          <div class="chip-row chip-row-compact" id="lab-active-family-methods"></div>
+          <div class="card-list card-list-inline" id="lab-active-family-checks"></div>
+          <div class="actions compact-actions">
+            <a id="lab-active-family-link" href="/data-lab/processing/sample_preparation" class="button-link secondary-link">Open method detail page</a>
+          </div>
+        </section>
+
+        <section class="panel lab-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Validation</h3>
+              <span class="muted">Current run setup.</span>
+            </div>
+          </div>
+          <p class="eyebrow eyebrow-compact">Current design</p>
+          <h4 id="lab-run-design-title">Select a workflow and family</h4>
+          <p class="muted" id="lab-run-design-copy">Inputs and outputs for this stage.</p>
+          <div class="chip-row chip-row-compact" id="lab-run-design-surfaces"></div>
+          <div id="lab-run-design-checks" class="card-list card-list-inline">
+            <div class="card"><p>Checks appear here.</p></div>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
+

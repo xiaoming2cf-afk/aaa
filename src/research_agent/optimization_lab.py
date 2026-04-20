@@ -109,6 +109,7 @@ MAX_ESTIMATED_EVALUATIONS = 5_000_000
 MIN_STANDARD_ALGORITHMS = 3
 MIN_STANDARD_FUNCTIONS = 3
 MIN_STANDARD_RUNS = 3
+INVALID_OBJECTIVE_PENALTY = 1.0e30
 _PYPLOT: Any | None = None
 
 
@@ -164,6 +165,13 @@ def _safe_float(value: Any, default: float = float("nan")) -> float:
         return default
 
 
+def _finite_or_default(value: Any, default: float) -> float:
+    numeric = _safe_float(value, default)
+    if not math.isfinite(numeric):
+        return float(default)
+    return float(numeric)
+
+
 def _ensure_array(value: Any, *, fallback: float, size: int) -> np.ndarray:
     array = np.asarray(value, dtype=float) if value is not None else np.asarray([], dtype=float)
     if array.size == 0:
@@ -189,10 +197,24 @@ def _get_optimizer_class(optimizer_name: str):
     return getattr(module, class_name)
 
 
-def _get_function_class(function_name: str):
-    from opfunu import ALL_DATABASE
+@lru_cache(maxsize=1)
+def _opfunu_all_database() -> tuple[tuple[str, Any], ...]:
+    # opfunu still imports pkg_resources in its CEC registry module, which emits a
+    # setuptools deprecation warning during import. Keep the filter scoped to that
+    # known import path so unrelated warnings still surface normally.
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message=r"pkg_resources is deprecated as an API\..*",
+            category=UserWarning,
+        )
+        module = importlib.import_module("opfunu")
+    rows = getattr(module, "ALL_DATABASE", ())
+    return tuple((str(name), cls) for name, cls in rows)
 
-    for name, cls in ALL_DATABASE:
+
+def _get_function_class(function_name: str):
+    for name, cls in _opfunu_all_database():
         if name == function_name:
             return cls
     raise KeyError(f"Unknown opfunu function: {function_name}")
@@ -402,9 +424,7 @@ def get_optimization_catalog() -> dict[str, Any]:
         )
 
     function_entries: list[dict[str, Any]] = []
-    from opfunu import ALL_DATABASE
-
-    for function_name, _cls in sorted(ALL_DATABASE, key=lambda item: item[0].lower()):
+    for function_name, _cls in sorted(_opfunu_all_database(), key=lambda item: item[0].lower()):
         if function_name in OPFUNU_ABSTRACT_NAMES:
             function_entries.append(
                 {
@@ -504,10 +524,20 @@ def _build_problem(function_name: str, requested_dimension: int) -> tuple[dict[s
     lb = _ensure_array(getattr(function, "lb", None), fallback=-100.0, size=dimension)
     ub = _ensure_array(getattr(function, "ub", None), fallback=100.0, size=dimension)
     bounds = FloatVar(lb=lb, ub=ub, name="x")
+    def _safe_objective(solution: Any) -> float:
+        try:
+            vector = np.asarray(solution, dtype=float)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                value = _safe_float(function.evaluate(vector))
+        except Exception:
+            return INVALID_OBJECTIVE_PENALTY
+        return _finite_or_default(value, INVALID_OBJECTIVE_PENALTY)
+
     problem = {
         "bounds": bounds,
         "minmax": "min",
-        "obj_func": function.evaluate,
+        "obj_func": _safe_objective,
     }
     info = {
         "name": function_name,
@@ -531,11 +561,17 @@ def _run_single_optimization_task(task: dict[str, Any]) -> dict[str, Any]:
         problem, function_info = _build_problem(function_name, requested_dimension)
         optimizer, optimizer_kwargs = _instantiate_optimizer(optimizer_name, epoch=epoch, pop_size=pop_size, seed=seed)
         result = optimizer.solve(problem, mode="single")
-        history = [float(value) for value in getattr(optimizer.history, "list_global_best_fit", [])]
+        history_values = getattr(optimizer.history, "list_global_best_fit", [])
+        history = [_finite_or_default(value, INVALID_OBJECTIVE_PENALTY) for value in history_values]
         best_vector = np.asarray(result.solution, dtype=float).tolist() if getattr(result, "solution", None) is not None else []
-        best_fitness = _safe_float(getattr(getattr(result, "target", None), "fitness", float("nan")))
+        best_fitness = _finite_or_default(getattr(getattr(result, "target", None), "fitness", float("nan")), float("nan"))
         if math.isnan(best_fitness):
-            best_fitness = _safe_float(getattr(getattr(getattr(optimizer, "g_best", None), "target", None), "fitness", float("nan")))
+            best_fitness = _finite_or_default(
+                getattr(getattr(getattr(optimizer, "g_best", None), "target", None), "fitness", float("nan")),
+                float("nan"),
+            )
+        if math.isnan(best_fitness):
+            best_fitness = min(history) if history else INVALID_OBJECTIVE_PENALTY
         return {
             "optimizer_name": optimizer_name,
             "function_name": function_name,
@@ -1195,13 +1231,20 @@ def build_optimization_result_detail(db: Session, *, user: User, record_id: str)
     if metadata.get("workflow_type") != "optimization":
         raise ValueError("This knowledge record is not an optimization result.")
     artifacts = metadata.get("artifacts", {}) if isinstance(metadata.get("artifacts"), dict) else {}
+    result_detail_path = metadata.get("result_detail_path") or f"/data-lab/results/optimization/{record.id}"
     return _sanitize_json_payload({
         "record": serialize_knowledge_record(record),
         "result": {
             **metadata,
             "workflow_type": "optimization",
             "result_record_id": record.id,
-            "result_detail_path": metadata.get("result_detail_path") or f"/data-lab/results/optimization/{record.id}",
+            "result_detail_path": result_detail_path,
+            "detail_path": result_detail_path,
+            "status": "ready",
+            "reason": "Optimization result is ready for review.",
+            "next_action": "open_detail",
+            "template_source": metadata.get("template_name") or metadata.get("template_id") or "",
+            "variant_source": metadata.get("variant_label") or ("custom" if isinstance(metadata.get("variant_spec"), dict) and metadata.get("variant_spec") else ""),
             "artifacts": artifacts,
         },
         "workspace_id": record.workspace_id,
@@ -1217,5 +1260,11 @@ def serialize_optimization_result_list(rows: list[KnowledgeRecord]) -> list[dict
         item["summary"] = metadata.get("summary", {})
         item["suite_label"] = metadata.get("suite_label", row.title)
         item["result_detail_path"] = metadata.get("result_detail_path", f"/data-lab/results/optimization/{row.id}")
+        item["detail_path"] = item["result_detail_path"]
+        item["status"] = "ready"
+        item["reason"] = "Optimization result is ready for review."
+        item["next_action"] = "open_detail"
+        item["template_source"] = metadata.get("template_name") or metadata.get("template_id") or ""
+        item["variant_source"] = metadata.get("variant_label") or ("custom" if isinstance(metadata.get("variant_spec"), dict) and metadata.get("variant_spec") else "")
         items.append(item)
     return items

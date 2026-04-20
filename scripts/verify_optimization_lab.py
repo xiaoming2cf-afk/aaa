@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import shutil
 import sys
 import tempfile
@@ -9,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi.testclient import TestClient
+from session_auth import same_origin_headers, session_token_from_cookies
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -32,6 +34,14 @@ def _write_json(path: Path, payload: Any) -> None:
 def _write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+def _is_nonfinite_fitness(result: dict[str, Any]) -> bool:
+    value = result.get("best_fitness")
+    try:
+        return not math.isfinite(float(value))
+    except Exception:
+        return True
 
 
 def _run_tasks(tasks: list[dict[str, Any]], max_workers: int = 12) -> list[dict[str, Any]]:
@@ -66,12 +76,7 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
     temp_root = Path(tempfile.mkdtemp(prefix="erp-optimization-lab-verify-"))
     configure_test_environment(temp_root)
 
-    from research_agent.optimization_lab import (
-        DEFAULT_FUNCTIONS,
-        DEFAULT_OPTIMIZERS,
-        MEALPY_DISABLED_OPTIMIZERS,
-        get_optimization_catalog,
-    )
+    from research_agent.optimization_lab import MEALPY_DISABLED_OPTIMIZERS
     from research_agent.webapp import create_app
 
     client = TestClient(create_app())
@@ -88,20 +93,26 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
 
         register = client.post(
             "/api/auth/register",
+            headers=same_origin_headers("http://testserver"),
             json={"full_name": "Optimization Reviewer", "email": "optimizer@example.com", "password": "StrongPass123!"},
         )
         register.raise_for_status()
-        token = register.json()["session_token"]
+        token = session_token_from_cookies(client)
         workspace_id = create_workspace(client, token, "Optimization Verification")
 
-        data_lab_page = client.get("/data-lab", headers={**remote_headers, **auth_headers(token)})
-        data_lab_page.raise_for_status()
-        if "Optimization Module" not in data_lab_page.text:
-            raise AssertionError("Data Lab page is missing the embedded Optimization Module")
-        if "Catalog Explorer" not in data_lab_page.text:
-            raise AssertionError("Optimization Module is missing the catalog explorer section")
-        if "Validation &amp; Export" not in data_lab_page.text and "Validation & Export" not in data_lab_page.text:
-            raise AssertionError("Optimization Module is missing the validation/export section")
+        optimization_page = client.get("/data-lab/optimization", headers={**remote_headers, **auth_headers(token)})
+        optimization_page.raise_for_status()
+        optimization_html = optimization_page.text
+        required_optimization_ids = [
+            'id="optimization-health-status"',
+            'id="optimization-catalog-explorer"',
+            'id="optimization-validation-export-board"',
+            'id="optimization-results-list"',
+            'id="optimization-suite-form"',
+        ]
+        for element_id in required_optimization_ids:
+            if element_id not in optimization_html:
+                raise AssertionError(f"Optimization workbench is missing required shell anchor: {element_id}")
 
         catalog_response = client.get("/api/optimization/catalog", headers={**remote_headers, **auth_headers(token)})
         catalog_response.raise_for_status()
@@ -117,11 +128,17 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
 
         available_optimizers = [item["name"] for item in catalog["optimizers"] if item["availability"]["status"] == "available"]
         available_functions = [item["name"] for item in catalog["functions"] if item["availability"]["status"] == "available"]
+        baseline_optimizers = catalog["defaults"]["optimizers"] or available_optimizers
+        baseline_functions = catalog["defaults"]["functions"] or available_functions
+        if len(baseline_optimizers) < 3 or len(baseline_functions) < 3:
+            raise AssertionError("Optimization catalog defaults regressed below the minimum standard verification set")
+        default_optimizer = baseline_optimizers[0]
+        default_function = baseline_functions[0]
 
         optimizer_health_tasks = [
             {
                 "optimizer_name": optimizer_name,
-                "function_name": DEFAULT_FUNCTIONS[0],
+                "function_name": default_function,
                 "run_index": 1,
                 "seed": 100_000 + index,
                 "epoch": 5,
@@ -131,7 +148,7 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
             for index, optimizer_name in enumerate(available_optimizers, start=1)
         ]
         optimizer_health_results = _run_tasks(optimizer_health_tasks, max_workers=12)
-        optimizer_failures = [item for item in optimizer_health_results if item["status"] != "ok"]
+        optimizer_failures = [item for item in optimizer_health_results if item["status"] != "ok" or _is_nonfinite_fitness(item)]
         if optimizer_failures:
             raise AssertionError(
                 f"{len(optimizer_failures)} available optimizers failed the smoke solve: "
@@ -140,7 +157,7 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
 
         function_health_tasks = [
             {
-                "optimizer_name": DEFAULT_OPTIMIZERS[0],
+                "optimizer_name": default_optimizer,
                 "function_name": function_name,
                 "run_index": 1,
                 "seed": 200_000 + index,
@@ -151,7 +168,7 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
             for index, function_name in enumerate(available_functions, start=1)
         ]
         function_health_results = _run_tasks(function_health_tasks, max_workers=12)
-        function_failures = [item for item in function_health_results if item["status"] != "ok"]
+        function_failures = [item for item in function_health_results if item["status"] != "ok" or _is_nonfinite_fitness(item)]
         if function_failures:
             raise AssertionError(
                 f"{len(function_failures)} benchmark functions failed the smoke solve: "
@@ -160,8 +177,8 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
 
         small_suite_payload = {
             "suite_label": "Small Suite Should Fail",
-            "optimizer_names": DEFAULT_OPTIMIZERS[:2],
-            "function_names": DEFAULT_FUNCTIONS[:2],
+            "optimizer_names": baseline_optimizers[:2],
+            "function_names": baseline_functions[:2],
             "dimension": 20,
             "epoch": 6,
             "pop_size": 16,
@@ -181,8 +198,8 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
 
         standard_suite_payload = {
             "suite_label": "Monte Carlo Optimization Standard Suite",
-            "optimizer_names": DEFAULT_OPTIMIZERS[:3],
-            "function_names": DEFAULT_FUNCTIONS[:3],
+            "optimizer_names": baseline_optimizers[:3],
+            "function_names": baseline_functions[:3],
             "dimension": 30,
             "epoch": 10,
             "pop_size": 20,
@@ -242,7 +259,19 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
         if not all(any(hint in title.lower() for title in figure_titles) for hint in expected_figure_hints):
             raise AssertionError(f"Optimization figures are missing expected outputs: {sorted(figure_titles)}")
 
-        table_names = {table.get("filename", "").lower() for table in table_assets}
+        table_names = {
+            " ".join(
+                filter(
+                    None,
+                    [
+                        str(table.get("title", "")).lower(),
+                        str(table.get("description", "")).lower(),
+                        str(table.get("filename", "")).lower(),
+                    ],
+                )
+            )
+            for table in table_assets
+        }
         required_table_fragments = ["friedman", "wilcoxon", "sign-test", "ranks", "curves", "runs"]
         if not all(any(fragment in name for name in table_names) for fragment in required_table_fragments):
             raise AssertionError(f"Optimization tables are missing expected exports: {sorted(table_names)}")
@@ -252,11 +281,20 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
             headers={**remote_headers, **auth_headers(token)},
         )
         result_page.raise_for_status()
-        if "Optimization Result" not in result_page.text and "Optimization Suite" not in result_page.text:
-            raise AssertionError("Optimization result page failed to render")
+        required_result_ids = [
+            'id="optimization-result-title"',
+            'id="optimization-result-snapshot-card"',
+            'id="optimization-result-assets-card"',
+            'id="optimization-result-tables-card"',
+            'id="optimization-result-figures-card"',
+            'id="optimization-result-raw-card"',
+        ]
+        for element_id in required_result_ids:
+            if element_id not in result_page.text:
+                raise AssertionError(f"Optimization result page is missing required shell anchor: {element_id}")
 
         if output_dir:
-            _write_text(output_dir / "pages" / "data_lab.html", data_lab_page.text)
+            _write_text(output_dir / "pages" / "optimization_lab.html", optimization_page.text)
             _write_text(output_dir / "pages" / "optimization_result.html", result_page.text)
             _write_json(output_dir / "catalog_summary.json", catalog)
             _write_json(output_dir / "small_suite_error.json", {"detail": small_suite_error})
@@ -268,6 +306,7 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
                     "tested_optimizer_count": len(optimizer_health_results),
                     "disabled_optimizer_count": len(MEALPY_DISABLED_OPTIMIZERS),
                     "disabled_optimizers": MEALPY_DISABLED_OPTIMIZERS,
+                    "baseline_function": default_function,
                     "results": optimizer_health_results,
                 },
             )
@@ -275,6 +314,7 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
                 output_dir / "function_health_sweep.json",
                 {
                     "tested_function_count": len(function_health_results),
+                    "baseline_optimizer": default_optimizer,
                     "results": function_health_results,
                 },
             )
@@ -290,12 +330,12 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
             "optimizer_health": {
                 "tested": len(optimizer_health_results),
                 "failed": len(optimizer_failures),
-                "default_function": DEFAULT_FUNCTIONS[0],
+                "default_function": default_function,
             },
             "function_health": {
                 "tested": len(function_health_results),
                 "failed": len(function_failures),
-                "default_optimizer": DEFAULT_OPTIMIZERS[0],
+                "default_optimizer": default_optimizer,
             },
             "small_suite_error": small_suite_error,
             "standard_suite": {

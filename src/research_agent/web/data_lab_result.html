@@ -3,54 +3,53 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Data Lab Result | Economic Research Platform</title>
+    <meta
+      name="description"
+      content="Read a Data Lab result package, review metrics and narrative output, and export supporting artifacts."
+      data-i18n-content="Read a Data Lab result package, review metrics and narrative output, and export supporting artifacts."
+    />
+    <title data-i18n="Data Lab Result | Economic Research Platform">Data Lab Result | Economic Research Platform</title>
     <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
-  <body>
+  <body class="page-private-suite page-data-lab-result">
     <div class="page-bg"></div>
-    <header class="hero">
-      <div>
-        <p class="eyebrow" id="lab-result-eyebrow">Data Lab Result</p>
-        <h1 id="lab-result-title">Loading result...</h1>
-        <p class="hero-copy" id="lab-result-summary">
-          This page exposes the result itself, the specification, the prepared sample reference, and the manual checklist.
-        </p>
-      </div>
-      <div class="hero-meta">
-        <div class="meta-card">
-          <span>Result type</span>
-          <strong id="lab-result-type">Loading...</strong>
+
+    <header class="suite-page-head">
+      <div class="suite-page-head__inner">
+        <div class="suite-page-head__copy">
+          <div class="suite-page-head__meta">
+            <a href="/data-lab" class="inline-link">Data Lab</a>
+            <span class="status-pill status-pill--ready">Private result</span>
+          </div>
+          <p class="eyebrow" id="lab-result-eyebrow">Data Lab Result</p>
+          <h1 id="lab-result-title">Loading result...</h1>
+          <p class="suite-page-head__summary" id="lab-result-summary">
+            Result detail stays traceable here with metrics, specification, audit notes, figures, and export routes.
+          </p>
         </div>
-        <div class="meta-card">
-          <span>Transparency</span>
-          <strong>Raw JSON included</strong>
+        <div class="suite-page-kpis">
+          <article class="suite-page-kpi">
+            <span>Result type</span>
+            <strong id="lab-result-type">Loading...</strong>
+          </article>
+          <article class="suite-page-kpi">
+            <span>Audit posture</span>
+            <strong>Raw JSON included</strong>
+          </article>
         </div>
       </div>
     </header>
 
-    <main class="shell public-shell">
-      <section class="panel platform-nav-panel">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2>Platform Navigation</h2>
-            <p class="muted">Only navigation stays open on public hosts before login. Use these links to move back to the main workspace or other standalone tools.</p>
-          </div>
-        </div>
-        <div class="platform-nav-grid">
-          <a class="platform-nav-card" href="/"><span class="eyebrow eyebrow-compact">Main</span><h3>Main Platform</h3><p>Return to sign-in, Provider Center, Paper Library, and the private workspace cockpit.</p></a>
-          <a class="platform-nav-card" href="/data-lab"><span class="eyebrow eyebrow-compact">Standalone</span><h3>Data Lab</h3><p>Go back to the main Data Lab workbench.</p></a>
-          <a class="platform-nav-card" href="/data-lab#optimization-module"><span class="eyebrow eyebrow-compact">Module</span><h3>Optimization Module</h3><p>Open the optimization benchmark workspace inside Data Lab.</p></a>
-          <a class="platform-nav-card" href="/public-monitor"><span class="eyebrow eyebrow-compact">Public</span><h3>Public Daily Monitor</h3><p>Open the macro monitor surface.</p></a>
-        </div>
-      </section>
-
+    <main class="suite-page-shell">
       <section class="panel access-gate-panel hidden" id="access-gate-panel" data-access-gate>
         <div class="access-gate-card">
           <p class="eyebrow eyebrow-compact" id="access-gate-eyebrow">Access Control</p>
           <h2 id="access-gate-title">Sign in to unlock result details</h2>
           <p class="muted" id="access-gate-copy">
-            On public hosts, only Platform Navigation stays open before login. Sign in on the main platform, then reopen this result page.
+            On public hosts, sign in on the main platform first, then reopen this result page in the same browser session.
           </p>
           <div class="actions compact-actions" id="access-gate-actions">
             <a href="/" class="button-link">Go to sign-in</a>
@@ -58,115 +57,125 @@
         </div>
       </section>
 
-      <section class="panel public-toolbar access-guarded">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2 id="lab-result-heading">Result Detail</h2>
-            <p class="muted" id="lab-result-description">
-              This page is private. Sign in with the same browser session used in Data Lab to inspect the result.
-            </p>
-          </div>
-          <div class="actions">
-            <a href="/data-lab" class="button-link secondary-link">Back to Data Lab</a>
-            <a href="/data-lab" id="lab-result-workbench-link" class="button-link">Open workbench</a>
-          </div>
+      <section class="panel suite-page-toolbar access-guarded">
+        <div>
+          <p class="eyebrow eyebrow-compact">Result Document</p>
+          <h2 id="lab-result-heading">Result Detail</h2>
+          <p class="muted" id="lab-result-description">
+            Open the exact workbench context, review the result, and export only after the audit trail is clear.
+          </p>
+        </div>
+        <div class="actions actions-wrap">
+          <a href="/data-lab" class="button-link secondary-link">Back to Data Lab</a>
+          <a href="/workspace" class="button-link secondary-link">Workspace</a>
+          <a href="/data-lab" id="lab-result-workbench-link" class="button-link">Open workbench</a>
         </div>
       </section>
 
-      <section class="panel public-section access-guarded">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h3>Result Snapshot</h3>
-            <span class="muted">A quick read of what this result is, what it produced, and which surfaces you can open next.</span>
-          </div>
-        </div>
-        <div id="lab-result-snapshot" class="snapshot-grid">
-          <article class="snapshot-card">
-            <span>Loading...</span>
-            <strong>Result summary</strong>
-            <p>The snapshot cards will appear once the result is loaded.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="panel public-section access-guarded">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h3>Action Deck</h3>
-            <span class="muted">Move from the result to the workbench, prepared sample, figures, or the main workspace.</span>
-          </div>
-        </div>
-        <div id="lab-result-actions" class="action-deck-grid">
-          <article class="action-deck-card">
-            <h4>Loading actions...</h4>
-            <p>The action deck will appear after the result loads.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="panel public-section access-guarded">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h3>Export & Reuse Board</h3>
-            <span class="muted">Bundle downloads, verification anchors, and workspace routes into one surface before you leave the page.</span>
-          </div>
-        </div>
-        <div id="lab-result-export-board" class="guide-grid">
-          <article class="guide-card">
-            <p class="eyebrow eyebrow-compact">Loading</p>
-            <h4>Export package</h4>
-            <p>The export and reuse board will appear once the result loads.</p>
-          </article>
-        </div>
-      </section>
-
-      <div class="public-layout access-guarded">
-        <aside class="panel public-sidebar">
-          <div class="stack">
-            <div>
-              <p class="eyebrow eyebrow-compact">Navigate</p>
-              <h3>Result Detail</h3>
-            </div>
-            <nav class="public-section-nav">
+      <div class="suite-page-layout access-guarded">
+        <aside class="panel suite-page-sidebar">
+          <div class="suite-page-sidebar__block">
+            <p class="eyebrow eyebrow-compact">Navigate</p>
+            <h3>Result sections</h3>
+            <nav class="suite-page-sidebar__nav">
               <a href="#lab-result-metrics-card">Metrics</a>
               <a href="#lab-result-interpretation-card">Interpretation</a>
               <a href="#lab-result-specification-card">Specification</a>
               <a href="#lab-result-audit-card">Audit trail</a>
+              <a href="#lab-result-gallery-card">Figures</a>
               <a href="#lab-result-raw-card">Raw JSON</a>
             </nav>
-            <div class="public-sidebar-note">
-              <p class="muted">
-                If this page fails to load, sign in on the standalone Data Lab page first and open the result again.
-              </p>
+          </div>
+          <div class="suite-page-sidebar__block">
+            <p class="eyebrow eyebrow-compact">Routes</p>
+            <div class="suite-page-route-list">
+              <a href="/data-lab">Data Lab</a>
+              <a href="/workspace">Workspace hub</a>
+              <a href="/knowledge-base">Knowledge base</a>
+              <a href="/public-monitor">Public monitor</a>
             </div>
+          </div>
+          <div class="suite-page-note">
+            <p class="muted">This page is a private result record. Treat it as the canonical place to validate and export the run.</p>
           </div>
         </aside>
 
-        <section class="public-main">
-          <article class="panel public-section" id="lab-result-metrics-card">
+        <section class="suite-page-main">
+          <section class="suite-page-band">
+            <article class="panel suite-page-section" id="lab-result-snapshot-card">
+              <div class="panel-head panel-head-wrap">
+                <div>
+                  <p class="eyebrow eyebrow-compact">Snapshot</p>
+                  <h3>Result overview</h3>
+                </div>
+              </div>
+              <div id="lab-result-snapshot" class="snapshot-grid">
+                <article class="snapshot-card">
+                  <span>Loading...</span>
+                  <strong>Result summary</strong>
+                  <p>The snapshot view will appear once the result is loaded.</p>
+                </article>
+              </div>
+            </article>
+
+            <div class="suite-page-stack">
+              <article class="panel suite-page-section" id="lab-result-actions-card">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <p class="eyebrow eyebrow-compact">Actions</p>
+                    <h3>Continue or export</h3>
+                  </div>
+                </div>
+                <div id="lab-result-actions" class="action-deck-grid">
+                  <article class="action-deck-card">
+                    <h4>Loading actions...</h4>
+                    <p>Continuation routes will appear after the result loads.</p>
+                  </article>
+                </div>
+              </article>
+
+              <article class="panel suite-page-section" id="lab-result-export-card">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <p class="eyebrow eyebrow-compact">Export</p>
+                    <h3>Reuse board</h3>
+                  </div>
+                </div>
+                <div id="lab-result-export-board" class="guide-grid">
+                  <article class="guide-card">
+                    <p class="eyebrow eyebrow-compact">Loading</p>
+                    <h4>Export package</h4>
+                    <p>The reuse board will appear once the result loads.</p>
+                  </article>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <article class="panel suite-page-section" id="lab-result-metrics-card">
             <div class="panel-head">
               <h3>Metrics & Narrative</h3>
-              <span class="muted">Headline interpretation and result summary.</span>
+              <span class="muted">Headline takeaways from the run.</span>
             </div>
             <div id="lab-result-metrics" class="card-list">
               <div class="card"><p>Loading result metrics...</p></div>
             </div>
           </article>
 
-          <article class="panel public-section" id="lab-result-interpretation-card">
+          <article class="panel suite-page-section" id="lab-result-interpretation-card">
             <div class="panel-head">
-              <h3>Interpretation & Replication</h3>
-              <span class="muted">How to read the result, what a paper should show, and how to verify it manually.</span>
+              <h3>Interpretation</h3>
+              <span class="muted">Reading notes, replication anchors, and paper-facing framing.</span>
             </div>
             <div id="lab-result-interpretation" class="card-list">
               <div class="card"><p>Loading interpretation...</p></div>
             </div>
           </article>
 
-          <article class="panel public-section" id="lab-result-specification-card">
+          <article class="panel suite-page-section" id="lab-result-specification-card">
             <div class="panel-head">
               <h3>Specification</h3>
-              <span class="muted">The exact design you should reproduce manually.</span>
+              <span class="muted">The exact design and structured tables behind the run.</span>
             </div>
             <div id="lab-result-specification" class="card-list">
               <div class="card"><p>Loading specification...</p></div>
@@ -174,10 +183,10 @@
             <div id="lab-result-tables" class="card-list"></div>
           </article>
 
-          <article class="panel public-section" id="lab-result-audit-card">
+          <article class="panel suite-page-section" id="lab-result-audit-card">
             <div class="panel-head">
-              <h3>Audit Trail & Downloads</h3>
-              <span class="muted">Prepared sample references, downloads, and manual checklists.</span>
+              <h3>Audit Trail</h3>
+              <span class="muted">Prepared sample references, validation notes, and output packaging.</span>
             </div>
             <div id="lab-result-audit" class="card-list">
               <div class="card"><p>Loading audit trail...</p></div>
@@ -185,20 +194,20 @@
             <div id="lab-result-preview" class="card-list"></div>
           </article>
 
-          <article class="panel public-section" id="lab-result-gallery-card">
+          <article class="panel suite-page-section" id="lab-result-gallery-card">
             <div class="panel-head">
-              <h3>Visual Output Gallery</h3>
-              <span class="muted">Figures and chart outputs are rendered here separately from the raw audit section.</span>
+              <h3>Figures</h3>
+              <span class="muted">Rendered charts and visual output from the result package.</span>
             </div>
             <div id="lab-result-gallery" class="card-list">
               <div class="card"><p>Loading figures...</p></div>
             </div>
           </article>
 
-          <article class="panel public-section" id="lab-result-raw-card">
+          <article class="panel suite-page-section" id="lab-result-raw-card">
             <div class="panel-head">
               <h3>Raw Result JSON</h3>
-              <span class="muted">Nothing is hidden; the raw payload is included below.</span>
+              <span class="muted">No hidden transformation layer; the raw payload is included below.</span>
             </div>
             <pre id="lab-result-raw" class="console-box">Loading raw JSON...</pre>
           </article>
@@ -209,4 +218,4 @@
     <div id="toast" class="toast hidden"></div>
     <script src="/assets/app.js" defer></script>
   </body>
-  </html>
+</html>

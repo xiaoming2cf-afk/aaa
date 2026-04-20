@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 from fastapi.testclient import TestClient
+from session_auth import same_origin_headers, session_token_from_cookies
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -271,10 +272,11 @@ def main() -> None:
 
         register = client.post(
             "/api/auth/register",
+            headers=same_origin_headers("http://testserver"),
             json={"full_name": "Monte Carlo Verifier", "email": "montecarlo@example.com", "password": "StrongPass123!"},
         )
         register.raise_for_status()
-        token = register.json()["session_token"]
+        token = session_token_from_cookies(client)
         workspace_id = create_workspace(client, token, "Monte Carlo Lab")
         report["workspace_id"] = workspace_id
 

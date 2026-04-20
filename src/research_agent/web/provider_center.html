@@ -1,88 +1,26 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Provider Center | Economic Research Platform</title>
+    <title>Provider Center Unavailable</title>
     <link rel="icon" href="/favicon.ico" />
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
   <body class="page-module">
-    <div class="page-bg"></div>
-
-    <header class="module-header">
-      <div class="module-header__inner">
-        <div>
-          <p class="eyebrow">Provider Center</p>
-          <h1>Connect model and data providers.</h1>
-          <p class="module-header__copy">Save private connections for LLMs, compatible gateways, and data sources inside the current workspace.</p>
-        </div>
-        <nav class="module-header__nav" aria-label="Module navigation">
-          <a href="/workspace">Workspace</a>
-          <a href="/data-lab">Data Lab</a>
-          <a href="/paper-library">Paper Library</a>
-        </nav>
-      </div>
-    </header>
-
-    <main class="shell module-shell">
-      <section class="panel module-session-panel" id="auth-panel">
-        <div class="module-session-panel__copy">
-          <div>
-            <h2 id="auth-panel-title">Private workspace session</h2>
-            <p class="muted" id="auth-panel-copy">Connections are stored privately inside the selected workspace.</p>
-          </div>
-          <div class="status-row">
-            <span class="pill" id="session-indicator">Signed out</span>
-            <span class="muted" id="user-summary">Sign in from the homepage to continue.</span>
-            <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
-          </div>
-        </div>
-        <div class="auth-grid workspace-auth-grid" id="auth-grid">
-          <div class="stack workspace-box workspace-box--read-only" id="workspace-box">
-            <h3>Workspace</h3>
-            <select id="workspace-select"></select>
-            <p class="muted">Switch the active workspace here. Create or manage workspaces from the private workspace hub.</p>
-            <a href="/workspace" class="button-link secondary-link">Manage workspaces</a>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel module-panel">
+    <main style="max-width: 760px; margin: 96px auto; padding: 24px;">
+      <section class="panel">
         <div class="panel-head">
-          <h2>Provider connections</h2>
-          <span class="muted">OpenAI, DeepSeek, Gemini, Anthropic, Kimi, OpenAI-compatible, and FRED</span>
-        </div>
-        <form id="integration-form" class="stack">
-          <input name="label" type="text" placeholder="Connection label" required />
-          <div class="split">
-            <select name="category">
-              <option value="llm">LLM</option>
-              <option value="data_source">Data Source</option>
-            </select>
-            <select name="kind">
-              <option value="openai">OpenAI</option>
-              <option value="deepseek">DeepSeek</option>
-              <option value="gemini">Gemini</option>
-              <option value="anthropic">Anthropic</option>
-              <option value="kimi">Kimi (Moonshot AI)</option>
-              <option value="openai_compatible">OpenAI Compatible</option>
-              <option value="fred">FRED</option>
-            </select>
+          <div>
+            <p class="eyebrow">Disabled Surface</p>
+            <h1>Provider Center is unavailable</h1>
+            <p class="muted">
+              Runtime provider management is not part of the current product scope.
+              Use Research, Knowledge, Team Library, and Quality instead.
+            </p>
           </div>
-          <input name="model" type="text" placeholder="Default model (optional)" />
-          <input name="base_url" type="text" placeholder="Base URL for compatible providers" />
-          <input name="api_key" type="password" placeholder="API key" required />
-          <div id="integration-provider-hint" class="muted compact-note"></div>
-          <a id="integration-provider-docs" class="inline-link" href="#" target="_blank" rel="noreferrer" hidden>Open official docs</a>
-          <label class="checkbox"><input name="is_default" type="checkbox" /> Set as default connection</label>
-          <button type="submit">Save connection</button>
-        </form>
-        <div id="integration-list" class="card-list"></div>
+        </div>
       </section>
     </main>
-
-    <div id="toast" class="toast hidden"></div>
-    <script src="/assets/app.js" defer></script>
   </body>
 </html>

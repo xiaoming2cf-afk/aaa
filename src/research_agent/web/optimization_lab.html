@@ -3,34 +3,46 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Data Lab Optimization | Economic Research Platform</title>
+    <meta
+      name="description"
+      content="Run optimization suites, review validation settings, and inspect result history for the active workspace."
+      data-i18n-content="Run optimization suites, review validation settings, and inspect result history for the active workspace."
+    />
+    <title data-i18n="Data Lab Optimization | Economic Research Platform">Data Lab Optimization | Economic Research Platform</title>
     <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
-  <body class="page-optimization">
+  <body class="page-optimization page-private-suite">
     <div class="page-bg"></div>
 
-    <header class="lab-app-bar">
-      <div class="lab-app-bar__inner">
-        <div>
-          <p class="eyebrow">Data Lab</p>
+    <header class="suite-page-head suite-page-head--module">
+      <div class="suite-page-head__inner">
+        <div class="suite-page-head__copy">
+          <div class="suite-page-head__meta">
+            <a href="/data-lab" class="inline-link">Data Lab</a>
+            <span class="status-pill status-pill--ready">Optimization</span>
+          </div>
+          <p class="eyebrow">Optimization Lab</p>
           <h1>Optimization Suite</h1>
-          <p class="lab-app-bar__copy">Parallel benchmark suites across Mealpy optimizers and Opfunu test functions, inside the Data Lab workflow.</p>
+          <p class="suite-page-head__summary">Build, benchmark, and reopen optimization suites with a lighter private workbench and a clearer export path.</p>
         </div>
-        <div class="lab-app-bar__actions">
+        <div class="suite-page-head__actions">
           <a href="/data-lab" class="button-link secondary-link">Back to Data Lab</a>
+          <a href="/workspace" class="button-link secondary-link">Workspace</a>
           <button id="optimization-defaults-button" type="button" class="button-link">Use defaults</button>
         </div>
       </div>
     </header>
 
-    <main class="optimization-shell">
-      <aside class="optimization-sidebar panel">
-        <section class="lab-inspector-card">
+    <main class="optimization-shell optimization-shell--editorial">
+      <aside class="optimization-sidebar panel suite-page-sidebar">
+        <section class="lab-inspector-card optimization-panel" id="auth-panel" data-auth-panel>
           <div class="module-session-panel__copy">
             <div>
-              <h2 id="auth-panel-title">Private workspace session</h2>
-              <p class="muted" id="auth-panel-copy">Optimization outputs stay inside the selected workspace.</p>
+              <h2 id="auth-panel-title">Workspace</h2>
+              <p class="muted" id="auth-panel-copy">Optimization outputs stay in the active workspace and reopen from there.</p>
             </div>
             <div class="status-row">
               <span class="pill" id="session-indicator">Signed out</span>
@@ -42,22 +54,22 @@
             <div class="stack workspace-box workspace-box--read-only" id="workspace-box">
               <h3>Workspace</h3>
               <select id="workspace-select"></select>
-              <p class="muted">Switch the active workspace here. Create or manage workspaces from the private workspace hub.</p>
+              <p class="muted">Switch the active workspace here. Create or manage workspaces from the workspace hub.</p>
               <a href="/workspace" class="button-link secondary-link">Manage workspaces</a>
             </div>
           </div>
         </section>
 
-        <section class="panel lab-inspector-card">
+        <section class="panel lab-inspector-card optimization-panel">
           <div class="panel-head panel-head-wrap">
             <div>
-              <h3>Status</h3>
-              <span class="muted">Catalog health and strict suite rules.</span>
+              <p class="eyebrow eyebrow-compact">Status</p>
+              <h3>Catalog and rules</h3>
             </div>
           </div>
           <div class="context-grid">
             <p><strong>Catalog:</strong> <span id="optimization-health-status">Loading latest edition</span></p>
-            <p><strong>Mode:</strong> <span>Basic by default</span></p>
+            <p><strong>Mode:</strong> <span>Builder</span></p>
           </div>
           <div id="optimization-snapshot-grid" class="snapshot-grid">
             <article class="snapshot-card">
@@ -69,11 +81,11 @@
           <div id="optimization-suite-requirements" class="stack"></div>
         </section>
 
-        <section class="panel lab-inspector-card">
+        <section class="panel lab-inspector-card optimization-panel">
           <div class="panel-head panel-head-wrap">
             <div>
-              <h3>Catalog Explorer</h3>
-              <span class="muted">Searchable grouped explorer instead of raw catalog tables.</span>
+              <p class="eyebrow eyebrow-compact">Explorer</p>
+              <h3>Catalog browser</h3>
             </div>
           </div>
           <div id="optimization-catalog-explorer" class="card-list card-list-inline">
@@ -83,23 +95,41 @@
       </aside>
 
       <section class="optimization-main">
-        <section class="panel optimization-stage">
+        <section class="panel optimization-stage optimization-stage--editorial">
           <div class="panel-head panel-head-wrap">
             <div>
-              <p class="eyebrow eyebrow-compact">Basic mode</p>
-              <h2>Suite Builder</h2>
-              <p class="muted">Choose algorithms, benchmark functions, and run settings. Advanced configuration stays collapsed until needed.</p>
+              <p class="eyebrow eyebrow-compact">Builder</p>
+              <h2>Suite design</h2>
+              <p class="muted">Choose algorithms, benchmark functions, and run settings without losing sight of the current workspace and export requirements.</p>
             </div>
           </div>
 
           <form id="optimization-suite-form" class="stack">
-            <div class="form-grid">
-              <input id="optimization-suite-label" name="suite_label" type="text" value="Optimization Suite" placeholder="Suite label" required />
-              <input id="optimization-dimension" name="dimension" type="number" min="2" value="30" />
-              <input id="optimization-epoch" name="epoch" type="number" min="2" value="50" />
-              <input id="optimization-pop-size" name="pop_size" type="number" min="4" value="30" />
-              <input id="optimization-runs" name="runs" type="number" min="1" value="5" />
-              <input id="optimization-workers" name="workers" type="number" min="0" value="0" />
+            <div class="form-grid optimization-form-grid">
+              <label class="stack compact optimization-metric-field" for="optimization-suite-label">
+                <span>Suite label</span>
+                <input id="optimization-suite-label" name="suite_label" type="text" value="Optimization Suite" data-i18n-value="Optimization Suite" placeholder="Suite label" data-i18n-placeholder="Suite label" required />
+              </label>
+              <label class="stack compact optimization-metric-field" for="optimization-dimension">
+                <span>Dimension</span>
+                <input id="optimization-dimension" name="dimension" type="number" min="2" value="30" />
+              </label>
+              <label class="stack compact optimization-metric-field" for="optimization-epoch">
+                <span>Epochs</span>
+                <input id="optimization-epoch" name="epoch" type="number" min="2" value="50" />
+              </label>
+              <label class="stack compact optimization-metric-field" for="optimization-pop-size">
+                <span>Population</span>
+                <input id="optimization-pop-size" name="pop_size" type="number" min="4" value="30" />
+              </label>
+              <label class="stack compact optimization-metric-field" for="optimization-runs">
+                <span>Runs</span>
+                <input id="optimization-runs" name="runs" type="number" min="1" value="5" />
+              </label>
+              <label class="stack compact optimization-metric-field" for="optimization-workers">
+                <span>Workers</span>
+                <input id="optimization-workers" name="workers" type="number" min="0" value="0" />
+              </label>
             </div>
 
             <div class="optimization-pickers">
@@ -114,7 +144,7 @@
             </div>
 
             <details class="advanced-config-toggle">
-              <summary>Advanced mode</summary>
+              <summary>Validation and export surfaces</summary>
               <div id="optimization-validation-export-board" class="card-list card-list-inline">
                 <div class="card">
                   <p>Validation, export packaging, JSON specifications, and preset guidance will appear here.</p>
@@ -122,18 +152,19 @@
               </div>
             </details>
 
-            <div class="actions">
+            <div class="actions actions-wrap">
               <button type="submit">Run optimization suite</button>
               <button type="button" class="secondary" id="optimization-clear-selection">Clear selection</button>
             </div>
           </form>
         </section>
 
-        <section class="panel optimization-stage">
+        <section class="panel optimization-stage optimization-stage--editorial">
           <div class="panel-head panel-head-wrap">
             <div>
-              <h2>Run Summary</h2>
-              <span class="muted">The latest suite result appears here first, before you open the full result page.</span>
+              <p class="eyebrow eyebrow-compact">Latest run</p>
+              <h2>Suite output</h2>
+              <p class="muted">The latest suite appears here first, before you open the full result document.</p>
             </div>
           </div>
           <div id="optimization-run-summary" class="card-list">
@@ -145,8 +176,9 @@
       <aside class="optimization-inspector panel">
         <div class="panel-head panel-head-wrap">
           <div>
-            <h2>Recent Runs</h2>
-            <span class="muted">Open previous suites and reuse exported assets.</span>
+            <p class="eyebrow eyebrow-compact">History</p>
+            <h2>Recent suites</h2>
+            <span class="muted">Reopen previous runs and reuse exported assets.</span>
           </div>
         </div>
         <div id="optimization-results-list" class="card-list card-list-inline">

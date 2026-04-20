@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 from fastapi.testclient import TestClient
+from session_auth import auth_headers, same_origin_headers, session_token_from_cookies
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -30,11 +31,6 @@ def configure_test_environment(temp_root: Path) -> None:
     os.environ["ASSET_STORAGE_BACKEND"] = "local"
     os.environ["PUBLIC_BASE_URL"] = "http://testserver"
     os.environ["PYTHON_DOTENV_DISABLED"] = "1"
-
-
-def auth_headers(token: str) -> dict[str, str]:
-    return {"Authorization": f"Bearer {token}"}
-
 
 def expect_status(response, expected: int) -> None:
     assert response.status_code == expected, response.text
@@ -96,30 +92,40 @@ def main() -> None:
             homepage = client.get("/")
             expect_status(homepage, 200)
             home_html = homepage.text
-            assert 'id="active-case-select"' in home_html
-            assert 'id="knowledge-case-list"' in home_html
-            assert 'id="knowledge-case-preview"' in home_html
+            assert 'href="/workspace"' in home_html
+            assert 'href="/data-lab"' in home_html
 
-            data_lab_page = client.get("/data-lab")
+            user_a_response = client.post(
+                "/api/auth/register",
+                headers=same_origin_headers("http://testserver"),
+                json={"email": "case-a@example.com", "password": "StrongPass123!", "full_name": "Case User A"},
+            )
+            expect_status(user_a_response, 200)
+            user_a_token = session_token_from_cookies(client)
+            workspace_a = create_workspace(client, user_a_token, "Case Workspace A")
+
+            knowledge_base_page = client.get("/knowledge-base", headers=auth_headers(user_a_token))
+            expect_status(knowledge_base_page, 200)
+            knowledge_html = knowledge_base_page.text
+            assert 'id="active-case-select"' in knowledge_html
+            assert 'id="knowledge-case-list"' in knowledge_html
+            assert 'id="knowledge-case-preview"' in knowledge_html
+
+            data_lab_page = client.get("/data-lab", headers=auth_headers(user_a_token))
             expect_status(data_lab_page, 200)
             lab_html = data_lab_page.text
             assert 'id="lab-case-select"' in lab_html
             assert 'id="lab-case-home-link"' in lab_html
 
-            user_a_response = client.post(
-                "/api/auth/register",
-                json={"email": "case-a@example.com", "password": "StrongPass123!", "full_name": "Case User A"},
-            )
-            expect_status(user_a_response, 200)
-            user_a_token = user_a_response.json()["session_token"]
-            workspace_a = create_workspace(client, user_a_token, "Case Workspace A")
+            client.cookies.clear()
 
             user_b_response = client.post(
                 "/api/auth/register",
+                headers=same_origin_headers("http://testserver"),
                 json={"email": "case-b@example.com", "password": "StrongPass123!", "full_name": "Case User B"},
             )
             expect_status(user_b_response, 200)
-            user_b_token = user_b_response.json()["session_token"]
+            user_b_token = session_token_from_cookies(client)
             workspace_b = create_workspace(client, user_b_token, "Case Workspace B")
 
             note_response = client.post(
@@ -346,8 +352,8 @@ def main() -> None:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     report = {
         "pages": {
-            "homepage_has_case_workspace": True,
-            "homepage_case_ids": ["active-case-select", "knowledge-case-list", "knowledge-case-preview"],
+            "homepage_routes_private_work": True,
+            "knowledge_base_case_ids": ["active-case-select", "knowledge-case-list", "knowledge-case-preview"],
             "data_lab_case_ids": ["lab-case-select", "lab-case-home-link"],
         },
         "data_lab_flow": {

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import math
 import re
@@ -26,9 +27,16 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from .asset_storage import load_asset_bytes, store_asset_content
+from .auth_support import (
+    assert_login_allowed,
+    clear_login_failures,
+    purge_expired_sessions,
+    record_login_failure,
+)
 from .config import Settings
 from .entities import (
     DataAsset,
+    DataLabRun,
     EconomicBriefing,
     IntegrationCredential,
     LabTemplate,
@@ -38,25 +46,96 @@ from .entities import (
     LiteratureEntry,
     User,
     UserSession,
+    WorkspaceMemory,
     Workspace,
 )
-from .provider_catalog import apply_provider_defaults, get_provider_spec
-from .provider_gateway import ProviderGateway
+from .provider_catalog import apply_provider_defaults, get_provider_spec, is_local_provider_kind
 from .security import (
+    AccountLockedError,
     build_session_expiry,
     decrypt_secret,
     encrypt_secret,
     generate_session_token,
     hash_password,
     hash_token,
+    validate_password_strength,
+    validate_optional_source_url,
+    validate_provider_base_url,
     verify_password,
 )
 from .utils import slugify, truncate_text
 
 
 DATASET_KINDS = {"dataset_csv", "dataset_excel", "dataset_json"}
+MAX_NOTE_CHARS = 500_000
+MAX_WORKSPACE_MEMORY_CHARS = 4_000
+WORKSPACE_MEMORY_LIMIT = 12
+_EMAIL_PATTERN = re.compile(
+    r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}@"
+    r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$"
+)
+ALLOWED_UPLOAD_KINDS = {
+    "dataset_csv",
+    "dataset_excel",
+    "dataset_json",
+    "document_pdf",
+    "note_markdown",
+    "note_text",
+    "chart_png",
+    "image_jpeg",
+    "image_svg",
+}
+_KIND_EXTENSIONS = {
+    "dataset_csv": {".csv"},
+    "dataset_excel": {".xls", ".xlsx"},
+    "dataset_json": {".json"},
+    "document_pdf": {".pdf"},
+    "note_markdown": {".md"},
+    "note_text": {".txt"},
+    "chart_png": {".png"},
+    "image_jpeg": {".jpg", ".jpeg"},
+    "image_svg": {".svg"},
+}
+_KIND_CONTENT_TYPES = {
+    "dataset_csv": {"text/csv", "application/csv", "text/plain"},
+    "dataset_excel": {
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/octet-stream",
+    },
+    "dataset_json": {"application/json", "text/json", "text/plain"},
+    "document_pdf": {"application/pdf"},
+    "note_markdown": {"text/markdown", "text/plain"},
+    "note_text": {"text/plain"},
+    "chart_png": {"image/png"},
+    "image_jpeg": {"image/jpeg"},
+    "image_svg": {"image/svg+xml", "text/plain"},
+}
 
 _PYPLOT: Any | None = None
+
+
+def _json_safe_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _json_safe_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe_value(item) for item in value]
+    if isinstance(value, set):
+        return [_json_safe_value(item) for item in value]
+    if isinstance(value, np.ndarray):
+        return [_json_safe_value(item) for item in value.tolist()]
+    if isinstance(value, np.generic):
+        return _json_safe_value(value.item())
+    if isinstance(value, (datetime, pd.Timestamp)):
+        return value.isoformat()
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, float):
+        if math.isnan(value) or math.isinf(value):
+            return None
+        return value
+    return value
 
 
 def _pyplot():
@@ -72,6 +151,53 @@ def _pyplot():
 
         _PYPLOT = pyplot
     return _PYPLOT
+
+
+def _normalize_note_content(content: str) -> str:
+    normalized = (content or "").strip()
+    if len(normalized) < 2:
+        raise ValueError("Content must be at least 2 characters.")
+    if len(normalized) > MAX_NOTE_CHARS:
+        raise ValueError(f"Content must be at most {MAX_NOTE_CHARS} characters.")
+    return normalized
+
+
+def _decode_text_sample(content: bytes) -> str:
+    return content.decode("utf-8", errors="ignore")
+
+
+def _looks_like_html_text(sample: str) -> bool:
+    lowered = sample.lstrip().lower()
+    return lowered.startswith(("<!doctype html", "<html", "<script", "<head", "<body"))
+
+
+def _looks_like_csv_text(sample: str) -> bool:
+    stripped = sample.strip()
+    if not stripped or _looks_like_html_text(stripped):
+        return False
+    candidate = sample
+    if not sample.endswith(("\n", "\r")) and "\n" in sample:
+        candidate = sample.rsplit("\n", 1)[0]
+    rows = [row for row in candidate.splitlines() if row.strip()]
+    if len(rows) < 2:
+        return False
+    try:
+        parsed_rows = [row for row in csv.reader(rows[:6]) if row]
+    except csv.Error:
+        return False
+    widths = [len(row) for row in parsed_rows if len(row) > 1]
+    if len(widths) < 2:
+        return False
+    baseline = widths[0]
+    return sum(1 for width in widths if width == baseline) >= 2
+
+
+def _ensure_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 BEGINNER_INTENT_RULES: list[dict[str, Any]] = [
     {
@@ -490,8 +616,24 @@ def _frame_preview_rows(frame: pd.DataFrame, *, limit: int = 8) -> list[dict[str
 
 
 def validate_email(value: str) -> str:
-    email = value.strip().lower()
-    if "@" not in email or "." not in email.split("@", 1)[-1]:
+    raw_email = str(value or "")
+    if raw_email != raw_email.strip() or any(character.isspace() for character in raw_email):
+        raise ValueError("A valid email address is required.")
+    email = raw_email.lower()
+    if len(email) > 320 or email.count("@") != 1:
+        raise ValueError("A valid email address is required.")
+    local_part, domain = email.split("@", 1)
+    if (
+        not local_part
+        or not domain
+        or len(local_part) > 64
+        or local_part.startswith(".")
+        or local_part.endswith(".")
+        or ".." in local_part
+        or domain.endswith(".")
+        or ".." in domain
+        or not _EMAIL_PATTERN.fullmatch(email)
+    ):
         raise ValueError("A valid email address is required.")
     return email
 
@@ -508,16 +650,18 @@ def serialize_user(user: User) -> dict[str, Any]:
 def serialize_workspace(workspace: Workspace) -> dict[str, Any]:
     return {
         "id": workspace.id,
+        "team_id": workspace.team_id,
         "name": workspace.name,
         "slug": workspace.slug,
         "description": workspace.description,
         "research_domain": workspace.research_domain,
         "created_at": workspace.created_at.isoformat(),
+        "updated_at": workspace.updated_at.isoformat(),
     }
 
 
 def serialize_integration(integration: IntegrationCredential) -> dict[str, Any]:
-    provider = get_provider_spec(integration.kind, "gpt-5-mini") or {}
+    provider = get_provider_spec(integration.kind, "local-model") or {}
     provider_name = integration.config_json.get("provider_name") or provider.get("label", integration.kind)
     docs_url = integration.config_json.get("docs_url") or provider.get("docs_url", "")
     return {
@@ -535,6 +679,49 @@ def serialize_integration(integration: IntegrationCredential) -> dict[str, Any]:
     }
 
 
+def _template_source_value(metadata: dict[str, Any]) -> str:
+    return str(metadata.get("template_name") or metadata.get("template_id") or "").strip()
+
+
+def _variant_source_value(metadata: dict[str, Any]) -> str:
+    label = str(metadata.get("variant_label") or "").strip()
+    if label:
+        return label
+    variant_spec = metadata.get("variant_spec")
+    if isinstance(variant_spec, dict) and variant_spec:
+        return "custom"
+    return ""
+
+
+def _result_detail_path(
+    metadata: dict[str, Any],
+    *,
+    record_id: str = "",
+    asset_id: str = "",
+    fallback: str = "",
+) -> str:
+    detail_path = str(metadata.get("detail_path") or metadata.get("result_detail_path") or "").strip()
+    if detail_path:
+        return detail_path
+    workflow_type = str(metadata.get("workflow_type") or "").strip()
+    if (workflow_type == "model" or metadata.get("model_type")) and record_id:
+        return f"/data-lab/results/models/{record_id}"
+    if workflow_type == "optimization" and record_id:
+        return f"/data-lab/results/optimization/{record_id}"
+    if workflow_type == "data_processing" and asset_id:
+        return f"/data-lab/results/processing/{asset_id}"
+    return fallback
+
+
+def _status_bundle(*, status: str, reason: str, next_action: str, detail_path: str = "") -> dict[str, Any]:
+    return {
+        "status": status,
+        "reason": reason,
+        "next_action": next_action,
+        "detail_path": detail_path,
+    }
+
+
 def serialize_knowledge_record(record: KnowledgeRecord, *, include_content: bool = True) -> dict[str, Any]:
     content = record.content or ""
     metadata = record.metadata_json if isinstance(record.metadata_json, dict) else {}
@@ -542,6 +729,49 @@ def serialize_knowledge_record(record: KnowledgeRecord, *, include_content: bool
     archived_at = str(metadata.get("archived_at") or archive_meta.get("at") or "").strip()
     archived_reason = str(metadata.get("archived_reason") or archive_meta.get("reason") or "").strip()
     is_archived = bool(metadata.get("is_archived") or archive_meta.get("is_archived") or archived_at)
+    detail_path = _result_detail_path(metadata, record_id=record.id, fallback="/knowledge-base")
+    if is_archived:
+        status_payload = _status_bundle(
+            status="archived",
+            reason=archived_reason or "This note is archived.",
+            next_action="restore_or_review",
+            detail_path="/knowledge-base",
+        )
+    elif metadata.get("workflow_type") == "optimization":
+        status_payload = _status_bundle(
+            status="ready",
+            reason="Optimization result is ready for review.",
+            next_action="open_detail",
+            detail_path=detail_path,
+        )
+    elif metadata.get("workflow_type") == "model" or metadata.get("model_type"):
+        status_payload = _status_bundle(
+            status="ready",
+            reason="Model result is ready for review.",
+            next_action="open_detail",
+            detail_path=detail_path,
+        )
+    elif metadata.get("briefing_id"):
+        status_payload = _status_bundle(
+            status="ready",
+            reason="Briefing note is linked into the workspace knowledge base.",
+            next_action="open_note",
+            detail_path="/knowledge-base",
+        )
+    elif metadata.get("source_type") == "paper_library":
+        status_payload = _status_bundle(
+            status="ready",
+            reason="Paper note is ready for reuse in cases or follow-up derivations.",
+            next_action="open_note",
+            detail_path="/knowledge-base",
+        )
+    else:
+        status_payload = _status_bundle(
+            status="ready",
+            reason="Workspace note is available.",
+            next_action="open_note",
+            detail_path="/knowledge-base",
+        )
     return {
         "id": record.id,
         "title": record.title,
@@ -550,9 +780,12 @@ def serialize_knowledge_record(record: KnowledgeRecord, *, include_content: bool
         "content_length": len(content),
         "tags": record.tags_json,
         "metadata": metadata,
+        "template_source": _template_source_value(metadata),
+        "variant_source": _variant_source_value(metadata),
         "is_archived": is_archived,
         "archived_at": archived_at,
         "archived_reason": archived_reason,
+        **status_payload,
         "created_at": record.created_at.isoformat(),
         "updated_at": record.updated_at.isoformat(),
     }
@@ -565,6 +798,12 @@ def serialize_knowledge_case(
     latest_item_at: str = "",
     item_types: list[str] | None = None,
 ) -> dict[str, Any]:
+    status_payload = _status_bundle(
+        status="ready" if item_count else "empty",
+        reason="Case contains linked workspace evidence." if item_count else "Case is empty and ready for the first item.",
+        next_action="open_case" if item_count else "add_case_item",
+        detail_path="/knowledge-base",
+    )
     return {
         "id": case.id,
         "title": case.title,
@@ -574,6 +813,7 @@ def serialize_knowledge_case(
         "item_count": item_count,
         "latest_item_at": latest_item_at,
         "item_types": item_types or [],
+        **status_payload,
         "created_at": case.created_at.isoformat(),
         "updated_at": case.updated_at.isoformat(),
     }
@@ -590,6 +830,12 @@ def serialize_knowledge_case_item(
     resolved_exists: bool = True,
 ) -> dict[str, Any]:
     metadata = item.metadata_json if isinstance(item.metadata_json, dict) else {}
+    status_payload = _status_bundle(
+        status="ready" if resolved_exists else "missing",
+        reason="Linked resource is available." if resolved_exists else "Linked resource is no longer available in this workspace.",
+        next_action="open_detail" if resolved_exists and resolved_detail_path else "review_case_item",
+        detail_path=resolved_detail_path,
+    )
     return {
         "id": item.id,
         "case_id": item.case_id,
@@ -604,6 +850,7 @@ def serialize_knowledge_case_item(
         "download_path": resolved_download_path,
         "source_url": resolved_source_url,
         "exists": resolved_exists,
+        **status_payload,
         "created_at": item.created_at.isoformat(),
         "updated_at": item.updated_at.isoformat(),
     }
@@ -612,6 +859,29 @@ def serialize_knowledge_case_item(
 def serialize_asset(asset: DataAsset) -> dict[str, Any]:
     metadata = asset.metadata_json if isinstance(asset.metadata_json, dict) else {}
     filename = metadata.get("original_filename") or asset.title
+    processing_result = metadata.get("processing_result") if isinstance(metadata.get("processing_result"), dict) else {}
+    detail_path = _result_detail_path(processing_result or metadata, asset_id=asset.id, fallback="")
+    if processing_result:
+        status_payload = _status_bundle(
+            status="ready",
+            reason="Processing result is ready for review.",
+            next_action="open_detail",
+            detail_path=detail_path,
+        )
+    elif metadata.get("analysis_kind") == "plot":
+        status_payload = _status_bundle(
+            status="ready",
+            reason="Visualization asset is ready for review.",
+            next_action="open_detail" if detail_path else "download_asset",
+            detail_path=detail_path,
+        )
+    else:
+        status_payload = _status_bundle(
+            status="ready",
+            reason="Uploaded asset is stored in the workspace.",
+            next_action="download_asset",
+            detail_path=detail_path,
+        )
     return {
         "id": asset.id,
         "kind": asset.kind,
@@ -621,6 +891,10 @@ def serialize_asset(asset: DataAsset) -> dict[str, Any]:
         "content_type": asset.content_type,
         "source_url": asset.source_url,
         "metadata": metadata,
+        "download_path": f"/api/assets/{asset.id}/download",
+        "template_source": _template_source_value(processing_result or metadata),
+        "variant_source": _variant_source_value(processing_result or metadata),
+        **status_payload,
         "created_at": asset.created_at.isoformat(),
         "updated_at": asset.updated_at.isoformat(),
     }
@@ -631,8 +905,7 @@ def register_user(db: Session, *, email: str, password: str, full_name: str) -> 
     existing = db.scalar(select(User).where(User.email == normalized_email))
     if existing:
         raise ValueError("This email is already registered.")
-    if len(password) < 8:
-        raise ValueError("Password must be at least 8 characters.")
+    validate_password_strength(password, email=normalized_email)
 
     user = User(
         email=normalized_email,
@@ -654,11 +927,25 @@ def register_user(db: Session, *, email: str, password: str, full_name: str) -> 
     return user
 
 
-def login_user(db: Session, settings: Settings, *, email: str, password: str) -> tuple[User, str]:
+def login_user(
+    db: Session,
+    settings: Settings,
+    *,
+    email: str,
+    password: str,
+    ip_address: str = "",
+) -> tuple[User, str]:
     normalized_email = validate_email(email)
+    purge_expired_sessions(db)
+    assert_login_allowed(db, email=normalized_email, ip_address=ip_address)
     user = db.scalar(select(User).where(User.email == normalized_email))
+    user_locked_until = _ensure_utc(user.locked_until) if user else None
+    if user and user_locked_until and user_locked_until > datetime.now(timezone.utc):
+        raise AccountLockedError("This account is temporarily locked. Try again later.")
     if not user or not verify_password(password, user.password_hash):
-        raise ValueError("Invalid email or password.")
+        record_login_failure(db, email=normalized_email, ip_address=ip_address, user=user)
+        raise PermissionError("Invalid email or password.")
+    clear_login_failures(db, email=normalized_email, ip_address=ip_address, user=user)
     token = generate_session_token()
     db.add(
         UserSession(
@@ -674,6 +961,7 @@ def login_user(db: Session, settings: Settings, *, email: str, password: str) ->
 def logout_user_session(db: Session, *, token: str) -> None:
     if not token:
         return
+    purge_expired_sessions(db)
     session_row = db.scalar(select(UserSession).where(UserSession.token_hash == hash_token(token)))
     if session_row:
         db.delete(session_row)
@@ -681,6 +969,7 @@ def logout_user_session(db: Session, *, token: str) -> None:
 
 
 def get_current_user(db: Session, token: str) -> User:
+    purge_expired_sessions(db)
     session_row = db.scalar(
         select(UserSession).where(
             and_(
@@ -695,6 +984,9 @@ def get_current_user(db: Session, token: str) -> User:
     user = db.get(User, session_row.user_id)
     if not user or not user.is_active:
         raise PermissionError("The account is inactive.")
+    user_locked_until = _ensure_utc(user.locked_until)
+    if user_locked_until and user_locked_until > datetime.now(timezone.utc):
+        raise AccountLockedError("This account is temporarily locked. Try again later.")
     return user
 
 
@@ -744,6 +1036,302 @@ def get_workspace_for_user(db: Session, *, user: User, workspace_id: str) -> Wor
     return workspace
 
 
+def _workspace_memory_title(title: str, content: str) -> str:
+    normalized = str(title or "").strip()
+    if normalized:
+        return truncate_text(normalized, 200)
+    first_line = next((line.strip() for line in str(content or "").splitlines() if line.strip()), "")
+    return truncate_text(first_line or "Workspace memory", 200)
+
+
+def serialize_workspace_memory(memory: WorkspaceMemory, *, include_content: bool = True) -> dict[str, Any]:
+    return {
+        "id": memory.id,
+        "title": memory.title,
+        "content": memory.content if include_content else "",
+        "content_excerpt": truncate_text(memory.content or "", 220),
+        "metadata": memory.metadata_json if isinstance(memory.metadata_json, dict) else {},
+        "created_at": memory.created_at.isoformat(),
+        "updated_at": memory.updated_at.isoformat(),
+    }
+
+
+def list_workspace_memories(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    limit: int = WORKSPACE_MEMORY_LIMIT,
+) -> list[WorkspaceMemory]:
+    return list(
+        db.scalars(
+            select(WorkspaceMemory)
+            .where(
+                and_(
+                    WorkspaceMemory.owner_user_id == user.id,
+                    WorkspaceMemory.workspace_id == workspace.id,
+                )
+            )
+            .order_by(WorkspaceMemory.updated_at.desc(), WorkspaceMemory.created_at.desc())
+            .limit(max(1, min(limit, WORKSPACE_MEMORY_LIMIT)))
+        )
+    )
+
+
+def get_owned_workspace_memory(
+    db: Session,
+    *,
+    user: User,
+    memory_id: str,
+    workspace: Workspace | None = None,
+) -> WorkspaceMemory:
+    memory = db.get(WorkspaceMemory, memory_id)
+    if not memory or memory.owner_user_id != user.id:
+        raise FileNotFoundError("Workspace memory not found.")
+    if workspace and memory.workspace_id != workspace.id:
+        raise FileNotFoundError("Workspace memory not found.")
+    return memory
+
+
+def _prune_workspace_memories(db: Session, *, user: User, workspace: Workspace) -> None:
+    rows = list(
+        db.scalars(
+            select(WorkspaceMemory)
+            .where(
+                and_(
+                    WorkspaceMemory.owner_user_id == user.id,
+                    WorkspaceMemory.workspace_id == workspace.id,
+                )
+            )
+            .order_by(WorkspaceMemory.updated_at.desc(), WorkspaceMemory.created_at.desc())
+        )
+    )
+    for row in rows[WORKSPACE_MEMORY_LIMIT:]:
+        db.delete(row)
+
+
+def create_workspace_memory(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    title: str = "",
+    content: str,
+    metadata: dict[str, Any] | None = None,
+) -> WorkspaceMemory:
+    normalized_content = _normalize_note_content(content)
+    if len(normalized_content) > MAX_WORKSPACE_MEMORY_CHARS:
+        raise ValueError(f"Memory content must be at most {MAX_WORKSPACE_MEMORY_CHARS} characters.")
+    memory = WorkspaceMemory(
+        workspace_id=workspace.id,
+        owner_user_id=user.id,
+        title=_workspace_memory_title(title, normalized_content),
+        content=normalized_content,
+        metadata_json=dict(metadata or {}) if isinstance(metadata, dict) else {},
+    )
+    db.add(memory)
+    db.flush()
+    _prune_workspace_memories(db, user=user, workspace=workspace)
+    db.flush()
+    return memory
+
+
+def delete_workspace_memory(
+    db: Session,
+    *,
+    user: User,
+    memory_id: str,
+    workspace: Workspace | None = None,
+) -> None:
+    memory = get_owned_workspace_memory(db, user=user, memory_id=memory_id, workspace=workspace)
+    db.delete(memory)
+
+
+def create_data_lab_run(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    workflow_type: str,
+    family: str = "",
+    method: str = "",
+    title: str = "",
+    source_asset_id: str = "",
+    request_payload: dict[str, Any] | None = None,
+) -> DataLabRun:
+    run = DataLabRun(
+        workspace_id=workspace.id,
+        owner_user_id=user.id,
+        workflow_type=str(workflow_type or "processing").strip() or "processing",
+        family=str(family or "").strip(),
+        method=str(method or "").strip(),
+        title=truncate_text(str(title or "").strip(), 240),
+        source_asset_id=str(source_asset_id or "").strip() or None,
+        request_json=_json_safe_value(dict(request_payload or {}) if isinstance(request_payload, dict) else {}),
+    )
+    db.add(run)
+    db.flush()
+    return run
+
+
+def get_owned_data_lab_run(db: Session, *, user: User, run_id: str) -> DataLabRun:
+    run = db.get(DataLabRun, run_id)
+    if not run or run.owner_user_id != user.id:
+        raise FileNotFoundError("Data Lab run not found.")
+    return run
+
+
+def finalize_data_lab_run_success(
+    db: Session,
+    *,
+    user: User,
+    run_id: str,
+    title: str = "",
+    summary: str = "",
+    detail_path: str = "",
+    result_asset_id: str = "",
+    result_record_id: str = "",
+    output_payload: dict[str, Any] | None = None,
+) -> DataLabRun:
+    run = get_owned_data_lab_run(db, user=user, run_id=run_id)
+    run.status = "ready"
+    if title.strip():
+        run.title = truncate_text(title.strip(), 240)
+    run.summary = truncate_text(str(summary or "").strip(), 600)
+    run.detail_path = str(detail_path or "").strip()
+    run.result_asset_id = str(result_asset_id or "").strip() or None
+    run.result_record_id = str(result_record_id or "").strip() or None
+    run.error_summary = ""
+    run.output_json = _json_safe_value(dict(output_payload or {}) if isinstance(output_payload, dict) else {})
+    run.finished_at = datetime.now(timezone.utc)
+    run.updated_at = run.finished_at
+    db.flush()
+    return run
+
+
+def finalize_data_lab_run_failure(
+    db: Session,
+    *,
+    user: User,
+    run_id: str,
+    error: Exception | str,
+    title: str = "",
+    output_payload: dict[str, Any] | None = None,
+) -> DataLabRun:
+    run = get_owned_data_lab_run(db, user=user, run_id=run_id)
+    run.status = "failed"
+    if title.strip():
+        run.title = truncate_text(title.strip(), 240)
+    run.error_summary = truncate_text(str(error or "Data Lab run failed.").strip(), 600) or "Data Lab run failed."
+    run.output_json = _json_safe_value(dict(output_payload or {}) if isinstance(output_payload, dict) else {})
+    run.finished_at = datetime.now(timezone.utc)
+    run.updated_at = run.finished_at
+    db.flush()
+    return run
+
+
+def list_data_lab_runs(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    workflow_type: str = "",
+    limit: int = 24,
+) -> list[DataLabRun]:
+    stmt = (
+        select(DataLabRun)
+        .where(
+            and_(
+                DataLabRun.owner_user_id == user.id,
+                DataLabRun.workspace_id == workspace.id,
+            )
+        )
+        .order_by(DataLabRun.updated_at.desc(), DataLabRun.started_at.desc(), DataLabRun.created_at.desc())
+        .limit(max(1, min(limit, 120)))
+    )
+    rows = list(db.scalars(stmt))
+    if workflow_type:
+        rows = [row for row in rows if row.workflow_type == workflow_type]
+    return rows
+
+
+def serialize_data_lab_run(db: Session, *, user: User, run: DataLabRun) -> dict[str, Any]:
+    output = dict(run.output_json or {}) if isinstance(run.output_json, dict) else {}
+    updated_at = _ensure_utc(run.finished_at) or _ensure_utc(run.updated_at) or _ensure_utc(run.started_at)
+    base = {
+        "id": run.id,
+        "run_id": run.id,
+        "workflow_type": run.workflow_type,
+        "status": run.status,
+        "family": run.family,
+        "method": run.method,
+        "title": run.title or output.get("title") or "Data Lab run",
+        "summary": str(output.get("summary") or run.summary or "").strip(),
+        "detail_path": run.detail_path or str(output.get("detail_path") or output.get("result_detail_path") or "").strip(),
+        "result_detail_path": run.detail_path or str(output.get("result_detail_path") or output.get("detail_path") or "").strip(),
+        "source_asset_id": run.source_asset_id or "",
+        "result_asset_id": run.result_asset_id or "",
+        "result_record_id": run.result_record_id or "",
+        "ref_id": "",
+        "download_path": "",
+        "created_at": (_ensure_utc(run.started_at) or datetime.now(timezone.utc)).isoformat(),
+        "updated_at": (updated_at or datetime.now(timezone.utc)).isoformat(),
+        "metadata": {},
+    }
+    if run.status == "failed":
+        reason = run.error_summary or "The latest run failed."
+        if run.workflow_type == "model":
+            base["metadata"] = {
+                "workflow_type": "model",
+                "model_family": run.family,
+                "model_type": run.method,
+                "model_label": run.title or run.method or "Model run",
+            }
+        elif run.workflow_type == "optimization":
+            base["suite_label"] = run.title or "Optimization Suite"
+        else:
+            base["processing_family"] = run.family or "data_processing"
+        return {
+            **base,
+            "reason": reason,
+            "next_action": "review_failure",
+        }
+
+    if run.result_asset_id:
+        asset = db.get(DataAsset, run.result_asset_id)
+        if asset and asset.owner_user_id == user.id and asset.workspace_id == run.workspace_id:
+            payload = serialize_asset(asset)
+            payload["run_id"] = run.id
+            payload["ref_id"] = asset.id
+            payload["created_at"] = base["created_at"]
+            payload["updated_at"] = base["updated_at"]
+            payload["status"] = run.status
+            if base["detail_path"]:
+                payload["detail_path"] = base["detail_path"]
+                payload["result_detail_path"] = base["detail_path"]
+            return payload
+
+    if run.result_record_id:
+        record = db.get(KnowledgeRecord, run.result_record_id)
+        if record and record.owner_user_id == user.id and record.workspace_id == run.workspace_id:
+            payload = serialize_knowledge_record(record, include_content=False)
+            payload["run_id"] = run.id
+            payload["ref_id"] = record.id
+            payload["created_at"] = base["created_at"]
+            payload["updated_at"] = base["updated_at"]
+            payload["status"] = run.status
+            if base["detail_path"]:
+                payload["detail_path"] = base["detail_path"]
+                payload["result_detail_path"] = base["detail_path"]
+            return payload
+
+    return {
+        **base,
+        "reason": run.summary or "Run completed.",
+        "next_action": "open_detail" if base["detail_path"] else "review_history",
+    }
+
+
 def create_integration(
     db: Session,
     settings: Settings,
@@ -758,10 +1346,21 @@ def create_integration(
     is_default: bool = False,
     config: dict[str, Any] | None = None,
 ) -> IntegrationCredential:
-    if not api_key.strip():
-        raise ValueError("API key is required.")
     normalized_category = category.strip()
     normalized_kind = kind.strip()
+    blocked_model_kinds = {
+        "openai",
+        "anthropic",
+        "gemini",
+        "ollama",
+        "vllm",
+        "lmstudio",
+        "local_openai_compatible",
+    }
+    if normalized_category == "llm" or normalized_kind in blocked_model_kinds:
+        raise ValueError("Runtime model integrations are not available in the current product scope.")
+    if not api_key.strip() and not is_local_provider_kind(normalized_kind):
+        raise ValueError("API key is required.")
     resolved_base_url, resolved_model, provider = apply_provider_defaults(
         kind=normalized_kind,
         base_url=base_url,
@@ -770,6 +1369,7 @@ def create_integration(
     )
     if provider and provider.get("category"):
         normalized_category = provider["category"]
+    resolved_base_url = validate_provider_base_url(settings, resolved_base_url)
     if is_default:
         for current in db.scalars(
             select(IntegrationCredential).where(
@@ -791,7 +1391,7 @@ def create_integration(
         label=label.strip(),
         category=normalized_category,
         kind=normalized_kind,
-        api_key_encrypted=encrypt_secret(settings, api_key.strip()),
+        api_key_encrypted=encrypt_secret(settings, api_key.strip()) if api_key.strip() else "",
         base_url=resolved_base_url,
         model=resolved_model,
         is_default=is_default,
@@ -843,20 +1443,29 @@ def test_integration(db: Session, settings: Settings, *, user: User, integration
     if not integration or integration.owner_user_id != user.id:
         raise FileNotFoundError("Integration not found.")
     if integration.category == "llm":
-        return ProviderGateway(settings).test_integration(integration)
+        return {
+            "status": "unavailable",
+            "preview": "Runtime model integrations are disabled in this deployment.",
+            "reason": "Runtime provider management is not part of the current product scope.",
+        }
     if integration.kind == "fred":
-        response = requests.get(
-            "https://api.stlouisfed.org/fred/series/observations",
-            params={
-                "series_id": "FEDFUNDS",
-                "api_key": decrypt_secret(settings, integration.api_key_encrypted),
-                "file_type": "json",
-                "limit": 1,
-            },
-            timeout=20,
-        )
-        response.raise_for_status()
-        return {"status": "ok", "preview": "FRED API key is valid."}
+        try:
+            response = requests.get(
+                "https://api.stlouisfed.org/fred/series/observations",
+                params={
+                    "series_id": "FEDFUNDS",
+                    "api_key": decrypt_secret(settings, integration.api_key_encrypted),
+                    "file_type": "json",
+                    "limit": 1,
+                },
+                timeout=20,
+            )
+            response.raise_for_status()
+            return {"status": "ok", "preview": "FRED API key is valid."}
+        except requests.Timeout:
+            return {"status": "error", "preview": "Connection test failed.", "reason": "Provider request timed out."}
+        except requests.RequestException:
+            return {"status": "error", "preview": "Connection test failed.", "reason": "Provider request failed."}
     return {"status": "ok", "preview": "Integration stored successfully."}
 
 
@@ -877,12 +1486,13 @@ def create_knowledge_record(
     tags: list[str] | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> KnowledgeRecord:
-    metadata_payload = dict(metadata or {}) if isinstance(metadata, dict) else {}
+    metadata_payload = _json_safe_value(dict(metadata or {}) if isinstance(metadata, dict) else {})
+    normalized_content = _normalize_note_content(content)
     record = KnowledgeRecord(
         workspace_id=workspace.id,
         owner_user_id=user.id,
         title=title.strip(),
-        content=content.strip(),
+        content=normalized_content,
         tags_json=list(dict.fromkeys(tag.strip() for tag in (tags or []) if tag.strip())),
         metadata_json=metadata_payload,
     )
@@ -893,7 +1503,7 @@ def create_knowledge_record(
         enriched_metadata.setdefault("workflow_type", "model")
         enriched_metadata.setdefault("result_record_id", record.id)
         enriched_metadata.setdefault("result_detail_path", f"/data-lab/results/models/{record.id}")
-        record.metadata_json = enriched_metadata
+        record.metadata_json = _json_safe_value(enriched_metadata)
         db.flush()
     return record
 
@@ -1184,9 +1794,7 @@ def _resolve_case_reference(
         if record.workspace_id != workspace.id:
             raise FileNotFoundError("Knowledge record not found.")
         metadata = dict(record.metadata_json or {})
-        detail_path = str(metadata.get("result_detail_path") or "").strip()
-        if not detail_path and (metadata.get("workflow_type") == "model" or metadata.get("model_type")):
-            detail_path = f"/data-lab/results/models/{record.id}"
+        detail_path = _result_detail_path(metadata, record_id=record.id, fallback="/knowledge-base")
         return {
             "title": record.title,
             "summary": truncate_text(record.content or "", 240),
@@ -1207,7 +1815,7 @@ def _resolve_case_reference(
             raise FileNotFoundError("Asset not found.")
         asset_metadata = dict(asset.metadata_json or {})
         processing = asset_metadata.get("processing_result") if isinstance(asset_metadata.get("processing_result"), dict) else {}
-        detail_path = str(processing.get("result_detail_path") or "").strip()
+        detail_path = _result_detail_path(processing or asset_metadata, asset_id=asset.id, fallback="")
         summary = str(asset.description or "").strip() or str(asset_metadata.get("summary") or "").strip()
         if not summary and processing:
             processing_summary = processing.get("summary") if isinstance(processing.get("summary"), dict) else {}
@@ -1240,7 +1848,7 @@ def _resolve_case_reference(
                 "briefing_id": briefing.id,
                 "headline_count": briefing.headline_count,
             },
-            "detail_path": "",
+            "detail_path": "/knowledge-base",
             "download_path": "",
             "source_url": "",
         }
@@ -1791,9 +2399,7 @@ def update_knowledge_record(
             raise ValueError("Title must be at least 2 characters.")
         record.title = normalized_title
     if content is not None:
-        normalized_content = content.strip()
-        if len(normalized_content) < 2:
-            raise ValueError("Content must be at least 2 characters.")
+        normalized_content = _normalize_note_content(content)
         record.content = normalized_content
     if tags is not None:
         record.tags_json = list(dict.fromkeys(tag.strip() for tag in tags if tag and tag.strip()))
@@ -1933,11 +2539,13 @@ def create_workspace_digest_record(
     *,
     user: User,
     workspace: Workspace,
+    max_memories: int = 4,
     max_notes: int = 6,
     max_briefings: int = 3,
     max_papers: int = 3,
     max_assets: int = 3,
 ) -> KnowledgeRecord:
+    memories = list_workspace_memories(db, user=user, workspace=workspace, limit=max_memories)
     note_rows = [
         row
         for row in list_knowledge_records(db, user=user, workspace=workspace, include_archived=False)
@@ -1997,15 +2605,35 @@ def create_workspace_digest_record(
         "",
         "## Snapshot",
         "",
+        f"- Memories included: {len(memories)}",
         f"- Notes included: {len(note_rows)}",
         f"- Briefings included: {len(briefings)}",
         f"- Papers included: {len(literature)}",
         f"- Assets included: {len(assets)}",
         f"- Top tags: {', '.join(top_tags) if top_tags else 'none'}",
         "",
-        "## Recent notes",
+        "## Workspace memories",
         "",
     ]
+    if memories:
+        for memory in memories:
+            lines.extend(
+                [
+                    f"### {memory.title}",
+                    f"- Updated: {memory.updated_at.isoformat()}",
+                    f"- Excerpt: {truncate_text(memory.content or '', 220) or 'n/a'}",
+                    "",
+                ]
+            )
+    else:
+        lines.extend(["- No workspace memories saved yet.", ""])
+
+    lines.extend(
+        [
+        "## Recent notes",
+        "",
+        ]
+    )
     if note_rows:
         for note in note_rows:
             excerpt = truncate_text(note.content or "", 220)
@@ -2069,6 +2697,7 @@ def create_workspace_digest_record(
         metadata={
             "source_type": "workspace_digest",
             "workspace_id": workspace.id,
+            "included_memory_count": len(memories),
             "included_note_count": len(note_rows),
             "included_briefing_count": len(briefings),
             "included_paper_count": len(literature),
@@ -2087,6 +2716,12 @@ def build_model_result_detail(db: Session, *, user: User, record_id: str) -> dic
     metadata.setdefault("model_family", _infer_model_family(str(metadata.get("model_type", ""))))
     metadata.setdefault("result_record_id", record.id)
     metadata.setdefault("result_detail_path", f"/data-lab/results/models/{record.id}")
+    metadata["detail_path"] = metadata["result_detail_path"]
+    metadata["status"] = "ready"
+    metadata["reason"] = "Model result is ready for review."
+    metadata["next_action"] = "open_detail"
+    metadata["template_source"] = _template_source_value(metadata)
+    metadata["variant_source"] = _variant_source_value(metadata)
     metadata["interpretation"] = _build_model_result_interpretation(metadata)
     return {
         "record": serialize_knowledge_record(record),
@@ -2097,26 +2732,87 @@ def build_model_result_detail(db: Session, *, user: User, record_id: str) -> dic
 
 def classify_asset_kind(filename: str, content_type: str) -> str:
     lowered_name = filename.lower()
-    lowered_type = content_type.lower()
-    if lowered_name.endswith(".csv") or "csv" in lowered_type:
+    lowered_type = (content_type or "").lower()
+    if lowered_name.endswith(".csv") or lowered_type in {"text/csv", "application/csv"}:
         return "dataset_csv"
-    if lowered_name.endswith(".xlsx") or lowered_name.endswith(".xls") or "excel" in lowered_type:
+    if lowered_name.endswith(".xlsx") or lowered_name.endswith(".xls") or lowered_type in {
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    } or (
+        lowered_type == "application/octet-stream"
+        and (lowered_name.endswith(".xls") or lowered_name.endswith(".xlsx"))
+    ):
         return "dataset_excel"
-    if lowered_name.endswith(".json") or "json" in lowered_type:
+    if lowered_name.endswith(".json") or lowered_type in {"application/json", "text/json"}:
         return "dataset_json"
-    if lowered_name.endswith(".pdf") or "pdf" in lowered_type:
+    if lowered_name.endswith(".pdf") or lowered_type == "application/pdf":
         return "document_pdf"
-    if lowered_name.endswith(".md"):
+    if lowered_name.endswith(".md") or lowered_type == "text/markdown":
         return "note_markdown"
-    if lowered_name.endswith(".txt") or lowered_type.startswith("text/"):
+    if lowered_name.endswith(".txt") or lowered_type == "text/plain":
         return "note_text"
-    if lowered_name.endswith(".png") or "image/png" in lowered_type:
+    if lowered_name.endswith(".png") or lowered_type == "image/png":
         return "chart_png"
-    if lowered_name.endswith(".jpg") or lowered_name.endswith(".jpeg") or "image/jpeg" in lowered_type:
+    if lowered_name.endswith(".jpg") or lowered_name.endswith(".jpeg") or lowered_type == "image/jpeg":
         return "image_jpeg"
-    if lowered_name.endswith(".svg") or "image/svg" in lowered_type:
+    if lowered_name.endswith(".svg") or lowered_type == "image/svg+xml":
         return "image_svg"
     return "binary_file"
+
+
+def sniff_asset_kind(content: bytes, *, filename: str) -> str:
+    extension = Path(filename).suffix.lower()
+    prefix = content[:512]
+    stripped = content.lstrip()
+    if extension in {".xls", ".xlsx"} and prefix[:2] == b"PK":
+        return "dataset_excel"
+    if extension == ".xls" and prefix.startswith(b"\xd0\xcf\x11\xe0"):
+        return "dataset_excel"
+    if prefix.startswith(b"%PDF-"):
+        return "document_pdf"
+    if prefix.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "chart_png"
+    if prefix.startswith(b"\xff\xd8\xff"):
+        return "image_jpeg"
+    if extension == ".svg":
+        sample = _decode_text_sample(stripped[:4096])
+        lowered = sample.lstrip().lower()
+        if "<html" in lowered or "<script" in lowered:
+            return "binary_file"
+        if lowered.startswith("<?xml"):
+            svg_index = lowered.find("<svg")
+            if svg_index == -1:
+                return "binary_file"
+            lowered = lowered[svg_index:]
+        if lowered.startswith("<svg"):
+            return "image_svg"
+        return "binary_file"
+    if extension == ".json":
+        try:
+            json.loads(_decode_text_sample(stripped))
+        except Exception:
+            return "binary_file"
+        else:
+            return "dataset_json"
+    if extension == ".csv":
+        sample = _decode_text_sample(content[:4096])
+        if _looks_like_csv_text(sample):
+            return "dataset_csv"
+        return "binary_file"
+    sample = _decode_text_sample(prefix)
+    if extension in {".md", ".txt"}:
+        if _looks_like_html_text(sample):
+            return "binary_file"
+        return "note_markdown" if extension == ".md" else "note_text"
+    return classify_asset_kind(filename, "")
+
+
+def _safe_asset_storage_name(filename: str, *, asset_kind: str, asset_id: str) -> str:
+    extension = Path(filename).suffix.lower()
+    allowed_extensions = _KIND_EXTENSIONS.get(asset_kind, set())
+    if extension not in allowed_extensions:
+        extension = sorted(allowed_extensions)[0] if allowed_extensions else ""
+    return f"{asset_id}{extension}"
 
 
 def extract_text_from_bytes(content: bytes, *, filename: str, content_type: str) -> str:
@@ -2142,28 +2838,39 @@ def save_upload_asset(
     description: str = "",
     source_url: str = "",
 ) -> DataAsset:
+    declared_kind = classify_asset_kind(filename, content_type)
+    sniffed_kind = sniff_asset_kind(content, filename=filename)
+    asset_kind = declared_kind if declared_kind == sniffed_kind else "binary_file"
+    if asset_kind not in ALLOWED_UPLOAD_KINDS:
+        raise ValueError("Unsupported upload type. Allowed types: csv, xlsx, xls, json, pdf, txt, md, png, jpg, jpeg, and svg.")
+    normalized_content_type = content_type.strip().lower()
+    if normalized_content_type and normalized_content_type not in _KIND_CONTENT_TYPES.get(asset_kind, set()):
+        raise ValueError("Upload content type does not match the selected file type.")
+    normalized_source_url = validate_optional_source_url(source_url, field_name="Source URL")
     asset = DataAsset(
         workspace_id=workspace.id,
         owner_user_id=user.id,
-        kind=classify_asset_kind(filename, content_type),
+        kind=asset_kind,
         title=Path(filename).name,
         description=description.strip(),
-        content_type=content_type.strip(),
-        source_url=source_url.strip(),
+        content_type=normalized_content_type,
+        source_url=normalized_source_url,
         extracted_text=extract_text_from_bytes(content, filename=filename, content_type=content_type),
         metadata_json={"size_bytes": len(content), "original_filename": Path(filename).name},
     )
     db.add(asset)
     db.flush()
 
+    safe_storage_name = _safe_asset_storage_name(filename, asset_kind=asset_kind, asset_id=asset.id)
+
     stored = store_asset_content(
         settings,
         user_id=user.id,
         workspace_id=workspace.id,
         asset_id=asset.id,
-        filename=filename,
+        filename=safe_storage_name,
         content=content,
-        content_type=content_type,
+        content_type=normalized_content_type,
     )
     asset.file_path = stored.reference
     asset.metadata_json = {
@@ -3226,6 +3933,12 @@ def build_processing_result_detail(
         }
     detail["asset"] = asset_payload
     detail["result_detail_path"] = detail.get("result_detail_path") or f"/data-lab/results/processing/{asset.id}"
+    detail["detail_path"] = detail["result_detail_path"]
+    detail["status"] = "ready"
+    detail["reason"] = "Processing result is ready for review."
+    detail["next_action"] = "open_detail"
+    detail["template_source"] = _template_source_value(detail)
+    detail["variant_source"] = _variant_source_value(detail)
     detail["profile"] = profile
     detail.setdefault("preview_rows", profile.get("preview_rows", []))
     detail["interpretation"] = _build_processing_result_interpretation(detail)
@@ -3370,6 +4083,12 @@ def prepare_dataset_asset(
         "preview_rows": preview_rows,
         "audit_trail": audit_trail,
         "result_detail_path": f"/data-lab/results/processing/{prepared_asset.id}",
+        "detail_path": f"/data-lab/results/processing/{prepared_asset.id}",
+        "status": "ready",
+        "reason": "Processing result is ready for review.",
+        "next_action": "open_detail",
+        "template_source": template_name or template_id,
+        "variant_source": variant_label or ("custom" if isinstance(variant_spec, dict) and variant_spec else ""),
     }
     prepared_asset.metadata_json = {
         **prepared_asset.metadata_json,
@@ -7050,6 +7769,12 @@ def run_model_analysis(
             )
             payload.setdefault("result_record_id", record.id)
             payload.setdefault("result_detail_path", f"/data-lab/results/models/{record.id}")
+        payload["detail_path"] = payload.get("result_detail_path") or ""
+        payload["status"] = "ready"
+        payload["reason"] = "Model result is ready for review."
+        payload["next_action"] = "open_detail"
+        payload["template_source"] = template_name or template_id
+        payload["variant_source"] = variant_label or ("custom" if isinstance(variant_spec, dict) and variant_spec else "")
         return payload
 
     try:
@@ -7628,12 +8353,15 @@ def create_plot_asset(
     plot_asset.metadata_json = {
         **plot_asset.metadata_json,
         "analysis_kind": "plot",
+        "workflow_type": "data_processing",
+        "processing_family": "visualization",
         "source_asset_id": asset.id,
         "chart_type": normalized_chart_type or "line",
         "x_column": x_column,
         "y_columns": y_columns,
         "group_column": group_column,
         "summary": summary,
+        "result_detail_path": f"/data-lab/results/processing/{plot_asset.id}",
     }
     db.flush()
     return {
@@ -7644,6 +8372,11 @@ def create_plot_asset(
         "title": title.strip() or summary,
         "summary": summary,
         "download_url": f"/api/assets/{plot_asset.id}/download",
+        "result_detail_path": f"/data-lab/results/processing/{plot_asset.id}",
+        "detail_path": f"/data-lab/results/processing/{plot_asset.id}",
+        "status": "ready",
+        "reason": "Visualization result is ready for review.",
+        "next_action": "open_detail",
         "plot_specification": {
             "chart_type": normalized_chart_type or "line",
             "x_column": x_column,

@@ -3,143 +3,237 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Knowledge Base | Economic Research Platform</title>
+    <meta
+      name="description"
+      content="Capture private notes, manage case workspaces, and connect research outputs inside the current workspace."
+      data-i18n-content="Capture private notes, manage case workspaces, and connect research outputs inside the current workspace."
+    />
+    <title data-i18n="Knowledge Base | Economic Research Platform">Knowledge Base | Economic Research Platform</title>
     <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
-  <body class="page-module">
+  <body class="page-module page-knowledge-base">
     <div class="page-bg"></div>
 
-    <header class="module-header">
-      <div class="module-header__inner">
+    <header class="module-app-bar">
+      <div class="module-app-bar__inner">
         <div>
+          <div class="module-app-bar__meta">
+            <a href="/workspace" class="inline-link">Workspace</a>
+            <span class="status-pill status-pill--ready">Knowledge Base</span>
+            <span class="mono-note">Notes + cases + summaries</span>
+          </div>
           <p class="eyebrow">Knowledge Base</p>
-          <h1>Store notes, cases, and research summaries.</h1>
-          <p class="module-header__copy">Capture outputs from Data Lab, papers, and briefings inside a private note and case workspace.</p>
+          <h1>Store notes, cases, and research summaries</h1>
+          <p class="module-app-bar__copy">
+            Use this page as the private record layer for papers, briefings, datasets, model outputs, and case files.
+          </p>
         </div>
-        <nav class="module-header__nav" aria-label="Module navigation">
-          <a href="/workspace">Workspace</a>
-          <a href="/paper-library">Paper Library</a>
-          <a href="/data-lab">Data Lab</a>
-        </nav>
+        <div class="module-app-bar__actions">
+          <a href="/workspace" class="button-link secondary-link">Workspace</a>
+          <a href="/paper-library" class="button-link secondary-link">Paper Library</a>
+          <a href="/data-lab" class="button-link">Data Lab</a>
+        </div>
       </div>
     </header>
 
-    <main class="shell module-shell">
-      <section class="panel module-session-panel" id="auth-panel">
-        <div class="module-session-panel__copy">
-          <div>
-            <h2 id="auth-panel-title">Private workspace session</h2>
-            <p class="muted" id="auth-panel-copy">Knowledge records and case workspaces are scoped to the selected workspace.</p>
-          </div>
-          <div class="status-row">
-            <span class="pill" id="session-indicator">Signed out</span>
-            <span class="muted" id="user-summary">Sign in from the homepage to continue.</span>
-            <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
-          </div>
+    <main class="module-app-shell">
+      <aside class="module-rail panel">
+        <div class="module-rail__top">
+          <p class="eyebrow eyebrow-compact">Navigation</p>
+          <h2>Knowledge workflow</h2>
+          <p class="muted">Use cases as containers, then create or filter notes and route outputs back into them.</p>
         </div>
-        <div class="auth-grid workspace-auth-grid" id="auth-grid">
-          <div class="stack workspace-box workspace-box--read-only" id="workspace-box">
-            <h3>Workspace</h3>
-            <select id="workspace-select"></select>
-            <p class="muted">Switch the active workspace here. Create or manage workspaces from the private workspace hub.</p>
-            <a href="/workspace" class="button-link secondary-link">Manage workspaces</a>
-          </div>
+        <nav class="module-rail-nav" aria-label="Knowledge sections">
+          <a href="#knowledge-session">Workspace</a>
+          <a href="#knowledge-cases">Case workspace</a>
+          <a href="#knowledge-notes">Private notes</a>
+          <a href="#knowledge-related">Related outputs</a>
+        </nav>
+        <div class="module-rail__footer">
+          <a href="#knowledge-cases" class="button-link">Open cases</a>
+          <a href="#knowledge-notes" class="button-link secondary-link">Open notes</a>
         </div>
-      </section>
+      </aside>
 
-      <section class="panel module-panel">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2>Case workspace</h2>
-            <span class="muted">Group notes, papers, briefings, datasets, and Data Lab outputs into reusable private cases.</span>
+      <section class="module-main">
+        <section class="panel module-session-strip" id="knowledge-session">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Workspace</p>
+              <h2>Workspace</h2>
+              <p class="muted">Notes, cases, and linked output all stay inside the current workspace.</p>
+            </div>
           </div>
-          <div class="actions compact-actions">
-            <label class="muted" for="active-case-select">Active case</label>
-            <select id="active-case-select">
-              <option value="">No active case</option>
-            </select>
+          <section class="module-session-panel" id="auth-panel">
+            <div class="module-session-panel__copy">
+              <div>
+                <h3 id="auth-panel-title">Workspace session</h3>
+                <p class="muted" id="auth-panel-copy">Use the active workspace for notes, case files, summaries, and linked outputs.</p>
+              </div>
+              <div class="status-row">
+                <span class="pill" id="session-indicator">Signed out</span>
+                <span class="muted" id="user-summary">Sign in from the homepage to continue.</span>
+                <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
+              </div>
+            </div>
+            <div class="auth-grid workspace-auth-grid" id="auth-grid">
+              <div class="stack workspace-box workspace-box--read-only" id="workspace-box">
+                <h3>Workspace</h3>
+                <select id="workspace-select"></select>
+                <p class="muted">Switch workspace here. Create new ones from the cockpit.</p>
+                <a href="/workspace" class="button-link secondary-link">Manage workspaces</a>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="panel module-stage-card" id="knowledge-cases">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Cases</p>
+              <h2>Case workspace</h2>
+              <p class="muted">Group notes, papers, briefings, datasets, and Data Lab outputs into reusable private cases.</p>
+            </div>
+            <div class="actions compact-actions">
+              <label class="muted" for="active-case-select">Active case</label>
+              <select id="active-case-select">
+                <option value="">No active case</option>
+              </select>
+            </div>
           </div>
-        </div>
-        <div id="knowledge-case-summary-grid" class="knowledge-summary-grid"></div>
-        <div class="knowledge-layout">
-          <div class="knowledge-column">
-            <form id="knowledge-case-form" class="stack">
-              <div class="panel-head panel-head-wrap panel-head-inline">
-                <div>
-                  <h3 id="knowledge-case-form-title">Create case</h3>
-                  <p class="muted" id="knowledge-case-form-status">Create a private case file to group workspace evidence.</p>
+          <div id="knowledge-case-summary-grid" class="knowledge-summary-grid"></div>
+          <div class="module-surface-grid module-surface-grid--knowledge">
+            <div class="module-form-card stack">
+              <form id="knowledge-case-form" class="stack">
+                <div class="panel-head panel-head-wrap panel-head-inline">
+                  <div>
+                    <h3 id="knowledge-case-form-title">Create case</h3>
+                    <p class="muted" id="knowledge-case-form-status">Create a private case file to group workspace evidence.</p>
+                  </div>
                 </div>
+                <input name="case_id" type="hidden" />
+              <input name="title" type="text" placeholder="Case title" data-i18n-placeholder="Case title" required />
+              <input name="tags" type="text" placeholder="Tags, comma separated" data-i18n-placeholder="Tags, comma separated" />
+              <textarea name="description" rows="4" placeholder="Describe the case scope, research question, and intended linked materials" data-i18n-placeholder="Describe the case scope, research question, and intended linked materials"></textarea>
+                <div class="actions compact-actions">
+                  <button id="knowledge-case-submit-button" type="submit">Save case</button>
+                  <button id="knowledge-case-cancel-button" type="button" class="secondary hidden">Cancel edit</button>
+                </div>
+              </form>
+              <div class="module-inline-note">
+                Case files keep model results, paper notes, private briefings, and schedules aligned around one research question.
               </div>
-              <input name="case_id" type="hidden" />
-              <input name="title" type="text" placeholder="Case title" required />
-              <input name="tags" type="text" placeholder="Tags, comma separated" />
-              <textarea name="description" rows="4" placeholder="Describe the case scope, research question, and intended linked materials"></textarea>
-              <div class="actions compact-actions">
-                <button id="knowledge-case-submit-button" type="submit">Save case</button>
-                <button id="knowledge-case-cancel-button" type="button" class="secondary hidden">Cancel edit</button>
-              </div>
-            </form>
+            </div>
             <div id="knowledge-case-list" class="card-list tall"></div>
           </div>
-          <aside id="knowledge-case-preview" class="knowledge-preview"></aside>
-        </div>
-      </section>
+        </section>
 
-      <section class="panel module-panel">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2>Private notes</h2>
-            <span class="muted">Templates, filtering, preview, editing, and source linkage for your private notes.</span>
+        <section class="panel module-stage-card" id="knowledge-notes">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Notes</p>
+              <h2>Private notes</h2>
+              <p class="muted">Use templates, filters, and previews to keep research notes consistent and connected to the rest of the workspace.</p>
+            </div>
           </div>
-        </div>
-        <div id="knowledge-summary-grid" class="knowledge-summary-grid"></div>
-        <div id="knowledge-linkage-grid" class="guide-grid"></div>
-        <div class="knowledge-toolbar">
-          <form id="knowledge-search-form" class="knowledge-search-form">
-            <input id="knowledge-search-input" name="q" type="text" placeholder="Search title, body, citation, or tags" />
-            <select id="knowledge-status-filter" name="status">
-              <option value="active">Active only</option>
-              <option value="archived">Archived only</option>
-              <option value="all">All notes</option>
-            </select>
-            <select id="knowledge-type-filter" name="type"></select>
-            <select id="knowledge-tag-filter" name="tag"></select>
-            <button type="submit" class="secondary">Apply filters</button>
-            <button type="button" id="knowledge-reset-button" class="secondary">Reset</button>
-          </form>
-          <div class="knowledge-template-bar">
-            <span class="muted">Templates:</span>
-            <button type="button" class="secondary" data-knowledge-template="research_memo">Research memo</button>
-            <button type="button" class="secondary" data-knowledge-template="reading_note">Reading note</button>
-            <button type="button" class="secondary" data-knowledge-template="hypothesis_log">Hypothesis log</button>
-            <button type="button" class="secondary" data-knowledge-template="meeting_takeaway">Meeting takeaway</button>
-            <button type="button" class="secondary" data-create-workspace-digest="true">Build workspace digest</button>
-          </div>
-        </div>
-        <div class="knowledge-layout">
-          <div class="knowledge-column">
-            <form id="knowledge-form" class="stack">
-              <div class="panel-head panel-head-wrap panel-head-inline">
-                <div>
-                  <h3 id="knowledge-form-title">Create note</h3>
-                  <p class="muted" id="knowledge-form-status">Save a new private workspace note or use a template as a starting point.</p>
-                </div>
-              </div>
-              <input name="record_id" type="hidden" />
-              <input name="title" type="text" placeholder="Record title" required />
-              <input name="tags" type="text" placeholder="Tags, comma separated" />
-              <textarea name="content" rows="5" placeholder="Write your research note or internal summary" required></textarea>
-              <div class="actions compact-actions">
-                <button id="knowledge-submit-button" type="submit">Save note</button>
-                <button id="knowledge-cancel-button" type="button" class="secondary hidden">Cancel edit</button>
-              </div>
+          <div id="knowledge-summary-grid" class="knowledge-summary-grid"></div>
+          <div id="knowledge-linkage-grid" class="guide-grid"></div>
+          <div class="knowledge-toolbar">
+            <form id="knowledge-search-form" class="knowledge-search-form">
+                <input id="knowledge-search-input" name="q" type="text" placeholder="Search title, body, citation, or tags" data-i18n-placeholder="Search title, body, citation, or tags" />
+              <select id="knowledge-status-filter" name="status">
+                <option value="active">Active only</option>
+                <option value="archived">Archived only</option>
+                <option value="all">All notes</option>
+              </select>
+              <select id="knowledge-type-filter" name="type"></select>
+              <select id="knowledge-tag-filter" name="tag"></select>
+              <button type="submit" class="secondary">Apply filters</button>
+              <button type="button" id="knowledge-reset-button" class="secondary">Reset</button>
             </form>
+            <div class="knowledge-template-bar">
+              <span class="muted">Templates:</span>
+              <button type="button" class="secondary" data-knowledge-template="research_memo">Research memo</button>
+              <button type="button" class="secondary" data-knowledge-template="reading_note">Reading note</button>
+              <button type="button" class="secondary" data-knowledge-template="hypothesis_log">Hypothesis log</button>
+              <button type="button" class="secondary" data-knowledge-template="meeting_takeaway">Meeting takeaway</button>
+              <button type="button" class="secondary" data-create-workspace-digest="true">Build workspace digest</button>
+            </div>
+          </div>
+          <div class="module-surface-grid module-surface-grid--knowledge">
+            <div class="module-form-card stack">
+              <form id="knowledge-form" class="stack">
+                <div class="panel-head panel-head-wrap panel-head-inline">
+                  <div>
+                    <h3 id="knowledge-form-title">Create note</h3>
+                    <p class="muted" id="knowledge-form-status">Save a new private workspace note or use a template as a starting point.</p>
+                  </div>
+                </div>
+                <input name="record_id" type="hidden" />
+                <input name="title" type="text" placeholder="Record title" data-i18n-placeholder="Record title" required />
+                <input name="tags" type="text" placeholder="Tags, comma separated" data-i18n-placeholder="Tags, comma separated" />
+                <textarea name="content" rows="5" placeholder="Write your research note or internal summary" data-i18n-placeholder="Write your research note or internal summary" required></textarea>
+                <div class="actions compact-actions">
+                  <button id="knowledge-submit-button" type="submit">Save note</button>
+                  <button id="knowledge-cancel-button" type="button" class="secondary hidden">Cancel edit</button>
+                </div>
+              </form>
+              <div class="module-inline-note">
+                Use one note per distinct question or output. Keep derived summaries, annotations, and case links separate.
+              </div>
+            </div>
             <div id="knowledge-list" class="card-list tall"></div>
           </div>
-          <aside id="knowledge-preview" class="knowledge-preview"></aside>
-        </div>
+        </section>
       </section>
+
+      <aside class="module-inspector">
+        <section class="panel module-inspector-card" id="knowledge-related">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Knowledge runbook</h3>
+              <span class="muted">Cases collect evidence; notes hold reasoning.</span>
+            </div>
+          </div>
+          <div class="module-guide-list">
+            <article class="workflow-step-card is-active">
+              <h4>Create a case when needed</h4>
+              <p>Use a case when several notes, papers, and results belong to one research question.</p>
+            </article>
+            <article class="workflow-step-card">
+              <h4>Capture or derive notes</h4>
+              <p>Store briefings, paper notes, Data Lab outputs, and workspace digests as separate traceable notes.</p>
+            </article>
+            <article class="workflow-step-card">
+              <h4>Reuse across modules</h4>
+              <p>Open related papers, results, and assets from the previews instead of re-searching for them.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel module-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Case preview</h3>
+              <span class="muted">Inspect the active case, linked items, and editing actions.</span>
+            </div>
+          </div>
+          <aside id="knowledge-case-preview" class="knowledge-preview"></aside>
+        </section>
+
+        <section class="panel module-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Note preview</h3>
+              <span class="muted">Open a note to see metadata, related records, and export actions.</span>
+            </div>
+          </div>
+          <aside id="knowledge-preview" class="knowledge-preview"></aside>
+        </section>
+      </aside>
     </main>
 
     <div id="toast" class="toast hidden"></div>

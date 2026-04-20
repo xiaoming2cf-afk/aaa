@@ -5,15 +5,11 @@ import os
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from session_auth import auth_headers, same_origin_headers, session_token_from_cookies
 
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORT_DIR = ROOT / "蒙特卡洛" / "workbench_knowledge"
-
-
-def auth_headers(token: str) -> dict[str, str]:
-    return {"Authorization": f"Bearer {token}"}
-
 
 def expect_status(response, expected: int) -> None:
     assert response.status_code == expected, response.text
@@ -45,33 +41,43 @@ def main() -> None:
         index_response = client.get("/")
         expect_status(index_response, 200)
         html = index_response.text
-        assert "Workspace Cockpit" in html
-        assert "Research Flow Lane" in html
-        assert "Cross-Module Surface Map" in html
-        assert 'id="cockpit-flow-list"' in html
-        assert 'id="cockpit-linkage-grid"' in html
-        assert 'id="knowledge-search-form"' in html
-        assert 'id="knowledge-status-filter"' in html
-        assert 'id="knowledge-preview"' in html
-        assert 'id="knowledge-form-title"' in html
-        assert 'id="knowledge-cancel-button"' in html
-        assert "Knowledge Linkage Board" in html
-        assert 'id="knowledge-linkage-grid"' in html
-
-        result_page_response = client.get("/data-lab/results/models/demo-model-result")
-        expect_status(result_page_response, 200)
-        result_html = result_page_response.text
-        assert "Export & Reuse Board" in result_html
-        assert 'id="lab-result-export-board"' in result_html
+        assert 'id="auth-panel"' in html
+        assert 'id="public-report-panel"' in html
+        assert 'href="/workspace"' in html
 
         register_response = client.post(
             "/api/auth/register",
-            json={"email": "workbench@example.com", "password": "test-pass-123", "full_name": "Workbench User"},
+            headers=same_origin_headers("http://testserver"),
+            json={"email": "workbench@example.com", "password": "ResearchPass!123", "full_name": "Workbench User"},
         )
         expect_status(register_response, 200)
         register_payload = register_response.json()
-        token = register_payload["session_token"]
+        token = session_token_from_cookies(client)
         user_id = register_payload["user"]["id"]
+
+        workspace_page_response = client.get("/workspace", headers=auth_headers(token))
+        expect_status(workspace_page_response, 200)
+        workspace_html = workspace_page_response.text
+        assert "Workspace Cockpit" in workspace_html
+        assert 'id="cockpit-flow-list"' in workspace_html
+        assert 'id="cockpit-linkage-grid"' in workspace_html
+        assert 'id="cockpit-activity-list"' in workspace_html
+
+        knowledge_page_response = client.get("/knowledge-base", headers=auth_headers(token))
+        expect_status(knowledge_page_response, 200)
+        knowledge_html = knowledge_page_response.text
+        assert 'id="knowledge-search-form"' in knowledge_html
+        assert 'id="knowledge-status-filter"' in knowledge_html
+        assert 'id="knowledge-preview"' in knowledge_html
+        assert 'id="knowledge-form-title"' in knowledge_html
+        assert 'id="knowledge-cancel-button"' in knowledge_html
+        assert 'id="knowledge-linkage-grid"' in knowledge_html
+
+        result_page_response = client.get("/data-lab/results/models/demo-model-result", headers=auth_headers(token))
+        expect_status(result_page_response, 200)
+        result_html = result_page_response.text
+        assert 'id="lab-result-export-board"' in result_html
+        assert 'id="lab-result-interpretation-card"' in result_html
 
         workspace_response = client.post(
             "/api/workspaces",
@@ -326,17 +332,18 @@ def main() -> None:
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     report_payload = {
-        "homepage": {
-            "contains_workspace_cockpit": True,
-            "contains_research_flow_lane": True,
-            "contains_cross_module_surface_map": True,
-            "contains_knowledge_status_filter": True,
-            "contains_knowledge_preview": True,
-            "contains_editable_knowledge_form": True,
-            "contains_knowledge_linkage_board": True,
+        "page_shells": {
+            "home_contains_public_and_private_entry": True,
+            "workspace_contains_cockpit_flow": True,
+            "workspace_contains_linkage_grid": True,
+            "knowledge_base_contains_filters": True,
+            "knowledge_base_contains_preview": True,
+            "knowledge_base_contains_editable_form": True,
+            "knowledge_base_contains_linkage_grid": True,
         },
         "result_page_template": {
-            "contains_export_reuse_board": True,
+            "contains_export_board": True,
+            "contains_interpretation_card": True,
         },
         "knowledge_summary_view": {
             "record_count_before_delete": 3,

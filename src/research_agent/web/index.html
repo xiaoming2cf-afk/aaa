@@ -3,8 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Economic Research Platform</title>
+    <meta
+      name="description"
+      content="Read the daily macro edition in public, then continue in a workspace that keeps providers, papers, Data Lab outputs, notes, and schedules aligned."
+      data-i18n-content="Read the daily macro edition in public, then continue in a workspace that keeps providers, papers, Data Lab outputs, notes, and schedules aligned."
+    />
+    <title data-i18n="Economic Research Platform">Economic Research Platform</title>
     <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
   <body class="page-home">
@@ -17,8 +24,8 @@
           <span class="home-nav__label">Economic Research Platform</span>
         </a>
         <nav class="home-nav__links" aria-label="Primary">
-          <a href="#public-report-panel">Public Report</a>
-          <a href="#auth-panel">Sign in</a>
+          <a href="#public-report-panel">Public briefing</a>
+          <a href="#auth-panel">Private workspace</a>
         </nav>
       </div>
     </header>
@@ -28,8 +35,10 @@
         <div class="home-hero__grid">
           <div class="home-hero__content">
             <p class="eyebrow">Research Terminal</p>
-            <h1>Research workflows for macro, markets, and literature.</h1>
-            <p class="home-hero__copy">Public macro briefing first. Private research workspace after sign-in.</p>
+            <h1>Public briefing first. Private workspace after sign-in.</h1>
+            <p class="home-hero__copy">
+              Read the daily macro edition in public, then continue in a workspace that keeps providers, papers, Data Lab outputs, notes, and schedules aligned.
+            </p>
 
             <div class="edition-bar" aria-label="Edition status">
               <div class="edition-bar__item">
@@ -46,32 +55,27 @@
               </div>
               <div class="edition-bar__item">
                 <span>Access</span>
-                <strong>Public</strong>
+                <strong>Public + Private</strong>
               </div>
-            </div>
-
-            <div class="home-hero__actions">
-              <a class="button-link" href="#public-report-panel">Read today's briefing</a>
-              <a class="button-link secondary-link" href="#auth-panel">Sign in to workspace</a>
             </div>
 
             <div class="signal-card-grid" aria-label="Signal summary">
               <article class="signal-card">
-                <span>Macro Pulse</span>
+                <span>Macro pulse</span>
                 <strong id="signal-macro-value">Tracking</strong>
                 <div class="sparkline sparkline-up" aria-hidden="true">
                   <span></span><span></span><span></span><span></span><span></span><span></span>
                 </div>
               </article>
               <article class="signal-card">
-                <span>Rates Regime</span>
+                <span>Rates regime</span>
                 <strong id="signal-rates-value">Scanning</strong>
                 <div class="sparkline sparkline-flat" aria-hidden="true">
                   <span></span><span></span><span></span><span></span><span></span><span></span>
                 </div>
               </article>
               <article class="signal-card">
-                <span>Risk Tone</span>
+                <span>Risk tone</span>
                 <strong id="signal-risk-value">Neutral</strong>
                 <div class="sparkline sparkline-soft" aria-hidden="true">
                   <span></span><span></span><span></span><span></span><span></span><span></span>
@@ -79,24 +83,29 @@
               </article>
             </div>
 
+            <div class="home-hero__actions">
+              <a class="button-link" href="#public-report-panel">Read current briefing</a>
+              <a class="button-link secondary-link" href="#auth-panel">Open private workspace</a>
+            </div>
+
             <div class="flow-lane" aria-label="Research flow">
-              <span class="flow-pill flow-pill--active">Public Report</span>
-              <span class="flow-separator">&rarr;</span>
-              <span class="flow-pill">Sign in</span>
+              <span class="flow-pill flow-pill--active">Public briefing</span>
               <span class="flow-separator">&rarr;</span>
               <span class="flow-pill">Workspace</span>
               <span class="flow-separator">&rarr;</span>
+              <span class="flow-pill">Providers</span>
+              <span class="flow-separator">&rarr;</span>
               <span class="flow-pill">Data Lab</span>
               <span class="flow-separator">&rarr;</span>
-              <span class="flow-pill">Note</span>
+              <span class="flow-pill">Knowledge</span>
             </div>
           </div>
 
           <section class="home-auth-card" id="auth-panel" aria-label="Private workspace">
             <div class="home-auth-card__header">
               <p class="eyebrow eyebrow-compact">Private Workspace</p>
-              <h2 id="auth-panel-title">Sign in to access the private workspace</h2>
-              <p class="muted" id="auth-panel-copy">Use your account to enter the private research workspace.</p>
+              <h2 id="auth-panel-title">Sign in for the private workspace</h2>
+              <p class="muted" id="auth-panel-copy">Public reading stays open. Private modules unlock after sign-in.</p>
             </div>
 
             <div class="status-row home-session-status">
@@ -107,17 +116,31 @@
             <div class="auth-grid home-auth-grid" id="auth-grid">
               <form id="register-form" class="stack home-auth-form" data-auth-form>
                 <h3>Create account</h3>
-                <input name="full_name" type="text" placeholder="Full name" autocomplete="name" required />
-                <input name="email" type="email" placeholder="Email" autocomplete="email" required />
-                <input name="password" type="password" placeholder="Password (8+ characters)" autocomplete="new-password" required />
+                <input name="full_name" type="text" placeholder="Full name" data-i18n-placeholder="Full name" autocomplete="name" required />
+                <input name="email" type="email" placeholder="Email" data-i18n-placeholder="Email" autocomplete="email" required />
+                <input name="password" type="password" placeholder="Password (12+ characters)" data-i18n-placeholder="Password (12+ characters)" autocomplete="new-password" minlength="12" required />
                 <button type="submit">Register</button>
               </form>
 
               <form id="login-form" class="stack home-auth-form" data-auth-form>
                 <h3>Sign in</h3>
-                <input name="email" type="email" placeholder="Email" autocomplete="username" required />
-                <input name="password" type="password" placeholder="Password" autocomplete="current-password" required />
+                <input name="email" type="email" placeholder="Email" data-i18n-placeholder="Email" autocomplete="username" required />
+                <input name="password" type="password" placeholder="Password" data-i18n-placeholder="Password" autocomplete="current-password" required />
                 <button type="submit">Log in</button>
+                <button id="password-reset-toggle" type="button" class="secondary">Forgot password</button>
+              </form>
+
+              <form id="password-reset-request-form" class="stack home-auth-form hidden" data-auth-form>
+                <h3>Password reset</h3>
+                <input name="email" type="email" placeholder="Email" data-i18n-placeholder="Email" autocomplete="email" required />
+                <button type="submit">Send reset link</button>
+              </form>
+
+              <form id="password-reset-confirm-form" class="stack home-auth-form hidden" data-auth-form>
+                <h3>Set new password</h3>
+                <input name="token" type="hidden" />
+                <input name="password" type="password" placeholder="Password (12+ characters)" data-i18n-placeholder="Password (12+ characters)" autocomplete="new-password" minlength="12" required />
+                <button type="submit">Reset password</button>
               </form>
 
               <div class="stack home-session-card hidden" id="workspace-box">
@@ -129,10 +152,10 @@
                   <span class="status-pill status-pill--ready">Private</span>
                 </div>
                 <p class="muted" id="home-workspace-status">
-                  Open the private workspace to switch workspaces, connect providers, and manage research assets.
+                  Open the workspace cockpit to switch workspaces and continue private research.
                 </p>
                 <div class="actions compact-actions">
-                  <a href="/workspace" class="button-link">Open private workspace</a>
+                  <a href="/workspace" class="button-link">Open workspace cockpit</a>
                   <a href="/data-lab" class="button-link secondary-link">Open Data Lab</a>
                   <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
                 </div>
@@ -145,16 +168,17 @@
       <section class="home-public-panel" id="public-report-panel">
         <div class="section-head">
           <div>
-            <p class="eyebrow eyebrow-compact">Latest Public Briefing</p>
+            <p class="eyebrow eyebrow-compact">Current Briefing</p>
             <h2 id="public-current-title">Loading latest edition</h2>
             <p class="muted" id="public-current-meta">Loading latest edition</p>
           </div>
+          <a href="/public-monitor" class="button-link secondary-link">Open Daily Monitor</a>
         </div>
 
         <div class="home-public-grid">
           <article class="home-briefing-card">
             <div class="home-public-meta" id="public-latest-meta">Loading latest edition</div>
-            <div id="public-latest-view" class="report-copy">
+              <div id="public-latest-view" class="report-copy" data-i18n-skip>
               <div class="skeleton-block skeleton-block-title"></div>
               <div class="skeleton-block"></div>
               <div class="skeleton-block"></div>
@@ -170,18 +194,101 @@
                 <p class="muted" id="public-summary-meta">Loading latest edition</p>
               </div>
             </div>
-            <div id="public-summary-view" class="report-copy">
+              <div id="public-summary-view" class="report-copy" data-i18n-skip>
               <div class="skeleton-block"></div>
               <div class="skeleton-block"></div>
               <div class="skeleton-block skeleton-block-short"></div>
             </div>
           </article>
         </div>
+      </section>
 
+      <section class="home-modules-panel" aria-label="Research routes">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow eyebrow-compact">Research Routes</p>
+            <h2>Two entry paths, one shared model</h2>
+            <p class="muted">Use home for orientation. Do the work in focused pages.</p>
+          </div>
+        </div>
+
+        <div class="home-route-layout">
+          <article class="home-route-panel">
+            <p class="eyebrow eyebrow-compact">Public line</p>
+            <h3>Read, compare, and share</h3>
+            <div class="home-route-list">
+              <div class="home-route-item">
+                <strong>Daily Monitor</strong>
+                <p>Current edition, source panel, review queue, and recent published runs.</p>
+              </div>
+              <div class="home-route-item">
+                <strong>Weekly and Monthly Summaries</strong>
+                <p>Longer windows that stay separate from the daily page.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="home-route-panel">
+            <p class="eyebrow eyebrow-compact">Private line</p>
+            <h3>Build the research workspace</h3>
+            <div class="private-module-grid">
+              <article class="private-module-card is-locked" data-private-card>
+                <span class="status-pill status-pill--locked">Locked</span>
+                <h3>Workspace</h3>
+                <p>Current state, recent activity, and next action.</p>
+                <span class="module-availability">Available after sign-in</span>
+                <button type="button" class="secondary" data-private-link="/workspace">Sign in to open</button>
+              </article>
+
+              <article class="private-module-card is-locked" data-private-card>
+                <span class="status-pill status-pill--locked">Locked</span>
+                <h3>Provider Center</h3>
+                <p>Connections for models and data sources.</p>
+                <span class="module-availability">Available after sign-in</span>
+                <button type="button" class="secondary" data-private-link="/provider-center">Sign in to open</button>
+              </article>
+
+              <article class="private-module-card is-locked" data-private-card>
+                <span class="status-pill status-pill--locked">Locked</span>
+                <h3>Paper Library</h3>
+                <p>Search, import, and route literature.</p>
+                <span class="module-availability">Available after sign-in</span>
+                <button type="button" class="secondary" data-private-link="/paper-library">Sign in to open</button>
+              </article>
+
+              <article class="private-module-card is-locked" data-private-card>
+                <span class="status-pill status-pill--locked">Locked</span>
+                <h3>Knowledge Base</h3>
+                <p>Notes, cases, and reusable summaries.</p>
+                <span class="module-availability">Available after sign-in</span>
+                <button type="button" class="secondary" data-private-link="/knowledge-base">Sign in to open</button>
+              </article>
+
+              <article class="private-module-card is-locked" data-private-card>
+                <span class="status-pill status-pill--locked">Locked</span>
+                <h3>Data Lab</h3>
+                <p>Preparation, estimation, optimization, and result detail.</p>
+                <span class="module-availability">Available after sign-in</span>
+                <button type="button" class="secondary" data-private-link="/data-lab">Sign in to open</button>
+              </article>
+
+              <article class="private-module-card is-locked" data-private-card>
+                <span class="status-pill status-pill--locked">Locked</span>
+                <h3>Schedules</h3>
+                <p>Recurring briefing and research jobs.</p>
+                <span class="module-availability">Available after sign-in</span>
+                <button type="button" class="secondary" data-private-link="/schedules">Sign in to open</button>
+              </article>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="home-public-panel">
         <div class="section-head section-head--compact">
           <div>
-            <p class="eyebrow eyebrow-compact">Recent Editions</p>
-            <h3>Recent editions</h3>
+            <p class="eyebrow eyebrow-compact">Recent Versions</p>
+            <h2>Recent editions</h2>
           </div>
         </div>
         <div id="public-briefing-list" class="home-edition-list">
@@ -199,86 +306,9 @@
           </article>
         </div>
       </section>
-
-      <section class="home-modules-panel" aria-label="Private modules">
-        <div class="section-head">
-          <div>
-            <p class="eyebrow eyebrow-compact">Private Modules</p>
-            <h2>Private tools after sign-in</h2>
-            <p class="muted">Homepage cards only preview capability. Search, editing, creation, and execution stay inside the private workspace.</p>
-          </div>
-        </div>
-
-        <div class="private-module-grid">
-          <article class="private-module-card is-locked" data-private-card>
-            <span class="status-pill status-pill--locked">Locked</span>
-            <h3>Data Lab</h3>
-            <p>Models, processing, charts.</p>
-            <span class="module-availability">Available after sign-in</span>
-            <button type="button" class="secondary" data-private-link="/data-lab">Sign in to open</button>
-          </article>
-
-          <article class="private-module-card is-locked" data-private-card>
-            <span class="status-pill status-pill--locked">Locked</span>
-            <h3>Provider Center</h3>
-            <p>Model and data connections.</p>
-            <span class="module-availability">Available after sign-in</span>
-            <button type="button" class="secondary" data-private-link="/provider-center">Sign in to open</button>
-          </article>
-
-          <article class="private-module-card is-locked" data-private-card>
-            <span class="status-pill status-pill--locked">Locked</span>
-            <h3>Paper Library</h3>
-            <p>Search, import, relate.</p>
-            <span class="module-availability">Available after sign-in</span>
-            <button type="button" class="secondary" data-private-link="/paper-library">Sign in to open</button>
-          </article>
-
-          <article class="private-module-card is-locked" data-private-card>
-            <span class="status-pill status-pill--locked">Locked</span>
-            <h3>Knowledge Base</h3>
-            <p>Notes, cases, summaries.</p>
-            <span class="module-availability">Available after sign-in</span>
-            <button type="button" class="secondary" data-private-link="/knowledge-base">Sign in to open</button>
-          </article>
-
-          <article class="private-module-card is-locked" data-private-card>
-            <span class="status-pill status-pill--locked">Locked</span>
-            <h3>Daily Monitor</h3>
-            <p>Private tracking workspace.</p>
-            <span class="module-availability">Available after sign-in</span>
-            <button type="button" class="secondary" data-private-link="/public-monitor">Sign in to open</button>
-          </article>
-
-          <article class="private-module-card is-locked" data-private-card>
-            <span class="status-pill status-pill--locked">Locked</span>
-            <h3>Schedules</h3>
-            <p>Recurring research tasks.</p>
-            <span class="module-availability">Available after sign-in</span>
-            <button type="button" class="secondary" data-private-link="/schedules">Sign in to open</button>
-          </article>
-        </div>
-      </section>
     </main>
 
-    <footer class="home-footer">
-      <div class="home-footer__inner">
-        <article class="home-footer__item">
-          <span>Platform status</span>
-          <strong>Public digest and sign-in entry are live.</strong>
-        </article>
-        <article class="home-footer__item">
-          <span>Sources</span>
-          <strong>Official releases, market reporting, literature, and workspace outputs.</strong>
-        </article>
-        <article class="home-footer__item">
-          <span>Docs</span>
-          <strong>Use the private workspace after sign-in. Need help? Start from Data Lab.</strong>
-        </article>
-      </div>
-    </footer>
-
-    <div id="toast" class="toast" aria-live="polite"></div>
+    <div id="toast" class="toast hidden"></div>
     <script src="/assets/app.js" defer></script>
   </body>
 </html>

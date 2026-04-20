@@ -9,6 +9,7 @@ from typing import Any
 import pandas as pd
 from fastapi.testclient import TestClient
 
+from session_auth import same_origin_headers, session_token_from_cookies
 from verify_data_lab import (
     auth_headers,
     build_panel_dataset,
@@ -282,10 +283,11 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
 
         register = client.post(
             "/api/auth/register",
+            headers=same_origin_headers("http://testserver"),
             json={"full_name": "Verifier", "email": "verifier@example.com", "password": "StrongPass123!"},
         )
         register.raise_for_status()
-        token = register.json()["session_token"]
+        token = session_token_from_cookies(client)
         workspace_id = create_workspace(client, token, "Verification Lab")
 
         panel_frame = build_panel_dataset()
@@ -370,8 +372,10 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
         remote_headers = {"host": "economic-research-web.onrender.com", **auth_headers(token)}
         data_lab_page = client.get("/data-lab", headers=remote_headers)
         data_lab_page.raise_for_status()
-        if "Beginner Variable Guide" not in data_lab_page.text or "Optimization Module" not in data_lab_page.text:
-            raise AssertionError("Data Lab page is missing the expected guide or optimization sections")
+        if 'id="variable-guide-form"' not in data_lab_page.text or 'id="lab-run-design-title"' not in data_lab_page.text:
+            raise AssertionError("Data Lab page is missing the expected workbench guide anchors")
+        if 'data-lab-stage="dataset"' not in data_lab_page.text or 'data-lab-stage="history"' not in data_lab_page.text:
+            raise AssertionError("Data Lab page is missing the expected staged workbench sections")
         catalog_response = client.get("/api/data-lab/catalog", headers=remote_headers)
         catalog_response.raise_for_status()
         catalog = catalog_response.json()
@@ -404,8 +408,8 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
 
         result_page = client.get(f"/data-lab/results/models/{results['econometrics_baseline/did']['baseline']['_record_id']}", headers=remote_headers)
         result_page.raise_for_status()
-        if "Interpretation &amp; Replication" not in result_page.text and "Interpretation & Replication" not in result_page.text:
-            raise AssertionError("Result detail page is missing the interpretation section")
+        if 'id="lab-result-interpretation-card"' not in result_page.text or 'id="lab-result-export-board"' not in result_page.text:
+            raise AssertionError("Result detail page is missing the interpretation/export anchors")
         if output_dir:
             _write_text(output_dir / "model_anchor" / "sample_result_page.html", result_page.text)
 

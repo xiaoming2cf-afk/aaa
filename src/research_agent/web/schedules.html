@@ -3,64 +3,174 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Schedules | Economic Research Platform</title>
+    <meta
+      name="description"
+      content="Manage recurring jobs, review upcoming runs, and keep automated research tasks aligned with the active workspace."
+      data-i18n-content="Manage recurring jobs, review upcoming runs, and keep automated research tasks aligned with the active workspace."
+    />
+    <title data-i18n="Schedules | Economic Research Platform">Schedules | Economic Research Platform</title>
     <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
-  <body class="page-module">
+  <body class="page-module page-schedules">
     <div class="page-bg"></div>
 
-    <header class="module-header">
-      <div class="module-header__inner">
+    <header class="module-app-bar">
+      <div class="module-app-bar__inner">
         <div>
+          <div class="module-app-bar__meta">
+            <a href="/workspace" class="inline-link">Workspace</a>
+            <span class="status-pill status-pill--ready">Schedules</span>
+            <span class="mono-note">Recurring jobs</span>
+          </div>
           <p class="eyebrow">Schedules</p>
-          <h1>Run recurring research tasks.</h1>
-          <p class="module-header__copy">Create recurring private briefing jobs and keep them attached to the selected workspace.</p>
+          <h1>Run recurring research tasks</h1>
+          <p class="module-app-bar__copy">
+            Use schedules as a narrow execution surface for recurring briefings and repeatable research jobs.
+          </p>
         </div>
-        <nav class="module-header__nav" aria-label="Module navigation">
-          <a href="/workspace">Workspace</a>
-          <a href="/knowledge-base">Knowledge Base</a>
-          <a href="/public-monitor">Daily Monitor</a>
-        </nav>
+        <div class="module-app-bar__actions">
+          <a href="/workspace" class="button-link secondary-link">Workspace</a>
+          <a href="/knowledge-base" class="button-link secondary-link">Knowledge Base</a>
+          <a href="/public-monitor" class="button-link">Daily Monitor</a>
+        </div>
       </div>
     </header>
 
-    <main class="shell module-shell">
-      <section class="panel module-session-panel" id="auth-panel">
-        <div class="module-session-panel__copy">
-          <div>
-            <h2 id="auth-panel-title">Private workspace session</h2>
-            <p class="muted" id="auth-panel-copy">Schedules and recurring jobs run inside the selected workspace.</p>
-          </div>
-          <div class="status-row">
-            <span class="pill" id="session-indicator">Signed out</span>
-            <span class="muted" id="user-summary">Sign in from the homepage to continue.</span>
-            <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
-          </div>
+    <main class="module-app-shell">
+      <aside class="module-rail panel">
+        <div class="module-rail__top">
+          <p class="eyebrow eyebrow-compact">Navigation</p>
+          <h2>Recurring jobs</h2>
+          <p class="muted">Define a recurring focus, save a schedule, and monitor upcoming runs inside the active workspace.</p>
         </div>
-        <div class="auth-grid workspace-auth-grid" id="auth-grid">
-          <div class="stack workspace-box workspace-box--read-only" id="workspace-box">
-            <h3>Workspace</h3>
-            <select id="workspace-select"></select>
-            <p class="muted">Switch the active workspace here. Create or manage workspaces from the private workspace hub.</p>
-            <a href="/workspace" class="button-link secondary-link">Manage workspaces</a>
-          </div>
+        <nav class="module-rail-nav" aria-label="Schedule sections">
+          <a href="#schedule-session">Workspace</a>
+          <a href="#schedule-builder">Create job</a>
+          <a href="#schedule-inventory">Upcoming runs</a>
+        </nav>
+        <div class="module-rail__footer">
+          <a href="#schedule-builder" class="button-link">New schedule</a>
+          <a href="#schedule-inventory" class="button-link secondary-link">Review jobs</a>
         </div>
+      </aside>
+
+      <section class="module-main">
+        <section class="panel module-session-strip" id="schedule-session">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Workspace</p>
+              <h2>Workspace</h2>
+              <p class="muted">Recurring jobs are attached to one workspace at a time. Confirm it here before creating or reviewing jobs.</p>
+            </div>
+          </div>
+          <section class="module-session-panel" id="auth-panel">
+            <div class="module-session-panel__copy">
+              <div>
+                <h3 id="auth-panel-title">Workspace session</h3>
+                <p class="muted" id="auth-panel-copy">Use the active workspace for recurring briefings and repeatable research jobs.</p>
+              </div>
+              <div class="status-row">
+                <span class="pill" id="session-indicator">Signed out</span>
+                <span class="muted" id="user-summary">Sign in from the homepage to continue.</span>
+                <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
+              </div>
+            </div>
+            <div class="auth-grid workspace-auth-grid" id="auth-grid">
+              <div class="stack workspace-box workspace-box--read-only" id="workspace-box">
+                <h3>Workspace</h3>
+                <select id="workspace-select"></select>
+                <p class="muted">Switch workspace here. Create new ones from the cockpit.</p>
+                <a href="/workspace" class="button-link secondary-link">Manage workspaces</a>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="panel module-stage-card" id="schedule-builder">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Builder</p>
+              <h2>Create recurring job</h2>
+              <p class="muted">Schedules here are deliberately simple: define a name, local time, and optional topic focus, then let the workspace own the recurrence.</p>
+            </div>
+          </div>
+          <div id="schedule-summary-grid" class="module-kpi-grid">
+            <article class="module-kpi-card">
+              <span>Recurring jobs</span>
+              <strong>0</strong>
+              <p>No private recurring jobs yet.</p>
+            </article>
+          </div>
+          <div class="module-surface-grid">
+            <form id="schedule-form" class="stack module-form-card">
+              <div class="panel-head panel-head-wrap">
+                <div>
+                  <h3>Job definition</h3>
+                  <span class="muted">Use a single daily trigger per line of work, then inspect the upcoming run list before adding another.</span>
+                </div>
+              </div>
+              <input name="name" type="text" placeholder="Job name" data-i18n-placeholder="Job name" required />
+              <input name="local_time" type="time" value="08:00" required />
+              <input name="query_text" type="text" placeholder="Daily focus topic" data-i18n-placeholder="Daily focus topic" />
+              <button type="submit">Create daily job</button>
+            </form>
+
+            <section class="module-info-card">
+              <div class="panel-head panel-head-wrap">
+                <div>
+                  <h3>Scheduling notes</h3>
+                  <span class="muted">Keep recurring jobs narrow so they stay interpretable when outputs arrive in notes or briefings.</span>
+                </div>
+              </div>
+              <ul class="module-runbook-list">
+                <li>Use one clear job name per recurring research thread.</li>
+                <li>Set the local time to the moment you actually want the briefing or task to be ready.</li>
+                <li>Use the focus topic only when the recurring job should stay attached to a narrow theme.</li>
+                <li>Review upcoming runs after each change so the workspace schedule remains readable.</li>
+              </ul>
+            </section>
+          </div>
+        </section>
+
+        <section class="panel module-stage-card" id="schedule-inventory">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Upcoming</p>
+              <h2>Upcoming runs</h2>
+              <p class="muted">Review the recurring jobs already attached to the workspace and confirm their next run timing.</p>
+            </div>
+          </div>
+          <div id="schedule-list" class="card-list"></div>
+        </section>
       </section>
 
-      <section class="panel module-panel">
-        <div class="panel-head">
-          <h2>Recurring jobs</h2>
-          <span class="muted">Daily private briefing tasks and future recurring research jobs.</span>
-        </div>
-        <form id="schedule-form" class="stack">
-          <input name="name" type="text" placeholder="Job name" required />
-          <input name="local_time" type="time" value="08:00" required />
-          <input name="query_text" type="text" placeholder="Daily focus topic" />
-          <button type="submit">Create daily job</button>
-        </form>
-        <div id="schedule-list" class="card-list"></div>
-      </section>
+      <aside class="module-inspector">
+        <section class="panel module-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Execution flow</h3>
+              <span class="muted">Treat schedules as repeatable triggers, not as a workspace management surface.</span>
+            </div>
+          </div>
+          <div class="module-guide-list">
+            <article class="workflow-step-card is-active">
+              <h4>Select workspace</h4>
+              <p>Jobs are bound to the active workspace and should be reviewed there first.</p>
+            </article>
+            <article class="workflow-step-card">
+              <h4>Create one narrow job</h4>
+              <p>Keep the recurrence focused so the output can be interpreted and filed cleanly.</p>
+            </article>
+            <article class="workflow-step-card">
+              <h4>Review next runs</h4>
+              <p>Use the list below to verify cadence and upcoming execution before creating more jobs.</p>
+            </article>
+          </div>
+        </section>
+      </aside>
     </main>
 
     <div id="toast" class="toast hidden"></div>

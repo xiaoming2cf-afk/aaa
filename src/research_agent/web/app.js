@@ -2,10 +2,16 @@ const storageKeys = {
   token: "erp.session.token",
   workspaceId: "erp.workspace.id",
   caseId: "erp.knowledge.caseId",
+  locale: "erp.ui.locale",
+  pendingLabPrefill: "erp.data_lab.prefill",
 };
 
 const state = {
-  token: localStorage.getItem(storageKeys.token) || "",
+  token: "",
+  locale: window.erpLocale?.resolveInitialLocale?.() || "en",
+  sessionRestorePending: false,
+  sessionIdentityRequest: null,
+  sessionIdentityResolved: false,
   user: null,
   workspaces: [],
   selectedWorkspaceId: localStorage.getItem(storageKeys.workspaceId) || "",
@@ -16,7 +22,11 @@ const state = {
   workspaceAssets: [],
   workspaceKnowledge: [],
   workspaceCases: [],
+  workspaceMemories: [],
   workspaceSchedules: [],
+  researchRuns: [],
+  researchEvalPreview: null,
+  selectedResearchRunId: "",
   knowledgeDetails: {},
   knowledgeRelated: {},
   caseDetails: {},
@@ -39,7 +49,9 @@ const state = {
   selectedSummaryDays: 7,
   selectedSummaryWindow: "",
   bootstrap: null,
+  providerCatalog: { llm: [], data_source: [] },
   dataLabCatalog: null,
+  dataLabHistory: { processing: [], models: [], optimization: [] },
   optimizationCatalog: null,
   optimizationResults: [],
   currentOptimizationResult: null,
@@ -50,7 +62,29 @@ const state = {
   publicSourceTypeFilter: "all",
   publicSourceCountryFilter: "all",
   publicSourceRegionFilter: "all",
+  dataLabTemplateMismatch: false,
 };
+
+window.erpLocale?.syncDocumentLocale?.(state.locale);
+
+localStorage.removeItem(storageKeys.token);
+
+function readCookie(name) {
+  const target = `${String(name || "").trim()}=`;
+  return document.cookie
+    .split(";")
+    .map((item) => item.trim())
+    .find((item) => item.startsWith(target))
+    ?.slice(target.length) || "";
+}
+
+function csrfToken() {
+  return readCookie("erp_csrf_token");
+}
+
+function methodRequiresCsrf(method = "GET") {
+  return !["GET", "HEAD", "OPTIONS"].includes(String(method || "GET").toUpperCase());
+}
 
 const MODEL_FAMILY_OPTIONS = {
   econometrics_baseline: [
@@ -286,12 +320,29 @@ const dom = {
   cockpitActionList: document.getElementById("cockpit-action-list"),
   cockpitActivityList: document.getElementById("cockpit-activity-list"),
   cockpitFlowList: document.getElementById("cockpit-flow-list"),
+  workspaceMemoryList: document.getElementById("workspace-memory-list"),
+  researchPageTitle: document.getElementById("research-page-title"),
+  researchPageCopy: document.getElementById("research-page-copy"),
+  researchPageActions: document.getElementById("research-page-actions"),
+  researchEvalTitle: document.getElementById("research-eval-title"),
+  researchEvalCopy: document.getElementById("research-eval-copy"),
+  researchRunSummaryGrid: document.getElementById("research-run-summary-grid"),
+  researchRunList: document.getElementById("research-run-list"),
+  researchRunDetail: document.getElementById("research-run-detail"),
+  researchAssetPicker: document.getElementById("research-asset-picker"),
+  researchCaseSelect: document.getElementById("research-case-select"),
+  researchRetryAssetPicker: document.getElementById("research-retry-asset-picker"),
   integrationList: document.getElementById("integration-list"),
   integrationProviderHint: document.getElementById("integration-provider-hint"),
   integrationProviderDocs: document.getElementById("integration-provider-docs"),
+  providerSummaryGrid: document.getElementById("provider-summary-grid"),
+  providerDefaultList: document.getElementById("provider-default-list"),
+  providerCatalogGrid: document.getElementById("provider-catalog-grid"),
   briefingList: document.getElementById("briefing-list"),
   openalexResults: document.getElementById("openalex-results"),
   literatureList: document.getElementById("literature-list"),
+  paperSummaryGrid: document.getElementById("paper-summary-grid"),
+  paperInspectorGrid: document.getElementById("paper-inspector-grid"),
   assetList: document.getElementById("asset-list"),
   knowledgeCaseSummaryGrid: document.getElementById("knowledge-case-summary-grid"),
   knowledgeCaseList: document.getElementById("knowledge-case-list"),
@@ -316,6 +367,7 @@ const dom = {
   knowledgeSubmitButton: document.getElementById("knowledge-submit-button"),
   knowledgeCancelButton: document.getElementById("knowledge-cancel-button"),
   scheduleList: document.getElementById("schedule-list"),
+  scheduleSummaryGrid: document.getElementById("schedule-summary-grid"),
   analysisAssetSelect: document.getElementById("analysis-asset-select"),
   uploadFileInput: document.getElementById("upload-file-input"),
   labUploadDropzone: document.getElementById("lab-upload-dropzone"),
@@ -365,6 +417,7 @@ const dom = {
   labRunDesignChecks: document.getElementById("lab-run-design-checks"),
   labRecentProcessingList: document.getElementById("lab-recent-processing-list"),
   labRecentModelList: document.getElementById("lab-recent-model-list"),
+  labRecentOptimizationList: document.getElementById("lab-recent-optimization-list"),
   variableGuideForm: document.getElementById("variable-guide-form"),
   variableGuidePrompt: document.getElementById("variable-guide-prompt"),
   variableGuideMeta: document.getElementById("variable-guide-meta"),
@@ -596,23 +649,273 @@ function escapeHtml(value) {
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function safeHref(value, options = {}) {
+  const { allowRelative = true, allowHash = true } = options;
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+  if (allowHash && raw.startsWith("#")) {
+    return raw;
+  }
+  if (allowRelative && (/^(\/(?!\/)|\.{1,2}\/|\?)/).test(raw)) {
+    return raw;
+  }
+  try {
+    const url = new URL(raw, window.location.origin);
+    if (!["http:", "https:"].includes(url.protocol)) {
+      return "";
+    }
+    if (allowRelative && url.origin === window.location.origin) {
+      return `${url.pathname}${url.search}${url.hash}`;
+    }
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+
+function buildAnchorHtml(href, innerHtml, options = {}) {
+  const {
+    className = "",
+    targetBlank = false,
+    allowRelative = true,
+    allowHash = true,
+  } = options;
+  const safe = safeHref(href, { allowRelative, allowHash });
+  if (!safe) {
+    return "";
+  }
+  const attrs = [`href="${escapeHtml(safe)}"`];
+  if (className) {
+    attrs.push(`class="${escapeHtml(className)}"`);
+  }
+  if (targetBlank) {
+    attrs.push('target="_blank"', 'rel="noreferrer"');
+  }
+  return `<a ${attrs.join(" ")}>${innerHtml}</a>`;
+}
+
+function buildAnchorTag(href, label, options = {}) {
+  return buildAnchorHtml(href, escapeHtml(label), options);
+}
+
+function splitAutolinkCandidate(candidate) {
+  const raw = String(candidate || "");
+  const trimmed = raw.replace(/[),.;!?]+$/g, "");
+  if (!trimmed) {
+    return { href: "", trailing: raw };
+  }
+  return {
+    href: trimmed,
+    trailing: raw.slice(trimmed.length),
+  };
+}
+
+function applySafeHref(element, href, options = {}) {
+  if (!element) {
+    return "";
+  }
+  const { fallback = "#", targetBlank = false, allowRelative = true, allowHash = true } = options;
+  const safe = safeHref(href, { allowRelative, allowHash });
+  if (!safe) {
+    element.href = fallback;
+    element.removeAttribute("target");
+    element.removeAttribute("rel");
+    element.setAttribute("aria-disabled", "true");
+    return "";
+  }
+  element.href = safe;
+  if (targetBlank) {
+    element.target = "_blank";
+    element.rel = "noreferrer";
+  } else {
+    element.removeAttribute("target");
+    element.removeAttribute("rel");
+  }
+  element.removeAttribute("aria-disabled");
+  return safe;
+}
+
+function emptyCardElement(message) {
+  const card = document.createElement("div");
+  const paragraph = document.createElement("p");
+  card.className = "card";
+  paragraph.textContent = window.erpLocale?.translateInlineText?.(message) || message;
+  card.appendChild(paragraph);
+  return card;
+}
+
+function renderEmptyCard(target, message) {
+  if (!target) {
+    return;
+  }
+  target.replaceChildren(emptyCardElement(message));
+}
+
+function createSafeAnchorElement(href, label, options = {}) {
+  const {
+    className = "",
+    targetBlank = false,
+    allowRelative = true,
+    allowHash = true,
+  } = options;
+  const safe = safeHref(href, { allowRelative, allowHash });
+  if (!safe) {
+    return null;
+  }
+  const anchor = document.createElement("a");
+  anchor.textContent = label;
+  if (className) {
+    anchor.className = className;
+  }
+  applySafeHref(anchor, safe, { fallback: "#", targetBlank, allowRelative, allowHash });
+  return anchor;
+}
+
+function inlineMarkdownToFragment(text) {
+  const fragment = document.createDocumentFragment();
+  const source = String(text || "");
+  if (!source) {
+    return fragment;
+  }
+  const pattern = /\bhttps?:\/\/[^\s<]+/gi;
+  let lastIndex = 0;
+  let match = pattern.exec(source);
+  while (match) {
+    const index = match.index ?? 0;
+    const { href, trailing } = splitAutolinkCandidate(match[0]);
+    if (index > lastIndex) {
+      fragment.appendChild(document.createTextNode(source.slice(lastIndex, index)));
+    }
+    const anchor = createSafeAnchorElement(href, href, {
+      targetBlank: true,
+      allowRelative: false,
+      allowHash: false,
+    });
+    if (anchor) {
+      fragment.appendChild(anchor);
+    } else {
+      fragment.appendChild(document.createTextNode(href));
+    }
+    if (trailing) {
+      fragment.appendChild(document.createTextNode(trailing));
+    }
+    lastIndex = index + match[0].length;
+    match = pattern.exec(source);
+  }
+  if (lastIndex < source.length) {
+    fragment.appendChild(document.createTextNode(source.slice(lastIndex)));
+  }
+  return fragment;
+}
+
+function markdownToFragment(markdown, emptyMessage = "No content yet.") {
+  const fragment = document.createDocumentFragment();
+  const lines = String(markdown || "").split(/\r?\n/);
+  let list = null;
+
+  const closeList = () => {
+    list = null;
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      closeList();
+      continue;
+    }
+    let element = null;
+    if (line.startsWith("# ")) {
+      closeList();
+      element = document.createElement("h2");
+      element.appendChild(inlineMarkdownToFragment(line.slice(2)));
+    } else if (line.startsWith("## ")) {
+      closeList();
+      element = document.createElement("h3");
+      element.appendChild(inlineMarkdownToFragment(line.slice(3)));
+    } else if (line.startsWith("### ")) {
+      closeList();
+      element = document.createElement("h4");
+      element.appendChild(inlineMarkdownToFragment(line.slice(4)));
+    } else if (line.startsWith("- ")) {
+      if (!list) {
+        list = document.createElement("ul");
+        fragment.appendChild(list);
+      }
+      element = document.createElement("li");
+      element.appendChild(inlineMarkdownToFragment(line.slice(2)));
+      list.appendChild(element);
+      continue;
+    } else {
+      closeList();
+      element = document.createElement("p");
+      element.appendChild(inlineMarkdownToFragment(line));
+    }
+    fragment.appendChild(element);
+  }
+
+  if (!fragment.childNodes.length) {
+    const paragraph = document.createElement("p");
+    paragraph.className = "muted";
+    paragraph.textContent = window.erpLocale?.translateInlineText?.(emptyMessage) || emptyMessage;
+    fragment.appendChild(paragraph);
+  }
+  return fragment;
 }
 
 function showToast(message, isError = false) {
-  dom.toast.textContent = message;
+  dom.toast.textContent = window.erpLocale?.translateInlineText?.(message) || message;
   dom.toast.classList.remove("hidden");
-  dom.toast.style.background = isError ? "rgba(111, 29, 29, 0.95)" : "rgba(31, 30, 26, 0.92)";
+  dom.toast.classList.toggle("is-error", Boolean(isError));
   window.clearTimeout(showToast.timer);
   showToast.timer = window.setTimeout(() => dom.toast.classList.add("hidden"), 3200);
 }
 
+function extractApiErrorMessage(payload, status) {
+  if (typeof payload?.detail === "string" && payload.detail.trim()) {
+    return payload.detail;
+  }
+  if (Array.isArray(payload?.detail) && payload.detail.length) {
+    return payload.detail
+      .map((item) => item?.msg || item?.message || item?.detail || "")
+      .filter(Boolean)
+      .join(" ");
+  }
+  if (typeof payload?.message === "string" && payload.message.trim()) {
+    return payload.message;
+  }
+  return `Request failed: ${status}`;
+}
+
+function extractApiErrorField(payload) {
+  if (!Array.isArray(payload?.detail)) {
+    return "";
+  }
+  for (const item of payload.detail) {
+    const location = Array.isArray(item?.loc) ? item.loc : [];
+    const field = location[location.length - 1];
+    if (typeof field === "string" && field !== "body") {
+      return field;
+    }
+  }
+  return "";
+}
+
 async function api(path, options = {}, auth = true) {
   const headers = new Headers(options.headers || {});
-  if (auth && state.token) {
-    headers.set("Authorization", `Bearer ${state.token}`);
+  const method = String(options.method || "GET").toUpperCase();
+  if (methodRequiresCsrf(method) && !headers.has("X-CSRF-Token")) {
+    const token = csrfToken();
+    if (token) {
+      headers.set("X-CSRF-Token", token);
+    }
   }
-  const response = await fetch(path, { credentials: "same-origin", ...options, headers });
+  const response = await fetch(path, { credentials: "same-origin", ...options, method, headers });
   const text = await response.text();
   let payload = {};
   if (text) {
@@ -626,9 +929,204 @@ async function api(path, options = {}, auth = true) {
     if (response.status === 401 && auth) {
       clearSession();
     }
-    throw new Error(payload.detail || `Request failed: ${response.status}`);
+    const error = new Error(extractApiErrorMessage(payload, response.status));
+    error.status = response.status;
+    error.payload = payload;
+    error.field = extractApiErrorField(payload);
+    throw error;
   }
   return payload;
+}
+
+async function fetchSessionIdentity(options = {}) {
+  const { force = false, suppressUnauthorized = false } = options;
+  if (!force && state.sessionIdentityRequest) {
+    return state.sessionIdentityRequest;
+  }
+  if (!force && state.sessionIdentityResolved) {
+    return { user: state.user, workspaces: state.workspaces };
+  }
+  state.sessionIdentityRequest = api("/api/auth/me", {}, false)
+    .then((payload) => {
+      state.sessionIdentityResolved = true;
+      state.user = payload?.user || null;
+      state.workspaces = payload?.workspaces || [];
+      return { user: state.user, workspaces: state.workspaces };
+    })
+    .catch((error) => {
+      if (error?.status === 401) {
+        state.sessionIdentityResolved = true;
+        state.user = null;
+        state.workspaces = [];
+        if (suppressUnauthorized) {
+          return { user: null, workspaces: [] };
+        }
+      }
+      throw error;
+    })
+    .finally(() => {
+      state.sessionIdentityRequest = null;
+    });
+  return state.sessionIdentityRequest;
+}
+
+function ensureFormFeedback(form) {
+  if (!form) {
+    return null;
+  }
+  let node = form.querySelector(".form-feedback");
+  if (!node) {
+    node = document.createElement("div");
+    node.className = "form-feedback hidden";
+    node.setAttribute("role", "alert");
+    form.appendChild(node);
+  }
+  return node;
+}
+
+function clearFieldErrors(form) {
+  if (!form) {
+    return;
+  }
+  form.querySelectorAll(".field-error").forEach((node) => node.remove());
+  form.querySelectorAll(".is-invalid").forEach((node) => {
+    node.classList.remove("is-invalid");
+    node.removeAttribute("aria-invalid");
+  });
+}
+
+function clearFormFeedback(form) {
+  const feedback = ensureFormFeedback(form);
+  if (feedback) {
+    feedback.textContent = "";
+    feedback.classList.add("hidden");
+  }
+  clearFieldErrors(form);
+}
+
+function resetAuthForms() {
+  ["register-form", "login-form", "password-reset-request-form", "password-reset-confirm-form"].forEach((formId) => {
+    const form = document.getElementById(formId);
+    if (!(form instanceof HTMLFormElement)) {
+      return;
+    }
+    clearFormFeedback(form);
+    form.reset();
+    form.querySelectorAll("input").forEach((field) => {
+      if (field instanceof HTMLInputElement && field.type !== "hidden") {
+        field.value = "";
+      }
+    });
+  });
+  if (document.activeElement instanceof HTMLElement && typeof document.activeElement.blur === "function") {
+    document.activeElement.blur();
+  }
+}
+
+function resetWorkspaceCreationForm() {
+  const form = document.getElementById("workspace-form");
+  if (!(form instanceof HTMLFormElement)) {
+    return;
+  }
+  const wipe = () => {
+    clearFormFeedback(form);
+    form.reset();
+    form.querySelectorAll("input").forEach((field) => {
+      if (field instanceof HTMLInputElement && field.type !== "hidden") {
+        field.value = "";
+      }
+    });
+  };
+  wipe();
+  window.requestAnimationFrame(wipe);
+  window.setTimeout(wipe, 0);
+  window.setTimeout(wipe, 160);
+}
+
+function setFieldError(field, message) {
+  if (!field || !message) {
+    return;
+  }
+  field.classList.add("is-invalid");
+  field.setAttribute("aria-invalid", "true");
+  const error = document.createElement("div");
+  error.className = "field-error";
+  error.textContent = window.erpLocale?.translateInlineText?.(message) || message;
+  field.insertAdjacentElement("afterend", error);
+}
+
+function inferErrorField(form, error) {
+  if (!form) {
+    return "";
+  }
+  if (error?.field && form.elements.namedItem(error.field)) {
+    return error.field;
+  }
+  const message = String(error?.message || "").toLowerCase();
+  if (message.includes("email")) {
+    return "email";
+  }
+  if (message.includes("password")) {
+    return "password";
+  }
+  if (message.includes("full name") || message.includes("name")) {
+    return "full_name";
+  }
+  if (message.includes("base url") || message.includes("endpoint")) {
+    return "base_url";
+  }
+  if (message.includes("api key")) {
+    return "api_key";
+  }
+  if (message.includes("file") || message.includes("upload")) {
+    return "file";
+  }
+  return "";
+}
+
+function surfaceFormError(form, error) {
+  if (!form) {
+    return;
+  }
+  clearFormFeedback(form);
+  const feedback = ensureFormFeedback(form);
+  const message = error?.message || "Please review the form and try again.";
+  if (feedback) {
+    feedback.textContent = window.erpLocale?.translateInlineText?.(message) || message;
+    feedback.classList.remove("hidden");
+  }
+  const fieldName = inferErrorField(form, error);
+  const field = fieldName ? form.elements.namedItem(fieldName) : null;
+  if (field instanceof HTMLElement) {
+    setFieldError(field, message);
+    if (typeof field.focus === "function") {
+      field.focus();
+    }
+  }
+}
+
+function validatePasswordPolicy(password, email = "") {
+  const value = String(password || "");
+  if (value.length < 12) {
+    return "Password must be at least 12 characters.";
+  }
+  if (!/[a-z]/.test(value)) {
+    return "Password must include a lowercase letter.";
+  }
+  if (!/[A-Z]/.test(value)) {
+    return "Password must include an uppercase letter.";
+  }
+  if (!/\d/.test(value)) {
+    return "Password must include a number.";
+  }
+  if (!/[^A-Za-z0-9]/.test(value)) {
+    return "Password must include a special character.";
+  }
+  const localPart = String(email || "").split("@", 1)[0].trim().toLowerCase();
+  if (localPart && value.toLowerCase().includes(localPart)) {
+    return "Password must not contain the email name.";
+  }
+  return "";
 }
 
 function extractBriefingSlugFromLocation() {
@@ -756,6 +1254,9 @@ function detectPageMode() {
   if (window.location.pathname === "/workspace") {
     return "workspace";
   }
+  if (window.location.pathname === "/research-agent") {
+    return "research-agent";
+  }
   if (
     pathname === "/data-lab" ||
     pathname === "/data-lab/preparation" ||
@@ -807,6 +1308,10 @@ function detectPageMode() {
   return "home";
 }
 
+function extractResearchRunFromLocation() {
+  return new URLSearchParams(window.location.search).get("run") || "";
+}
+
 function currentDataLabShellStep() {
   const pathname = window.location.pathname;
   if (pathname === "/data-lab/preparation") {
@@ -824,17 +1329,140 @@ function currentDataLabShellStep() {
   return "dataset";
 }
 
+function dataLabStepPath(step) {
+  return {
+    dataset: "/data-lab",
+    preparation: "/data-lab/preparation",
+    model: "/data-lab/model",
+    results: "/data-lab/results",
+    history: "/data-lab/history",
+  }[step] || "/data-lab";
+}
+
+const DATA_LAB_TEMPLATE_EXPECTATIONS = {
+  dataset: {
+    template: "data-lab-dataset",
+    required: ['[data-page-template="data-lab-dataset"]', "#analysis-asset-select"],
+  },
+  preparation: {
+    template: "data-lab-preparation",
+    required: ['[data-page-template="data-lab-preparation"]', "#prepare-form"],
+  },
+  model: {
+    template: "data-lab-model",
+    required: ['[data-page-template="data-lab-model"]', "#model-form", "#plot-form"],
+  },
+  results: {
+    template: "data-lab-results",
+    required: ['[data-page-template="data-lab-results"]', "#prepare-result-summary", "#analysis-result-summary"],
+  },
+  history: {
+    template: "data-lab-history",
+    required: ['[data-page-template="data-lab-history"]', "#data-lab-history"],
+  },
+};
+
+function buildDataLabStepUrl(step, params = {}, hash = "data-lab-workbench") {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    const nextValue = String(value ?? "").trim();
+    if (nextValue) {
+      search.set(key, nextValue);
+    }
+  });
+  const query = search.toString();
+  const safeHash = hash ? `#${String(hash).replace(/^#/, "")}` : "";
+  return `${dataLabStepPath(step)}${query ? `?${query}` : ""}${safeHash}`;
+}
+
+function datasetWorkbenchUrl(assetId = "", hash = "data-lab-workbench") {
+  return buildDataLabStepUrl("dataset", { asset_id: assetId || state.selectedAnalysisAssetId || "" }, hash);
+}
+
+function processingWorkbenchUrl(family = "", hash = "data-lab-workbench") {
+  return buildDataLabStepUrl(
+    "preparation",
+    {
+      workflow: "data_processing",
+      processing_family: family || currentProcessingFamily(),
+      asset_id: state.selectedAnalysisAssetId || "",
+    },
+    hash,
+  );
+}
+
+function modelWorkbenchUrl(family = "", modelType = "", hash = "data-lab-workbench") {
+  return buildDataLabStepUrl(
+    "model",
+    {
+      workflow: "model",
+      model_family: family || currentModelFamily(),
+      model_type: modelType || dom.modelType?.value || "",
+      asset_id: state.selectedAnalysisAssetId || "",
+    },
+    hash,
+  );
+}
+
+function variableGuideTarget(result) {
+  const prefill = result?.prefill || {};
+  const workflowType = prefill.workflow_type || result?.workflow_recommendation?.workflow_type || "model";
+  if (workflowType === "data_processing") {
+    const family = prefill.processing_family || result?.workflow_recommendation?.processing_family || "sample_preparation";
+    return {
+      workflowType,
+      step: "preparation",
+      family,
+      url: processingWorkbenchUrl(family),
+    };
+  }
+  const family = prefill.model_family || result?.workflow_recommendation?.model_family || "econometrics_baseline";
+  const modelType = prefill.model_type || result?.workflow_recommendation?.model_type || "ols";
+  return {
+    workflowType,
+    step: "model",
+    family,
+    modelType,
+    url: modelWorkbenchUrl(family, modelType),
+  };
+}
+
+function queuePendingLabPrefill(result) {
+  try {
+    sessionStorage.setItem(storageKeys.pendingLabPrefill, JSON.stringify(result || null));
+  } catch {
+    // Ignore storage failures and continue without cross-page prefill persistence.
+  }
+}
+
+function readPendingLabPrefill() {
+  try {
+    const raw = sessionStorage.getItem(storageKeys.pendingLabPrefill);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearPendingLabPrefill() {
+  try {
+    sessionStorage.removeItem(storageKeys.pendingLabPrefill);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
 function isTrustedLocalHost() {
   const host = (window.location.hostname || "").toLowerCase();
   return !host || host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "testserver";
 }
 
 function shouldLockExperience() {
-  return detectPageMode() !== "home" && !state.user;
+  return detectPageMode() !== "home" && !state.user && !hasPendingSessionRestore();
 }
 
 function hasPendingSessionRestore() {
-  return Boolean(state.token) && !state.user;
+  return Boolean(state.sessionRestorePending);
 }
 
 function renderPrivateNavigationState() {
@@ -855,11 +1483,16 @@ function renderHomePrivateModuleCards() {
   document.querySelectorAll("[data-private-card]").forEach((card) => {
     const locked = !state.user;
     card.classList.toggle("is-locked", locked);
+    card.classList.toggle("is-ready", !locked);
     const pill = card.querySelector(".status-pill");
     if (pill) {
       pill.textContent = locked ? "Locked" : "Ready";
       pill.classList.toggle("status-pill--locked", locked);
       pill.classList.toggle("status-pill--ready", !locked);
+    }
+    const availability = card.querySelector(".module-availability");
+    if (availability) {
+      availability.textContent = locked ? "Available after sign-in" : "Ready in this session";
     }
     const button = card.querySelector("[data-private-link]");
     if (button) {
@@ -888,6 +1521,10 @@ function renderAuthSurface() {
   const hasAuthForms = Boolean(document.getElementById("register-form") || document.getElementById("login-form"));
   const pendingSession = hasPendingSessionRestore();
   const showHomeForms = pageMode === "home" && !state.user && !pendingSession;
+  document.body.classList.toggle(
+    "hide-private-session-chrome",
+    Boolean((state.user || pendingSession) && pageMode !== "home" && pageMode !== "workspace"),
+  );
   renderHomeSessionSections();
   renderHomePrivateModuleCards();
   renderHomeWorkspaceSummary();
@@ -896,7 +1533,7 @@ function renderAuthSurface() {
   });
   toggleHidden(dom.workspaceBox, !state.user && !pendingSession);
   toggleHidden(dom.sessionSignoutButton, !state.user);
-  dom.authGrid?.classList.toggle("auth-grid-logged-in", Boolean(state.user));
+  dom.authGrid?.classList.toggle("auth-grid-logged-in", Boolean(state.user || pendingSession));
   if (!dom.authPanelTitle || !dom.authPanelCopy) {
     return;
   }
@@ -910,19 +1547,19 @@ function renderAuthSurface() {
       dom.authPanelTitle.textContent = "Sign in to access private workspace";
       dom.authPanelCopy.textContent = "Read the public briefing first, then sign in to enter the private research workspace.";
     } else {
-      dom.authPanelTitle.textContent = "Workspace Session";
-      dom.authPanelCopy.textContent = "Return to the homepage to sign in, then come back here to use the private workspace.";
+      dom.authPanelTitle.textContent = "Workspace";
+      dom.authPanelCopy.textContent = "Return to the homepage to sign in, then come back here to continue in the private workspace.";
     }
     if (!hasAuthForms && !state.user) {
       toggleHidden(dom.workspaceBox, true);
     }
     return;
   }
-  dom.authPanelTitle.textContent = pageMode === "home" ? "Private workspace ready" : "Private workspace session";
+  dom.authPanelTitle.textContent = pageMode === "home" ? "Private workspace ready" : "Workspace ready";
   dom.authPanelCopy.textContent =
     pageMode === "home"
-      ? "Your session is active. Continue into the private workspace for providers, papers, schedules, and notes."
-      : "You are signed in. Select a workspace, create a new one if needed, and continue into the private modules.";
+      ? "Your session is active. Open one focused private page at a time for providers, papers, Data Lab, schedules, or notes."
+      : "You are signed in. Select a workspace and continue across the private modules without changing context.";
 }
 
 function applyAccessGateState() {
@@ -1076,7 +1713,7 @@ async function ensureAuthenticatedUser() {
   if (state.user) {
     return state.user;
   }
-  const payload = await api("/api/auth/me", {}, false);
+  const payload = await fetchSessionIdentity({ suppressUnauthorized: false });
   if (!payload?.user) {
     throw new Error("Sign in on the homepage before opening private result details.");
   }
@@ -1090,7 +1727,7 @@ async function maybeLoadPublicIdentity() {
     return state.user;
   }
   try {
-    const payload = await api("/api/auth/me", {}, false);
+    const payload = await fetchSessionIdentity({ suppressUnauthorized: true });
     if (!payload?.user) {
       state.user = null;
       state.workspaces = [];
@@ -1107,8 +1744,25 @@ async function maybeLoadPublicIdentity() {
 }
 
 function formatInlineMarkdown(text) {
-  const escaped = escapeHtml(text || "");
-  return escaped.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noreferrer">$1</a>');
+  const source = String(text || "");
+  if (!source) {
+    return "";
+  }
+  const pattern = /\bhttps?:\/\/[^\s<]+/gi;
+  let html = "";
+  let lastIndex = 0;
+  let match = pattern.exec(source);
+  while (match) {
+    const index = match.index ?? 0;
+    const { href, trailing } = splitAutolinkCandidate(match[0]);
+    html += escapeHtml(source.slice(lastIndex, index));
+    html += buildAnchorTag(href, href, { targetBlank: true, allowRelative: false, allowHash: false }) || escapeHtml(href);
+    html += escapeHtml(trailing);
+    lastIndex = index + match[0].length;
+    match = pattern.exec(source);
+  }
+  html += escapeHtml(source.slice(lastIndex));
+  return html;
 }
 
 function markdownToHtml(markdown) {
@@ -1158,6 +1812,154 @@ function markdownToHtml(markdown) {
 
   closeList();
   return html.join("") || `<p class="muted">No content yet.</p>`;
+}
+
+function markdownToPlainText(markdown) {
+  return String(markdown || "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^\-\s+/gm, "")
+    .replace(/[`>*_]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractMarkdownPreview(markdown, maxLength = 220) {
+  const blocks = String(markdown || "")
+    .split(/\r?\n\r?\n/)
+    .map((block) => markdownToPlainText(block))
+    .filter(Boolean);
+  const ignoredHeadings = /^(global economic daily|public economic summary|coverage|recurrent themes|market and data snapshot|watchlist|source map|source countries|research agenda|headline register)\b/i;
+  const preferred = blocks.find((block) => !ignoredHeadings.test(block));
+  return truncateText(preferred || blocks[0] || "", maxLength);
+}
+
+function createTextElement(tagName, text, className = "") {
+  const element = document.createElement(tagName);
+  if (className) {
+    element.className = className;
+  }
+  element.textContent = text;
+  return element;
+}
+
+function createTopicChip(text, value = "") {
+  const chip = document.createElement("span");
+  chip.className = "topic-chip";
+  chip.append(document.createTextNode(text));
+  if (value) {
+    chip.append(document.createTextNode(" "));
+    const strong = document.createElement("strong");
+    strong.textContent = value;
+    chip.appendChild(strong);
+  }
+  return chip;
+}
+
+function createTableElement(columns, rows, valueResolver) {
+  const table = document.createElement("table");
+  table.className = "data-table";
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  columns.forEach((column) => {
+    headRow.appendChild(createTextElement("th", column));
+  });
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+  const tbody = document.createElement("tbody");
+  rows.forEach((row) => {
+    const bodyRow = document.createElement("tr");
+    columns.forEach((column) => {
+      const cell = document.createElement("td");
+      const value = valueResolver(row, column);
+      if (value instanceof Node) {
+        cell.appendChild(value);
+      } else {
+        cell.textContent = value == null ? "" : String(value);
+      }
+      bodyRow.appendChild(cell);
+    });
+    tbody.appendChild(bodyRow);
+  });
+  table.appendChild(tbody);
+  return table;
+}
+
+function renderHomeBriefingPreview(briefing) {
+  if (!dom.publicLatestView) {
+    return;
+  }
+  const excerpt = briefing.summary_excerpt || extractMarkdownPreview(briefing.summary_markdown, 240);
+  const themes = Array.isArray(briefing.top_themes) ? briefing.top_themes.slice(0, 3) : [];
+  dom.publicLatestView.setAttribute("data-i18n-skip", "true");
+  const stack = document.createElement("div");
+  stack.className = "stack compact";
+  const paragraph = document.createElement("p");
+  paragraph.textContent = excerpt || "Open the daily monitor to read the full public briefing.";
+  stack.appendChild(paragraph);
+  if (themes.length) {
+    const chipRow = document.createElement("div");
+    chipRow.className = "chip-row chip-row-compact";
+    themes.forEach((item) => {
+      const chip = document.createElement("span");
+      const strong = document.createElement("strong");
+      chip.className = "topic-chip";
+      strong.textContent = item.theme || "";
+      chip.appendChild(strong);
+      chipRow.appendChild(chip);
+    });
+    stack.appendChild(chipRow);
+  }
+  const actions = document.createElement("div");
+  actions.className = "actions compact-actions";
+  const link = createSafeAnchorElement(
+    briefing.detail_path || briefing.share_url || "/public-monitor",
+    "Read full briefing",
+    { className: "button-link secondary-link" },
+  );
+  if (link) {
+    actions.appendChild(link);
+  }
+  stack.appendChild(actions);
+  dom.publicLatestView.replaceChildren(stack);
+}
+
+function renderHomeSummaryPreview(summary) {
+  if (!dom.publicSummaryView || !dom.publicSummaryTitle || !dom.publicSummaryMeta) {
+    return;
+  }
+  const excerpt = extractMarkdownPreview(summary.markdown, 220) || summary.subtitle || "Recent public multi-day view.";
+  const themes = Array.isArray(summary.top_themes) ? summary.top_themes.slice(0, 3) : [];
+  const summaryPath = (summary.days || summary.selected_days || 7) >= 30 ? "/summaries/monthly" : "/summaries/weekly";
+  dom.publicSummaryTitle.textContent = summary.title || "Rolling Summary";
+  dom.publicSummaryMeta.textContent = summary.subtitle || `${summary.days || summary.selected_days || 7}-day public view`;
+  dom.publicSummaryView.setAttribute("data-i18n-skip", "true");
+  const stack = document.createElement("div");
+  stack.className = "stack compact";
+  const paragraph = document.createElement("p");
+  paragraph.textContent = excerpt;
+  stack.appendChild(paragraph);
+  const chipRow = document.createElement("div");
+  chipRow.className = "chip-row chip-row-compact";
+  [`${summary.report_count || 0} briefings`, `${summary.total_headlines || 0} headlines`, ...themes.map((item) => item.theme || "")]
+    .filter(Boolean)
+    .forEach((value) => {
+      const chip = document.createElement("span");
+      const strong = document.createElement("strong");
+      chip.className = "topic-chip";
+      strong.textContent = value;
+      chip.appendChild(strong);
+      chipRow.appendChild(chip);
+    });
+  stack.appendChild(chipRow);
+  const actions = document.createElement("div");
+  actions.className = "actions compact-actions";
+  const link = createSafeAnchorElement(summaryPath, "Open summary", { className: "button-link secondary-link" });
+  if (link) {
+    actions.appendChild(link);
+  }
+  stack.appendChild(actions);
+  dom.publicSummaryView.replaceChildren(stack);
 }
 
 function renderListCards(target, items, formatter) {
@@ -1286,7 +2088,7 @@ function renderResultSummaryCard(target, payload, { type }) {
       </div>
       <div>${narrative.length ? narrative.map((line) => `<p>${escapeHtml(line)}</p>`).join("") : `<p>${escapeHtml(payload.summary?.rows_after_prepare ? `Rows after prepare: ${payload.summary.rows_after_prepare}` : "Result is ready.")}</p>`}</div>
       <div class="actions">
-        ${detailPath ? `<a href="${escapeHtml(detailPath)}" class="button-link secondary-link">Open detail page</a>` : ""}
+        ${buildAnchorTag(detailPath, "Open detail page", { className: "button-link secondary-link" })}
       </div>
     </article>
   `;
@@ -1299,8 +2101,8 @@ function renderProcessingResultSummary(payload) {
   renderResultSummaryCard(dom.prepareResultSummary, payload, { type: "processing" });
   if (dom.prepareResultLink) {
     const href = payload.result_detail_path || "";
-    dom.prepareResultLink.href = href || "#";
-    dom.prepareResultLink.classList.toggle("hidden", !href);
+    const resolved = applySafeHref(dom.prepareResultLink, href);
+    dom.prepareResultLink.classList.toggle("hidden", !resolved);
   }
 }
 
@@ -1311,8 +2113,8 @@ function renderModelResultSummary(payload) {
   renderResultSummaryCard(dom.analysisResultSummary, payload, { type: "model" });
   if (dom.analysisResultLink) {
     const href = payload.result_detail_path || "";
-    dom.analysisResultLink.href = href || "#";
-    dom.analysisResultLink.classList.toggle("hidden", !href);
+    const resolved = applySafeHref(dom.analysisResultLink, href);
+    dom.analysisResultLink.classList.toggle("hidden", !resolved);
   }
 }
 
@@ -1338,7 +2140,64 @@ function defaultSummaryPages() {
 }
 
 function emptyCard(message) {
-  return `<div class="card"><p>${escapeHtml(message)}</p></div>`;
+  return `<div class="card"><p>${escapeHtml(window.erpLocale?.translateInlineText?.(message) || message)}</p></div>`;
+}
+
+function renderDataLabTemplateMismatch() {
+  if (detectPageMode() !== "data-lab") {
+    return;
+  }
+  const step = currentDataLabShellStep();
+  const expectation = DATA_LAB_TEMPLATE_EXPECTATIONS[step] || DATA_LAB_TEMPLATE_EXPECTATIONS.dataset;
+  const workbench = document.getElementById("data-lab-workbench");
+  if (!workbench) {
+    return;
+  }
+  const translate = (message) => window.erpLocale?.translateInlineText?.(message) || message;
+  const currentTemplate = document.body?.getAttribute("data-page-template") || "missing-template-marker";
+  const missingSelectors = expectation.required.filter((selector) => !document.querySelector(selector));
+  const refreshHref = `${window.location.pathname}${window.location.search}${window.location.hash || ""}`;
+  workbench.innerHTML = `
+    <section class="lab-stage-card panel lab-error-state" id="data-lab-template-error" data-template-mismatch="true">
+      <div class="panel-head panel-head-wrap">
+        <div>
+          <p class="eyebrow eyebrow-compact">${escapeHtml(translate("Template mismatch"))}</p>
+          <h2>${escapeHtml(translate("This Data Lab page is out of sync."))}</h2>
+          <p class="muted">${escapeHtml(translate("The current route expects a different page template. Refresh the page or restart research-agent serve."))}</p>
+        </div>
+      </div>
+      <div class="lab-error-state__meta">
+        <span class="topic-chip">${escapeHtml(`Route ${dataLabStepPath(step)}`)}</span>
+        <span class="topic-chip">${escapeHtml(`Expected ${expectation.template}`)}</span>
+        <span class="topic-chip">${escapeHtml(`Loaded ${currentTemplate}`)}</span>
+      </div>
+      ${
+        missingSelectors.length
+          ? `<div class="card"><strong>${escapeHtml(translate("Missing anchors"))}</strong><ul class="lab-error-state__list">${missingSelectors.map((selector) => `<li><code>${escapeHtml(selector)}</code></li>`).join("")}</ul></div>`
+          : ""
+      }
+      <div class="actions compact-actions">
+        <a href="${escapeHtml(refreshHref)}" class="button-link">${escapeHtml(translate("Refresh page"))}</a>
+        <a href="/workspace" class="button-link secondary-link">${escapeHtml(translate("Open workspace"))}</a>
+      </div>
+    </section>
+  `;
+}
+
+function validateDataLabTemplate() {
+  if (detectPageMode() !== "data-lab") {
+    state.dataLabTemplateMismatch = false;
+    return true;
+  }
+  const step = currentDataLabShellStep();
+  const expectation = DATA_LAB_TEMPLATE_EXPECTATIONS[step] || DATA_LAB_TEMPLATE_EXPECTATIONS.dataset;
+  const mismatched = expectation.required.some((selector) => !document.querySelector(selector));
+  state.dataLabTemplateMismatch = mismatched;
+  if (!mismatched) {
+    return true;
+  }
+  renderDataLabTemplateMismatch();
+  return false;
 }
 
 function toggleHidden(element, hidden) {
@@ -1381,7 +2240,7 @@ function currentFamilyDetail() {
     ? state.dataLabCatalog.model_families || []
     : state.dataLabCatalog.processing_families || [];
   const slug = currentWorkflowType() === "model" ? currentModelFamily() : currentProcessingFamily();
-  return collection.find((item) => item.slug === slug) || null;
+  return window.erpLocale?.localizeValue?.(collection.find((item) => item.slug === slug) || null) || null;
 }
 
 function currentFamilyDetailPath() {
@@ -1414,7 +2273,7 @@ function findCurrentModelMethodDetail() {
   if (!family) {
     return null;
   }
-  return (family.methods || []).find((item) => item.slug === (dom.modelType?.value || "")) || null;
+  return window.erpLocale?.localizeValue?.((family.methods || []).find((item) => item.slug === (dom.modelType?.value || "")) || null) || null;
 }
 
 function labBuilderElement(prefix, suffix) {
@@ -1971,14 +2830,35 @@ function applyVariantPresetSelection(prefix) {
 }
 
 function processingHistoryItems() {
+  if (state.dataLabHistory?.processing?.length) {
+    return [...state.dataLabHistory.processing]
+      .sort((left, right) => new Date(right.updated_at || right.created_at || 0) - new Date(left.updated_at || left.created_at || 0));
+  }
   return [...(state.workspaceAssets || [])]
     .filter((item) => item.metadata?.processing_result || item.metadata?.analysis_kind === "plot")
     .sort((left, right) => new Date(right.updated_at || right.created_at || 0) - new Date(left.updated_at || left.created_at || 0));
 }
 
+function isReadyHistoryItem(item) {
+  return String(item?.status || "ready").toLowerCase() === "ready";
+}
+
 function modelHistoryItems() {
+  if (state.dataLabHistory?.models?.length) {
+    return [...state.dataLabHistory.models]
+      .sort((left, right) => new Date(right.updated_at || right.created_at || 0) - new Date(left.updated_at || left.created_at || 0));
+  }
   return [...(state.workspaceKnowledge || [])]
     .filter((item) => item.metadata?.model_type || item.metadata?.workflow_type === "model")
+    .sort((left, right) => new Date(right.updated_at || right.created_at || 0) - new Date(left.updated_at || left.created_at || 0));
+}
+
+function optimizationHistoryItems() {
+  if (state.dataLabHistory?.optimization?.length) {
+    return [...state.dataLabHistory.optimization]
+      .sort((left, right) => new Date(right.updated_at || right.created_at || 0) - new Date(left.updated_at || left.created_at || 0));
+  }
+  return [...(state.optimizationResults || [])]
     .sort((left, right) => new Date(right.updated_at || right.created_at || 0) - new Date(left.updated_at || left.created_at || 0));
 }
 
@@ -2028,6 +2908,14 @@ function knowledgeTypeSpec(item) {
   if (metadata.source_type === "workspace_digest") {
     return { key: "workspace_digest", label: "Workspace Digest", description: "Cross-module digest created from recent workspace materials" };
   }
+  if (metadata.source_type === "agent_report") {
+    return {
+      key: "agent_report",
+      label: "Agent Report",
+      description: "Approved research-agent report saved into the workspace knowledge base",
+      relatedPath: metadata.result_detail_path || "/research-agent",
+    };
+  }
   if (noteTemplate && KNOWLEDGE_TEMPLATES[noteTemplate]) {
     return {
       key: `template_${noteTemplate}`,
@@ -2059,6 +2947,13 @@ function knowledgeSourceCategory(item) {
       key: "digest",
       label: "Workspace digests",
       description: "Cross-module synthesis notes built from recent workspace materials.",
+    };
+  }
+  if (spec.key === "agent_report") {
+    return {
+      key: "agent_report",
+      label: "Agent reports",
+      description: "Approved research-agent outputs promoted into reusable knowledge records.",
     };
   }
   if (spec.key.startsWith("paper_")) {
@@ -2604,10 +3499,10 @@ function renderKnowledgeCasePreview(detail) {
                       <h4>${escapeHtml(item.title || item.title_snapshot || "Linked item")}</h4>
                       <p class="compact-note muted">${escapeHtml(truncateText(item.summary || item.summary_snapshot || "No summary.", 180))}</p>
                       <div class="actions compact-actions">
-                        ${item.detail_path ? `<a href="${escapeHtml(item.detail_path)}" class="button-link secondary-link">Open detail</a>` : ""}
+                        ${buildAnchorTag(item.detail_path, "Open detail", { className: "button-link secondary-link" })}
                         ${item.download_path ? `<button type="button" class="secondary" data-download-asset="${escapeHtml(item.ref_id)}">Download</button>` : ""}
                         ${item.item_type === "knowledge_record" ? `<button type="button" class="secondary" data-open-knowledge-record="${escapeHtml(item.ref_id)}">Open note</button>` : ""}
-                        ${item.source_url ? `<a href="${escapeHtml(item.source_url)}" class="button-link secondary-link" target="_blank" rel="noreferrer">Source</a>` : ""}
+                        ${buildAnchorTag(item.source_url, "Source", { className: "button-link secondary-link", targetBlank: true, allowRelative: false, allowHash: false })}
                         <button type="button" class="secondary danger" data-remove-case-item="${escapeHtml(item.id)}" data-case-id="${escapeHtml(caseRecord.id)}">Remove</button>
                       </div>
                       ${item.exists ? "" : `<p class="compact-note muted">The original item is no longer available. Snapshot preserved inside the case.</p>`}
@@ -2690,7 +3585,7 @@ function renderKnowledgePreview(record, { loading = false } = {}) {
     return;
   }
   if (!record) {
-    dom.knowledgePreview.innerHTML = emptyCard("Select a note to inspect its full content, metadata, and source links.");
+    renderEmptyCard(dom.knowledgePreview, "Select a note to inspect its full content, metadata, and source links.");
     return;
   }
   const typeSpec = knowledgeTypeSpec(record);
@@ -2700,13 +3595,13 @@ function renderKnowledgePreview(record, { loading = false } = {}) {
   const relatedItems = state.knowledgeRelated[record.id] || [];
   const relatedLinks = [];
   if (typeSpec.relatedPath) {
-    relatedLinks.push(`<a href="${escapeHtml(typeSpec.relatedPath)}" class="button-link secondary-link">Open related detail</a>`);
+    relatedLinks.push(buildAnchorTag(typeSpec.relatedPath, "Open related detail", { className: "button-link secondary-link" }));
   }
   if (metadata.landing_page_url) {
-    relatedLinks.push(`<a href="${escapeHtml(metadata.landing_page_url)}" target="_blank" rel="noreferrer" class="button-link secondary-link">Open source page</a>`);
+    relatedLinks.push(buildAnchorTag(metadata.landing_page_url, "Open source page", { className: "button-link secondary-link", targetBlank: true, allowRelative: false, allowHash: false }));
   }
   if (metadata.pdf_url) {
-    relatedLinks.push(`<a href="${escapeHtml(metadata.pdf_url)}" target="_blank" rel="noreferrer" class="button-link secondary-link">Open source PDF</a>`);
+    relatedLinks.push(buildAnchorTag(metadata.pdf_url, "Open source PDF", { className: "button-link secondary-link", targetBlank: true, allowRelative: false, allowHash: false }));
   }
   if (metadata.briefing_id) {
     relatedLinks.push(`<button type="button" class="secondary" data-scroll-target="private-briefing-panel">Jump to briefings</button>`);
@@ -2742,18 +3637,25 @@ function renderKnowledgePreview(record, { loading = false } = {}) {
           ? `<p class="compact-note muted">Archived ${escapeHtml(prettyDate(record.archived_at || record.updated_at))}${record.archived_reason ? ` | ${escapeHtml(record.archived_reason)}` : ""}</p>`
           : ""
       }
-      ${
-        loading
-          ? `<p class="muted">Loading full note body...</p>`
-          : `<div class="markdown-body">${markdownToHtml(record.content || record.content_excerpt || "No note body.")}</div>`
-      }
-      ${renderRelatedKnowledgeSection(relatedItems)}
-      <details class="result-json-toggle">
-        <summary>Open metadata</summary>
-        <pre>${escapeHtml(JSON.stringify(metadata, null, 2))}</pre>
-      </details>
-    </article>
+        <div class="markdown-body" data-knowledge-body="true"></div>
+        ${renderRelatedKnowledgeSection(relatedItems)}
+        <details class="result-json-toggle">
+          <summary>Open metadata</summary>
+          <pre>${escapeHtml(JSON.stringify(metadata, null, 2))}</pre>
+        </details>
+      </article>
   `;
+  const body = dom.knowledgePreview.querySelector("[data-knowledge-body='true']");
+  if (body) {
+    if (loading) {
+      const paragraph = document.createElement("p");
+      paragraph.className = "muted";
+      paragraph.textContent = "Loading full note body...";
+      body.replaceChildren(paragraph);
+    } else {
+      body.replaceChildren(markdownToFragment(record.content || record.content_excerpt || "No note body."));
+    }
+  }
 }
 
 function renderCockpitLinkageMap() {
@@ -2849,6 +3751,7 @@ function renderWorkspaceCockpit() {
     assets: state.workspaceAssets.length,
     notes: state.workspaceKnowledge.length,
     cases: state.workspaceCases.length,
+    memories: state.workspaceMemories.length,
     schedules: state.workspaceSchedules.length,
   };
   if (!hasAccess) {
@@ -2865,6 +3768,7 @@ function renderWorkspaceCockpit() {
       ["Papers", 0, "Private literature appears here after import."],
       ["Cases", 0, "Build case files to group workspace evidence."],
       ["Notes", 0, "Knowledge records will accumulate here."],
+      ["Memories", 0, "Short workspace-specific reminders live here."],
       ["Schedules", 0, "Recurring jobs appear after setup."],
     ]
       .map(
@@ -2878,10 +3782,10 @@ function renderWorkspaceCockpit() {
       )
       .join("");
     dom.cockpitStepGrid.innerHTML = [
-      ["1. Access", "Authenticate and choose a workspace.", "active"],
-      ["2. Connect", "Save at least one provider or data source.", "pending"],
-      ["3. Collect", "Import papers or create notes.", "pending"],
-      ["4. Reuse", "Schedule work or review outputs.", "pending"],
+      ["Access", "Authenticate and choose a workspace.", "active"],
+      ["Connect", "Save one provider or data source.", "pending"],
+      ["Collect", "Import papers or create notes.", "pending"],
+      ["Reuse", "Schedule work or review outputs.", "pending"],
     ]
       .map(
         ([title, copy, stateName]) => `
@@ -2894,10 +3798,10 @@ function renderWorkspaceCockpit() {
       .join("");
     dom.cockpitActionList.innerHTML = `
       <button type="button" class="button-link" data-scroll-target="provider-center-panel">Open Provider Center</button>
+      <a href="/research-agent" class="button-link secondary-link">Open Research Agent</a>
+      <button type="button" class="button-link secondary-link" data-scroll-target="paper-library-panel">Open Paper Library</button>
       <button type="button" class="button-link secondary-link" data-scroll-target="knowledge-base-panel">Open Knowledge Base</button>
-      <button type="button" class="button-link secondary-link" data-create-workspace-digest="true">Build workspace digest</button>
       <a href="/public-monitor" class="button-link secondary-link">Browse Public Daily Monitor</a>
-      <a href="/data-lab" class="button-link secondary-link">Open standalone Data Lab</a>
     `;
     dom.cockpitActivityList.innerHTML = emptyCard("No private workspace activity yet.");
     dom.cockpitFlowList.innerHTML = emptyCard("Sign in and select a workspace to unlock guided cross-module flows.");
@@ -2930,8 +3834,8 @@ function renderWorkspaceCockpit() {
             };
   dom.cockpitWorkspaceName.textContent = workspace.name;
   dom.cockpitWorkspaceMeta.textContent = workspace.description
-    ? `${workspace.description} | ${stats.providers} providers | ${stats.cases} cases | ${stats.notes} notes | ${stats.schedules} schedules`
-    : `${stats.providers} providers | ${stats.literature} papers | ${stats.assets} assets | ${stats.cases} cases | ${stats.notes} notes`;
+    ? `${workspace.description} | ${stats.providers} providers | ${stats.cases} cases | ${stats.notes} notes | ${stats.memories} memories | ${stats.schedules} schedules`
+    : `${stats.providers} providers | ${stats.literature} papers | ${stats.assets} assets | ${stats.cases} cases | ${stats.notes} notes | ${stats.memories} memories`;
   dom.cockpitNextActionTitle.textContent = nextAction.title;
   dom.cockpitNextActionCopy.textContent = nextAction.copy;
   dom.cockpitStatGrid.innerHTML = [
@@ -2941,6 +3845,7 @@ function renderWorkspaceCockpit() {
     ["Assets", stats.assets, "Datasets, PDFs, charts, and processed outputs."],
     ["Cases", stats.cases, "Case files that group evidence across modules."],
     ["Knowledge", stats.notes, "Manual notes, paper notes, and model outputs."],
+    ["Memories", stats.memories, "Short workspace-specific context kept near the cockpit."],
     ["Schedules", stats.schedules, "Recurring private jobs waiting to run."],
   ]
     .map(
@@ -2955,18 +3860,18 @@ function renderWorkspaceCockpit() {
     .join("");
   const stepCards = [
     {
-      title: "1. Workspace access",
+      title: "Workspace access",
       copy: `Signed in as ${state.user.full_name || state.user.email} with ${workspace.name} selected.`,
       complete: true,
     },
     {
-      title: "2. Provider setup",
+      title: "Provider setup",
       copy: stats.providers ? `${stats.providers} provider connection(s) saved.` : "No provider yet. Start from Provider Center.",
       active: !stats.providers,
       complete: Boolean(stats.providers),
     },
     {
-      title: "3. Research materials",
+      title: "Research materials",
       copy: stats.literature || stats.assets
         ? `${stats.literature} papers and ${stats.assets} assets currently available.`
         : "Import literature or move to Data Lab for datasets.",
@@ -2974,7 +3879,7 @@ function renderWorkspaceCockpit() {
       complete: Boolean(stats.literature || stats.assets),
     },
     {
-      title: "4. Reusable outputs",
+      title: "Reusable outputs",
       copy: stats.notes || stats.briefings || stats.schedules
         ? `${stats.notes} notes, ${stats.briefings} briefings, ${stats.schedules} schedules.`
         : "Create notes, generate a briefing, or add a recurring job.",
@@ -2993,23 +3898,32 @@ function renderWorkspaceCockpit() {
     )
     .join("");
   dom.cockpitActionList.innerHTML = [
-    { label: "Connect provider", target: "provider-center-panel" },
-    { label: "Generate briefing", target: "private-briefing-panel" },
-    { label: "Search papers", target: "paper-library-panel" },
-    { label: "Manage cases", target: "knowledge-base-panel" },
-    { label: "Open knowledge base", target: "knowledge-base-panel" },
-    { label: "Create schedule", target: "schedule-panel" },
-    { label: "Build workspace digest", digest: true },
+    { label: "Providers", target: "provider-center-panel" },
+    { label: "Research Agent", href: "/research-agent" },
+    { label: "Papers", target: "paper-library-panel" },
+    { label: "Knowledge", target: "knowledge-base-panel" },
+    { label: "Schedules", target: "schedule-panel" },
+    { label: "Build digest", digest: true },
   ]
     .map(
       (action) =>
         action.digest
           ? `<button type="button" class="button-link secondary-link" data-create-workspace-digest="true">${escapeHtml(action.label)}</button>`
+          : action.href
+            ? `<a href="${escapeHtml(action.href)}" class="button-link secondary-link">${escapeHtml(action.label)}</a>`
           : `<button type="button" class="button-link secondary-link" data-scroll-target="${escapeHtml(action.target)}">${escapeHtml(action.label)}</button>`,
     )
     .join("") +
-    `<a href="/data-lab" class="button-link">Open standalone Data Lab</a>`;
+    `<a href="/data-lab" class="button-link">Open Data Lab</a>`;
   const activityItems = [
+    state.workspaceMemories[0]
+      ? {
+          title: state.workspaceMemories[0].title,
+          meta: `Memory | ${prettyDate(state.workspaceMemories[0].updated_at || state.workspaceMemories[0].created_at)}`,
+          copy: truncateText(state.workspaceMemories[0].content_excerpt || state.workspaceMemories[0].content || "", 150),
+          target: "workspace-memory-panel",
+        }
+      : null,
     state.privateBriefings[0]
       ? {
           title: state.privateBriefings[0].title,
@@ -3053,6 +3967,7 @@ function renderWorkspaceCockpit() {
   ].filter(Boolean);
   dom.cockpitActivityList.innerHTML = activityItems.length
     ? activityItems
+        .slice(0, 3)
         .map(
           (item) => `
             <article class="card">
@@ -3071,9 +3986,19 @@ function renderWorkspaceCockpit() {
   const latestBriefing = state.privateBriefings[0] || null;
   const latestPaper = state.literatureEntries[0] || null;
   const latestDataset = state.workspaceAssets.find((item) => String(item.kind || "").startsWith("dataset")) || null;
-  const latestModelNote = modelHistoryItems()[0] || null;
+  const latestModelNote = modelHistoryItems().find((item) => (item.status || "ready") === "ready" && (item.ref_id || item.id)) || null;
   const activeCase = currentKnowledgeCase();
   const flowCards = [
+    {
+      title: "Workspace -> Research Agent",
+      copy: stats.literature || stats.assets || stats.notes
+        ? "Launch a structured research run that can use workspace assets, compare candidate drafts, and save approved output to knowledge."
+        : "Add at least one paper, asset, or workspace note, then launch the research agent.",
+      actions: [
+        `<a href="/research-agent" class="button-link">Open Research Agent</a>`,
+        `<button type="button" class="button-link secondary-link" data-scroll-target="paper-library-panel">Open paper library</button>`,
+      ],
+    },
     latestBriefing
       ? {
           title: "Briefing -> Knowledge",
@@ -3126,15 +4051,16 @@ function renderWorkspaceCockpit() {
           copy: "The latest model output already lives in the knowledge base. Open the linked result page or inspect the note.",
           actions: [
             latestModelNote.metadata?.result_detail_path
-              ? `<a href="${escapeHtml(latestModelNote.metadata.result_detail_path)}" class="button-link">Open result detail</a>`
+              ? buildAnchorTag(latestModelNote.metadata.result_detail_path, "Open result detail", { className: "button-link" })
               : `<button type="button" class="button-link secondary-link" data-scroll-target="knowledge-base-panel">Open knowledge base</button>`,
-            `<button type="button" class="button-link secondary-link" data-open-knowledge-record="${escapeHtml(latestModelNote.id)}">Open model note</button>`,
+            `<button type="button" class="button-link secondary-link" data-open-knowledge-record="${escapeHtml(latestModelNote.ref_id || latestModelNote.id)}">Open model note</button>`,
           ],
         }
       : null,
   ].filter(Boolean);
   dom.cockpitFlowList.innerHTML = flowCards.length
     ? flowCards
+        .slice(0, 3)
         .map(
           (item) => `
             <article class="card cockpit-flow-card">
@@ -3147,6 +4073,336 @@ function renderWorkspaceCockpit() {
         .join("")
     : emptyCard("Import at least one briefing, paper, or dataset to unlock guided cross-module flows.");
   renderCockpitLinkageMap();
+}
+
+function selectedResearchRun() {
+  return (state.researchRuns || []).find((item) => item.id === state.selectedResearchRunId) || null;
+}
+
+function checkedAssetIds(container) {
+  return [...(container?.querySelectorAll('input[type="checkbox"][data-asset-id]:checked') || [])]
+    .map((node) => node.getAttribute("data-asset-id") || "")
+    .filter(Boolean);
+}
+
+function renderResearchAssetPicker(container, selectedIds = []) {
+  if (!container) {
+    return;
+  }
+  const selected = new Set(selectedIds || []);
+  const items = state.workspaceAssets || [];
+  if (!items.length) {
+    container.innerHTML = emptyCard("Upload or import workspace assets first.");
+    return;
+  }
+  container.innerHTML = items
+    .map((item) => `
+      <label class="card research-asset-option">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h4>${escapeHtml(item.title || item.filename || "Workspace asset")}</h4>
+            <p class="compact-note">${escapeHtml(item.kind || "asset")} | ${escapeHtml(prettyDate(item.updated_at || item.created_at))}</p>
+          </div>
+          <input type="checkbox" data-asset-id="${escapeHtml(item.id)}" ${selected.has(item.id) ? "checked" : ""} />
+        </div>
+        <p class="compact-note muted">${escapeHtml(item.description || item.filename || "Workspace attachment")}</p>
+      </label>
+    `)
+    .join("");
+}
+
+function renderResearchCaseOptions() {
+  if (!dom.researchCaseSelect) {
+    return;
+  }
+  const currentValue = dom.researchCaseSelect.value || "";
+  dom.researchCaseSelect.innerHTML = `<option value="">No case</option>` + (state.workspaceCases || [])
+    .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`)
+    .join("");
+  if ([...(state.workspaceCases || []).map((item) => item.id), ""].includes(currentValue)) {
+    dom.researchCaseSelect.value = currentValue;
+  }
+}
+
+function renderResearchRunSummary() {
+  if (!dom.researchRunSummaryGrid) {
+    return;
+  }
+  const summary = state.researchEvalPreview?.summary || {};
+  dom.researchRunSummaryGrid.innerHTML = [
+    ["Runs", summary.count || state.researchRuns.length || 0, "Recent saved, blocked, and failed research runs."],
+    ["Approved", summary.approved_count || 0, "Runs that passed reviewer checks."],
+    ["Blocked", summary.blocked_count || 0, "Runs waiting for rewrite or stronger evidence."],
+    ["Evals Ready", summary.ready_for_prompt_optimizer_count || 0, "Runs that are clean enough for prompt optimization."],
+  ]
+    .map(([label, value, copy]) => `
+      <article class="cockpit-stat-card">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(value)}</strong>
+        <p class="muted">${escapeHtml(copy)}</p>
+      </article>
+    `)
+    .join("");
+}
+
+function renderResearchRunList() {
+  if (!dom.researchRunList) {
+    return;
+  }
+  if (!(state.researchRuns || []).length) {
+    dom.researchRunList.innerHTML = emptyCard("Research runs will appear here after the first launch.");
+    return;
+  }
+  dom.researchRunList.innerHTML = state.researchRuns
+    .map((item) => `
+      <article class="card knowledge-card${item.id === state.selectedResearchRunId ? " is-selected" : ""}" data-research-run-id="${escapeHtml(item.id)}">
+        <div class="panel-head panel-head-wrap">
+          <div>
+            <h4>${escapeHtml(item.topic || "Research run")}</h4>
+            <p class="compact-note">${escapeHtml(item.status || "pending")} | ${escapeHtml(item.current_stage || "planned")}</p>
+          </div>
+          <div class="chip-row chip-row-compact">
+            <span class="pill">${escapeHtml(item.source_count || 0)} sources</span>
+            <span class="pill">${escapeHtml(item.attachment_count || 0)} attachments</span>
+          </div>
+        </div>
+        <p class="compact-note muted">${escapeHtml(item.review_summary || item.question || "No summary yet.")}</p>
+        <div class="actions compact-actions">
+          <button type="button" class="secondary" data-select-research-run="${escapeHtml(item.id)}">Inspect</button>
+          ${item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${escapeHtml(item.workspace_knowledge_record_id)}">Open note</button>` : ""}
+        </div>
+      </article>
+    `)
+    .join("");
+}
+
+function renderResearchRunDetail(run) {
+  if (!dom.researchRunDetail) {
+    return;
+  }
+  if (!run) {
+    dom.researchRunDetail.innerHTML = emptyCard("Select a run to inspect its evidence, review findings, and final report.");
+    return;
+  }
+  const review = run.review || {};
+  const candidateDrafts = run.candidate_drafts || [];
+  const attachments = run.attachments || [];
+  const trace = run.trace || [];
+  const findings = review.findings || [];
+  const evidenceItems = run.evidence?.items || [];
+  dom.researchRunDetail.innerHTML = `
+    <article class="card">
+      <div class="panel-head panel-head-wrap">
+        <div>
+          <p class="eyebrow eyebrow-compact">Run</p>
+          <h3>${escapeHtml(run.topic || "Research run")}</h3>
+        </div>
+        <div class="chip-row chip-row-compact">
+          <span class="pill">${escapeHtml(run.status || "pending")}</span>
+          <span class="pill">${escapeHtml(run.current_stage || "planned")}</span>
+          ${run.selected_draft_id ? `<span class="pill">Selected ${escapeHtml(run.selected_draft_id)}</span>` : ""}
+        </div>
+      </div>
+      <p class="compact-note muted">${escapeHtml(run.question || "No question supplied.")}</p>
+      <div class="chip-row chip-row-compact">
+        <span class="topic-chip">Coverage ${escapeHtml(run.citation_coverage ?? 0)}</span>
+        <span class="topic-chip">Unsupported ${escapeHtml(run.unsupported_claim_count || 0)}</span>
+        <span class="topic-chip">Candidates ${escapeHtml(candidateDrafts.length)}</span>
+      </div>
+      <div class="actions compact-actions">
+        ${run.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${escapeHtml(run.workspace_knowledge_record_id)}">Open knowledge record</button>` : ""}
+        ${run.report_path ? `<a href="${escapeHtml(run.report_path)}" class="action-link" target="_blank" rel="noopener">Report artifact</a>` : ""}
+      </div>
+    </article>
+    <article class="card">
+      <h4>Attachments</h4>
+      ${(attachments || []).length ? attachments.map((item) => `
+        <p class="compact-note">${escapeHtml(item.source_id || "")} | ${escapeHtml(item.title || "")} | ${escapeHtml(item.kind || "")}</p>
+      `).join("") : `<p class="compact-note muted">No attachments.</p>`}
+    </article>
+    <article class="card">
+      <h4>Evidence</h4>
+      ${(evidenceItems || []).slice(0, 8).map((item) => `
+        <p class="compact-note">${escapeHtml(item.source_id || "")} | ${escapeHtml(item.title || "")} | ${escapeHtml(item.modality || "text")}</p>
+      `).join("") || `<p class="compact-note muted">No evidence captured.</p>`}
+    </article>
+    <article class="card">
+      <h4>Reviewer</h4>
+      <p class="compact-note">${escapeHtml(review.summary || "No review summary yet.")}</p>
+      ${(findings || []).length ? findings.map((item) => `
+        <p class="compact-note muted">[${escapeHtml(item.severity || "info")}] ${escapeHtml(item.code || "finding")} | ${escapeHtml(item.message || "")}</p>
+      `).join("") : `<p class="compact-note muted">No findings.</p>`}
+    </article>
+    <article class="card">
+      <h4>Candidate Drafts</h4>
+      ${(candidateDrafts || []).length ? candidateDrafts.map((item) => `
+        <p class="compact-note">${escapeHtml(item.draft_id || "")} | ${escapeHtml(item.status || "")} | score ${escapeHtml(item.score ?? 0)} | ${escapeHtml(item.summary || "")}</p>
+      `).join("") : `<p class="compact-note muted">No candidate drafts saved.</p>`}
+    </article>
+    <article class="card">
+      <h4>Trace</h4>
+      ${(trace || []).slice(-12).map((item) => `
+        <p class="compact-note">${escapeHtml(item.stage || "")} | ${escapeHtml(item.event || "")}</p>
+      `).join("") || `<p class="compact-note muted">No trace yet.</p>`}
+    </article>
+    <article class="card">
+      <h4>Final Markdown</h4>
+      <pre class="knowledge-preview-content"><code>${escapeHtml(run.final_text || "")}</code></pre>
+    </article>
+  `;
+}
+
+async function loadResearchRunDetail(runId, force = false) {
+  if (!hasResearchAgentUI() || !runId || !state.selectedWorkspaceId || !state.user) {
+    return null;
+  }
+  const existing = (state.researchRuns || []).find((item) => item.id === runId);
+  if (!force && existing?.trace) {
+    return existing;
+  }
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/research/runs/${runId}`);
+  const detail = response.run;
+  state.researchRuns = (state.researchRuns || []).map((item) => (item.id === runId ? { ...item, ...detail } : item));
+  if (!(state.researchRuns || []).some((item) => item.id === runId)) {
+    state.researchRuns.unshift(detail);
+  }
+  return detail;
+}
+
+function renderResearchAgentPage() {
+  if (!hasResearchAgentUI()) {
+    return;
+  }
+  renderResearchRunSummary();
+  renderResearchRunList();
+  renderResearchCaseOptions();
+  renderResearchAssetPicker(dom.researchAssetPicker);
+  renderResearchAssetPicker(dom.researchRetryAssetPicker);
+  const selectedRun = selectedResearchRun();
+  if (dom.researchPageTitle) {
+    dom.researchPageTitle.textContent = selectedRun?.topic || "No run selected";
+  }
+  if (dom.researchPageCopy) {
+    dom.researchPageCopy.textContent = selectedRun
+      ? (selectedRun.review_summary || selectedRun.question || "Inspect the selected run below.")
+      : "Launch a run or inspect a previous one from the right rail.";
+  }
+  if (dom.researchEvalTitle) {
+    dom.researchEvalTitle.textContent = `${state.researchEvalPreview?.summary?.ready_for_prompt_optimizer_count || 0} eval-ready run(s)`;
+  }
+  if (dom.researchEvalCopy) {
+    dom.researchEvalCopy.textContent = `${state.researchEvalPreview?.summary?.needs_human_annotation_count || 0} run(s) still need human review or rewrite.`;
+  }
+  renderResearchRunDetail(selectedRun);
+  if (selectedRun?.id && !selectedRun.trace) {
+    void loadResearchRunDetail(selectedRun.id).then((detail) => renderResearchRunDetail(detail || selectedResearchRun())).catch((error) => {
+      showToast(error.message || "Failed to load research run detail.", true);
+    });
+  }
+}
+
+async function handleResearchForm(event) {
+  event.preventDefault();
+  ensureWorkspace();
+  const form = event.currentTarget;
+  const payload = Object.fromEntries(new FormData(form).entries());
+  payload.asset_ids = checkedAssetIds(dom.researchAssetPicker);
+  payload.case_id = payload.case_id || null;
+  payload.draft_variants = payload.draft_variants ? Number(payload.draft_variants) : null;
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/research/runs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  state.selectedResearchRunId = response.run?.id || state.selectedResearchRunId;
+  await refreshWorkspaceData();
+  renderResearchAgentPage();
+  showToast(`Research run ${response.run?.status || "completed"}.`);
+}
+
+async function handleResearchRetryForm(event) {
+  event.preventDefault();
+  ensureWorkspace();
+  const run = selectedResearchRun();
+  if (!run?.id) {
+    throw new Error("Select a research run first.");
+  }
+  const payload = Object.fromEntries(new FormData(event.currentTarget).entries());
+  payload.asset_ids = checkedAssetIds(dom.researchRetryAssetPicker);
+  payload.draft_variants = payload.draft_variants ? Number(payload.draft_variants) : null;
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/research/runs/${run.id}/retry`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  state.selectedResearchRunId = response.run?.id || run.id;
+  await refreshWorkspaceData();
+  renderResearchAgentPage();
+  showToast(`Research retry ${response.run?.status || "completed"}.`);
+}
+
+async function handleResearchRunActions(event) {
+  const target = event.target.closest("[data-select-research-run]");
+  if (!target) {
+    return;
+  }
+  state.selectedResearchRunId = target.getAttribute("data-select-research-run") || "";
+  renderResearchAgentPage();
+  if (state.selectedResearchRunId) {
+    await loadResearchRunDetail(state.selectedResearchRunId, true);
+    renderResearchAgentPage();
+  }
+}
+
+function renderWorkspaceMemories(items = state.workspaceMemories || []) {
+  if (!dom.workspaceMemoryList) {
+    return;
+  }
+  if (!items.length) {
+    dom.workspaceMemoryList.innerHTML = emptyCard("No private workspace memories yet.");
+    return;
+  }
+  dom.workspaceMemoryList.innerHTML = items.slice(0, 12).map((item) => `
+    <article class="card">
+      <h4>${escapeHtml(item.title || "Workspace memory")}</h4>
+      <p class="compact-note">${escapeHtml(prettyDate(item.updated_at || item.created_at))}</p>
+      <p class="compact-note muted">${escapeHtml(truncateText(item.content_excerpt || item.content || "", 220))}</p>
+      <div class="actions compact-actions">
+        <button type="button" class="secondary" data-delete-memory="${escapeHtml(item.id)}">Delete</button>
+      </div>
+    </article>
+  `).join("");
+}
+
+async function handleWorkspaceMemory(event) {
+  event.preventDefault();
+  ensureWorkspace();
+  const form = event.currentTarget;
+  const payload = Object.fromEntries(new FormData(form).entries());
+  await api(`/api/workspaces/${state.selectedWorkspaceId}/memories`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  form.reset();
+  await refreshWorkspaceData();
+  renderWorkspaceMemories();
+  showToast("Workspace memory saved.");
+}
+
+async function handleWorkspaceMemoryActions(event) {
+  const target = event.target.closest("[data-delete-memory]");
+  if (!target) {
+    return;
+  }
+  const memoryId = target.getAttribute("data-delete-memory");
+  if (!memoryId) {
+    return;
+  }
+  await api(`/api/workspaces/${state.selectedWorkspaceId}/memories/${memoryId}`, { method: "DELETE" });
+  await refreshWorkspaceData();
+  renderWorkspaceMemories();
+  showToast("Workspace memory removed.");
 }
 
 function setWorkflowStep(card, textNode, stateName, copy) {
@@ -3170,39 +4426,41 @@ function renderWorkflowGuide() {
   const workflowLabel = currentWorkflowLabel();
   const processingRuns = processingHistoryItems();
   const modelRuns = modelHistoryItems();
-  const hasOutput = currentWorkflowType() === "model" ? Boolean(modelRuns.length) : Boolean(processingRuns.length);
+  const hasOutput = currentWorkflowType() === "model"
+    ? modelRuns.some((item) => isReadyHistoryItem(item))
+    : processingRuns.some((item) => isReadyHistoryItem(item));
 
   setWorkflowStep(
     dom.labStepAccess,
     dom.labStepAccessText,
     hasAccess ? "complete" : "active",
     hasAccess
-      ? `Workspace access is ready through ${state.workspaces.find((item) => item.id === state.selectedWorkspaceId)?.name || "the selected workspace"}.`
-      : "Sign in and select a workspace to unlock private datasets, models, and downloads.",
+      ? "Workspace ready."
+      : "Sign in and select a workspace.",
   );
   setWorkflowStep(
     dom.labStepDataset,
     dom.labStepDatasetText,
     hasDataset && hasProfile ? "complete" : hasAccess ? "active" : "pending",
     hasDataset && hasProfile
-      ? `Dataset profile loaded for ${selectedDatasetAsset()?.title || "the selected asset"}, including columns and preview rows.`
+      ? "Dataset profile ready."
       : hasDataset
-        ? "A dataset is selected; load its profile to populate variables and preview rows."
-        : "Upload or select a dataset, then load its profile before running anything.",
+        ? "Load the dataset profile."
+        : "Upload or select a dataset.",
   );
   setWorkflowStep(
     dom.labStepWorkflow,
     dom.labStepWorkflowText,
     hasDataset && hasProfile ? "active" : "pending",
-    `${workflowLabel} is selected with ${currentFamilyDetail()?.title || (currentWorkflowType() === "model" ? currentModelFamily() : currentProcessingFamily())}. Confirm the family and method before execution.`,
+    `${workflowLabel}: ${currentFamilyDetail()?.title || (currentWorkflowType() === "model" ? currentModelFamily() : currentProcessingFamily())}.`,
   );
   setWorkflowStep(
     dom.labStepOutput,
     dom.labStepOutputText,
     hasOutput ? "complete" : hasDataset && hasProfile ? "active" : "pending",
     hasOutput
-      ? `Recent ${currentWorkflowType() === "model" ? "model" : "processing"} outputs are available below for download and manual verification.`
-      : "Open the result detail page, inspect the audit trail, and download samples or charts after the run completes.",
+      ? `Latest ${currentWorkflowType() === "model" ? "model" : "processing"} result available.`
+      : "No result yet.",
   );
 }
 
@@ -3214,17 +4472,17 @@ function renderActiveFamilySummary() {
   if (!detail) {
     dom.labActiveFamilyEyebrow && (dom.labActiveFamilyEyebrow.textContent = currentWorkflowType() === "model" ? "Model Family" : "Data Processing Family");
     dom.labActiveFamilyTitle.textContent = currentWorkflowType() === "model" ? "Model family" : "Processing family";
-    dom.labActiveFamilySummary.textContent = "Catalog metadata will appear here after the family index finishes loading.";
+    dom.labActiveFamilySummary.textContent = "Select a family.";
     dom.labActiveFamilyMethods && (dom.labActiveFamilyMethods.innerHTML = "");
-    dom.labActiveFamilyChecks && (dom.labActiveFamilyChecks.innerHTML = emptyCard("No audit checklist available yet."));
+    dom.labActiveFamilyChecks && (dom.labActiveFamilyChecks.innerHTML = emptyCard("No checks yet."));
     if (dom.labActiveFamilyLink) {
-      dom.labActiveFamilyLink.href = currentFamilyDetailPath();
+      applySafeHref(dom.labActiveFamilyLink, currentFamilyDetailPath());
     }
     return;
   }
   dom.labActiveFamilyEyebrow && (dom.labActiveFamilyEyebrow.textContent = detail.category === "model" ? "Model Family" : "Data Processing Family");
   dom.labActiveFamilyTitle.textContent = detail.title || "Family";
-  dom.labActiveFamilySummary.textContent = detail.summary || detail.description || "";
+  dom.labActiveFamilySummary.textContent = truncateText(detail.summary || detail.description || "Current family.", 96);
   if (dom.labActiveFamilyMethods) {
     dom.labActiveFamilyMethods.innerHTML = (detail.methods || [])
       .slice(0, 5)
@@ -3237,7 +4495,7 @@ function renderActiveFamilySummary() {
     </article>
   `);
   if (dom.labActiveFamilyLink) {
-    dom.labActiveFamilyLink.href = currentFamilyDetailPath();
+    applySafeHref(dom.labActiveFamilyLink, currentFamilyDetailPath());
   }
 }
 
@@ -3251,12 +4509,14 @@ function currentRunDesignSummary() {
         ? ["PNG chart", "Saved plot asset", "Result detail page", "Case link"]
         : ["Prepared sample", "Processing detail page", "Downloadable dataset", "Case link"];
   const checks = (detail?.manual_checks || []).slice(0, 4);
-  let copy = "Choose a family to see what the run expects and what it exports.";
+  let copy = "Select a family.";
   if (detail) {
     copy =
       currentWorkflowType() === "model"
-        ? `${workflowLabel} mode is set to ${detail.title}. Expect estimation output plus a transparent specification, tables, and audit trail.`
-        : `${workflowLabel} mode is set to ${detail.title}. Expect a transformed asset plus an explicit record of processing operations.`;
+        ? "Model output and exports."
+        : currentProcessingFamily() === "visualization"
+          ? "Chart output and assets."
+          : "Prepared sample and assets.";
   }
   return {
     title: detail ? `${workflowLabel}: ${detail.title}` : `${workflowLabel}: select a family`,
@@ -3284,29 +4544,29 @@ function renderLabRunDesign() {
     </article>
   `);
   if (!design.checks.length && dom.labRunDesignChecks) {
-    dom.labRunDesignChecks.innerHTML = emptyCard("Manual verification checkpoints will appear here.");
+    dom.labRunDesignChecks.innerHTML = emptyCard("Checks appear here.");
   }
 }
 
 function nextLabAction() {
   if (!state.user) {
-    return "Next action: sign in or create an account.";
+    return "Sign in.";
   }
   if (!state.selectedWorkspaceId) {
-    return "Next action: create or select a workspace.";
+    return "Select a workspace.";
   }
   if (!selectedDatasetAsset()) {
-    return "Next action: upload or select a dataset asset.";
+    return "Select a dataset.";
   }
   if (!currentAssetProfile()) {
-    return "Next action: load the dataset profile to populate variables and preview rows.";
+    return "Load dataset profile.";
   }
   if (currentWorkflowType() === "data_processing") {
     return currentProcessingFamily() === "visualization"
-      ? "Next action: configure the chart fields and generate a PNG preview."
-      : "Next action: configure the preparation fields and create an analysis-ready sample.";
+      ? "Generate chart."
+      : "Build prepared sample.";
   }
-  return `Next action: confirm variables for ${currentModelLabel()} and run the model.`;
+  return `Run ${currentModelLabel()}.`;
 }
 
 function renderLabContext() {
@@ -3331,19 +4591,19 @@ function renderLabContext() {
   }
   if (dom.labCaseMeta) {
     dom.labCaseMeta.textContent = activeCase
-      ? `Active case: ${activeCase.title} | ${activeCase.item_count || 0} linked items. New processing and model outputs can be attached from the history cards below.`
-      : "No active case selected. Choose one if you want to organize Data Lab outputs inside a private case file.";
+      ? `Case: ${activeCase.title} | ${activeCase.item_count || 0} items.`
+      : "No active case.";
   }
   if (dom.labCaseHomeLink) {
-    dom.labCaseHomeLink.href = "/knowledge-base";
+    applySafeHref(dom.labCaseHomeLink, "/knowledge-base");
     dom.labCaseHomeLink.textContent = activeCase ? "Open active case workspace" : "Open case workspace";
   }
   dom.labContextNextAction && (dom.labContextNextAction.textContent = nextLabAction());
   if (dom.labContextDetailLink) {
-    dom.labContextDetailLink.href = currentFamilyDetailPath();
+    applySafeHref(dom.labContextDetailLink, currentFamilyDetailPath());
   }
   if (dom.dataLabAppCopy && currentDataLabShellStep() === "results" && dataset) {
-    dom.dataLabAppCopy.textContent = `Review the latest outputs for ${datasetSummary}, validate the audit trail, and route reusable results into cases or notes.`;
+    dom.dataLabAppCopy.textContent = `Latest outputs for ${datasetSummary}.`;
   }
   renderWorkflowGuide();
   renderActiveFamilySummary();
@@ -3361,27 +4621,35 @@ function renderProcessingHistory(items = processingHistoryItems()) {
   dom.labRecentProcessingList.innerHTML = items.slice(0, 6).map((item) => {
     const processing = item.metadata?.processing_result || null;
     const isPlot = item.metadata?.analysis_kind === "plot";
-    const family = processing?.processing_family || (isPlot ? "visualization" : "data_processing");
+    const family = processing?.processing_family || item.processing_family || (isPlot ? "visualization" : "data_processing");
     const summary = processing?.summary?.rows_after_prepare !== undefined
       ? `Rows after prepare: ${processing.summary.rows_after_prepare}`
-      : item.metadata?.summary || item.description || "Processing output saved in workspace assets.";
-    const detailPath = processing?.result_detail_path || "";
-    const useButton = item.kind?.startsWith("dataset")
-      ? `<button type="button" class="secondary" data-select-asset="${escapeHtml(item.id)}">Use in lab</button>`
+      : item.summary || item.metadata?.summary || item.description || "Processing output saved in workspace assets.";
+    const detailPath = item.detail_path || processing?.result_detail_path || item.result_detail_path || "";
+    const statusLabel = item.status || "ready";
+    const refId = item.ref_id || item.id || "";
+    const ready = isReadyHistoryItem(item);
+    const canUseAsset = ready && refId && Boolean(item.download_path || item.kind);
+    const useButton = canUseAsset && item.kind?.startsWith("dataset")
+      ? `<button type="button" class="secondary" data-select-asset="${escapeHtml(refId)}">Use in lab</button>`
       : "";
-    const caseButton = state.selectedKnowledgeCaseId
-      ? `<button type="button" class="secondary" data-add-case-item="${escapeHtml(item.id)}" data-case-item-type="data_asset">Add to case</button>`
+    const caseButton = canUseAsset && state.selectedKnowledgeCaseId
+      ? `<button type="button" class="secondary" data-add-case-item="${escapeHtml(refId)}" data-case-item-type="data_asset">Add to case</button>`
+      : "";
+    const downloadButton = canUseAsset
+      ? `<button type="button" class="secondary" data-download-asset="${escapeHtml(refId)}">${isPlot ? "Download chart" : "Download asset"}</button>`
       : "";
     return `
       <article class="card">
         <h4>${escapeHtml(item.title)}</h4>
         <p>${escapeHtml(family)} | ${escapeHtml(prettyDate(item.updated_at || item.created_at))}</p>
+        <p class="compact-note muted">${escapeHtml(statusLabel)}${item.reason ? ` | ${escapeHtml(item.reason)}` : ""}</p>
         <p>${escapeHtml(truncateText(summary))}</p>
         <div class="actions">
-          ${detailPath ? `<a href="${escapeHtml(detailPath)}" class="button-link secondary-link">Open detail</a>` : ""}
+          ${buildAnchorTag(detailPath, "Open detail", { className: "button-link secondary-link" })}
           ${useButton}
           ${caseButton}
-          <button type="button" class="secondary" data-download-asset="${escapeHtml(item.id)}">${isPlot ? "Download chart" : "Download asset"}</button>
+          ${downloadButton}
         </div>
       </article>
     `;
@@ -3398,18 +4666,57 @@ function renderModelHistory(items = modelHistoryItems()) {
   }
   dom.labRecentModelList.innerHTML = items.slice(0, 6).map((item) => {
     const metadata = item.metadata || {};
-    const detailPath = metadata.result_detail_path || `/data-lab/results/models/${item.id}`;
-    const summary = metadata.equation || metadata.model_family || item.content || "Model output recorded in the private knowledge base.";
-    const caseButton = state.selectedKnowledgeCaseId
-      ? `<button type="button" class="secondary" data-add-case-item="${escapeHtml(item.id)}" data-case-item-type="knowledge_record">Add to case</button>`
+    const ready = isReadyHistoryItem(item);
+    const refId = item.ref_id || item.id || "";
+    const detailPath = item.detail_path
+      || metadata.result_detail_path
+      || item.result_detail_path
+      || (ready && refId ? `/data-lab/results/models/${refId}` : "");
+    const summary = metadata.equation || metadata.model_family || item.content || item.reason || "Model output recorded in the private knowledge base.";
+    const caseButton = ready && state.selectedKnowledgeCaseId && refId
+      ? `<button type="button" class="secondary" data-add-case-item="${escapeHtml(refId)}" data-case-item-type="knowledge_record">Add to case</button>`
       : "";
     return `
       <article class="card">
         <h4>${escapeHtml(metadata.model_label || item.title)}</h4>
         <p>${escapeHtml(metadata.model_type || "model")} | ${escapeHtml(prettyDate(item.updated_at || item.created_at))}</p>
+        <p class="compact-note muted">${escapeHtml(item.status || "ready")}${item.reason ? ` | ${escapeHtml(item.reason)}` : ""}</p>
         <p>${escapeHtml(truncateText(summary))}</p>
         <div class="actions">
-          <a href="${escapeHtml(detailPath)}" class="button-link secondary-link">Open detail</a>
+          ${buildAnchorTag(detailPath, "Open detail", { className: "button-link secondary-link" })}
+          ${caseButton}
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+function renderOptimizationHistory(items = optimizationHistoryItems()) {
+  if (!dom.labRecentOptimizationList) {
+    return;
+  }
+  if (!items.length) {
+    dom.labRecentOptimizationList.innerHTML = emptyCard("No optimization history yet.");
+    return;
+  }
+  dom.labRecentOptimizationList.innerHTML = items.slice(0, 6).map((item) => {
+    const ready = isReadyHistoryItem(item);
+    const refId = item.ref_id || item.id || "";
+    const detailPath = item.detail_path
+      || item.result_detail_path
+      || (ready && refId ? `/data-lab/results/optimization/${refId}` : "");
+    const summary = item.reason || item.summary?.headline || item.summary?.best_optimizer || item.content_excerpt || "Optimization output recorded in the private knowledge base.";
+    const caseButton = ready && state.selectedKnowledgeCaseId && refId
+      ? `<button type="button" class="secondary" data-add-case-item="${escapeHtml(refId)}" data-case-item-type="knowledge_record">Add to case</button>`
+      : "";
+    return `
+      <article class="card">
+        <h4>${escapeHtml(item.suite_label || item.title)}</h4>
+        <p>${escapeHtml(prettyDate(item.updated_at || item.created_at))}</p>
+        <p class="compact-note muted">${escapeHtml(item.status || "ready")}${item.reason ? ` | ${escapeHtml(item.reason)}` : ""}</p>
+        <p>${escapeHtml(truncateText(summary))}</p>
+        <div class="actions">
+          ${buildAnchorTag(detailPath, "Open detail", { className: "button-link secondary-link" })}
           ${caseButton}
         </div>
       </article>
@@ -3422,7 +4729,8 @@ function focusWorkbench() {
 }
 
 function activateProcessingFamily(family) {
-  if (!dom.labWorkflowType || !dom.processingFamily) {
+  if (currentDataLabShellStep() !== "preparation" || !dom.labWorkflowType || !dom.processingFamily) {
+    window.location.assign(processingWorkbenchUrl(family));
     return;
   }
   dom.labWorkflowType.value = "data_processing";
@@ -3432,7 +4740,8 @@ function activateProcessingFamily(family) {
 }
 
 function activateModelFamily(family, modelType = "") {
-  if (!dom.labWorkflowType || !dom.modelFamily) {
+  if (currentDataLabShellStep() !== "model" || !dom.labWorkflowType || !dom.modelFamily) {
+    window.location.assign(modelWorkbenchUrl(family, modelType));
     return;
   }
   dom.labWorkflowType.value = "model";
@@ -3448,6 +4757,10 @@ function activateModelFamily(family, modelType = "") {
 function initializeDataLabFromLocation() {
   if (detectPageMode() !== "data-lab") {
     return;
+  }
+  const assetId = dataLabQueryValue("asset_id");
+  if (assetId) {
+    state.selectedAnalysisAssetId = assetId;
   }
   const step = currentDataLabShellStep();
   if (step === "preparation") {
@@ -3527,12 +4840,12 @@ function applyDataLabShellStep() {
   if (stepCopy) {
     stepCopy.textContent =
       {
-        dataset: "Upload or select a dataset, inspect the profile, and ask for variable guidance before estimation.",
-        preparation: "Choose the preparation family, review the template, and build the analysis-ready sample.",
-        model: "Select the model family, configure the specification, and run the chosen estimation path.",
-        results: "Review the latest outputs, download figures or assets, and route results into notes or cases.",
-        history: "Inspect previous processing and model runs inside the current workspace.",
-      }[step] || "Work through the current Data Lab step.";
+        dataset: "Upload or choose a dataset.",
+        preparation: "Build the prepared sample.",
+        model: "Run a model or chart.",
+        results: "Review latest outputs.",
+        history: "Open recent runs.",
+      }[step] || "Current page.";
   }
   if (appTitle) {
     appTitle.textContent =
@@ -3547,12 +4860,12 @@ function applyDataLabShellStep() {
   if (appCopy) {
     appCopy.textContent =
       {
-        dataset: "Load a dataset, inspect the profile, and move forward only after the sample looks usable.",
-        preparation: "Transform the selected dataset into an analysis-ready sample with explicit preparation rules.",
-        model: "Configure the estimation path, apply a saved specification, and run the selected model.",
-        results: "Audit the latest outputs, inspect the generated assets, and route them into reusable research artifacts.",
-        history: "Review previous runs, reopen result pages, and reuse outputs without rebuilding the workflow.",
-      }[step] || "A private research shell for datasets, preparation, model runs, optimization suites, and reusable outputs.";
+        dataset: "Dataset intake and profile.",
+        preparation: "Preparation rules and sample output.",
+        model: "Model setup and execution.",
+        results: "Latest outputs and exports.",
+        history: "Recent runs and result links.",
+      }[step] || "Current Data Lab page.";
   }
   if (runButton) {
     const hrefMap = {
@@ -3681,7 +4994,7 @@ function revokeResultPreviewUrls() {
 
 async function fetchPrivateAssetPreviewUrl(assetId) {
   const response = await fetch(`/api/assets/${assetId}/download`, {
-    headers: { Authorization: `Bearer ${state.token}` },
+    credentials: "same-origin",
   });
   if (!response.ok) {
     throw new Error("Preview asset download failed.");
@@ -3981,6 +5294,14 @@ function hasPrivateWorkspaceUI() {
   return Boolean(dom.workspaceSelect);
 }
 
+function hasResearchAgentUI() {
+  return Boolean(dom.researchRunList && dom.researchRunDetail);
+}
+
+function hasSessionUI() {
+  return Boolean(dom.sessionIndicator || dom.authPanelTitle || dom.workspaceBox);
+}
+
 function hasPublicMonitorUI() {
   return Boolean(dom.publicLatestView && dom.publicSummaryView && dom.publicBriefingList);
 }
@@ -3993,7 +5314,7 @@ function renderOptimizationCatalog() {
   if (!hasOptimizationLabUI() || !state.optimizationCatalog) {
     return;
   }
-  const catalog = state.optimizationCatalog;
+  const catalog = window.erpLocale?.localizeValue?.(state.optimizationCatalog) || state.optimizationCatalog;
   const snapshot = optimizationElement("optimization-snapshot-grid");
   const optimizerSelect = optimizationElement("optimization-optimizer-select");
   const functionSelect = optimizationElement("optimization-function-select");
@@ -4164,7 +5485,7 @@ function renderOptimizationResults(items) {
         <p>${escapeHtml(`Algorithms ${summary.algorithm_count || 0} | Functions ${summary.function_count || 0} | Runs ${summary.run_count || 0}`)}</p>
         <p class="compact-note">${escapeHtml(`Successful tasks ${summary.success_count || 0}/${summary.task_count || 0}`)}</p>
         <div class="actions">
-          <a class="button-link secondary-link" href="${escapeHtml(item.result_detail_path || `/data-lab/results/optimization/${item.id}`)}">Open result</a>
+          ${buildAnchorTag(item.result_detail_path || `/data-lab/results/optimization/${item.id}`, "Open result", { className: "button-link secondary-link" })}
         </div>
       </article>
     `;
@@ -4215,7 +5536,7 @@ async function handleOptimizationSuiteRun(event) {
         <p class="compact-note">${escapeHtml(`Algorithms ${summary.algorithm_count || 0} | Functions ${summary.function_count || 0} | Runs ${summary.run_count || 0}`)}</p>
         ${summary.friedman?.note ? `<p class="compact-note">${escapeHtml(summary.friedman.note)}</p>` : ""}
         <div class="actions">
-          <a class="button-link" href="${escapeHtml(result.result_detail_path || `/data-lab/results/optimization/${response.record?.id || ""}`)}">Open result page</a>
+          ${buildAnchorTag(result.result_detail_path || `/data-lab/results/optimization/${response.record?.id || ""}`, "Open result page", { className: "button-link" })}
         </div>
       </article>
     `;
@@ -4301,7 +5622,12 @@ function clearPrivateLists() {
   state.workspaceAssets = [];
   state.workspaceKnowledge = [];
   state.workspaceCases = [];
+  state.workspaceMemories = [];
   state.workspaceSchedules = [];
+  state.researchRuns = [];
+  state.researchEvalPreview = null;
+  state.selectedResearchRunId = "";
+  state.providerCatalog = { llm: [], data_source: [] };
   state.knowledgeDetails = {};
   state.knowledgeRelated = {};
   state.caseDetails = {};
@@ -4319,6 +5645,8 @@ function clearPrivateLists() {
   if (dom.integrationList) {
     dom.integrationList.innerHTML = emptyCard("Log in to view saved provider connections.");
   }
+  renderProviderCatalogPanel();
+  renderProviderCenterSummary([]);
   if (dom.briefingList) {
     dom.briefingList.innerHTML = emptyCard("Log in to generate private briefings.");
   }
@@ -4349,11 +5677,20 @@ function clearPrivateLists() {
   if (dom.knowledgeCaseSummaryGrid) {
     dom.knowledgeCaseSummaryGrid.innerHTML = "";
   }
+  if (dom.researchRunList) {
+    dom.researchRunList.innerHTML = emptyCard("Research runs will appear here after the first launch.");
+  }
+  if (dom.researchRunDetail) {
+    dom.researchRunDetail.innerHTML = emptyCard("Select a run to inspect its evidence, review findings, and final report.");
+  }
   if (dom.knowledgeCasePreview) {
     dom.knowledgeCasePreview.innerHTML = emptyCard("Create or select a case to organize private notes, papers, briefings, datasets, and Data Lab outputs.");
   }
   if (dom.scheduleList) {
     dom.scheduleList.innerHTML = emptyCard("Your scheduled jobs will appear here.");
+  }
+  if (dom.workspaceMemoryList) {
+    dom.workspaceMemoryList.innerHTML = emptyCard("Private workspace memories will appear here.");
   }
   if (dom.analysisOutput) {
     dom.analysisOutput.textContent = "Waiting for analysis output.";
@@ -4361,10 +5698,12 @@ function clearPrivateLists() {
   if (dom.analysisAssetSelect) {
     dom.analysisAssetSelect.innerHTML = `<option value="">Select a dataset asset</option>`;
   }
+  state.dataLabHistory = { processing: [], models: [], optimization: [] };
   state.currentResultDetail = null;
   renderDataLabPlaceholders();
   renderProcessingHistory([]);
   renderModelHistory([]);
+  renderOptimizationHistory([]);
   renderWorkspaceCockpit();
 }
 
@@ -4382,12 +5721,20 @@ function ensureWorkspace() {
 }
 
 function clearSession(options = {}) {
-  const { redirect = true } = options;
+  const { redirect = true, resetIdentity = true } = options;
   state.token = "";
+  state.sessionRestorePending = false;
+  state.sessionIdentityRequest = null;
+  if (resetIdentity) {
+    state.sessionIdentityResolved = false;
+  }
   state.user = null;
   state.workspaces = [];
   state.selectedWorkspaceId = "";
+  state.providerCatalog = { llm: [], data_source: [] };
+  state.dataLabHistory = { processing: [], models: [], optimization: [] };
   state.assetProfiles = {};
+  state.workspaceMemories = [];
   state.selectedAnalysisAssetId = "";
   state.knowledgeDetails = {};
   state.knowledgeRelated = {};
@@ -4400,9 +5747,11 @@ function clearSession(options = {}) {
   localStorage.removeItem(storageKeys.caseId);
   revokeResultPreviewUrls();
   applyAccessGateState();
-  if (hasPrivateWorkspaceUI()) {
+  if (hasSessionUI()) {
     renderSession();
     renderWorkspaceOptions();
+  }
+  if (hasPrivateWorkspaceUI()) {
     clearPrivateLists();
   }
   if (redirect && detectPageMode() !== "home") {
@@ -4411,7 +5760,10 @@ function clearSession(options = {}) {
 }
 
 function setSession(payload) {
-  state.token = payload.session_token;
+  state.token = "";
+  state.sessionRestorePending = false;
+  state.sessionIdentityRequest = null;
+  state.sessionIdentityResolved = true;
   state.user = payload.user;
   state.workspaces = payload.workspaces || [];
   state.selectedWorkspaceId = state.selectedWorkspaceId || state.workspaces[0]?.id || "";
@@ -4419,12 +5771,11 @@ function setSession(payload) {
   state.knowledgeRelated = {};
   state.caseDetails = {};
   state.selectedKnowledgeRecordId = "";
-  localStorage.setItem(storageKeys.token, state.token);
   if (state.selectedWorkspaceId) {
     localStorage.setItem(storageKeys.workspaceId, state.selectedWorkspaceId);
   }
   applyAccessGateState();
-  if (hasPrivateWorkspaceUI()) {
+  if (hasSessionUI()) {
     renderSession();
     renderWorkspaceOptions();
   }
@@ -4445,6 +5796,7 @@ function renderSession() {
         : "Return to the homepage to sign in, then come back to continue.";
     }
     applyAccessGateState();
+    renderAuthSurface();
     renderHomeWorkspaceSummary();
     renderLabContext();
     renderWorkspaceCockpit();
@@ -4453,9 +5805,22 @@ function renderSession() {
   dom.sessionIndicator.textContent = "Signed in";
   dom.userSummary.textContent = `${state.user.full_name || state.user.email} | ${state.user.email}`;
   applyAccessGateState();
+  renderAuthSurface();
   renderHomeWorkspaceSummary();
   renderLabContext();
   renderWorkspaceCockpit();
+}
+
+async function refreshProviderCatalog() {
+  if (!state.user) {
+    state.providerCatalog = { llm: [], data_source: [] };
+    renderProviderCatalogPanel();
+    return state.providerCatalog;
+  }
+  const payload = await api("/api/provider-catalog");
+  state.providerCatalog = payload.provider_catalog || { llm: [], data_source: [] };
+  renderProviderCatalogPanel();
+  return state.providerCatalog;
 }
 
 function renderWorkspaceOptions() {
@@ -4483,7 +5848,8 @@ function renderWorkspaceOptions() {
 }
 
 function getProviderCatalog() {
-  return state.bootstrap?.provider_catalog || { llm: [], data_source: [] };
+  return window.erpLocale?.localizeValue?.(state.providerCatalog || { llm: [], data_source: [] })
+    || { llm: [], data_source: [] };
 }
 
 function getProviderSpec(kind) {
@@ -4493,14 +5859,15 @@ function getProviderSpec(kind) {
 
 function formatProviderHint(spec) {
   if (!spec) {
-    return "Use a saved provider preset or enter a custom OpenAI-compatible endpoint.";
+    return window.erpLocale?.t?.("Use a saved provider preset or enter a custom OpenAI-compatible endpoint.")
+      || "Use a saved provider preset or enter a custom OpenAI-compatible endpoint.";
   }
-  const details = [spec.description];
+  const details = [window.erpLocale?.translateInlineText?.(spec.description || "") || spec.description];
   if (spec.default_base_url) {
-    details.push(`Default base URL: ${spec.default_base_url}`);
+    details.push(window.erpLocale?.t?.("Default base URL: {url}", { url: spec.default_base_url }) || `Default base URL: ${spec.default_base_url}`);
   }
   if (spec.default_model) {
-    details.push(`Default model: ${spec.default_model}`);
+    details.push(window.erpLocale?.t?.("Default model: {model}", { model: spec.default_model }) || `Default model: ${spec.default_model}`);
   }
   return details.join(" ");
 }
@@ -4545,8 +5912,12 @@ function applyIntegrationProviderPreset(kind) {
   }
   if (dom.integrationProviderDocs) {
     if (spec?.docs_url) {
-      dom.integrationProviderDocs.href = spec.docs_url;
-      dom.integrationProviderDocs.hidden = false;
+      const resolved = applySafeHref(dom.integrationProviderDocs, spec.docs_url, {
+        targetBlank: true,
+        allowRelative: false,
+        allowHash: false,
+      });
+      dom.integrationProviderDocs.hidden = !resolved;
     } else {
       dom.integrationProviderDocs.hidden = true;
       dom.integrationProviderDocs.removeAttribute("href");
@@ -4554,8 +5925,97 @@ function applyIntegrationProviderPreset(kind) {
   }
 }
 
+function renderProviderCatalogPanel() {
+  if (!dom.providerCatalogGrid) {
+    return;
+  }
+  const catalog = getProviderCatalog();
+  const rows = [
+    ...(catalog.llm || []).map((item) => ({ ...item, group: "LLM" })),
+    ...(catalog.data_source || []).map((item) => ({ ...item, group: "Data Source" })),
+  ];
+  if (!rows.length) {
+    dom.providerCatalogGrid.innerHTML = emptyCard("No provider presets are available yet.");
+    return;
+  }
+  dom.providerCatalogGrid.innerHTML = rows
+    .map(
+      (item) => `
+        <article class="module-catalog-card">
+          <span>${escapeHtml(item.group)}</span>
+          <strong>${escapeHtml(item.label || item.kind)}</strong>
+          <p>${escapeHtml(item.description || "No description available.")}</p>
+          <p class="compact-note muted">${escapeHtml(item.default_model ? `Default model: ${item.default_model}` : item.default_base_url ? `Base URL: ${item.default_base_url}` : "Preset metadata only.")}</p>
+          ${buildAnchorTag(item.docs_url, "Official docs", { className: "inline-link", targetBlank: true, allowRelative: false, allowHash: false })}
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function renderProviderCenterSummary(items = state.integrations || []) {
+  if (dom.providerSummaryGrid) {
+    const defaultConnection = items.find((item) => item.is_default) || null;
+    const llmCount = items.filter((item) => item.category === "llm").length;
+    const dataCount = items.filter((item) => item.category === "data_source").length;
+    dom.providerSummaryGrid.innerHTML = [
+      {
+        label: "Saved connections",
+        value: String(items.length),
+        copy: items.length ? "Private connections currently available in this workspace." : "No private connections saved yet.",
+      },
+      {
+        label: "Default connection",
+        value: defaultConnection?.label || "None",
+        copy: defaultConnection ? `${defaultConnection.provider_name || defaultConnection.kind} | ${defaultConnection.model || "default model"}` : "Select one only when the workspace needs a default fallback.",
+      },
+      {
+        label: "LLM providers",
+        value: String(llmCount),
+        copy: llmCount ? "Available to Data Lab and private generation workflows." : "No LLM provider configured yet.",
+      },
+      {
+        label: "Data sources",
+        value: String(dataCount),
+        copy: dataCount ? "Saved for provider-aware data and monitoring workflows." : "No data source configured yet.",
+      },
+    ]
+      .map(
+        (item) => `
+          <article class="module-kpi-card">
+            <span>${escapeHtml(item.label)}</span>
+            <strong>${escapeHtml(item.value)}</strong>
+            <p>${escapeHtml(item.copy)}</p>
+          </article>
+        `,
+      )
+      .join("");
+  }
+  if (dom.providerDefaultList) {
+    dom.providerDefaultList.innerHTML = items.length
+      ? items
+          .slice()
+          .sort((left, right) => Number(Boolean(right.is_default)) - Number(Boolean(left.is_default)))
+          .slice(0, 3)
+          .map(
+            (item) => `
+              <article class="card">
+                <h4>${escapeHtml(item.label)}</h4>
+                <p>${escapeHtml(item.provider_name || item.kind)} | ${escapeHtml(item.model || "default model")}</p>
+                <p class="compact-note muted">${escapeHtml(item.base_url || "Provider default endpoint")}</p>
+                <span class="status-pill ${item.is_default ? "status-pill--ready" : "status-pill--locked"}">${item.is_default ? "Default" : "Saved"}</span>
+              </article>
+            `,
+          )
+          .join("")
+      : emptyCard("No default connection selected yet.");
+  }
+}
+
 function renderIntegrations(items) {
   state.integrations = items || [];
+  renderProviderCenterSummary(state.integrations);
+  renderProviderCatalogPanel();
   if (!dom.integrationList) {
     return;
   }
@@ -4572,9 +6032,9 @@ function renderIntegrations(items) {
           <p>${escapeHtml(item.base_url || "Provider default base URL")}</p>
           <p>${item.is_default ? "Default connection" : "Saved connection"}</p>
           <div class="actions">
-            <button type="button" class="secondary" data-test-integration="${item.id}">Test</button>
-            <button type="button" class="secondary" data-delete-integration="${item.id}">Delete</button>
-            ${item.docs_url ? `<a class="secondary action-link" href="${escapeHtml(item.docs_url)}" target="_blank" rel="noreferrer">Docs</a>` : ""}
+                <button type="button" class="secondary" data-test-integration="${escapeHtml(item.id)}">Test</button>
+                <button type="button" class="secondary" data-delete-integration="${escapeHtml(item.id)}">Delete</button>
+            ${buildAnchorTag(item.docs_url, "Docs", { className: "secondary action-link", targetBlank: true, allowRelative: false, allowHash: false })}
           </div>
         </div>
       `,
@@ -4597,14 +6057,21 @@ function renderBriefings(items) {
         <div class="card">
           <h4>${escapeHtml(item.title)}</h4>
           <p>${escapeHtml(prettyDate(item.created_at))}</p>
+          <p class="compact-note muted">${escapeHtml(item.status || "ready")}${item.reason ? ` | ${escapeHtml(item.reason)}` : ""}</p>
           <pre>${escapeHtml(item.summary_markdown)}</pre>
           <div class="literature-status-grid">
             <article class="literature-status-card">
               <p class="eyebrow eyebrow-compact">Knowledge Link</p>
               <strong>${item.workspace_knowledge_record_id ? "Ready" : "Missing"}</strong>
               <p class="compact-note muted">${item.workspace_knowledge_record_id ? escapeHtml(item.workspace_knowledge_record_title || "Briefing note") : "Capture this briefing in the private knowledge base to reuse it elsewhere."}</p>
-              ${item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${item.workspace_knowledge_record_id}">Open note</button>` : `<button type="button" class="secondary" data-import-briefing-knowledge="${item.id}">Save to knowledge base</button>`}
-              ${state.selectedKnowledgeCaseId ? `<button type="button" class="secondary" data-add-case-item="${item.id}" data-case-item-type="briefing">Add to case</button>` : ""}
+              ${item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${escapeHtml(item.workspace_knowledge_record_id)}">Open note</button>` : `<button type="button" class="secondary" data-import-briefing-knowledge="${escapeHtml(item.id)}">Save to knowledge base</button>`}
+              ${state.selectedKnowledgeCaseId ? `<button type="button" class="secondary" data-add-case-item="${escapeHtml(item.id)}" data-case-item-type="briefing">Add to case</button>` : ""}
+            </article>
+            <article class="literature-status-card">
+              <p class="eyebrow eyebrow-compact">Schedule Link</p>
+              <strong>${item.schedule_id ? "Connected" : "Manual"}</strong>
+              <p class="compact-note muted">${item.schedule_id ? escapeHtml(`${item.schedule_name || "Recurring schedule"} | ${item.trigger || "schedule"}`) : "Generated manually inside this workspace."}</p>
+              ${item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${escapeHtml(item.workspace_knowledge_record_id)}">Open result note</button>` : ""}
             </article>
           </div>
         </div>
@@ -4613,7 +6080,79 @@ function renderBriefings(items) {
     .join("");
 }
 
+function renderPaperLibrarySummary() {
+  const searchItems = state.openAlexResults || [];
+  const libraryItems = state.literatureEntries || [];
+  const privatePdfCount = libraryItems.filter((item) => item.workspace_pdf_asset_id).length;
+  const noteLinkedCount = libraryItems.filter((item) => item.workspace_knowledge_record_id).length;
+  const openAccessCount = searchItems.filter((item) => item.can_import_pdf).length;
+  const blockedCount = searchItems.filter((item) => item.pdf_import_status === "blocked").length;
+  if (dom.paperSummaryGrid) {
+    dom.paperSummaryGrid.innerHTML = [
+      {
+        label: "Search buffer",
+        value: String(searchItems.length),
+        copy: searchItems.length
+          ? `${openAccessCount} result(s) are ready for safe PDF import${blockedCount ? `, ${blockedCount} blocked by URL safety checks` : ""}.`
+          : "Run an OpenAlex search to build the current result buffer.",
+      },
+      {
+        label: "Imported papers",
+        value: String(libraryItems.length),
+        copy: libraryItems.length ? "Private literature records already stored in this workspace." : "No papers imported into this workspace yet.",
+      },
+      {
+        label: "Private PDFs",
+        value: String(privatePdfCount),
+        copy: privatePdfCount ? "OA PDFs already copied into the workspace asset store." : "No private paper PDF has been imported yet.",
+      },
+      {
+        label: "Knowledge links",
+        value: String(noteLinkedCount),
+        copy: noteLinkedCount ? "Imported papers that already have at least one private note." : "No imported paper has been linked into the knowledge base yet.",
+      },
+    ]
+      .map(
+        (item) => `
+          <article class="module-kpi-card">
+            <span>${escapeHtml(item.label)}</span>
+            <strong>${escapeHtml(item.value)}</strong>
+            <p>${escapeHtml(item.copy)}</p>
+          </article>
+        `,
+      )
+      .join("");
+  }
+  if (dom.paperInspectorGrid) {
+    dom.paperInspectorGrid.innerHTML = [
+      {
+        title: "Current search",
+        copy: searchItems.length ? `${searchItems.length} buffered result(s). Import only the papers you need.` : "No buffered result set yet.",
+      },
+      {
+        title: "Private library",
+        copy: libraryItems.length ? `${libraryItems.length} imported paper(s) are ready for reuse.` : "No imported papers yet.",
+      },
+      {
+        title: "Next action",
+        copy: searchItems.length ? "Review the buffer, then import current results or selected OA PDFs." : "Start with a narrow literature query around the current research question.",
+      },
+    ]
+      .map(
+        (item) => `
+          <article class="card">
+            <h4>${escapeHtml(item.title)}</h4>
+            <p class="muted">${escapeHtml(item.copy)}</p>
+          </article>
+        `,
+      )
+      .join("");
+  }
+}
+
 function renderOpenAlexResults(items) {
+  state.openAlexResults = items || [];
+  renderPaperLibrarySummary();
   if (!dom.openalexResults) {
     return;
   }
@@ -4630,9 +6169,10 @@ function renderOpenAlexResults(items) {
           <p>${escapeHtml(`${item.publication_year || "n/a"} | cited ${item.cited_by_count || 0}`)}</p>
           <p>${escapeHtml(item.venue || "Unknown venue")}</p>
           <p class="compact-note">${escapeHtml(item.abstract_excerpt || item.abstract || "")}</p>
+          <p class="compact-note muted">${escapeHtml(item.pdf_import_reason || "")}</p>
           <div class="actions">
-            ${item.landing_page_url ? `<a class="action-link" href="${escapeHtml(item.landing_page_url)}" target="_blank" rel="noreferrer">Open source page</a>` : ""}
-            ${item.pdf_url ? `<a class="action-link" href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noreferrer">Open OA PDF</a>` : ""}
+            ${buildAnchorTag(item.landing_page_url, "Open source page", { className: "action-link", targetBlank: true, allowRelative: false, allowHash: false })}
+            ${buildAnchorTag(item.pdf_url, "Open OA PDF", { className: "action-link", targetBlank: true, allowRelative: false, allowHash: false })}
           </div>
         </div>
       `,
@@ -4642,6 +6182,7 @@ function renderOpenAlexResults(items) {
 
 function renderLiterature(items) {
   state.literatureEntries = items || [];
+  renderPaperLibrarySummary();
   if (!dom.literatureList) {
     return;
   }
@@ -4658,45 +6199,46 @@ function renderLiterature(items) {
           <p>${escapeHtml(item.venue || "Unknown venue")} | ${escapeHtml(item.publication_year || "n/a")}</p>
           <p class="compact-note">${escapeHtml(item.citation_text || "")}</p>
           <p class="compact-note">${escapeHtml(item.abstract_excerpt || item.abstract || "")}</p>
+          <p class="compact-note muted">${escapeHtml(item.pdf_import_reason || "")}</p>
           <div class="actions compact-actions">
-            ${item.landing_page_url ? `<a class="action-link" href="${escapeHtml(item.landing_page_url)}" target="_blank" rel="noreferrer">Source page</a>` : ""}
-            ${item.pdf_url ? `<a class="action-link" href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noreferrer">Open OA PDF</a>` : ""}
-            ${item.has_open_access_pdf && !item.workspace_pdf_asset_id ? `<button type="button" class="secondary" data-import-literature-pdf="${item.id}">Import PDF</button>` : ""}
-            ${item.workspace_pdf_asset_id ? `<button type="button" class="secondary" data-download-literature-asset="${item.workspace_pdf_asset_id}">Download private copy</button>` : ""}
-            ${!item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-import-literature-knowledge="${item.id}">Save to knowledge base</button>` : ""}
-            ${state.selectedKnowledgeCaseId ? `<button type="button" class="secondary" data-add-case-item="${item.id}" data-case-item-type="literature_entry">Add to case</button>` : ""}
+            ${buildAnchorTag(item.landing_page_url, "Source page", { className: "action-link", targetBlank: true, allowRelative: false, allowHash: false })}
+            ${buildAnchorTag(item.pdf_url, "Open OA PDF", { className: "action-link", targetBlank: true, allowRelative: false, allowHash: false })}
+            ${item.has_open_access_pdf && !item.workspace_pdf_asset_id ? `<button type="button" class="secondary" data-import-literature-pdf="${escapeHtml(item.id)}">Import PDF</button>` : ""}
+            ${item.workspace_pdf_asset_id ? `<button type="button" class="secondary" data-download-literature-asset="${escapeHtml(item.workspace_pdf_asset_id)}">Download private copy</button>` : ""}
+            ${!item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-import-literature-knowledge="${escapeHtml(item.id)}">Save to knowledge base</button>` : ""}
+            ${state.selectedKnowledgeCaseId ? `<button type="button" class="secondary" data-add-case-item="${escapeHtml(item.id)}" data-case-item-type="literature_entry">Add to case</button>` : ""}
           </div>
           <div class="literature-status-grid">
             <article class="literature-status-card">
               <p class="eyebrow eyebrow-compact">Private PDF</p>
-              <strong>${item.workspace_pdf_asset_id ? "Imported" : item.has_open_access_pdf ? "Available" : "Unavailable"}</strong>
+              <strong>${item.workspace_pdf_asset_id ? "Imported" : item.pdf_import_status === "blocked" ? "Blocked" : item.has_open_access_pdf ? "Available" : "Unavailable"}</strong>
               <p class="compact-note muted">
-                ${item.workspace_pdf_asset_id ? `Saved as ${escapeHtml(item.workspace_pdf_asset_title || "paper PDF")}.` : item.has_open_access_pdf ? "Open-access source is available for import." : "No downloadable OA source exposed by this entry."}
+                ${item.workspace_pdf_asset_id ? `Saved as ${escapeHtml(item.workspace_pdf_asset_title || "paper PDF")}.` : escapeHtml(item.pdf_import_reason || (item.has_open_access_pdf ? "Open-access source is available for import." : "No downloadable OA source exposed by this entry."))}
               </p>
             </article>
             <article class="literature-status-card">
               <p class="eyebrow eyebrow-compact">Paper Note</p>
               <strong>${item.workspace_knowledge_record_id ? "Ready" : "Missing"}</strong>
               <p class="compact-note muted">${item.workspace_knowledge_record_id ? escapeHtml(item.workspace_knowledge_record_title || "Paper note") : "Create the base note before generating follow-up notes."}</p>
-              ${item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${item.workspace_knowledge_record_id}">Open note</button>` : ""}
+              ${item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${escapeHtml(item.workspace_knowledge_record_id)}">Open note</button>` : ""}
             </article>
             <article class="literature-status-card">
               <p class="eyebrow eyebrow-compact">Summary</p>
               <strong>${item.workspace_summary_record_id ? "Ready" : item.workspace_knowledge_record_id ? "Not created" : "Locked"}</strong>
               <p class="compact-note muted">${item.workspace_summary_record_id ? escapeHtml(item.workspace_summary_record_title || "Summary note") : item.workspace_knowledge_record_id ? "Create a concise private summary note." : "Requires the base paper note first."}</p>
-              ${item.workspace_summary_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${item.workspace_summary_record_id}">Open summary</button>` : item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-derive-literature-note="${item.id}" data-derive-literature-mode="summary">Create summary note</button>` : ""}
+              ${item.workspace_summary_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${escapeHtml(item.workspace_summary_record_id)}">Open summary</button>` : item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-derive-literature-note="${escapeHtml(item.id)}" data-derive-literature-mode="summary">Create summary note</button>` : ""}
             </article>
             <article class="literature-status-card">
               <p class="eyebrow eyebrow-compact">Annotation</p>
               <strong>${item.workspace_annotation_record_id ? "Ready" : item.workspace_knowledge_record_id ? "Not created" : "Locked"}</strong>
               <p class="compact-note muted">${item.workspace_annotation_record_id ? escapeHtml(item.workspace_annotation_record_title || "Annotation template") : item.workspace_knowledge_record_id ? "Prepare a reading and margin-note template." : "Requires the base paper note first."}</p>
-              ${item.workspace_annotation_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${item.workspace_annotation_record_id}">Open annotation</button>` : item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-derive-literature-note="${item.id}" data-derive-literature-mode="annotation">Create annotation template</button>` : ""}
+              ${item.workspace_annotation_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${escapeHtml(item.workspace_annotation_record_id)}">Open annotation</button>` : item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-derive-literature-note="${escapeHtml(item.id)}" data-derive-literature-mode="annotation">Create annotation template</button>` : ""}
             </article>
             <article class="literature-status-card">
               <p class="eyebrow eyebrow-compact">Question Breakdown</p>
               <strong>${item.workspace_question_record_id ? "Ready" : item.workspace_knowledge_record_id ? "Not created" : "Locked"}</strong>
               <p class="compact-note muted">${item.workspace_question_record_id ? escapeHtml(item.workspace_question_record_title || "Question breakdown") : item.workspace_knowledge_record_id ? "Split the paper into variables, checks, and follow-up questions." : "Requires the base paper note first."}</p>
-              ${item.workspace_question_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${item.workspace_question_record_id}">Open questions</button>` : item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-derive-literature-note="${item.id}" data-derive-literature-mode="question_breakdown">Create question breakdown</button>` : ""}
+              ${item.workspace_question_record_id ? `<button type="button" class="secondary" data-open-knowledge-record="${escapeHtml(item.workspace_question_record_id)}">Open questions</button>` : item.workspace_knowledge_record_id ? `<button type="button" class="secondary" data-derive-literature-note="${escapeHtml(item.id)}" data-derive-literature-mode="question_breakdown">Create question breakdown</button>` : ""}
             </article>
           </div>
         </div>
@@ -4725,10 +6267,10 @@ function renderAssets(items) {
           <p>ID: ${escapeHtml(item.id)}</p>
           <p>${escapeHtml(item.kind)} | ${escapeHtml(item.content_type || "unknown content type")}</p>
           <div class="actions">
-            <button type="button" class="secondary" data-download-asset="${item.id}">Download</button>
-            ${item.kind.startsWith("dataset") ? `<button type="button" class="secondary" data-select-asset="${item.id}">Use in lab</button>` : ""}
-            ${item.kind.startsWith("dataset") ? `<button type="button" class="secondary" data-clean-asset="${item.id}">Clean</button>` : ""}
-            ${state.selectedKnowledgeCaseId ? `<button type="button" class="secondary" data-add-case-item="${item.id}" data-case-item-type="data_asset">Add to case</button>` : ""}
+            <button type="button" class="secondary" data-download-asset="${escapeHtml(item.id)}">Download</button>
+            ${item.kind.startsWith("dataset") ? `<button type="button" class="secondary" data-select-asset="${escapeHtml(item.id)}">Use in lab</button>` : ""}
+            ${item.kind.startsWith("dataset") ? `<button type="button" class="secondary" data-clean-asset="${escapeHtml(item.id)}">Clean</button>` : ""}
+            ${state.selectedKnowledgeCaseId ? `<button type="button" class="secondary" data-add-case-item="${escapeHtml(item.id)}" data-case-item-type="data_asset">Add to case</button>` : ""}
           </div>
         </div>
       `,
@@ -4783,7 +6325,7 @@ function renderKnowledge(items) {
               <button type="button" class="secondary" data-edit-knowledge="${escapeHtml(item.id)}">Edit</button>
               <button type="button" class="secondary" data-${archived ? "restore" : "archive"}-knowledge="${escapeHtml(item.id)}">${archived ? "Restore" : "Archive"}</button>
               <button type="button" class="secondary danger" data-delete-knowledge="${escapeHtml(item.id)}">Delete</button>
-              ${relatedPath ? `<a href="${escapeHtml(relatedPath)}" class="action-link">Open related detail</a>` : ""}
+              ${buildAnchorTag(relatedPath, "Open related detail", { className: "action-link" })}
             </div>
           </article>
         `;
@@ -4871,6 +6413,46 @@ function focusKnowledgeRecord(recordId) {
 
 function renderSchedules(items) {
   state.workspaceSchedules = items || [];
+  if (dom.scheduleSummaryGrid) {
+    const nextRun = items && items.length
+      ? [...items]
+          .map((item) => item.next_run_at)
+          .filter(Boolean)
+          .sort()[0]
+      : null;
+    dom.scheduleSummaryGrid.innerHTML = [
+      {
+        label: "Recurring jobs",
+        value: String((items || []).length),
+        copy: items?.length ? "Private recurring jobs currently attached to this workspace." : "No private recurring jobs yet.",
+      },
+      {
+        label: "Next run",
+        value: nextRun ? prettyDate(nextRun) : "n/a",
+        copy: nextRun ? "Earliest upcoming execution among all saved jobs." : "Create one recurring job to populate the run queue.",
+      },
+      {
+        label: "Timezone",
+        value: items?.[0]?.timezone_name || "Workspace local",
+        copy: items?.length ? "Schedules use the stored local timezone for execution timing." : "Timezone metadata will appear after the first saved job.",
+      },
+      {
+        label: "Focus strings",
+        value: String((items || []).filter((item) => String(item.query_text || "").trim()).length),
+        copy: "Jobs with an explicit recurring research focus topic.",
+      },
+    ]
+      .map(
+        (item) => `
+          <article class="module-kpi-card">
+            <span>${escapeHtml(item.label)}</span>
+            <strong>${escapeHtml(item.value)}</strong>
+            <p>${escapeHtml(item.copy)}</p>
+          </article>
+        `,
+      )
+      .join("");
+  }
   if (!dom.scheduleList) {
     return;
   }
@@ -4880,13 +6462,33 @@ function renderSchedules(items) {
   }
   dom.scheduleList.innerHTML = items
     .map(
-      (item) => `
-        <div class="card">
-          <h4>${escapeHtml(item.name)}</h4>
-          <p>${escapeHtml(item.job_type)} | ${escapeHtml(item.timezone_name)} | ${escapeHtml(item.local_time)}</p>
-          <p>Next run: ${escapeHtml(item.next_run_at || "not scheduled")}</p>
-        </div>
-      `,
+      (item) => {
+        const latestRun = item.latest_run || null;
+        const recentRuns = (item.recent_runs || [])
+          .slice(0, 3)
+          .map((run) => `<li>${escapeHtml(prettyDate(run.started_at))} | ${escapeHtml(run.status)}${run.error_summary ? ` | ${escapeHtml(run.error_summary)}` : run.summary ? ` | ${escapeHtml(truncateText(run.summary, 80))}` : ""}</li>`)
+          .join("");
+        const latestKnowledgeButton = latestRun?.knowledge_record_id
+          ? `<button type="button" class="secondary" data-open-knowledge-record="${escapeHtml(latestRun.knowledge_record_id)}">Open latest note</button>`
+          : "";
+        return `
+          <div class="card">
+            <h4>${escapeHtml(item.name)}</h4>
+            <p>${escapeHtml(item.job_type)} | ${escapeHtml(item.timezone_name)} | ${escapeHtml(item.local_time)}</p>
+            <p class="compact-note muted">${escapeHtml(item.status || "scheduled")}${item.reason ? ` | ${escapeHtml(item.reason)}` : ""}</p>
+            <p>Next run: ${escapeHtml(item.next_run_at || "not scheduled")}</p>
+            <p>Latest run: ${escapeHtml(latestRun ? prettyDate(latestRun.started_at) : "n/a")} ${latestRun?.status ? `| ${escapeHtml(latestRun.status)}` : ""}</p>
+            <p>${escapeHtml(item.last_failure_summary || item.last_run_summary || "No runs recorded yet.")}</p>
+            <div class="actions compact-actions">
+              <button type="button" class="secondary" data-run-schedule-now="${escapeHtml(item.id)}">Run now</button>
+              <button type="button" class="secondary" data-toggle-schedule="${escapeHtml(item.id)}" data-schedule-enabled="${item.enabled ? "1" : "0"}">${item.enabled ? "Pause" : "Resume"}</button>
+              ${latestKnowledgeButton}
+              <button type="button" class="secondary" data-delete-schedule="${escapeHtml(item.id)}">Delete</button>
+            </div>
+            ${recentRuns ? `<div class="stack compact"><p class="eyebrow eyebrow-compact">Recent runs</p><ul class="module-runbook-list">${recentRuns}</ul></div>` : ""}
+          </div>
+        `;
+      },
     )
     .join("");
 }
@@ -4922,7 +6524,7 @@ function renderPublicDateSwitcher(items, selectedSlug) {
         <button
           type="button"
           class="date-pill${item.slug === selectedSlug ? " is-active" : ""}"
-          data-public-slug="${item.slug}"
+          data-public-slug="${escapeHtml(item.slug)}"
           title="${escapeHtml(item.title)}"
         >
           <span>${escapeHtml(item.briefing_date)}</span>
@@ -4961,9 +6563,11 @@ function renderPublicClusters(clusters) {
           <div class="cluster-links">
             ${(cluster.items || [])
               .map((item) =>
-                item.url
-                  ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.title)}</a>`
-                  : `<span>${escapeHtml(item.title)}</span>`,
+                buildAnchorTag(item.url, item.title || "Open article", {
+                  targetBlank: true,
+                  allowRelative: false,
+                  allowHash: false,
+                }) || `<span>${escapeHtml(item.title)}</span>`,
               )
               .join("")}
           </div>
@@ -4974,7 +6578,7 @@ function renderPublicClusters(clusters) {
 }
 
 function hasPublicModerationAccess() {
-  return Boolean(state.user && state.token);
+  return Boolean(state.user);
 }
 
 function buildOptions(options, selected, allLabel) {
@@ -5247,7 +6851,7 @@ function publicReviewCard(item, actionLabel, actionName, enabled) {
       ${item.source_note ? `<p>${escapeHtml(item.source_note)}</p>` : ""}
       ${item.excerpt ? `<p>${escapeHtml(item.excerpt)}</p>` : ""}
       <div class="actions actions-wrap compact-actions">
-        ${item.url ? `<a class="button-link secondary-link" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">Open source article</a>` : ""}
+        ${buildAnchorTag(item.url, "Open source article", { className: "button-link secondary-link", targetBlank: true, allowRelative: false, allowHash: false })}
       </div>
     </article>
   `;
@@ -5309,14 +6913,20 @@ function renderRecommendedReading(payload) {
           <h4>${escapeHtml(section.label)}</h4>
           <div class="reading-links">
             ${section.items
-              .map(
-                (item) => `
-                  <a href="${escapeHtml(item.url)}" target="${item.kind === "article" ? "_blank" : "_self"}" rel="${item.kind === "article" ? "noreferrer" : ""}">
+              .map((item) => {
+                return buildAnchorHtml(
+                  item.url,
+                  `
                     <strong>${escapeHtml(item.title)}</strong>
                     <span>${escapeHtml(item.subtitle || "")}</span>
-                  </a>
-                `,
-              )
+                  `,
+                  {
+                    targetBlank: item.kind === "article",
+                    allowRelative: item.kind !== "article",
+                    allowHash: item.kind !== "article",
+                  },
+                );
+              })
               .join("")}
           </div>
         </article>
@@ -5333,13 +6943,18 @@ function renderSummaryPages(pages) {
   const activeWindow = extractSummaryWindowFromLocation();
   dom.publicSummaryPages.innerHTML = items
     .map(
-      (item) => `
-        <a class="summary-page-card${activeWindow === item.window ? " is-active" : ""}" href="${escapeHtml(item.detail_path || item.share_url || "/")}">
-          <span class="pill">${escapeHtml(item.days)}D</span>
-          <h4>${escapeHtml(item.title)}</h4>
-          <p>${escapeHtml(item.subtitle)}</p>
-        </a>
-      `,
+      (item) =>
+        buildAnchorHtml(
+          item.detail_path || item.share_url || "/",
+          `
+            <span class="pill">${escapeHtml(item.days)}D</span>
+            <h4>${escapeHtml(item.title)}</h4>
+            <p>${escapeHtml(item.subtitle)}</p>
+          `,
+          {
+            className: `summary-page-card${activeWindow === item.window ? " is-active" : ""}`,
+          },
+        ),
     )
     .join("");
 }
@@ -5359,7 +6974,7 @@ function renderSummaryFeatured(items) {
           <h4>${escapeHtml(item.title)}</h4>
           <p>${escapeHtml(item.briefing_date)} | ${escapeHtml(item.headline_count)} headlines</p>
           <div class="actions">
-            <button type="button" class="secondary" data-public-slug="${item.slug}">Open</button>
+            <button type="button" class="secondary" data-public-slug="${escapeHtml(item.slug)}">Open</button>
           </div>
         </div>
       `,
@@ -5434,6 +7049,7 @@ function renderPublicLatest(briefing) {
       dom.publicLatestMeta.textContent = "No public briefing has been published yet.";
     }
     if (dom.publicLatestView) {
+      dom.publicLatestView.removeAttribute("data-i18n-skip");
       dom.publicLatestView.innerHTML = `<p class="muted">The public daily monitor will appear here after the first scheduled collection.</p>`;
     }
     if (dom.publicStatus) {
@@ -5460,7 +7076,12 @@ function renderPublicLatest(briefing) {
     dom.publicLatestMeta.textContent = `${briefing.title} | ${briefing.briefing_date} | ${briefing.headline_count} headlines`;
   }
   if (dom.publicLatestView) {
-    dom.publicLatestView.innerHTML = markdownToHtml(briefing.summary_markdown);
+    if (detectPageMode() === "home") {
+      renderHomeBriefingPreview(briefing);
+    } else {
+      dom.publicLatestView.setAttribute("data-i18n-skip", "true");
+      dom.publicLatestView.replaceChildren(markdownToFragment(briefing.summary_markdown));
+    }
   }
   if (dom.publicStatus) {
     dom.publicStatus.textContent = briefing.updated_at ? `Updated ${formatTimeOnly(briefing.updated_at)}` : "Ready";
@@ -5481,14 +7102,22 @@ function renderPublicSummary(summary) {
   if (!summary || !summary.report_count) {
     dom.publicSummaryTitle.textContent = "Rolling Summary";
     dom.publicSummaryMeta.textContent = "Recent multi-day view";
+    dom.publicSummaryView.removeAttribute("data-i18n-skip");
     dom.publicSummaryView.innerHTML = `<p class="muted">The rolling public summary will appear after public daily briefings accumulate.</p>`;
     renderSummaryPages(summary?.available_pages || defaultSummaryPages());
     renderSummaryFeatured([]);
     return;
   }
+  if (detectPageMode() === "home") {
+    renderHomeSummaryPreview(summary);
+    renderSummaryPages(summary.available_pages || defaultSummaryPages());
+    renderSummaryFeatured(summary.featured_briefings || []);
+    return;
+  }
   dom.publicSummaryTitle.textContent = summary.title || "Rolling Summary";
   dom.publicSummaryMeta.textContent = summary.subtitle || `${summary.days}-day public view`;
-  dom.publicSummaryView.innerHTML = markdownToHtml(summary.markdown);
+  dom.publicSummaryView.setAttribute("data-i18n-skip", "true");
+  dom.publicSummaryView.replaceChildren(markdownToFragment(summary.markdown));
   renderSummaryPages(summary.available_pages || defaultSummaryPages());
   renderSummaryFeatured(summary.featured_briefings || []);
 }
@@ -5497,6 +7126,7 @@ function renderDataLabMethodDetail(detail) {
   if (!detail) {
     throw new Error("Method detail not found.");
   }
+  detail = window.erpLocale?.localizeValue?.(detail) || detail;
   if (dom.labDetailEyebrow) {
     dom.labDetailEyebrow.textContent = detail.category === "model" ? "Model Family" : "Data Processing Family";
   }
@@ -5505,8 +7135,10 @@ function renderDataLabMethodDetail(detail) {
   dom.labDetailCategory && (dom.labDetailCategory.textContent = detail.category_label || detail.category || "Data Lab");
   dom.labDetailHeading && (dom.labDetailHeading.textContent = detail.title || "Method Detail");
   dom.labDetailDescription && (dom.labDetailDescription.textContent = detail.description || "");
+  const detailWorkbenchPath = detail.workbench_path
+    || (detail.category === "model" ? modelWorkbenchUrl(detail.slug || "") : processingWorkbenchUrl(detail.slug || ""));
   if (dom.labDetailWorkbenchLink) {
-    dom.labDetailWorkbenchLink.href = detail.workbench_path || "/data-lab";
+    applySafeHref(dom.labDetailWorkbenchLink, detailWorkbenchPath);
   }
   renderListCards(dom.labDetailMethodList, detail.methods || [], (item) => `
     <article class="method-card">
@@ -5517,9 +7149,13 @@ function renderDataLabMethodDetail(detail) {
         detail.category === "model"
           ? `
             <div class="actions actions-wrap compact-actions">
-              <a class="button-link secondary-link" href="${escapeHtml(item.detail_path || "#")}">Method page</a>
-              <a class="button-link secondary-link" href="${escapeHtml(item.teaching_path || "#")}">Teaching page</a>
-              <a class="button-link" href="${escapeHtml(item.workbench_path || "/data-lab")}">Open in workbench</a>
+              ${buildAnchorTag(item.detail_path || "#", "Method page", { className: "button-link secondary-link" })}
+              ${buildAnchorTag(item.teaching_path || "#", "Teaching page", { className: "button-link secondary-link" })}
+              ${buildAnchorTag(
+                item.workbench_path || modelWorkbenchUrl(detail.slug || "", item.slug || ""),
+                "Open in workbench",
+                { className: "button-link" },
+              )}
             </div>
           `
           : ""
@@ -5584,16 +7220,16 @@ function renderModelMethodRunbook(detail) {
   }
   const steps = [
     {
-      title: "1. Inspect inputs",
+      title: "Inspect inputs",
       body: "Check the required variables and confirm that the dataset profile supports the fields this method needs.",
     },
     {
-      title: "2. Open workbench",
-      body: "Use the workbench link to open Data Lab with the correct family and model preselected.",
+      title: "Open workbench",
+      body: "Use the workbench link to reopen Data Lab with the correct family and model preselected.",
     },
     {
-      title: "3. Read the output package",
-      body: "Expect a result detail page with tables, figures if applicable, specification metadata, and an audit trail.",
+      title: "Read the output package",
+      body: "Expect a result detail page with tables, figures when applicable, specification metadata, and an audit trail.",
     },
   ];
   dom.labModelMethodRunbook.innerHTML = steps
@@ -5612,6 +7248,7 @@ function renderModelMethodPage(detail) {
   if (!detail) {
     throw new Error("Model method not found.");
   }
+  detail = window.erpLocale?.localizeValue?.(detail) || detail;
   dom.labModelMethodEyebrow && (dom.labModelMethodEyebrow.textContent = "Model Method");
   dom.labModelMethodTitle && (dom.labModelMethodTitle.textContent = detail.name || "Model Method");
   dom.labModelMethodSummary &&
@@ -5621,9 +7258,18 @@ function renderModelMethodPage(detail) {
   dom.labModelMethodHeading && (dom.labModelMethodHeading.textContent = detail.name || "Model Method Detail");
   dom.labModelMethodDescription &&
     (dom.labModelMethodDescription.textContent = detail.overview || detail.summary || "");
-  dom.labModelMethodFamilyLink && (dom.labModelMethodFamilyLink.href = detail.family_path || "/data-lab");
-  dom.labModelMethodTeachingLink && (dom.labModelMethodTeachingLink.href = detail.teaching_path || "/data-lab");
-  dom.labModelMethodWorkbenchLink && (dom.labModelMethodWorkbenchLink.href = detail.workbench_path || "/data-lab");
+  dom.labModelMethodFamilyLink &&
+    applySafeHref(dom.labModelMethodFamilyLink, detail.family_path || `/data-lab/models/${detail.family_slug || detail.family || ""}`);
+  dom.labModelMethodTeachingLink &&
+    applySafeHref(
+      dom.labModelMethodTeachingLink,
+      detail.teaching_path || `/data-lab/learn/models/${detail.family_slug || detail.family || ""}/${detail.slug || ""}`,
+    );
+  dom.labModelMethodWorkbenchLink &&
+    applySafeHref(
+      dom.labModelMethodWorkbenchLink,
+      detail.workbench_path || modelWorkbenchUrl(detail.family_slug || detail.family || "", detail.slug || detail.name || ""),
+    );
   renderListCards(dom.labModelMethodEquation, [detail], (item) => `
     <article class="card">
       <h4>${escapeHtml(item.name || "Specification")}</h4>
@@ -5658,6 +7304,7 @@ function renderModelTeachingPage(guide) {
   if (!guide) {
     throw new Error("Teaching guide not found.");
   }
+  guide = window.erpLocale?.localizeValue?.(guide) || guide;
   dom.labTeachingEyebrow && (dom.labTeachingEyebrow.textContent = "Teaching Page");
   dom.labTeachingTitle && (dom.labTeachingTitle.textContent = `${guide.name || "Model"} Teaching Page`);
   dom.labTeachingSummary &&
@@ -5668,8 +7315,16 @@ function renderModelTeachingPage(guide) {
   dom.labTeachingDescription &&
     (dom.labTeachingDescription.textContent =
       guide.equation ? `Core equation: ${guide.equation}` : "Review the sections below before estimation.");
-  dom.labTeachingMethodLink && (dom.labTeachingMethodLink.href = guide.detail_path || "/data-lab");
-  dom.labTeachingWorkbenchLink && (dom.labTeachingWorkbenchLink.href = guide.workbench_path || "/data-lab");
+  dom.labTeachingMethodLink &&
+    applySafeHref(
+      dom.labTeachingMethodLink,
+      guide.detail_path || `/data-lab/models/${guide.family_slug || guide.family || ""}/${guide.slug || ""}`,
+    );
+  dom.labTeachingWorkbenchLink &&
+    applySafeHref(
+      dom.labTeachingWorkbenchLink,
+      guide.workbench_path || modelWorkbenchUrl(guide.family_slug || guide.family || "", guide.slug || guide.name || ""),
+    );
   renderListCards(dom.labTeachingSections, guide.sections || [], (section) => `
     <article class="card">
       <p class="eyebrow eyebrow-compact">${escapeHtml(section.title || "Section")}</p>
@@ -5716,15 +7371,15 @@ function renderModelTeachingPage(guide) {
   if (dom.labTeachingRunbook) {
     const steps = [
       {
-        title: "1. Read the core lessons",
+        title: "Read the core lessons",
         body: "Start with the lesson blocks to understand when the model is appropriate and what assumptions matter.",
       },
       {
-        title: "2. Check paper reporting",
+        title: "Check paper reporting",
         body: "Use the paper template and table preview to understand how the output should look in a paper.",
       },
       {
-        title: "3. Open the workbench",
+        title: "Open the workbench",
         body: "Only after the teaching page is clear should you open the workbench and run the model on a private dataset.",
       },
     ];
@@ -5763,18 +7418,30 @@ function renderResultMetrics(target, result) {
   if (!target) {
     return;
   }
-  const narrativeHtml = (result.narrative || []).map((line) => `<p>${escapeHtml(line)}</p>`).join("");
   const metrics = resultMetricCards(result);
-  const metricHtml = metrics.length
-    ? `<div class="chip-row chip-row-compact">${metrics.map((item) => `<span class="topic-chip">${escapeHtml(item.label)} <strong>${escapeHtml(item.value)}</strong></span>`).join("")}</div>`
-    : "";
-  target.innerHTML = `
-    <article class="card">
-      <h4>${escapeHtml(result.model_label || result.processing_family || "Result")}</h4>
-      ${metricHtml}
-      <div>${narrativeHtml || `<p>${escapeHtml(result.summary?.rows_after_prepare ? `Rows after prepare: ${result.summary.rows_after_prepare}` : "No narrative available.")}</p>`}</div>
-    </article>
-  `;
+  const card = document.createElement("article");
+  card.className = "card";
+  card.appendChild(createTextElement("h4", result.model_label || result.processing_family || "Result"));
+  if (metrics.length) {
+    const chipRow = document.createElement("div");
+    chipRow.className = "chip-row chip-row-compact";
+    metrics.forEach((item) => chipRow.appendChild(createTopicChip(item.label, item.value)));
+    card.appendChild(chipRow);
+  }
+  const narrativeBox = document.createElement("div");
+  const narrative = Array.isArray(result.narrative) ? result.narrative.filter(Boolean) : [];
+  if (narrative.length) {
+    narrative.forEach((line) => narrativeBox.appendChild(createTextElement("p", line)));
+  } else {
+    narrativeBox.appendChild(
+      createTextElement(
+        "p",
+        result.summary?.rows_after_prepare ? `Rows after prepare: ${result.summary.rows_after_prepare}` : "No narrative available.",
+      ),
+    );
+  }
+  card.appendChild(narrativeBox);
+  target.replaceChildren(card);
 }
 
 function renderResultInterpretation(target, result) {
@@ -5793,61 +7460,51 @@ function renderResultInterpretation(target, result) {
     result.tables && typeof result.tables === "object" ? `Tables: ${Object.keys(result.tables).length}` : "",
   ].filter(Boolean);
   if (!sections.length && !paperOutputs.length) {
-    target.innerHTML = emptyCard("No interpretation metadata is available for this result yet.");
+    renderEmptyCard(target, "No interpretation metadata is available for this result yet.");
     return;
   }
-  target.innerHTML = `
-    <article class="card interpretation-lead">
-      <h4>Interpretation headline</h4>
-      <p>${escapeHtml(interpretation.headline || "Use the result together with its tables, figures, and sample metadata.")}</p>
-    </article>
-    ${
-      quickFacts.length
-        ? `
-          <article class="card">
-            <h4>Quick replication facts</h4>
-            <div class="chip-row chip-row-compact">
-              ${quickFacts.map((item) => `<span class="topic-chip">${escapeHtml(item)}</span>`).join("")}
-            </div>
-          </article>
-        `
-        : ""
-    }
-    ${
-      sections.length
-        ? `
-          <div class="interpretation-grid">
-            ${sections
-              .map(
-                (section) => `
-                  <article class="card interpretation-card">
-                    <h4>${escapeHtml(section.title || "Interpretation")}</h4>
-                    <div class="stack compact">
-                      ${(Array.isArray(section.items) ? section.items : [])
-                        .map((item) => `<p>${escapeHtml(item)}</p>`)
-                        .join("")}
-                    </div>
-                  </article>
-                `,
-              )
-              .join("")}
-          </div>
-        `
-        : ""
-    }
-    ${
-      paperOutputs.length
-        ? `
-          <article class="card">
-            <h4>Expected paper outputs</h4>
-            <div class="chip-row chip-row-compact">
-              ${paperOutputs.map((item) => `<span class="topic-chip">${escapeHtml(item)}</span>`).join("")}
-            </div>
-          </article>
-        `
-        : ""
-    }
-  `;
+  const nodes = [];
+  const leadCard = document.createElement("article");
+  leadCard.className = "card interpretation-lead";
+  leadCard.appendChild(createTextElement("h4", "Interpretation headline"));
+  leadCard.appendChild(createTextElement("p", interpretation.headline || "Use the result together with its tables, figures, and sample metadata."));
+  nodes.push(leadCard);
+  if (quickFacts.length) {
+    const factsCard = document.createElement("article");
+    factsCard.className = "card";
+    factsCard.appendChild(createTextElement("h4", "Quick replication facts"));
+    const chipRow = document.createElement("div");
+    chipRow.className = "chip-row chip-row-compact";
+    quickFacts.forEach((item) => chipRow.appendChild(createTopicChip(item)));
+    factsCard.appendChild(chipRow);
+    nodes.push(factsCard);
+  }
+  if (sections.length) {
+    const grid = document.createElement("div");
+    grid.className = "interpretation-grid";
+    sections.forEach((section) => {
+      const card = document.createElement("article");
+      card.className = "card interpretation-card";
+      card.appendChild(createTextElement("h4", section.title || "Interpretation"));
+      const stack = document.createElement("div");
+      stack.className = "stack compact";
+      (Array.isArray(section.items) ? section.items : []).forEach((item) => stack.appendChild(createTextElement("p", item)));
+      card.appendChild(stack);
+      grid.appendChild(card);
+    });
+    nodes.push(grid);
+  }
+  if (paperOutputs.length) {
+    const outputsCard = document.createElement("article");
+    outputsCard.className = "card";
+    outputsCard.appendChild(createTextElement("h4", "Expected paper outputs"));
+    const chipRow = document.createElement("div");
+    chipRow.className = "chip-row chip-row-compact";
+    paperOutputs.forEach((item) => chipRow.appendChild(createTopicChip(item)));
+    outputsCard.appendChild(chipRow);
+    nodes.push(outputsCard);
+  }
+  target.replaceChildren(...nodes);
 }
 
 function renderResultSpecification(target, result) {
@@ -5860,16 +7517,20 @@ function renderResultSpecification(target, result) {
     result.workflow_type === "data_processing" ? Object.entries(summary).filter(([key]) => ["rows_before_prepare", "rows_after_prepare", "columns", "derived_columns"].includes(key)) : [],
   );
   if (!rows.length) {
-    target.innerHTML = emptyCard("No specification metadata available.");
+    renderEmptyCard(target, "No specification metadata available.");
     return;
   }
-  target.innerHTML = `
-    <article class="card">
-      ${rows
-        .map(([key, value]) => `<p><strong>${escapeHtml(key)}:</strong> ${escapeHtml(Array.isArray(value) ? value.join(", ") : typeof value === "object" ? JSON.stringify(value) : String(value ?? ""))}</p>`)
-        .join("")}
-    </article>
-  `;
+  const card = document.createElement("article");
+  card.className = "card";
+  rows.forEach(([key, value]) => {
+    const line = document.createElement("p");
+    const label = document.createElement("strong");
+    label.textContent = `${key}:`;
+    line.appendChild(label);
+    line.append(document.createTextNode(` ${Array.isArray(value) ? value.join(", ") : typeof value === "object" ? JSON.stringify(value) : String(value ?? "")}`));
+    card.appendChild(line);
+  });
+  target.replaceChildren(card);
 }
 
 function renderResultTables(target, result) {
@@ -5882,70 +7543,61 @@ function renderResultTables(target, result) {
   const renderTabularCard = (title, rows) => {
     const normalizedRows = Array.isArray(rows) ? rows.filter((item) => item && typeof item === "object" && !Array.isArray(item)) : [];
     if (!normalizedRows.length) {
-      return `
-        <article class="card">
-          <h4>${escapeHtml(title)}</h4>
-          <pre class="console-box">${escapeHtml(JSON.stringify(rows, null, 2))}</pre>
-        </article>
-      `;
+      const card = document.createElement("article");
+      card.className = "card";
+      card.appendChild(createTextElement("h4", title));
+      const pre = document.createElement("pre");
+      pre.className = "console-box";
+      pre.textContent = JSON.stringify(rows, null, 2);
+      card.appendChild(pre);
+      return card;
     }
     const columns = Array.from(new Set(normalizedRows.flatMap((row) => Object.keys(row))));
-    return `
-      <article class="card">
-        <h4>${escapeHtml(title)}</h4>
-        <div class="table-scroll">
-          <table class="data-table">
-            <thead>
-              <tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr>
-            </thead>
-            <tbody>
-              ${normalizedRows
-                .map(
-                  (row) => `
-                    <tr>${columns.map((column) => `<td>${escapeHtml(row?.[column] ?? "")}</td>`).join("")}</tr>
-                  `,
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </div>
-      </article>
-    `;
+    const card = document.createElement("article");
+    card.className = "card";
+    card.appendChild(createTextElement("h4", title));
+    const wrapper = document.createElement("div");
+    wrapper.className = "table-scroll";
+    wrapper.appendChild(createTableElement(columns, normalizedRows, (row, column) => row?.[column] ?? ""));
+    card.appendChild(wrapper);
+    return card;
   };
   if (coefficients.length) {
-    blocks.push(`
-      <article class="card">
-        <h4>Coefficient Table</h4>
-        <p class="muted">Significance legend: *** p&lt;0.01, ** p&lt;0.05, * p&lt;0.10.</p>
-        <div class="table-scroll">
-          <table class="data-table">
-            <thead>
-              <tr><th>Term</th><th>Coef.</th><th>Std. Err.</th><th>t/z</th><th>p-value</th></tr>
-            </thead>
-            <tbody>
-              ${coefficients
-                .map(
-                  (row) => `
-                    <tr>
-                      <td>${escapeHtml(row.term)}</td>
-                      <td>${escapeHtml(row.coefficient ?? "")}${row.p_value != null ? `<span class="sig-star">${escapeHtml(significanceStars(row.p_value))}</span>` : ""}</td>
-                      <td>${escapeHtml(row.std_error ?? "")}</td>
-                      <td>${escapeHtml(row.t_stat ?? "")}</td>
-                      <td>${escapeHtml(row.p_value ?? "")}</td>
-                    </tr>
-                  `,
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </div>
-      </article>
-    `);
+    const card = document.createElement("article");
+    card.className = "card";
+    card.appendChild(createTextElement("h4", "Coefficient Table"));
+    card.appendChild(createTextElement("p", "Significance legend: *** p<0.01, ** p<0.05, * p<0.10.", "muted"));
+    const wrapper = document.createElement("div");
+    wrapper.className = "table-scroll";
+    wrapper.appendChild(
+      createTableElement(["Term", "Coef.", "Std. Err.", "t/z", "p-value"], coefficients, (row, column) => {
+        if (column === "Term") {
+          return row.term ?? "";
+        }
+        if (column === "Coef.") {
+          const fragment = document.createDocumentFragment();
+          fragment.append(document.createTextNode(row.coefficient == null ? "" : String(row.coefficient)));
+          if (row.p_value != null) {
+            fragment.appendChild(createTextElement("span", significanceStars(row.p_value), "sig-star"));
+          }
+          return fragment;
+        }
+        if (column === "Std. Err.") {
+          return row.std_error ?? "";
+        }
+        if (column === "t/z") {
+          return row.t_stat ?? "";
+        }
+        return row.p_value ?? "";
+      }),
+    );
+    card.appendChild(wrapper);
+    blocks.push(card);
   }
   Object.entries(tables).forEach(([name, table]) => {
     blocks.push(renderTabularCard(name, table));
   });
-  target.innerHTML = blocks.join("") || "";
+  target.replaceChildren(...blocks);
 }
 
 function renderResultAudit(target, result) {
@@ -5954,28 +7606,55 @@ function renderResultAudit(target, result) {
   }
   const audit = result.audit_trail || {};
   const checklist = audit.manual_checklist || [];
-  const downloads = [
-    audit.prepared_asset_id ? `<button type="button" class="secondary" data-download-asset="${escapeHtml(audit.prepared_asset_id)}">Download prepared sample</button>` : "",
-    audit.sample_asset_id ? `<button type="button" class="secondary" data-download-asset="${escapeHtml(audit.sample_asset_id)}">Download sample used</button>` : "",
-  ].filter(Boolean);
-  target.innerHTML = `
-    <article class="card">
-      ${Object.entries(audit)
-        .filter(([key]) => !["manual_checklist", "operations"].includes(key))
-        .map(([key, value]) => `<p><strong>${escapeHtml(key)}:</strong> ${escapeHtml(typeof value === "object" ? JSON.stringify(value) : String(value ?? ""))}</p>`)
-        .join("")}
-      ${downloads.length ? `<div class="actions">${downloads.join("")}</div>` : ""}
-    </article>
-    <article class="card">
-      <h4>Manual Checklist</h4>
-      ${checklist.length ? checklist.map((item) => `<p>${escapeHtml(item)}</p>`).join("") : `<p>No checklist available.</p>`}
-    </article>
-    ${
-      audit.operations
-        ? `<article class="card"><h4>Operations</h4><pre class="console-box">${escapeHtml(JSON.stringify(audit.operations, null, 2))}</pre></article>`
-        : ""
-    }
-  `;
+  const summaryCard = document.createElement("article");
+  summaryCard.className = "card";
+  Object.entries(audit)
+    .filter(([key]) => !["manual_checklist", "operations"].includes(key))
+    .forEach(([key, value]) => {
+      const line = document.createElement("p");
+      const label = document.createElement("strong");
+      label.textContent = `${key}:`;
+      line.appendChild(label);
+      line.append(document.createTextNode(` ${typeof value === "object" ? JSON.stringify(value) : String(value ?? "")}`));
+      summaryCard.appendChild(line);
+    });
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  if (audit.prepared_asset_id) {
+    const button = createTextElement("button", "Download prepared sample", "secondary");
+    button.type = "button";
+    button.dataset.downloadAsset = audit.prepared_asset_id;
+    actions.appendChild(button);
+  }
+  if (audit.sample_asset_id) {
+    const button = createTextElement("button", "Download sample used", "secondary");
+    button.type = "button";
+    button.dataset.downloadAsset = audit.sample_asset_id;
+    actions.appendChild(button);
+  }
+  if (actions.childNodes.length) {
+    summaryCard.appendChild(actions);
+  }
+  const checklistCard = document.createElement("article");
+  checklistCard.className = "card";
+  checklistCard.appendChild(createTextElement("h4", "Manual Checklist"));
+  if (checklist.length) {
+    checklist.forEach((item) => checklistCard.appendChild(createTextElement("p", item)));
+  } else {
+    checklistCard.appendChild(createTextElement("p", "No checklist available."));
+  }
+  const nodes = [summaryCard, checklistCard];
+  if (audit.operations) {
+    const operationsCard = document.createElement("article");
+    operationsCard.className = "card";
+    operationsCard.appendChild(createTextElement("h4", "Operations"));
+    const pre = document.createElement("pre");
+    pre.className = "console-box";
+    pre.textContent = JSON.stringify(audit.operations, null, 2);
+    operationsCard.appendChild(pre);
+    nodes.push(operationsCard);
+  }
+  target.replaceChildren(...nodes);
 }
 
 function renderResultSnapshot(target, payload, result, route) {
@@ -6025,28 +7704,34 @@ function renderResultActions(target, payload, result, route) {
   const audit = result.audit_trail || {};
   const actions = [
     {
-      title: "Back to workbench",
-      body: "Return to the standalone Data Lab with the correct workflow mode preselected.",
-      controls: `<a href="${escapeHtml(route.category === "models" ? "/data-lab?workflow=model#data-lab-workbench" : "/data-lab?workflow=data_processing#data-lab-workbench")}" class="button-link">Open workbench</a>`,
+      title: "Workbench",
+      body: "Return to Data Lab with the correct workflow mode preselected for this result.",
+      controls: buildAnchorTag(
+        route.category === "models"
+          ? modelWorkbenchUrl(result.model_family || "", result.model_type || "")
+          : processingWorkbenchUrl(result.processing_family || audit.workflow_group || ""),
+        "Open workbench",
+        { className: "button-link" },
+      ),
     },
     audit.prepared_asset_id
       ? {
           title: "Prepared sample",
-          body: "Download the prepared sample used or generated by this result for manual replication outside the app.",
+          body: "Download the prepared sample used or generated by this result for manual review outside the app.",
           controls: `<button type="button" class="secondary" data-download-asset="${escapeHtml(audit.prepared_asset_id)}">Download prepared sample</button>`,
         }
       : null,
     audit.sample_asset_id
       ? {
           title: "Sample used",
-          body: "Download the exact sample used in estimation if you want to reproduce the model step by step.",
+          body: "Download the exact estimation sample if you want to reproduce the run step by step.",
           controls: `<button type="button" class="secondary" data-download-asset="${escapeHtml(audit.sample_asset_id)}">Download sample used</button>`,
         }
       : null,
     {
-      title: "Main workspace",
-      body: "Move back to the homepage workspace cockpit, case workspace, or private knowledge base.",
-      controls: `<a href="/" class="button-link secondary-link">Open main platform</a>`,
+      title: "Workspace",
+      body: "Move back to the workspace hub, case context, or private knowledge surfaces.",
+      controls: `<a href="/workspace" class="button-link secondary-link">Open workspace</a>`,
     },
   ].filter(Boolean);
   target.innerHTML = actions
@@ -6072,7 +7757,7 @@ function renderResultExportBoard(target, payload, result, route) {
     {
       eyebrow: "Export",
       title: "Download package",
-      copy: "Collect the prepared sample, the exact estimation sample, figures, and the raw JSON payload for manual replication.",
+      copy: "Collect the prepared sample, estimation sample, figures, and raw JSON payload from one export surface.",
       controls: [
         audit.prepared_asset_id
           ? `<button type="button" class="secondary" data-download-asset="${escapeHtml(audit.prepared_asset_id)}">Prepared sample</button>`
@@ -6088,8 +7773,8 @@ function renderResultExportBoard(target, payload, result, route) {
     },
     {
       eyebrow: "Verification",
-      title: "Manual check surfaces",
-      copy: "Move directly to the metrics, specification, audit trail, and raw payload anchors before exporting or citing the result.",
+      title: "Review anchors",
+      copy: "Move directly to the metrics, specification, audit trail, and raw payload before exporting or citing the result.",
       controls: [
         `<a href="#lab-result-metrics-card" class="button-link secondary-link">Metrics</a>`,
         `<a href="#lab-result-specification-card" class="button-link secondary-link">Specification</a>`,
@@ -6099,20 +7784,26 @@ function renderResultExportBoard(target, payload, result, route) {
     },
     {
       eyebrow: "Workspace",
-      title: route.category === "models" ? "Result -> Knowledge reuse" : "Prepared output -> Reuse path",
+      title: route.category === "models" ? "Knowledge reuse" : "Reuse path",
       copy:
         route.category === "models"
           ? `This model result is designed to stay reusable inside the private workspace as ${payload.record?.title || "a knowledge note"}.`
-          : "This processing output can feed the next Data Lab step or move back into the main workspace case and knowledge surfaces.",
+          : "This processing output can feed the next Data Lab step or move back into the workspace case and knowledge surfaces.",
       controls: [
         `<a href="/workspace" class="button-link secondary-link">Workspace hub</a>`,
         `<a href="/knowledge-base" class="button-link secondary-link">Knowledge base</a>`,
-        `<a href="/data-lab" class="button-link secondary-link">Data Lab</a>`,
+        buildAnchorTag(
+          route.category === "models"
+            ? modelWorkbenchUrl(result.model_family || "", result.model_type || "")
+            : processingWorkbenchUrl(result.processing_family || audit.workflow_group || ""),
+          "Data Lab",
+          { className: "button-link secondary-link" },
+        ),
       ].join(""),
     },
     {
       eyebrow: "Surface map",
-      title: route.category === "models" ? "Where this result belongs" : "Where this output should go next",
+      title: route.category === "models" ? "Next surface" : "Next step",
       copy:
         route.category === "models"
           ? "Model runs should end in the private knowledge base, remain traceable through the result page, and optionally be grouped inside a case workspace."
@@ -6147,69 +7838,71 @@ async function renderResultPreview(previewTarget, galleryTarget, result) {
   const blocks = [];
   if (previewRows.length) {
     const columns = Array.from(new Set(previewRows.flatMap((row) => Object.keys(row || {}))));
-    blocks.push(`
-      <article class="card">
-        <h4>Sample Preview</h4>
-        <div class="table-scroll">
-          <table class="data-table">
-            <thead>
-              <tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr>
-            </thead>
-            <tbody>
-              ${previewRows
-                .map(
-                  (row) => `
-                    <tr>${columns.map((column) => `<td>${escapeHtml(row?.[column] ?? "")}</td>`).join("")}</tr>
-                  `,
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </div>
-      </article>
-    `);
+    const card = document.createElement("article");
+    card.className = "card";
+    card.appendChild(createTextElement("h4", "Sample Preview"));
+    const wrapper = document.createElement("div");
+    wrapper.className = "table-scroll";
+    wrapper.appendChild(createTableElement(columns, previewRows, (row, column) => row?.[column] ?? ""));
+    card.appendChild(wrapper);
+    blocks.push(card);
   }
   if (previewTarget) {
-    previewTarget.innerHTML = blocks.join("") || emptyCard("No preview rows are available for this result.");
+    if (blocks.length) {
+      previewTarget.replaceChildren(...blocks);
+    } else {
+      renderEmptyCard(previewTarget, "No preview rows are available for this result.");
+    }
   }
   const figures = Array.isArray(result.figures) ? result.figures : [];
   if (figures.length) {
     const figureCards = await Promise.all(
       figures.map(async (figure, index) => {
-        let imageContent = `<p class="muted">Preview unavailable.</p>`;
+        const card = document.createElement("article");
+        card.className = "result-figure-card";
+        const head = document.createElement("div");
+        head.className = "panel-head panel-head-wrap";
+        const titleWrap = document.createElement("div");
+        titleWrap.appendChild(createTextElement("h4", figure.title || `Figure ${index + 1}`));
+        titleWrap.appendChild(createTextElement("span", figure.filename || "", "muted"));
+        head.appendChild(titleWrap);
+        card.appendChild(head);
+        const previewBox = document.createElement("div");
+        previewBox.className = "figure-preview-box";
         try {
           const previewUrl = await fetchPrivateAssetPreviewUrl(figure.asset_id);
-          imageContent = `<img class="result-figure-frame" src="${previewUrl}" alt="${escapeHtml(figure.title || `Result figure ${index + 1}`)}" />`;
+          const image = document.createElement("img");
+          image.className = "result-figure-frame";
+          image.src = previewUrl;
+          image.alt = figure.title || `Result figure ${index + 1}`;
+          previewBox.appendChild(image);
         } catch (error) {
-          imageContent = `<p class="muted">${escapeHtml(error.message || "Preview unavailable.")}</p>`;
+          previewBox.appendChild(createTextElement("p", error.message || "Preview unavailable.", "muted"));
         }
-        return `
-          <article class="result-figure-card">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <h4>${escapeHtml(figure.title || `Figure ${index + 1}`)}</h4>
-                <span class="muted">${escapeHtml(figure.filename || "")}</span>
-              </div>
-            </div>
-            <div class="figure-preview-box">${imageContent}</div>
-            <p class="muted">${escapeHtml(figure.summary || "")}</p>
-            <div class="actions">
-              <button type="button" class="secondary" data-download-asset="${escapeHtml(figure.asset_id)}">Download figure PNG</button>
-            </div>
-          </article>
-        `;
+        card.appendChild(previewBox);
+        card.appendChild(createTextElement("p", figure.summary || "", "muted"));
+        const actions = document.createElement("div");
+        actions.className = "actions";
+        const button = createTextElement("button", "Download figure PNG", "secondary");
+        button.type = "button";
+        button.dataset.downloadAsset = figure.asset_id;
+        actions.appendChild(button);
+        card.appendChild(actions);
+        return card;
       }),
     );
     if (galleryTarget) {
-      galleryTarget.innerHTML = `
-        <article class="card">
-          <h4>Figures</h4>
-          <div class="result-figure-grid">${figureCards.join("")}</div>
-        </article>
-      `;
+      const card = document.createElement("article");
+      card.className = "card";
+      card.appendChild(createTextElement("h4", "Figures"));
+      const grid = document.createElement("div");
+      grid.className = "result-figure-grid";
+      figureCards.forEach((figureCard) => grid.appendChild(figureCard));
+      card.appendChild(grid);
+      galleryTarget.replaceChildren(card);
     }
   } else if (galleryTarget) {
-    galleryTarget.innerHTML = emptyCard("No figures are attached to this result.");
+    renderEmptyCard(galleryTarget, "No figures are attached to this result.");
   }
 }
 
@@ -6264,8 +7957,18 @@ async function loadResultDetailPage() {
         : `${result.processing_family || "data_processing"} result for ${result.asset?.title || "prepared sample"}`);
   dom.labResultHeading &&
     (dom.labResultHeading.textContent = route.category === "models" ? "Model Result Detail" : "Processing Result Detail");
+  dom.labResultDescription &&
+    (dom.labResultDescription.textContent =
+      route.category === "models"
+        ? "Review the model result, follow the audit trail, and export only after the interpretation and specification are clear."
+        : "Review the processing output, validate the audit trail, and decide whether it should feed the next model step or return to the workspace.");
   if (dom.labResultWorkbenchLink) {
-    dom.labResultWorkbenchLink.href = route.category === "models" ? "/data-lab?workflow=model#data-lab-workbench" : "/data-lab?workflow=data_processing#data-lab-workbench";
+    applySafeHref(
+      dom.labResultWorkbenchLink,
+      route.category === "models"
+        ? modelWorkbenchUrl(result.model_family || "", result.model_type || "")
+        : processingWorkbenchUrl(result.processing_family || result.workflow_group || ""),
+    );
   }
   renderResultSnapshot(dom.labResultSnapshot, payload, result, route);
   renderResultActions(dom.labResultActions, payload, result, route);
@@ -6311,7 +8014,7 @@ function renderPublicBriefingList(items) {
               .join("")}
           </div>
           <div class="actions compact-actions">
-            <button type="button" class="secondary" data-public-slug="${item.slug}">Open</button>
+            <button type="button" class="secondary" data-public-slug="${escapeHtml(item.slug)}">Open</button>
             <button type="button" class="secondary" data-copy-public-url="${escapeHtml(item.share_url || item.detail_path || "")}">Copy link</button>
           </div>
         </div>
@@ -6326,6 +8029,9 @@ async function fetchHealth() {
     api("/api/bootstrap", {}, false),
   ]);
   state.bootstrap = bootstrap;
+  state.providerCatalog = state.providerCatalog || { llm: [], data_source: [] };
+  renderProviderCatalogPanel();
+  renderProviderCenterSummary(state.integrations || []);
   const integrationKind = document.querySelector('#integration-form select[name="kind"]');
   if (integrationKind) {
     applyIntegrationProviderPreset(integrationKind.value);
@@ -6335,7 +8041,7 @@ async function fetchHealth() {
   }
   if (dom.publicStatus) {
     dom.publicStatus.textContent = bootstrap.public_digest_enabled
-      ? `Updated ${bootstrap.public_digest_local_time}`
+      ? "Latest public edition ready"
       : "Temporarily unavailable";
   }
 }
@@ -6410,7 +8116,7 @@ function updateDocumentTitle() {
     return;
   }
   if (pageMode === "data-lab") {
-    document.title = "Data Lab | Economic Research Platform";
+    document.title = `${currentDataLabShellStep().replace(/^\w/, (value) => value.toUpperCase())} | Data Lab`;
     return;
   }
   if (pageMode === "data-lab-model-method" && dom.labModelMethodTitle?.textContent) {
@@ -6474,39 +8180,47 @@ async function loadSelectedAssetProfile(force = false) {
 }
 
 async function loadSession() {
+  state.sessionRestorePending = true;
+  applyAccessGateState();
+  renderSession();
+  renderWorkspaceOptions();
   let payload = null;
   try {
-    payload = await api("/api/auth/me", {}, false);
+    payload = await fetchSessionIdentity({ suppressUnauthorized: true });
   } catch (error) {
-    if (!state.token) {
-      clearSession({ redirect: false });
-      renderSession();
-      renderWorkspaceOptions();
-      clearPrivateLists();
-      return;
-    }
+    clearSession({ redirect: false, resetIdentity: false });
     renderSession();
     renderWorkspaceOptions();
-    showToast(error.message || "Session refresh failed. Retaining the current local session state.", true);
+    clearPrivateLists();
+    if (detectPageMode() !== "home") {
+      showToast(error.message || "Session refresh failed.", true);
+    }
     return;
   }
   if (!payload?.user) {
-    clearSession({ redirect: false });
+    clearSession({ redirect: false, resetIdentity: false });
     renderSession();
     renderWorkspaceOptions();
     clearPrivateLists();
     return;
   }
-  state.user = payload.user;
-  state.workspaces = payload.workspaces || [];
+  setSession(payload);
   if (!state.workspaces.some((item) => item.id === state.selectedWorkspaceId)) {
     state.selectedWorkspaceId = state.workspaces[0]?.id || "";
-    if (state.selectedWorkspaceId) {
-      localStorage.setItem(storageKeys.workspaceId, state.selectedWorkspaceId);
-    }
+  }
+  if (state.selectedWorkspaceId) {
+    localStorage.setItem(storageKeys.workspaceId, state.selectedWorkspaceId);
   }
   renderSession();
   renderWorkspaceOptions();
+  try {
+    await refreshProviderCatalog();
+  } catch (error) {
+    renderProviderCatalogPanel();
+    if (detectPageMode() === "provider-center") {
+      showToast(error.message || "Provider catalog refresh failed. The session remains active.", true);
+    }
+  }
   try {
     if (state.selectedWorkspaceId) {
       await refreshWorkspaceData();
@@ -6531,7 +8245,8 @@ async function loadSession() {
 async function refreshWorkspaceData() {
   ensureWorkspace();
   const workspaceId = state.selectedWorkspaceId;
-  const [integrations, briefings, literature, assets, knowledge, schedules, cases, templates] = await Promise.all([
+  const [providerCatalog, integrations, briefings, literature, assets, knowledge, schedules, cases, memories, templates, history, researchRuns, researchEvalPreview] = await Promise.all([
+    api("/api/provider-catalog"),
     api("/api/integrations"),
     api(`/api/workspaces/${workspaceId}/briefings`),
     api(`/api/workspaces/${workspaceId}/literature`),
@@ -6539,9 +8254,28 @@ async function refreshWorkspaceData() {
     api(`/api/workspaces/${workspaceId}/knowledge?view=summary&status=all`),
     api(`/api/workspaces/${workspaceId}/schedules`),
     api(`/api/workspaces/${workspaceId}/knowledge-cases`),
+    api(`/api/workspaces/${workspaceId}/memories`),
     api(`/api/workspaces/${workspaceId}/lab-templates`),
+    api(`/api/workspaces/${workspaceId}/data-lab/history`),
+    hasResearchAgentUI() ? api(`/api/workspaces/${workspaceId}/research/runs`) : Promise.resolve({ items: [] }),
+    hasResearchAgentUI() ? api(`/api/workspaces/${workspaceId}/research/runs/eval-candidates`) : Promise.resolve({ items: [], summary: {} }),
   ]);
+  state.providerCatalog = providerCatalog.provider_catalog || { llm: [], data_source: [] };
+  state.workspaceMemories = memories.items || [];
+  state.dataLabHistory = {
+    processing: history.processing || [],
+    models: history.models || [],
+    optimization: history.optimization || [],
+  };
   state.labTemplates = templates.items || [];
+  state.researchRuns = researchRuns.items || [];
+  state.researchEvalPreview = researchEvalPreview || { items: [], summary: {} };
+  if (state.selectedResearchRunId && !(state.researchRuns || []).some((item) => item.id === state.selectedResearchRunId)) {
+    state.selectedResearchRunId = "";
+  }
+  if (!state.selectedResearchRunId && state.researchRuns.length) {
+    state.selectedResearchRunId = state.researchRuns[0].id;
+  }
   state.knowledgeDetails = Object.fromEntries(
     Object.entries(state.knowledgeDetails || {}).filter(([recordId]) => (knowledge.items || []).some((item) => item.id === recordId)),
   );
@@ -6558,13 +8292,22 @@ async function refreshWorkspaceData() {
   renderKnowledgeCases(cases.items || []);
   renderKnowledge(knowledge.items || []);
   renderSchedules(schedules.items || []);
+  renderWorkspaceMemories(state.workspaceMemories || []);
+  renderResearchAgentPage();
+  renderOptimizationHistory(state.dataLabHistory.optimization || []);
   renderAllLabTemplateBuilders();
-  if (state.selectedAnalysisAssetId && dom.analysisAssetSelect) {
+  if (state.selectedAnalysisAssetId) {
     try {
       await loadSelectedAssetProfile();
     } catch (error) {
       showToast(error.message || "Failed to load dataset profile.", true);
     }
+  }
+  const pendingPrefill = readPendingLabPrefill();
+  if (pendingPrefill && detectPageMode() === "data-lab" && currentDataLabShellStep() === variableGuideTarget(pendingPrefill).step) {
+    state.variableGuideResult = pendingPrefill;
+    applyVariableGuidePrefill(true);
+    clearPendingLabPrefill();
   }
   renderWorkspaceCockpit();
 }
@@ -6573,6 +8316,12 @@ async function handleRegister(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const payload = Object.fromEntries(new FormData(form).entries());
+  const passwordIssue = validatePasswordPolicy(payload.password, payload.email);
+  if (passwordIssue) {
+    const error = new Error(passwordIssue);
+    error.field = "password";
+    throw error;
+  }
   const response = await api(
     "/api/auth/register",
     {
@@ -6584,10 +8333,10 @@ async function handleRegister(event) {
   );
   setSession(response);
   await refreshWorkspaceData();
-  form?.reset();
+  resetAuthForms();
   showToast("Account created.");
   if (detectPageMode() === "home") {
-    window.location.assign("/workspace");
+    window.location.replace("/workspace");
   }
 }
 
@@ -6606,11 +8355,78 @@ async function handleLogin(event) {
   );
   setSession(response);
   await refreshWorkspaceData();
-  form?.reset();
+  resetAuthForms();
   showToast("Signed in.");
   if (detectPageMode() === "home") {
-    window.location.assign("/workspace");
+    window.location.replace("/workspace");
   }
+}
+
+function currentPasswordResetToken() {
+  return new URLSearchParams(window.location.hash.replace(/^#/, "")).get("reset_token") || "";
+}
+
+function initializePasswordResetState() {
+  const requestForm = document.getElementById("password-reset-request-form");
+  const confirmForm = document.getElementById("password-reset-confirm-form");
+  const toggleButton = document.getElementById("password-reset-toggle");
+  const resetToken = currentPasswordResetToken();
+  if (!requestForm || !confirmForm) {
+    return;
+  }
+  requestForm.classList.toggle("hidden", Boolean(resetToken));
+  confirmForm.classList.toggle("hidden", !resetToken);
+  if (toggleButton) {
+    toggleButton.classList.toggle("hidden", Boolean(resetToken));
+  }
+  const tokenField = confirmForm.elements.namedItem("token");
+  if (tokenField instanceof HTMLInputElement) {
+    tokenField.value = resetToken;
+  }
+}
+
+async function handlePasswordResetRequest(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const payload = Object.fromEntries(new FormData(form).entries());
+  await api(
+    "/api/auth/password-reset/request",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    false,
+  );
+  form?.reset();
+  showToast("Password reset email sent if the account exists.");
+}
+
+async function handlePasswordResetConfirm(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const payload = Object.fromEntries(new FormData(form).entries());
+  const passwordIssue = validatePasswordPolicy(payload.password, "");
+  if (passwordIssue) {
+    const error = new Error(passwordIssue);
+    error.field = "password";
+    throw error;
+  }
+  await api(
+    "/api/auth/password-reset/confirm",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    false,
+  );
+  form?.reset();
+  const url = new URL(window.location.href);
+  url.hash = "";
+  window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  initializePasswordResetState();
+  showToast("Password reset completed. Sign in with the new password.");
 }
 
 async function handleCreateWorkspace(event) {
@@ -6817,10 +8633,11 @@ async function handleSchedule(event) {
   ensureWorkspace();
   const form = event.currentTarget;
   const formData = new FormData(form);
+  const timezoneName = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   const payload = {
     name: formData.get("name"),
     local_time: formData.get("local_time"),
-    timezone_name: "Asia/Shanghai",
+    timezone_name: timezoneName,
     job_type: "economic_briefing",
     config: {
       query_text: formData.get("query_text"),
@@ -6837,6 +8654,53 @@ async function handleSchedule(event) {
   showToast("Private daily job created.");
 }
 
+async function handleScheduleActions(event) {
+  const target = event.target.closest("[data-run-schedule-now], [data-toggle-schedule], [data-delete-schedule]");
+  if (!target) {
+    return;
+  }
+  ensureWorkspace();
+  const runNowId = target.getAttribute("data-run-schedule-now");
+  if (runNowId) {
+    const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/schedules/${runNowId}/run-now`, {
+      method: "POST",
+    });
+    await refreshWorkspaceData();
+    if (response.run?.knowledge_record_id) {
+      focusKnowledgeRecord(response.run.knowledge_record_id);
+    }
+    const failed = response.run?.status === "failed";
+    showToast(
+      failed ? (response.run?.error_summary || "Schedule run failed.") : `Schedule executed: ${response.run?.summary || "Run completed."}`,
+      failed,
+    );
+    return;
+  }
+  const toggleId = target.getAttribute("data-toggle-schedule");
+  if (toggleId) {
+    const enabled = target.getAttribute("data-schedule-enabled") === "1";
+    await api(`/api/workspaces/${state.selectedWorkspaceId}/schedules/${toggleId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: !enabled }),
+    });
+    await refreshWorkspaceData();
+    showToast(enabled ? "Schedule paused." : "Schedule resumed.");
+    return;
+  }
+  const deleteId = target.getAttribute("data-delete-schedule");
+  if (deleteId) {
+    if (!window.confirm("Delete this recurring schedule?")) {
+      return;
+    }
+    await api(`/api/workspaces/${state.selectedWorkspaceId}/schedules/${deleteId}`, {
+      method: "DELETE",
+    });
+    await refreshWorkspaceData();
+    showToast("Schedule deleted.");
+  }
+}
+
 async function handleSignOut() {
   try {
     await api("/api/auth/logout", { method: "POST" }, false);
@@ -6850,9 +8714,9 @@ function renderVariableGuide(result) {
   state.variableGuideResult = result || null;
   if (!result) {
     if (dom.variableGuideMeta) dom.variableGuideMeta.textContent = "No variable guide output yet.";
-    if (dom.variableGuideSummary) dom.variableGuideSummary.innerHTML = `<p class="muted">Describe your question in plain language and run the guide.</p>`;
-    if (dom.variableGuideRoles) dom.variableGuideRoles.innerHTML = "";
-    if (dom.variableGuideChecks) dom.variableGuideChecks.innerHTML = "";
+    if (dom.variableGuideSummary) dom.variableGuideSummary.replaceChildren(createTextElement("p", "Describe your question in plain language and run the guide.", "muted"));
+    if (dom.variableGuideRoles) dom.variableGuideRoles.replaceChildren();
+    if (dom.variableGuideChecks) dom.variableGuideChecks.replaceChildren();
     if (dom.variableGuideRaw) dom.variableGuideRaw.textContent = "";
     if (dom.variableGuideApply) {
       dom.variableGuideApply.disabled = true;
@@ -6873,32 +8737,35 @@ function renderVariableGuide(result) {
       .join(" | ");
   }
   if (dom.variableGuideSummary) {
-    dom.variableGuideSummary.innerHTML = `
-      <p>${escapeHtml(result.summary || "")}</p>
-      ${(result.reasoning || []).map((item) => `<p class="muted">${escapeHtml(item)}</p>`).join("")}
-    `;
+    const summaryNodes = [createTextElement("p", result.summary || "")];
+    (result.reasoning || []).forEach((item) => {
+      summaryNodes.push(createTextElement("p", item, "muted"));
+    });
+    dom.variableGuideSummary.replaceChildren(...summaryNodes);
   }
   if (dom.variableGuideRoles) {
     const roles = result.suggested_roles || [];
-    dom.variableGuideRoles.innerHTML = roles.length
-      ? roles
-          .map(
-            (role) => `
-              <article class="card compact-card">
-                <h4>${escapeHtml(role.label || role.role)}</h4>
-                <p><strong>${escapeHtml(role.value || "Not selected")}</strong></p>
-                <p class="muted">${escapeHtml((role.reasoning || []).join(" | ") || "Chosen from dataset profile and prompt matching.")}</p>
-              </article>
-            `,
-          )
-          .join("")
-      : emptyCard("No clear variable roles were inferred.");
+    if (roles.length) {
+      const cards = roles.map((role) => {
+        const card = document.createElement("article");
+        card.className = "card compact-card";
+        card.appendChild(createTextElement("h4", role.label || role.role || "Role"));
+        const valueLine = document.createElement("p");
+        valueLine.appendChild(createTextElement("strong", role.value || "Not selected"));
+        card.appendChild(valueLine);
+        card.appendChild(createTextElement("p", (role.reasoning || []).join(" | ") || "Chosen from dataset profile and prompt matching.", "muted"));
+        return card;
+      });
+      dom.variableGuideRoles.replaceChildren(...cards);
+    } else {
+      renderEmptyCard(dom.variableGuideRoles, "No clear variable roles were inferred.");
+    }
   }
   if (dom.variableGuideChecks) {
     const checks = result.manual_checklist || [];
-    dom.variableGuideChecks.innerHTML = checks.length
-      ? checks.map((item) => `<p>${escapeHtml(item)}</p>`).join("")
-      : `<p class="muted">No manual checklist available.</p>`;
+    dom.variableGuideChecks.replaceChildren(
+      ...(checks.length ? checks.map((item) => createTextElement("p", item)) : [createTextElement("p", "No manual checklist available.", "muted")]),
+    );
   }
   if (dom.variableGuideRaw) {
     dom.variableGuideRaw.textContent = JSON.stringify(result, null, 2);
@@ -6909,15 +8776,20 @@ function renderVariableGuide(result) {
   }
 }
 
-function applyVariableGuidePrefill() {
+function applyVariableGuidePrefill(fromPending = false) {
   const result = state.variableGuideResult;
   if (!result) {
     throw new Error("Run the variable guide first.");
   }
+  const target = variableGuideTarget(result);
+  if (currentDataLabShellStep() !== target.step) {
+    queuePendingLabPrefill(result);
+    window.location.assign(target.url);
+    return;
+  }
   const prefill = result.prefill || {};
-  const workflowType = prefill.workflow_type || result.workflow_recommendation?.workflow_type || "model";
-  if (workflowType === "data_processing") {
-    const family = prefill.processing_family || result.workflow_recommendation?.processing_family || "sample_preparation";
+  if (target.workflowType === "data_processing") {
+    const family = target.family;
     activateProcessingFamily(family);
     setMultiSelectValues(dom.prepareKeepColumns, prefill.include_columns || []);
     setMultiSelectValues(dom.prepareRequiredColumns, prefill.required_columns || []);
@@ -6932,8 +8804,8 @@ function applyVariableGuidePrefill() {
     setMultiSelectValues(dom.plotYColumns, prefill.plot_y_columns || []);
     setSelectValue(dom.plotGroupColumn, prefill.plot_group_column || "");
   } else {
-    const family = prefill.model_family || result.workflow_recommendation?.model_family || "econometrics_baseline";
-    const modelType = prefill.model_type || result.workflow_recommendation?.model_type || "ols";
+    const family = target.family;
+    const modelType = target.modelType || "ols";
     activateModelFamily(family, modelType);
     setSelectValue(dom.modelDependent, prefill.dependent || "");
     setMultiSelectValues(dom.modelIndependents, prefill.independents || []);
@@ -6977,7 +8849,7 @@ function applyVariableGuidePrefill() {
     setSelectValue(dom.responseColumn, prefill.response_column || "");
   }
   renderLabContext();
-  showToast("Variable guide suggestions applied to the workbench.");
+  showToast(fromPending ? "Variable guide suggestions restored on this page." : "Variable guide suggestions applied to the workbench.");
 }
 
 async function handleVariableGuide(event) {
@@ -7045,13 +8917,8 @@ async function renderPlotPreview(result) {
     return;
   }
   revokeCurrentPlotUrl();
-  const headers = new Headers();
-  if (state.token) {
-    headers.set("Authorization", `Bearer ${state.token}`);
-  }
   const response = await fetch(`/api/assets/${result.asset.id}/download`, {
     credentials: "same-origin",
-    headers,
   });
   if (!response.ok) {
     throw new Error("Chart preview download failed.");
@@ -7100,7 +8967,10 @@ async function handleIntegrationActions(event) {
   if (testId) {
     const response = await api(`/api/integrations/${testId}/test`, { method: "POST" });
     const details = [response.provider_name, response.resolved_model].filter(Boolean).join(" | ");
-    showToast(`${details ? `${details}: ` : ""}${response.preview || "Connection test succeeded."}`);
+    const message = response.status === "error"
+      ? (response.reason || response.preview || "Connection test failed.")
+      : (response.preview || "Connection test succeeded.");
+    showToast(`${details ? `${details}: ` : ""}${message}`, response.status === "error");
     return;
   }
   if (deleteId) {
@@ -7112,13 +8982,8 @@ async function handleIntegrationActions(event) {
 }
 
 async function downloadAsset(assetId) {
-  const headers = new Headers();
-  if (state.token) {
-    headers.set("Authorization", `Bearer ${state.token}`);
-  }
   const response = await fetch(`/api/assets/${assetId}/download`, {
     credentials: "same-origin",
-    headers,
   });
   if (!response.ok) {
     throw new Error("Download failed.");
@@ -7214,6 +9079,10 @@ async function handleAssetActions(event) {
   const downloadId = target.getAttribute("data-download-asset");
   const selectId = target.getAttribute("data-select-asset");
   if (selectId) {
+    if (currentDataLabShellStep() !== "dataset" || !dom.analysisAssetSelect) {
+      window.location.assign(datasetWorkbenchUrl(selectId));
+      return;
+    }
     state.selectedAnalysisAssetId = selectId;
     if (dom.analysisAssetSelect) {
       dom.analysisAssetSelect.value = selectId;
@@ -7565,9 +9434,16 @@ async function handlePublicActions(event) {
 
 function wrap(handler) {
   return async (event) => {
+    const form = event?.currentTarget instanceof HTMLFormElement ? event.currentTarget : null;
+    if (form) {
+      clearFormFeedback(form);
+    }
     try {
       await handler(event);
     } catch (error) {
+      if (form) {
+        surfaceFormError(form, error);
+      }
       showToast(error.message || "Something went wrong.", true);
     }
   };
@@ -7576,6 +9452,9 @@ function wrap(handler) {
 function bind() {
   const registerForm = document.getElementById("register-form");
   const loginForm = document.getElementById("login-form");
+  const passwordResetToggle = document.getElementById("password-reset-toggle");
+  const passwordResetRequestForm = document.getElementById("password-reset-request-form");
+  const passwordResetConfirmForm = document.getElementById("password-reset-confirm-form");
   const workspaceForm = document.getElementById("workspace-form");
   const integrationForm = document.getElementById("integration-form");
   const integrationKind = integrationForm?.elements.namedItem("kind");
@@ -7585,6 +9464,9 @@ function bind() {
   const importLiteraturePdfsButton = document.getElementById("import-literature-pdfs");
   const importLiteratureKnowledgeButton = document.getElementById("import-literature-knowledge");
   const uploadForm = document.getElementById("upload-form");
+  const workspaceMemoryForm = document.getElementById("workspace-memory-form");
+  const researchForm = document.getElementById("research-form");
+  const researchRetryForm = document.getElementById("research-retry-form");
   const knowledgeCaseForm = document.getElementById("knowledge-case-form");
   const knowledgeForm = document.getElementById("knowledge-form");
   const knowledgeSearchForm = document.getElementById("knowledge-search-form");
@@ -7597,8 +9479,17 @@ function bind() {
   const optimizationDefaultsButton = document.getElementById("optimization-defaults-button");
   const optimizationClearSelection = document.getElementById("optimization-clear-selection");
 
+  resetWorkspaceCreationForm();
+
   registerForm?.addEventListener("submit", wrap(handleRegister));
   loginForm?.addEventListener("submit", wrap(handleLogin));
+  dom.sessionSignoutButton?.addEventListener("click", wrap(handleSignOut));
+  passwordResetToggle?.addEventListener("click", () => {
+    passwordResetRequestForm?.classList.toggle("hidden");
+    clearFormFeedback(passwordResetRequestForm);
+  });
+  passwordResetRequestForm?.addEventListener("submit", wrap(handlePasswordResetRequest));
+  passwordResetConfirmForm?.addEventListener("submit", wrap(handlePasswordResetConfirm));
   workspaceForm?.addEventListener("submit", wrap(handleCreateWorkspace));
   integrationForm?.addEventListener("submit", wrap(handleIntegration));
   integrationKind?.addEventListener("change", (event) => {
@@ -7610,6 +9501,10 @@ function bind() {
   importLiteraturePdfsButton?.addEventListener("click", wrap(handleBulkLiteraturePdfImport));
   importLiteratureKnowledgeButton?.addEventListener("click", wrap(handleBulkLiteratureKnowledgeImport));
   uploadForm?.addEventListener("submit", wrap(handleUpload));
+  workspaceMemoryForm?.addEventListener("submit", wrap(handleWorkspaceMemory));
+  researchForm?.addEventListener("submit", wrap(handleResearchForm));
+  researchRetryForm?.addEventListener("submit", wrap(handleResearchRetryForm));
+  dom.researchRunList?.addEventListener("click", wrap(handleResearchRunActions));
   knowledgeCaseForm?.addEventListener("submit", wrap(handleKnowledgeCase));
   knowledgeForm?.addEventListener("submit", wrap(handleKnowledge));
   knowledgeSearchForm?.addEventListener("submit", wrap(async (event) => {
@@ -7624,6 +9519,8 @@ function bind() {
   dom.knowledgeCaseCancelButton?.addEventListener("click", () => resetKnowledgeCaseComposer());
   dom.knowledgeCancelButton?.addEventListener("click", () => resetKnowledgeComposer());
   scheduleForm?.addEventListener("submit", wrap(handleSchedule));
+  dom.scheduleList?.addEventListener("click", wrap(handleScheduleActions));
+  dom.workspaceMemoryList?.addEventListener("click", wrap(handleWorkspaceMemoryActions));
   variableGuideForm?.addEventListener("submit", wrap(handleVariableGuide));
   prepareForm?.addEventListener("submit", wrap(handlePrepareSample));
   modelForm?.addEventListener("submit", wrap(handleModelRun));
@@ -7774,7 +9671,19 @@ function bind() {
     await loadSelectedAssetProfile(true);
     showToast("Dataset profile refreshed.");
   }));
-  dom.labWorkflowType?.addEventListener("change", () => updateWorkflowVisibility());
+  dom.labWorkflowType?.addEventListener("change", wrap(async (event) => {
+    const nextWorkflow = event.target.value || "data_processing";
+    const currentStep = currentDataLabShellStep();
+    if (currentStep === "preparation" && nextWorkflow === "model") {
+      window.location.assign(modelWorkbenchUrl());
+      return;
+    }
+    if (currentStep === "model" && nextWorkflow === "data_processing") {
+      window.location.assign(processingWorkbenchUrl());
+      return;
+    }
+    updateWorkflowVisibility();
+  }));
   dom.processingFamily?.addEventListener("change", () => updateWorkflowVisibility());
   dom.modelFamily?.addEventListener("change", () => {
     syncModelTypeOptions();
@@ -7804,25 +9713,40 @@ function bind() {
   initializeDataLabFromLocation();
   updateWorkflowVisibility();
   applyDataLabShellStep();
+  validateDataLabTemplate();
   bindLabDropzone();
 }
 
 async function init() {
+  window.erpLocale?.mount?.({
+    getLocale: () => state.locale,
+    setLocale: (locale) => {
+      state.locale = window.erpLocale?.normalizeLocale?.(locale) || "en";
+      localStorage.setItem(storageKeys.locale, state.locale);
+      window.location.reload();
+    },
+  });
   bind();
+  initializePasswordResetState();
   try {
     await fetchHealth();
     await maybeLoadPublicIdentity();
     applyAccessGateState();
     const pageMode = detectPageMode();
-    if (hasPrivateWorkspaceUI() && !isExperienceLocked()) {
-      clearPrivateLists();
+    const dataLabTemplateReady = pageMode !== "data-lab" || !state.dataLabTemplateMismatch;
+    if (hasSessionUI()) {
+      if (hasPrivateWorkspaceUI()) {
+        clearPrivateLists();
+      }
       renderSession();
       renderWorkspaceOptions();
       await loadSession();
-    } else if (hasPrivateWorkspaceUI()) {
-      renderSession();
+      const requestedResearchRunId = extractResearchRunFromLocation();
+      if (requestedResearchRunId) {
+        state.selectedResearchRunId = requestedResearchRunId;
+      }
     }
-    if (!isExperienceLocked() && (
+    if (dataLabTemplateReady && !isExperienceLocked() && (
       pageMode === "data-lab" ||
       pageMode === "optimization-lab" ||
       pageMode === "data-lab-method-detail" ||
@@ -7840,11 +9764,14 @@ async function init() {
         }
       }
     }
-    if ((pageMode === "data-lab" || pageMode === "optimization-lab") && !isExperienceLocked()) {
+    if (dataLabTemplateReady && (pageMode === "data-lab" || pageMode === "optimization-lab") && !isExperienceLocked()) {
       renderLabContext();
       renderProcessingHistory([]);
       renderModelHistory([]);
       renderOptimizationResults([]);
+    }
+    if (pageMode === "data-lab" && state.dataLabTemplateMismatch) {
+      showToast("This Data Lab page is out of sync with its route. Refresh the page or restart research-agent serve.", true);
     }
     if (pageMode === "data-lab-method-detail") {
       await loadMethodDetailPage();
@@ -7863,6 +9790,9 @@ async function init() {
     }
     if (hasPublicMonitorUI() && !document.body.classList.contains("experience-locked")) {
       await loadPublicData();
+    }
+    if (pageMode === "research-agent") {
+      renderResearchAgentPage();
     }
     applyAccessGateState();
   } catch (error) {

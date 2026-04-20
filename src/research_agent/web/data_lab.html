@@ -3,11 +3,18 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Data Lab | Economic Research Platform</title>
+    <meta
+      name="description"
+      content="Select a dataset, inspect the profile, and prepare the input set for Data Lab workflows."
+      data-i18n-content="Select a dataset, inspect the profile, and prepare the input set for Data Lab workflows."
+    />
+    <title data-i18n="Data Lab | Economic Research Platform">Data Lab | Economic Research Platform</title>
     <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
-  <body class="page-data-lab page-data-lab-shell">
+  <body class="page-data-lab page-data-lab-shell page-private-suite" data-page-template="data-lab-dataset">
     <div class="page-bg"></div>
 
     <header class="lab-app-bar">
@@ -20,7 +27,7 @@
           </div>
           <p class="eyebrow">Data Lab</p>
           <h1 id="data-lab-app-title">Dataset workspace</h1>
-          <p class="lab-app-bar__copy" id="data-lab-app-copy">Load a dataset, inspect the profile, and move to preparation or model execution only when the sample is ready.</p>
+          <p class="lab-app-bar__copy" id="data-lab-app-copy">Dataset intake and profile.</p>
         </div>
         <div class="lab-app-bar__actions">
           <a href="/workspace" class="button-link secondary-link">Workspace</a>
@@ -32,9 +39,9 @@
     <main class="lab-shell">
       <aside class="lab-rail panel">
         <div class="lab-rail__top">
-          <p class="eyebrow eyebrow-compact">Workflow</p>
+          <p class="eyebrow eyebrow-compact">Workbench</p>
           <h2 id="data-lab-step-title">Dataset</h2>
-          <p class="muted" id="data-lab-step-copy">Upload or select a dataset, inspect the profile, and ask for variable guidance before estimation.</p>
+          <p class="muted" id="data-lab-step-copy">Upload or choose a dataset.</p>
         </div>
         <nav class="lab-rail-nav" aria-label="Data Lab sections">
           <a href="/data-lab" data-lab-shell-link="dataset">Dataset</a>
@@ -52,36 +59,13 @@
 
       <section class="lab-main">
         <div class="lab-stage-content" id="data-lab-workbench">
-          <section class="lab-stage-card panel" data-lab-stage="dataset">
+<section class="lab-stage-card panel" data-lab-stage="dataset">
             <div class="panel-head panel-head-wrap">
               <div>
-                <p class="eyebrow eyebrow-compact">Step 1</p>
+                <p class="eyebrow eyebrow-compact">Dataset intake</p>
                 <h2>Dataset</h2>
-                <p class="muted">Upload or select a dataset, review the profile, and optionally use the beginner guide before moving forward.</p>
+                <p class="muted">Upload, profile, and route the dataset.</p>
               </div>
-            </div>
-            <div class="lab-stage-guide">
-              <article class="lab-stage-guide__item">
-                <span>1</span>
-                <div>
-                  <strong>Load source</strong>
-                  <p>Upload a new file or pick a workspace dataset.</p>
-                </div>
-              </article>
-              <article class="lab-stage-guide__item">
-                <span>2</span>
-                <div>
-                  <strong>Review profile</strong>
-                  <p>Check rows, columns, missingness, and previews.</p>
-                </div>
-              </article>
-              <article class="lab-stage-guide__item">
-                <span>3</span>
-                <div>
-                  <strong>Proceed</strong>
-                  <p>Move to preparation or modeling after validation.</p>
-                </div>
-              </article>
             </div>
             <div class="lab-stage-stack">
               <form id="upload-form" class="stack">
@@ -91,14 +75,14 @@
                   <strong id="lab-upload-file-name">Choose a file for this workspace</strong>
                   <span class="lab-dropzone__meta" id="lab-upload-file-meta">CSV, XLSX, XLS, JSON, PDF, TXT, MD. Drag here or click to browse.</span>
                 </label>
-                <input name="description" type="text" placeholder="Asset description (optional)" />
+                <input name="description" type="text" placeholder="Asset description (optional)" data-i18n-placeholder="Asset description (optional)" />
                 <button type="submit">Upload file</button>
               </form>
               <div class="stack compact">
                 <div class="panel-head panel-head-wrap">
                   <div>
                     <h3>Dataset Profile</h3>
-                    <span class="muted">Choose a structured dataset to inspect variables and sample quality.</span>
+                    <span class="muted">Load a structured dataset.</span>
                   </div>
                   <div class="actions">
                     <button id="refresh-asset-profile" type="button" class="secondary">Load profile</button>
@@ -108,938 +92,49 @@
                   <option value="">Select a dataset asset</option>
                 </select>
                 <div id="analysis-asset-overview" class="card">
-                  <p>Select a dataset to inspect rows, missingness, variable roles, and preview records.</p>
+                  <p>Profile loads here.</p>
                 </div>
                 <div id="analysis-column-grid" class="column-profile-grid"></div>
                 <div id="analysis-preview-table" class="table-wrap">
-                  <p class="muted">Dataset preview will appear here after you load a profile.</p>
+                  <p class="muted">Preview appears here.</p>
                 </div>
               </div>
               <details class="result-output-card lab-help-panel">
                 <summary>
                   <span>
-                    <strong>Need help with variables?</strong>
-                    <span class="muted">Describe the research question and let the guide suggest workflow, variables, and manual checks.</span>
+                    <strong>Variable guide</strong>
+                    <span class="muted">Suggest variables and workflow.</span>
                   </span>
                 </summary>
                 <div class="lab-help-panel__body">
                   <form id="variable-guide-form" class="stack">
-                    <textarea id="variable-guide-prompt" name="prompt" placeholder="Example: I want to study whether a policy increased firm exports after 2020, controlling for firm size and leverage." required></textarea>
+                    <textarea id="variable-guide-prompt" name="prompt" placeholder="Example: I want to study whether a policy increased firm exports after 2020, controlling for firm size and leverage." data-i18n-placeholder="Example: I want to study whether a policy increased firm exports after 2020, controlling for firm size and leverage." required></textarea>
                     <div class="actions">
                       <button type="submit">Suggest variables and model</button>
                       <button id="variable-guide-apply" type="button" class="secondary hidden">Apply to workbench</button>
                     </div>
                   </form>
                   <div class="card">
-                    <p class="muted" id="variable-guide-meta">Load a dataset profile first, then describe the research question.</p>
+                    <p class="muted" id="variable-guide-meta">Load a profile first.</p>
                   </div>
                   <div id="variable-guide-summary" class="card-list card-list-inline">
-                    <div class="card"><p>No beginner guidance has been generated yet.</p></div>
+                    <div class="card"><p>No guide yet.</p></div>
                   </div>
                   <div class="summary-page-grid guide-output-grid">
                     <div id="variable-guide-roles" class="card-list card-list-inline">
-                      <div class="card"><p>Suggested variable roles will appear here.</p></div>
+                      <div class="card"><p>Variable roles appear here.</p></div>
                     </div>
                     <div id="variable-guide-checks" class="card-list card-list-inline">
-                      <div class="card"><p>Manual verification steps will appear here.</p></div>
+                      <div class="card"><p>Checks appear here.</p></div>
                     </div>
                   </div>
                   <details class="result-json-toggle">
                     <summary>Raw guide JSON</summary>
-                    <pre id="variable-guide-raw" class="console-box">Waiting for a beginner workflow prompt.</pre>
+                    <pre id="variable-guide-raw" class="console-box">Waiting for prompt.</pre>
                   </details>
                 </div>
               </details>
             </div>
-          </section>
-
-          <section class="lab-stage-card panel" data-lab-stage="preparation model">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <p class="eyebrow eyebrow-compact">Workflow Selector</p>
-                <h2>Choose family</h2>
-                <p class="muted">Switch between preparation and model workflows without leaving the Data Lab shell.</p>
-              </div>
-            </div>
-            <div class="card stack compact">
-              <div class="split">
-                <div class="stack compact">
-                  <label for="lab-workflow-type">Primary workflow</label>
-                  <select id="lab-workflow-type">
-                    <option value="data_processing">Data Processing</option>
-                    <option value="model">Model</option>
-                  </select>
-                </div>
-                <div class="stack compact" id="processing-family-wrap">
-                  <label for="processing-family">Processing family</label>
-                  <select id="processing-family">
-                    <option value="sample_preparation">Sample Preparation</option>
-                    <option value="cleaning_transforms">Cleaning &amp; Transforms</option>
-                    <option value="time_series_features">Time-Series Features</option>
-                    <option value="visualization">Visualization</option>
-                  </select>
-                </div>
-                <div class="stack compact hidden" id="model-family-wrap">
-                  <label for="model-family">Model family</label>
-                  <select id="model-family">
-                    <option value="econometrics_baseline">Econometrics Baseline</option>
-                    <option value="time_series_finance">Time Series &amp; Econometric Finance</option>
-                    <option value="corporate_finance">Corporate Finance</option>
-                    <option value="risk_management">Risk Management</option>
-                    <option value="derivatives_pricing">Derivatives Pricing</option>
-                    <option value="macro_finance_dsge">Macro Finance &amp; DSGE</option>
-                    <option value="portfolio_allocation">Portfolio Allocation</option>
-                    <option value="asset_pricing">Asset Pricing</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section class="lab-stage-card panel" data-lab-stage="preparation">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <p class="eyebrow eyebrow-compact">Step 2</p>
-                <h2>Preparation</h2>
-                <p class="muted">Choose the processing family, apply a template or variant, and prepare the analysis-ready sample.</p>
-              </div>
-            </div>
-            <div class="lab-stage-guide">
-              <article class="lab-stage-guide__item">
-                <span>1</span>
-                <div>
-                  <strong>Choose family</strong>
-                  <p>Pick preparation, transforms, time-series features, or visualization.</p>
-                </div>
-              </article>
-              <article class="lab-stage-guide__item">
-                <span>2</span>
-                <div>
-                  <strong>Set rules</strong>
-                  <p>Apply a saved template, preset variant, or manual specification.</p>
-                </div>
-              </article>
-              <article class="lab-stage-guide__item">
-                <span>3</span>
-                <div>
-                  <strong>Build sample</strong>
-                  <p>Create the reusable analysis-ready output for later model runs.</p>
-                </div>
-              </article>
-            </div>
-            <div class="lab-stage-stack">
-              <form id="prepare-form" class="stack">
-                <div class="lab-template-builder">
-                  <div class="panel-head panel-head-wrap">
-                    <div>
-                      <h4>Processing Templates &amp; Variant Builder</h4>
-                      <span class="muted">Save reusable preparation recipes, apply preset variants, or define an advanced JSON override before building the sample.</span>
-                    </div>
-                  </div>
-                  <div class="split">
-                    <div class="stack compact">
-                      <label for="prepare-template-select">Saved template</label>
-                      <select id="prepare-template-select"></select>
-                    </div>
-                    <div class="stack compact">
-                      <label for="prepare-variant-select">Preset variant</label>
-                      <select id="prepare-variant-select"></select>
-                    </div>
-                  </div>
-                  <div class="stack compact">
-                    <label for="prepare-variant-json">Advanced specification (JSON)</label>
-                    <textarea id="prepare-variant-json" rows="5" placeholder='{"impute_method": "median", "winsor_lower_quantile": 0.02, "winsor_upper_quantile": 0.98}'></textarea>
-                  </div>
-                  <div class="actions compact-actions">
-                    <button type="button" class="secondary" id="prepare-save-template">Save current processing template</button>
-                    <span class="muted" id="prepare-template-status">No template selected.</span>
-                  </div>
-                </div>
-                <div id="prepare-core-fields" class="stack">
-                <div class="panel-head">
-                  <h3>Sample Preparation</h3>
-                  <span class="muted">Build an analysis-ready derivative dataset.</span>
-                </div>
-                <div class="split">
-                  <div class="stack compact">
-                    <label for="prepare-keep-columns">Keep columns</label>
-                    <select id="prepare-keep-columns" multiple size="6"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="prepare-required-columns">Required columns</label>
-                    <select id="prepare-required-columns" multiple size="6"></select>
-                  </div>
-                </div>
-                <div class="split">
-                  <div class="stack compact">
-                    <label for="prepare-numeric-columns">Force numeric</label>
-                    <select id="prepare-numeric-columns" multiple size="6"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="prepare-binary-columns">Force binary</label>
-                    <select id="prepare-binary-columns" multiple size="6"></select>
-                  </div>
-                </div>
-                <div class="split">
-                  <div class="stack compact">
-                    <label for="prepare-date-columns">Parse as date</label>
-                    <select id="prepare-date-columns" multiple size="6"></select>
-                  </div>
-                  <div class="stack compact">
-                    <span class="muted">Binary variables are especially useful for DID treatment and post indicators.</span>
-                  </div>
-                </div>
-                </div>
-                <div id="prepare-cleaning-fields" class="stack">
-                <div class="panel-head">
-                  <h3>Cleaning Toolkit</h3>
-                  <span class="muted">Impute, winsorize, transform, and filter outliers before modeling.</span>
-                </div>
-                <div class="split">
-                  <div class="stack compact">
-                    <label for="prepare-impute-method">Imputation</label>
-                    <select id="prepare-impute-method" name="impute_method">
-                      <option value="none">None</option>
-                      <option value="mean">Mean</option>
-                      <option value="median">Median</option>
-                      <option value="zero">Zero</option>
-                      <option value="ffill">Forward fill</option>
-                      <option value="bfill">Backward fill</option>
-                    </select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="prepare-impute-columns">Impute columns</label>
-                    <select id="prepare-impute-columns" multiple size="6"></select>
-                  </div>
-                </div>
-                <div class="split">
-                  <div class="stack compact">
-                    <label for="prepare-winsorize-columns">Winsorize columns</label>
-                    <select id="prepare-winsorize-columns" multiple size="6"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="prepare-standardize-columns">Standardize columns</label>
-                    <select id="prepare-standardize-columns" multiple size="6"></select>
-                  </div>
-                </div>
-                <div class="stack compact">
-                  <label for="prepare-minmax-scale-columns">Min-max scale columns</label>
-                  <select id="prepare-minmax-scale-columns" multiple size="6"></select>
-                </div>
-                <div class="split">
-                  <div class="stack compact">
-                    <label for="prepare-winsor-lower">Winsor lower quantile</label>
-                    <input id="prepare-winsor-lower" name="winsor_lower_quantile" type="number" min="0" max="0.49" step="0.01" value="0.01" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="prepare-winsor-upper">Winsor upper quantile</label>
-                    <input id="prepare-winsor-upper" name="winsor_upper_quantile" type="number" min="0.51" max="1" step="0.01" value="0.99" />
-                  </div>
-                </div>
-                <div class="split">
-                  <div class="stack compact">
-                    <label for="prepare-log-transform-columns">Log-transform columns</label>
-                    <select id="prepare-log-transform-columns" multiple size="6"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="prepare-outlier-columns">Outlier filter columns</label>
-                    <select id="prepare-outlier-columns" multiple size="6"></select>
-                  </div>
-                </div>
-                <div class="split">
-                  <div class="stack compact">
-                    <label for="prepare-outlier-method">Outlier method</label>
-                    <select id="prepare-outlier-method" name="outlier_method">
-                      <option value="none">None</option>
-                      <option value="iqr">IQR</option>
-                      <option value="zscore">Z-score</option>
-                    </select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="prepare-outlier-threshold">Outlier threshold</label>
-                    <input id="prepare-outlier-threshold" name="outlier_threshold" type="number" min="0.5" step="0.1" value="1.5" />
-                  </div>
-                </div>
-                </div>
-                <div id="prepare-time-series-fields" class="stack hidden">
-                  <div class="panel-head">
-                    <h3>Time-Series Feature Engineering</h3>
-                    <span class="muted">Create differences, returns, lags, leads, and rolling diagnostics.</span>
-                  </div>
-                  <div class="split">
-                    <div class="stack compact">
-                      <label for="prepare-sort-column">Sort column</label>
-                      <select id="prepare-sort-column"></select>
-                    </div>
-                    <div class="stack compact">
-                      <label for="prepare-time-group-column">Group column (optional)</label>
-                      <select id="prepare-time-group-column"></select>
-                    </div>
-                  </div>
-                  <div class="split">
-                    <div class="stack compact">
-                      <label for="prepare-difference-columns">Difference columns</label>
-                      <select id="prepare-difference-columns" multiple size="6"></select>
-                    </div>
-                    <div class="stack compact">
-                      <label for="prepare-return-columns">Return columns</label>
-                      <select id="prepare-return-columns" multiple size="6"></select>
-                    </div>
-                  </div>
-                  <div class="split">
-                    <div class="stack compact">
-                      <label for="prepare-return-method">Return method</label>
-                      <select id="prepare-return-method">
-                        <option value="simple">Simple Return</option>
-                        <option value="log">Log Return</option>
-                      </select>
-                    </div>
-                    <div class="stack compact">
-                      <label for="prepare-rolling-window">Rolling window</label>
-                      <input id="prepare-rolling-window" type="number" min="2" step="1" value="5" />
-                    </div>
-                  </div>
-                  <div class="split">
-                    <div class="stack compact">
-                      <label for="prepare-lag-columns">Lag columns</label>
-                      <select id="prepare-lag-columns" multiple size="6"></select>
-                    </div>
-                    <div class="stack compact">
-                      <label for="prepare-lead-columns">Lead columns</label>
-                      <select id="prepare-lead-columns" multiple size="6"></select>
-                    </div>
-                  </div>
-                  <div class="split">
-                    <div class="stack compact">
-                      <label for="prepare-lag-periods">Lag periods</label>
-                      <input id="prepare-lag-periods" type="number" min="1" step="1" value="1" />
-                    </div>
-                    <div class="stack compact">
-                      <label for="prepare-lead-periods">Lead periods</label>
-                      <input id="prepare-lead-periods" type="number" min="1" step="1" value="1" />
-                    </div>
-                  </div>
-                  <div class="split">
-                    <div class="stack compact">
-                      <label for="prepare-rolling-mean-columns">Rolling mean columns</label>
-                      <select id="prepare-rolling-mean-columns" multiple size="6"></select>
-                    </div>
-                    <div class="stack compact">
-                      <label for="prepare-rolling-volatility-columns">Rolling volatility columns</label>
-                      <select id="prepare-rolling-volatility-columns" multiple size="6"></select>
-                    </div>
-                  </div>
-                </div>
-                <label class="checkbox"><input name="drop_duplicates" type="checkbox" checked /> Drop duplicate rows</label>
-                <label class="checkbox"><input name="drop_missing_required" type="checkbox" checked /> Drop rows missing required variables</label>
-                <button type="submit">Prepare analysis sample</button>
-              </form>
-            </div>
-          </section>
-
-          <section class="lab-stage-card panel" data-lab-stage="model">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <p class="eyebrow eyebrow-compact">Step 3</p>
-                <h2>Model</h2>
-                <p class="muted">Set the model family, choose the specification, and run estimation or chart generation.</p>
-              </div>
-            </div>
-            <div class="lab-stage-guide">
-              <article class="lab-stage-guide__item">
-                <span>1</span>
-                <div>
-                  <strong>Pick family</strong>
-                  <p>Select the econometric, time-series, risk, portfolio, or pricing family.</p>
-                </div>
-              </article>
-              <article class="lab-stage-guide__item">
-                <span>2</span>
-                <div>
-                  <strong>Specify model</strong>
-                  <p>Set variables, variant presets, and model-specific options.</p>
-                </div>
-              </article>
-              <article class="lab-stage-guide__item">
-                <span>3</span>
-                <div>
-                  <strong>Run & audit</strong>
-                  <p>Estimate the model and carry outputs into results or notes.</p>
-                </div>
-              </article>
-            </div>
-            <div class="lab-stage-stack">
-              <form id="model-form" class="stack hidden">
-                <div class="lab-template-builder">
-                  <div class="panel-head panel-head-wrap">
-                    <div>
-                      <h4>Model Templates &amp; Variant Builder</h4>
-                      <span class="muted">Store reusable specifications, apply family or method-level variants, and document robustness settings before you estimate.</span>
-                    </div>
-                  </div>
-                  <div class="split">
-                    <div class="stack compact">
-                      <label for="model-template-select">Saved template</label>
-                      <select id="model-template-select"></select>
-                    </div>
-                    <div class="stack compact">
-                      <label for="model-variant-select">Preset variant</label>
-                      <select id="model-variant-select"></select>
-                    </div>
-                  </div>
-                  <div class="stack compact">
-                    <label for="model-variant-json">Advanced specification (JSON)</label>
-                    <textarea id="model-variant-json" rows="5" placeholder='{"robust_covariance": false, "include_time_effects": true}'></textarea>
-                  </div>
-                  <div class="actions compact-actions">
-                    <button type="button" class="secondary" id="model-save-template">Save current model template</button>
-                    <span class="muted" id="model-template-status">No template selected.</span>
-                  </div>
-                </div>
-                <div class="panel-head">
-                  <h3>Model Lab</h3>
-                  <span class="muted">Use family-based model selection instead of one long flat list.</span>
-                </div>
-                <div class="split">
-                  <div class="stack compact">
-                    <label for="model-type">Specific model</label>
-                    <select id="model-type" name="model_type">
-                      <option value="ols">OLS</option>
-                    </select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="model-dependent">Outcome / flow variable</label>
-                    <select id="model-dependent" name="dependent"></select>
-                  </div>
-                </div>
-                <div id="ols-fields" class="stack compact">
-                  <label for="model-independents">Independent variables</label>
-                  <select id="model-independents" name="independents" multiple size="6"></select>
-                </div>
-                <div id="did-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="did-treatment-column">Treatment indicator</label>
-                    <select id="did-treatment-column" name="treatment_column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="did-post-column">Post indicator</label>
-                    <select id="did-post-column" name="post_column"></select>
-                  </div>
-                </div>
-                <div id="event-study-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="event-treatment-column">Treatment indicator</label>
-                    <select id="event-treatment-column" name="event_treatment_column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="event-time-column">Relative event time</label>
-                    <select id="event-time-column" name="event_time_column"></select>
-                  </div>
-                </div>
-                <div id="event-study-window-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="event-lead-window">Lead window</label>
-                    <input id="event-lead-window" name="lead_window" type="number" min="0" step="1" value="4" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="event-lag-window">Lag window</label>
-                    <input id="event-lag-window" name="lag_window" type="number" min="0" step="1" value="4" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="event-omitted-period">Omitted period</label>
-                    <input id="event-omitted-period" name="omitted_period" type="number" step="1" value="-1" />
-                  </div>
-                </div>
-                <div id="rdd-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="rdd-running-column">Running variable</label>
-                    <select id="rdd-running-column" name="running_column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="rdd-cutoff">Cutoff</label>
-                    <input id="rdd-cutoff" name="rdd_cutoff" type="number" step="0.01" value="0" />
-                  </div>
-                </div>
-                <div id="rdd-config-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="rdd-bandwidth">Bandwidth</label>
-                    <input id="rdd-bandwidth" name="rdd_bandwidth" type="number" step="0.01" value="0" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="rdd-polynomial-order">Polynomial order</label>
-                    <input id="rdd-polynomial-order" name="rdd_polynomial_order" type="number" min="1" max="3" step="1" value="1" />
-                  </div>
-                  <div class="stack compact">
-                    <label class="checkbox" for="rdd-treat-above-cutoff"><input id="rdd-treat-above-cutoff" name="treat_above_cutoff" type="checkbox" checked /> Treat above cutoff</label>
-                  </div>
-                </div>
-                <div id="gravity-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="gravity-origin-mass-column">Origin mass</label>
-                    <select id="gravity-origin-mass-column" name="origin_mass_column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="gravity-destination-mass-column">Destination mass</label>
-                    <select id="gravity-destination-mass-column" name="destination_mass_column"></select>
-                  </div>
-                </div>
-                <div id="gravity-distance-wrap" class="stack compact hidden">
-                  <label for="gravity-distance-column">Distance variable</label>
-                  <select id="gravity-distance-column" name="distance_column"></select>
-                </div>
-                <div id="series-model-fields" class="stack compact hidden">
-                  <label for="model-series-columns">Series / asset columns</label>
-                  <select id="model-series-columns" multiple size="6"></select>
-                </div>
-                <div id="time-series-model-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="model-time-column">Time column</label>
-                    <select id="model-time-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="forecast-steps">Forecast steps</label>
-                    <input id="forecast-steps" type="number" min="1" step="1" value="5" />
-                  </div>
-                </div>
-                <div id="arima-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="arima-p">ARIMA p</label>
-                    <input id="arima-p" type="number" min="0" step="1" value="1" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="arima-d">ARIMA d</label>
-                    <input id="arima-d" type="number" min="0" step="1" value="0" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="arima-q">ARIMA q</label>
-                    <input id="arima-q" type="number" min="0" step="1" value="0" />
-                  </div>
-                </div>
-                <div id="var-fields" class="stack compact hidden">
-                  <label for="var-lags">VAR lags</label>
-                  <input id="var-lags" type="number" min="1" step="1" value="1" />
-                </div>
-                <div id="garch-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="garch-p">ARCH / GARCH p</label>
-                    <input id="garch-p" type="number" min="1" step="1" value="1" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="garch-q">GARCH q</label>
-                    <input id="garch-q" type="number" min="0" step="1" value="1" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="virf-shock-size">VIRF shock size (sigma)</label>
-                    <input id="virf-shock-size" type="number" min="0.05" step="0.05" value="1.0" />
-                  </div>
-                </div>
-                <div id="irf-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="irf-horizon">IRF / connectedness horizon</label>
-                    <input id="irf-horizon" type="number" min="1" step="1" value="12" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="impulse-column">Impulse variable</label>
-                    <select id="impulse-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="response-column">Response variable</label>
-                    <select id="response-column"></select>
-                  </div>
-                </div>
-                <div id="bk-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="bk-short-horizon">BK short horizon</label>
-                    <input id="bk-short-horizon" type="number" min="1" step="1" value="5" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="bk-medium-horizon">BK medium horizon</label>
-                    <input id="bk-medium-horizon" type="number" min="2" step="1" value="20" />
-                  </div>
-                </div>
-                <div class="stack compact">
-                  <label for="model-controls">Controls</label>
-                  <select id="model-controls" name="controls" multiple size="6"></select>
-                </div>
-                <div id="fe-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="panel-entity-column">Entity / unit column</label>
-                    <select id="panel-entity-column" name="entity_column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="panel-time-column">Time column</label>
-                    <select id="panel-time-column" name="time_column"></select>
-                  </div>
-                </div>
-                <label id="fe-time-toggle" class="checkbox hidden"><input id="include-time-effects" name="include_time_effects" type="checkbox" /> Add time fixed effects</label>
-                <div id="iv-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="iv-endogenous-column">Endogenous regressor</label>
-                    <select id="iv-endogenous-column" name="endogenous_column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="iv-instrument-columns">Instrument columns</label>
-                    <select id="iv-instrument-columns" name="instrument_columns" multiple size="6"></select>
-                  </div>
-                </div>
-                <div id="risk-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="confidence-level">Confidence level</label>
-                    <input id="confidence-level" type="number" min="0.5" max="0.999" step="0.001" value="0.95" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="holding-period-days">Holding period (days)</label>
-                    <input id="holding-period-days" type="number" min="1" step="1" value="1" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="ewma-lambda">EWMA lambda</label>
-                    <input id="ewma-lambda" type="number" min="0.5" max="0.999" step="0.001" value="0.94" />
-                  </div>
-                </div>
-                <div id="corporate-altman-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="working-capital-column">Working capital</label>
-                    <select id="working-capital-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="retained-earnings-column">Retained earnings</label>
-                    <select id="retained-earnings-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="ebit-column">EBIT</label>
-                    <select id="ebit-column"></select>
-                  </div>
-                </div>
-                <div id="corporate-altman-fields-2" class="split hidden">
-                  <div class="stack compact">
-                    <label for="market-equity-column">Market equity</label>
-                    <select id="market-equity-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="sales-column">Sales</label>
-                    <select id="sales-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="total-assets-column">Total assets</label>
-                    <select id="total-assets-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="total-liabilities-column">Total liabilities</label>
-                    <select id="total-liabilities-column"></select>
-                  </div>
-                </div>
-                <div id="corporate-dupont-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="net-income-column">Net income</label>
-                    <select id="net-income-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="revenue-column">Revenue</label>
-                    <select id="revenue-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="equity-column">Equity</label>
-                    <select id="equity-column"></select>
-                  </div>
-                </div>
-                <div id="derivative-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="spot-column">Spot price</label>
-                    <select id="spot-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="strike-column">Strike</label>
-                    <select id="strike-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="maturity-column">Time to maturity</label>
-                    <select id="maturity-column"></select>
-                  </div>
-                </div>
-                <div id="derivative-fields-2" class="split hidden">
-                  <div class="stack compact">
-                    <label for="rate-column">Risk-free rate</label>
-                    <select id="rate-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="volatility-column">Volatility</label>
-                    <select id="volatility-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="option-type">Option type</label>
-                    <select id="option-type">
-                      <option value="call">Call</option>
-                      <option value="put">Put</option>
-                    </select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="option-steps">Binomial steps</label>
-                    <input id="option-steps" type="number" min="1" step="1" value="50" />
-                  </div>
-                </div>
-                <div id="macro-taylor-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="inflation-gap-column">Inflation gap</label>
-                    <select id="inflation-gap-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="output-gap-column">Output gap</label>
-                    <select id="output-gap-column"></select>
-                  </div>
-                </div>
-                <div id="dsge-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="dsge-alpha">Alpha</label>
-                    <input id="dsge-alpha" type="number" min="0.01" max="0.99" step="0.01" value="0.33" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="dsge-beta">Beta</label>
-                    <input id="dsge-beta" type="number" min="0.5" max="0.999" step="0.001" value="0.99" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="dsge-delta">Delta</label>
-                    <input id="dsge-delta" type="number" min="0.001" max="0.2" step="0.001" value="0.025" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="dsge-productivity">Productivity</label>
-                    <input id="dsge-productivity" type="number" min="0.1" step="0.01" value="1" />
-                  </div>
-                </div>
-                <div id="dsge-fields-2" class="split hidden">
-                  <div class="stack compact">
-                    <label for="dsge-labor">Labor</label>
-                    <input id="dsge-labor" type="number" min="0.05" max="1" step="0.01" value="0.33" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="dsge-shock-persistence">Shock persistence</label>
-                    <input id="dsge-shock-persistence" type="number" min="0" max="0.999" step="0.01" value="0.9" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="dsge-shock-size">Shock size</label>
-                    <input id="dsge-shock-size" type="number" min="0.001" max="1" step="0.001" value="0.01" />
-                  </div>
-                  <div class="stack compact">
-                    <label for="dsge-impulse-horizon">Impulse horizon</label>
-                    <input id="dsge-impulse-horizon" type="number" min="1" step="1" value="12" />
-                  </div>
-                </div>
-                <div id="portfolio-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="portfolio-risk-aversion">Risk aversion</label>
-                    <input id="portfolio-risk-aversion" type="number" min="0.1" step="0.1" value="3" />
-                  </div>
-                  <div class="stack compact">
-                    <label class="checkbox" for="portfolio-long-only"><input id="portfolio-long-only" type="checkbox" checked /> Long only</label>
-                  </div>
-                </div>
-                <div id="asset-pricing-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="market-column">Market return / factor</label>
-                    <select id="market-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="risk-free-column">Risk-free rate (optional)</label>
-                    <select id="risk-free-column"></select>
-                  </div>
-                </div>
-                <div id="ff3-fields" class="split hidden">
-                  <div class="stack compact">
-                    <label for="smb-column">SMB</label>
-                    <select id="smb-column"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="hml-column">HML</label>
-                    <select id="hml-column"></select>
-                  </div>
-                </div>
-                <label class="checkbox"><input id="model-robust-covariance" name="robust_covariance" type="checkbox" checked /> Use robust covariance (HC1)</label>
-                <button type="submit">Run selected model</button>
-              </form>
-              <form id="plot-form" class="stack hidden">
-                <div class="panel-head">
-                  <h3>Chart Lab</h3>
-                  <span class="muted">Render charts from the selected dataset and download them as images.</span>
-                </div>
-                <div class="split">
-                  <div class="stack compact">
-                    <label for="plot-type">Chart type</label>
-                    <select id="plot-type" name="chart_type">
-                      <option value="line">Line</option>
-                      <option value="scatter">Scatter</option>
-                      <option value="bar">Bar</option>
-                      <option value="histogram">Histogram</option>
-                    </select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="plot-x-column">X variable</label>
-                    <select id="plot-x-column" name="x_column"></select>
-                  </div>
-                </div>
-                <div class="split">
-                  <div class="stack compact">
-                    <label for="plot-y-columns">Y variable(s)</label>
-                    <select id="plot-y-columns" name="y_columns" multiple size="5"></select>
-                  </div>
-                  <div class="stack compact">
-                    <label for="plot-group-column">Group / color (optional)</label>
-                    <select id="plot-group-column" name="group_column"></select>
-                  </div>
-                </div>
-                <input id="plot-title" name="title" type="text" placeholder="Chart title (optional)" />
-                <button type="submit">Generate chart</button>
-              </form>
-            </div>
-          </section>
-
-          <section class="lab-stage-card panel" data-lab-stage="results">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <p class="eyebrow eyebrow-compact">Step 4</p>
-                <h2>Results</h2>
-                <p class="muted">Review the latest outputs, download artifacts, and route them into cases or notes.</p>
-              </div>
-            </div>
-            <div class="lab-stage-guide">
-              <article class="lab-stage-guide__item">
-                <span>1</span>
-                <div>
-                  <strong>Review summary</strong>
-                  <p>Inspect the latest processing or model overview before exporting anything.</p>
-                </div>
-              </article>
-              <article class="lab-stage-guide__item">
-                <span>2</span>
-                <div>
-                  <strong>Validate</strong>
-                  <p>Check figures, specifications, and audit trails against the run design.</p>
-                </div>
-              </article>
-              <article class="lab-stage-guide__item">
-                <span>3</span>
-                <div>
-                  <strong>Reuse output</strong>
-                  <p>Download, cite, or push the output into notes and case workspaces.</p>
-                </div>
-              </article>
-            </div>
-            <div class="lab-stage-stack">
-              <div id="plot-preview-panel" class="plot-preview hidden">
-                <div class="panel-head panel-head-wrap">
-                  <div>
-                    <h3>Chart Preview</h3>
-                    <span class="muted" id="plot-preview-meta">No chart generated yet.</span>
-                  </div>
-              <section class="result-output-card">
-                <div class="panel-head panel-head-wrap">
-                  <div>
-                    <h3>Latest Processing Result</h3>
-                    <span class="muted" id="prepare-result-meta">Waiting for sample preparation.</span>
-                  </div>
-                  <div class="actions">
-                    <a id="prepare-result-link" href="#" class="button-link secondary-link hidden">Open detail page</a>
-                  </div>
-                </div>
-                <div id="prepare-result-summary" class="card-list">
-                  <div class="card"><p>No prepared sample has been created in this session yet.</p></div>
-                </div>
-                <details class="result-json-toggle">
-                  <summary>Raw processing JSON</summary>
-                  <pre id="prepare-output" class="console-box">Waiting for sample preparation.</pre>
-                </details>
-              </section>
-              <section class="result-output-card">
-                <div class="panel-head panel-head-wrap">
-                  <div>
-                    <h3>Latest Model Result</h3>
-                    <span class="muted" id="analysis-result-meta">Waiting for model output.</span>
-                  </div>
-                  <div class="actions">
-                    <a id="analysis-result-link" href="#" class="button-link secondary-link hidden">Open detail page</a>
-                  </div>
-                </div>
-                <div id="analysis-result-summary" class="card-list">
-                  <div class="card"><p>No model has been run in this session yet.</p></div>
-                </div>
-                <details class="result-json-toggle">
-                  <summary>Raw model JSON</summary>
-                  <pre id="analysis-output" class="console-box">Waiting for model output.</pre>
-                </details>
-              </section>
-              <section class="result-output-card">
-                <div class="panel-head panel-head-wrap">
-                  <div>
-                    <h3>Workspace Data Assets</h3>
-                    <span class="muted">Reuse uploaded datasets, prepared samples, and chart outputs from one place.</span>
-                  </div>
-                </div>
-                <div id="asset-list" class="card-list"></div>
-              </section>
-            </div>
-          </section>
-
-          <section class="lab-stage-card panel" data-lab-stage="history">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <p class="eyebrow eyebrow-compact">Step 5</p>
-                <h2>History</h2>
-                <p class="muted">Previous processing and model runs remain available for reuse and auditing.</p>
-              </div>
-            </div>
-            <div class="lab-stage-guide">
-              <article class="lab-stage-guide__item">
-                <span>1</span>
-                <div>
-                  <strong>Browse runs</strong>
-                  <p>Inspect recent processing and model outputs saved in the workspace.</p>
-                </div>
-              </article>
-              <article class="lab-stage-guide__item">
-                <span>2</span>
-                <div>
-                  <strong>Open detail</strong>
-                  <p>Jump into the dedicated result page for full audit and export controls.</p>
-                </div>
-              </article>
-              <article class="lab-stage-guide__item">
-                <span>3</span>
-                <div>
-                  <strong>Reuse assets</strong>
-                  <p>Reload samples, download charts, or route records into private cases.</p>
-                </div>
-              </article>
-            </div>
-            <article class="panel public-section" id="data-lab-history">
-          <div class="panel-head panel-head-wrap">
-            <div>
-              <h3>Recent Lab History</h3>
-              <span class="muted">Previous processing runs and model outputs stay visible so the workflow remains reusable and auditable.</span>
-            </div>
-          </div>
-          <div class="summary-page-grid">
-            <section class="result-output-card">
-              <div class="panel-head panel-head-wrap">
-                <div>
-                  <h4>Recent Processing Results</h4>
-                  <span class="muted">Prepared samples and chart outputs generated inside this workspace.</span>
-                </div>
-              </div>
-              <div id="lab-recent-processing-list" class="card-list card-list-inline">
-                <div class="card"><p>No processing history yet.</p></div>
-              </div>
-            </section>
-            <section class="result-output-card">
-              <div class="panel-head panel-head-wrap">
-                <div>
-                  <h4>Recent Model Results</h4>
-                  <span class="muted">Model runs with detail pages, specifications, and manual checks.</span>
-                </div>
-              </div>
-              <div id="lab-recent-model-list" class="card-list card-list-inline">
-                <div class="card"><p>No model history yet.</p></div>
-              </div>
-            </section>
-          </div>
-        </article>
           </section>
         </div>
       </section>
@@ -1048,8 +143,8 @@
         <section class="panel lab-inspector-card" id="auth-panel">
           <div class="module-session-panel__copy">
             <div>
-              <h2 id="auth-panel-title">Private workspace session</h2>
-              <p class="muted" id="auth-panel-copy">Choose the active workspace before writing outputs, notes, and assets.</p>
+              <h2 id="auth-panel-title">Workspace</h2>
+              <p class="muted" id="auth-panel-copy">Select a workspace.</p>
             </div>
             <div class="status-row">
               <span class="pill" id="session-indicator">Signed out</span>
@@ -1061,7 +156,7 @@
             <div class="stack workspace-box workspace-box--read-only" id="workspace-box">
               <h3>Workspace</h3>
               <select id="workspace-select"></select>
-              <p class="muted">Select an existing workspace here. Create or manage workspaces from the private workspace hub.</p>
+              <p class="muted">Keep this run in one workspace.</p>
               <a href="/workspace" class="button-link secondary-link">Manage workspaces</a>
             </div>
           </div>
@@ -1071,29 +166,29 @@
           <div class="panel-head panel-head-wrap">
             <div>
               <h3>Run Summary</h3>
-              <span class="muted">Current workflow, dataset, and next action.</span>
+              <span class="muted">Current status.</span>
             </div>
           </div>
           <div class="workflow-guide-grid lab-inspector-steps">
             <article class="workflow-step-card" id="lab-step-access">
-              <span class="pill">Step 1</span>
+              <span class="pill">Access</span>
               <h4>Access workspace</h4>
-              <p class="muted" id="lab-step-access-text">Sign in and select a workspace to unlock private datasets, models, and downloads.</p>
+              <p class="muted" id="lab-step-access-text">Signed out</p>
             </article>
             <article class="workflow-step-card" id="lab-step-dataset">
-              <span class="pill">Step 2</span>
+              <span class="pill">Dataset</span>
               <h4>Inspect dataset</h4>
-              <p class="muted" id="lab-step-dataset-text">Upload or select a dataset, then load its profile before running anything.</p>
+              <p class="muted" id="lab-step-dataset-text">No dataset</p>
             </article>
             <article class="workflow-step-card" id="lab-step-workflow">
-              <span class="pill">Step 3</span>
+              <span class="pill">Workflow</span>
               <h4>Choose workflow</h4>
-              <p class="muted" id="lab-step-workflow-text">Pick preparation, modeling, results, or history from the left rail.</p>
+              <p class="muted" id="lab-step-workflow-text">Choose a page</p>
             </article>
             <article class="workflow-step-card" id="lab-step-output">
-              <span class="pill">Step 4</span>
+              <span class="pill">Output</span>
               <h4>Review output</h4>
-              <p class="muted" id="lab-step-output-text">Open result detail pages, inspect the audit trail, and download assets.</p>
+              <p class="muted" id="lab-step-output-text">No result</p>
             </article>
           </div>
           <div class="context-grid">
@@ -1109,10 +204,10 @@
             <select id="lab-case-select">
               <option value="">No active case</option>
             </select>
-            <p class="muted" id="lab-case-meta">Choose a case if you want to route Data Lab outputs into a private case file.</p>
+            <p class="muted" id="lab-case-meta">Optional case link.</p>
           </div>
           <div class="actions compact-actions">
-            <span class="muted" id="lab-context-next-action">Next action: sign in or create a workspace.</span>
+            <span class="muted" id="lab-context-next-action">Sign in or select a workspace.</span>
             <a id="lab-case-home-link" href="/knowledge-base" class="button-link secondary-link">Open case workspace</a>
             <a id="lab-context-detail-link" href="/data-lab/processing/sample_preparation" class="button-link secondary-link">Open family detail</a>
           </div>
@@ -1122,12 +217,12 @@
           <div class="panel-head panel-head-wrap">
             <div>
               <h3>Method Summary</h3>
-              <span class="muted">Selected family and manual checks.</span>
+              <span class="muted">Current family and methods.</span>
             </div>
           </div>
           <p class="eyebrow eyebrow-compact" id="lab-active-family-eyebrow">Data Processing Family</p>
           <h3 id="lab-active-family-title">Sample Preparation</h3>
-          <p class="muted" id="lab-active-family-summary">Choose a method family to see its scope, key inputs, and audit checklist here.</p>
+          <p class="muted" id="lab-active-family-summary">Current family info.</p>
           <div class="chip-row chip-row-compact" id="lab-active-family-methods"></div>
           <div class="card-list card-list-inline" id="lab-active-family-checks"></div>
           <div class="actions compact-actions">
@@ -1139,15 +234,15 @@
           <div class="panel-head panel-head-wrap">
             <div>
               <h3>Validation</h3>
-              <span class="muted">Current run design and verification focus.</span>
+              <span class="muted">Current run setup.</span>
             </div>
           </div>
           <p class="eyebrow eyebrow-compact">Current design</p>
           <h4 id="lab-run-design-title">Select a workflow and family</h4>
-          <p class="muted" id="lab-run-design-copy">The selected workflow will determine which inputs are required and which outputs are generated.</p>
+          <p class="muted" id="lab-run-design-copy">Inputs and outputs for this stage.</p>
           <div class="chip-row chip-row-compact" id="lab-run-design-surfaces"></div>
           <div id="lab-run-design-checks" class="card-list card-list-inline">
-            <div class="card"><p>Manual verification checkpoints will appear here.</p></div>
+            <div class="card"><p>Checks appear here.</p></div>
           </div>
         </section>
       </aside>
@@ -1157,3 +252,4 @@
     <script src="/assets/app.js" defer></script>
   </body>
 </html>
+

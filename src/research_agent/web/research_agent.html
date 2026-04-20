@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Launch multimodal research runs, inspect evidence, compare candidate drafts, and retry blocked reports."
+    />
+    <title>Research Agent | Economic Research Platform</title>
+    <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body class="page-workspace page-private-suite page-research-agent">
+    <div class="page-bg"></div>
+
+    <header class="workspace-header">
+      <div class="workspace-header__inner">
+        <div>
+          <p class="eyebrow">Research Agent</p>
+          <h1>Run evidence-backed research.</h1>
+          <p class="workspace-header__copy">
+            Launch multimodal runs, inspect reviewer decisions, and push approved reports into the knowledge base.
+          </p>
+        </div>
+        <nav class="workspace-header__nav" aria-label="Research navigation">
+          <a href="/workspace">Workspace</a>
+          <a href="/paper-library">Paper Library</a>
+          <a href="/knowledge-base">Knowledge Base</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="shell workspace-shell workspace-dashboard-shell" id="research-agent-panel">
+      <section class="panel workspace-session-strip" id="auth-panel">
+        <div class="workspace-session-strip__head">
+          <div>
+            <p class="eyebrow eyebrow-compact">Research</p>
+            <h2 id="auth-panel-title">Research session</h2>
+            <p class="muted" id="auth-panel-copy">Select the active workspace, then launch a research run.</p>
+          </div>
+          <div class="status-row">
+            <span class="pill" id="session-indicator">Signed out</span>
+            <span class="muted" id="user-summary">Sign in from the homepage to continue.</span>
+            <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
+          </div>
+        </div>
+
+        <div class="auth-grid workspace-auth-grid" id="auth-grid">
+          <div class="stack workspace-box" id="workspace-box">
+            <div class="workspace-box__header">
+              <div>
+                <p class="eyebrow eyebrow-compact">Active Workspace</p>
+                <h3>Select or create</h3>
+              </div>
+              <span class="status-pill status-pill--ready">Private</span>
+            </div>
+            <select id="workspace-select" aria-label="Active workspace"></select>
+            <form id="workspace-form" class="workspace-create-inline" autocomplete="off">
+              <input id="workspace-name-input" name="name" type="text" placeholder="New workspace name" autocomplete="off" required />
+              <input id="workspace-description-input" name="description" type="text" placeholder="Description (optional)" autocomplete="off" />
+              <button type="submit">Create workspace</button>
+            </form>
+          </div>
+
+          <article class="workspace-strip-card">
+            <p class="eyebrow eyebrow-compact">Flow</p>
+            <h3>Research loop</h3>
+            <p class="muted">
+              Planner, researcher, writer, reviewer, and knowledge-base save now live in one focused surface.
+            </p>
+            <div class="chip-row chip-row-compact">
+              <span class="topic-chip">Multimodal</span>
+              <span class="topic-chip">Best-of-N drafts</span>
+              <span class="topic-chip">Retry blocked runs</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="workspace-overview-grid">
+        <section class="panel workspace-hero-panel">
+          <p class="eyebrow eyebrow-compact">Research Queue</p>
+          <h2 id="research-page-title">No run selected</h2>
+          <p class="muted" id="research-page-copy">Launch a run or inspect a previous one from the right rail.</p>
+          <div class="workspace-inline-actions" id="research-page-actions">
+            <a href="/workspace" class="button-link secondary-link">Back to Workspace</a>
+          </div>
+        </section>
+
+        <section class="panel workspace-next-panel">
+          <p class="eyebrow eyebrow-compact">Eval Snapshot</p>
+          <h2 id="research-eval-title">Awaiting data</h2>
+          <p class="muted" id="research-eval-copy">Approved and blocked runs will surface prompt-optimization candidates here.</p>
+        </section>
+      </section>
+
+      <section class="workspace-dashboard-grid">
+        <section class="panel">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Launch</p>
+              <h2>New research run</h2>
+            </div>
+          </div>
+          <form id="research-form" class="stack" autocomplete="off">
+            <input id="research-topic-input" name="topic" type="text" placeholder="Research topic" required />
+            <input id="research-question-input" name="question" type="text" placeholder="Research question (optional)" />
+            <textarea id="research-instructions-input" name="instructions" rows="4" placeholder="Extra instructions for the planner, writer, or reviewer"></textarea>
+            <div class="workspace-overview-grid">
+              <label class="stack">
+                <span class="eyebrow eyebrow-compact">Mode</span>
+                <select id="research-mode-select" name="mode">
+                  <option value="standard">Standard</option>
+                  <option value="deep_research">Deep Research</option>
+                </select>
+              </label>
+              <label class="stack">
+                <span class="eyebrow eyebrow-compact">Draft Variants</span>
+                <input id="research-draft-variants-input" name="draft_variants" type="number" min="1" max="3" placeholder="Auto" />
+              </label>
+            </div>
+            <label class="stack">
+              <span class="eyebrow eyebrow-compact">Knowledge Case</span>
+              <select id="research-case-select" name="case_id">
+                <option value="">No case</option>
+              </select>
+            </label>
+            <div class="stack">
+              <div class="panel-head panel-head-wrap">
+                <div>
+                  <p class="eyebrow eyebrow-compact">Attachments</p>
+                  <p class="muted">Choose workspace assets to feed the run.</p>
+                </div>
+              </div>
+              <div id="research-asset-picker" class="card-list"></div>
+            </div>
+            <button type="submit">Start research run</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Runs</p>
+              <h2>Recent research runs</h2>
+            </div>
+          </div>
+          <div id="research-run-summary-grid" class="workspace-stat-grid"></div>
+          <div id="research-run-list" class="card-list"></div>
+        </section>
+
+        <section class="panel panel-span-full">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Selected Run</p>
+              <h2>Run detail</h2>
+            </div>
+          </div>
+          <div id="research-run-detail" class="card-list"></div>
+        </section>
+
+        <section class="panel panel-span-full">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Retry</p>
+              <h2>Rewrite blocked run</h2>
+            </div>
+          </div>
+          <form id="research-retry-form" class="stack" autocomplete="off">
+            <textarea id="research-retry-instructions-input" name="instructions" rows="3" placeholder="What should the writer or reviewer fix on retry?"></textarea>
+            <label class="stack">
+              <span class="eyebrow eyebrow-compact">Retry Draft Variants</span>
+              <input id="research-retry-draft-variants-input" name="draft_variants" type="number" min="1" max="3" placeholder="Keep current" />
+            </label>
+            <div class="stack">
+              <div class="panel-head panel-head-wrap">
+                <div>
+                  <p class="eyebrow eyebrow-compact">Extra attachments</p>
+                  <p class="muted">Add more assets when the reviewer says evidence is weak.</p>
+                </div>
+              </div>
+              <div id="research-retry-asset-picker" class="card-list"></div>
+            </div>
+            <button type="submit">Retry selected run</button>
+          </form>
+        </section>
+      </section>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>

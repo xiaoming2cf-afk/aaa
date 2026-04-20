@@ -21,7 +21,6 @@ dependencies = [
     "pymc>=5.20.0",
     "PyPortfolioOpt>=1.5.5",
     "statsmodels>=0.14.0",
-    "openai>=1.0.0",
     "openpyxl>=3.1.0",
     "opfunu>=1.0.1",
     "pandas>=2.2.0",
@@ -45,9 +44,28 @@ quant-tree = [
     "catboost>=1.2.0",
     "lightgbm>=4.0.0",
 ]
+dev = [
+    "pytest>=8.3.0",
+]
+training = [
+    "openai>=1.0.0",
+]
 
 [project.scripts]
 research-agent = "research_agent.cli:app"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = [
+    ".git",
+    ".venv",
+    "_import",
+    "output",
+    "reports",
+    "storage",
+    "新test",
+    "蒙特卡洛",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}

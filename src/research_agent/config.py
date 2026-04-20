@@ -3,23 +3,37 @@ from __future__ import annotations
 import base64
 import hashlib
 import os
+import secrets
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
+if os.getenv("PYTHON_DOTENV_DISABLED", "").strip().lower() not in {"1", "true", "yes"}:
+    load_dotenv(override=False)
 
-load_dotenv()
+
+_DEV_APP_ENVS = {"development", "dev", "test", "testing"}
+_WEAK_APP_SECRETS = {"", "development-secret-change-me", "changeme", "secret", "development-secret"}
+
+
+def _default_app_secret() -> str:
+    configured = os.getenv("APP_SECRET", "").strip()
+    if configured:
+        return configured
+    app_env = os.getenv("APP_ENV", "development").strip().lower()
+    if app_env in _DEV_APP_ENVS:
+        return secrets.token_urlsafe(32)
+    return ""
 
 
 class Settings(BaseModel):
     app_name: str = Field(default_factory=lambda: os.getenv("APP_NAME", "Economic Research Platform"))
     app_env: str = Field(default_factory=lambda: os.getenv("APP_ENV", "development"))
-    app_secret: str = Field(
-        default_factory=lambda: os.getenv("APP_SECRET", "development-secret-change-me")
-    )
+    app_secret: str = Field(default_factory=_default_app_secret)
     openai_api_key: str = Field(default_factory=lambda: os.getenv("OPENAI_API_KEY", ""))
-    model: str = Field(default_factory=lambda: os.getenv("RESEARCH_AGENT_MODEL", "gpt-5-mini"))
+    model: str = Field(default_factory=lambda: os.getenv("RESEARCH_AGENT_MODEL", "qwen2.5:7b-instruct"))
     reasoning_effort: str = Field(
         default_factory=lambda: os.getenv("RESEARCH_AGENT_REASONING_EFFORT", "medium")
     )
@@ -46,7 +60,24 @@ class Settings(BaseModel):
     public_base_url: str = Field(default_factory=lambda: os.getenv("PUBLIC_BASE_URL", ""))
     encryption_key: str = Field(default_factory=lambda: os.getenv("ENCRYPTION_KEY", ""))
     cron_secret: str = Field(default_factory=lambda: os.getenv("CRON_SECRET", ""))
-    session_ttl_hours: int = Field(default_factory=lambda: int(os.getenv("SESSION_TTL_HOURS", "720")))
+    session_ttl_hours: int = Field(default_factory=lambda: int(os.getenv("SESSION_TTL_HOURS", "72")))
+    allowed_origins: str = Field(default_factory=lambda: os.getenv("ALLOWED_ORIGINS", "").strip())
+    trusted_proxy_ips: str = Field(default_factory=lambda: os.getenv("TRUSTED_PROXY_IPS", "").strip())
+    smtp_host: str = Field(default_factory=lambda: os.getenv("SMTP_HOST", "").strip())
+    smtp_port: int = Field(default_factory=lambda: int(os.getenv("SMTP_PORT", "465")))
+    smtp_username: str = Field(default_factory=lambda: os.getenv("SMTP_USERNAME", "").strip())
+    smtp_password: str = Field(default_factory=lambda: os.getenv("SMTP_PASSWORD", "").strip())
+    smtp_from_email: str = Field(default_factory=lambda: os.getenv("SMTP_FROM_EMAIL", "").strip())
+    smtp_security: str = Field(
+        default_factory=lambda: (os.getenv("SMTP_SECURITY", "ssl").strip().lower() or "ssl")
+    )
+    password_reset_ttl_minutes: int = Field(
+        default_factory=lambda: int(os.getenv("PASSWORD_RESET_TTL_MINUTES", "30"))
+    )
+    db_pool_size: int = Field(default_factory=lambda: int(os.getenv("DB_POOL_SIZE", "8")))
+    db_max_overflow: int = Field(default_factory=lambda: int(os.getenv("DB_MAX_OVERFLOW", "16")))
+    db_pool_timeout: int = Field(default_factory=lambda: int(os.getenv("DB_POOL_TIMEOUT", "30")))
+    db_pool_recycle: int = Field(default_factory=lambda: int(os.getenv("DB_POOL_RECYCLE", "1800")))
     gdelt_query: str = Field(
         default_factory=lambda: os.getenv(
             "GDELT_QUERY",
@@ -74,7 +105,9 @@ class Settings(BaseModel):
         default_factory=lambda: os.getenv("PUBLIC_DIGEST_TITLE", "Global Economic Daily")
     )
     public_digest_query: str = Field(default_factory=lambda: os.getenv("PUBLIC_DIGEST_QUERY", "").strip())
-
+    public_digest_max_records: int = Field(
+        default_factory=lambda: int(os.getenv("PUBLIC_DIGEST_MAX_RECORDS", "30"))
+    )
     def ensure_directories(self) -> None:
         self.storage_dir.mkdir(parents=True, exist_ok=True)
         self.reports_dir.mkdir(parents=True, exist_ok=True)
@@ -119,8 +152,63 @@ class Settings(BaseModel):
             return self.cron_secret
         return hashlib.sha256(f"{self.app_secret}:cron".encode("utf-8")).hexdigest()
 
+    @property
+    def is_development_env(self) -> bool:
+        return self.app_env.strip().lower() in _DEV_APP_ENVS
+
+    @property
+    def has_strong_app_secret(self) -> bool:
+        return self.app_secret.strip() not in _WEAK_APP_SECRETS
+
+    @property
+    def allowed_origin_list(self) -> list[str]:
+        values: list[str] = []
+        for raw in self.allowed_origins.split(","):
+            value = raw.strip()
+            if value:
+                values.append(value)
+        if self.public_base_url.strip():
+            parsed = urlsplit(self.public_base_url.strip())
+            if parsed.scheme and parsed.netloc:
+                origin = f"{parsed.scheme}://{parsed.netloc}"
+                if origin not in values:
+                    values.append(origin)
+        return values
+
+    @property
+    def trusted_proxy_ip_list(self) -> list[str]:
+        values: list[str] = []
+        for raw in self.trusted_proxy_ips.split(","):
+            value = raw.strip()
+            if value:
+                values.append(value)
+        return values
+
+    @property
+    def smtp_is_configured(self) -> bool:
+        return bool(
+            self.smtp_host
+            and self.smtp_port > 0
+            and self.smtp_from_email
+            and self.smtp_username
+            and self.smtp_password
+        )
+
+    @property
+    def smtp_uses_ssl(self) -> bool:
+        return self.smtp_security == "ssl"
+
+    def validate_runtime_configuration(self) -> None:
+        if not self.is_development_env and not self.has_strong_app_secret:
+            raise RuntimeError("APP_SECRET must be changed before running outside development/test.")
+        if self.smtp_security not in {"ssl", "starttls"}:
+            raise RuntimeError("SMTP_SECURITY must be one of: ssl, starttls.")
+        if self.password_reset_ttl_minutes <= 0:
+            raise RuntimeError("PASSWORD_RESET_TTL_MINUTES must be greater than zero.")
+
 
 def get_settings() -> Settings:
     settings = Settings()
     settings.ensure_directories()
+    settings.validate_runtime_configuration()
     return settings

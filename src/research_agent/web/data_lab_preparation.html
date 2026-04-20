@@ -1,0 +1,438 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Choose a preparation workflow, tune the current template, and run data processing on the active dataset."
+      data-i18n-content="Choose a preparation workflow, tune the current template, and run data processing on the active dataset."
+    />
+    <title data-i18n="Data Lab | Economic Research Platform">Data Lab | Economic Research Platform</title>
+    <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body class="page-data-lab page-data-lab-shell page-private-suite" data-page-template="data-lab-preparation">
+    <div class="page-bg"></div>
+
+    <header class="lab-app-bar">
+      <div class="lab-app-bar__inner">
+        <div>
+          <div class="lab-app-bar__meta">
+            <a href="/workspace" class="inline-link">Workspace</a>
+            <span class="status-pill status-pill--ready" id="data-lab-current-step-pill">Dataset</span>
+            <span class="mono-note" id="data-lab-app-workspace">No workspace selected</span>
+          </div>
+          <p class="eyebrow">Data Lab</p>
+          <h1 id="data-lab-app-title">Dataset workspace</h1>
+          <p class="lab-app-bar__copy" id="data-lab-app-copy">Preparation rules and sample output.</p>
+        </div>
+        <div class="lab-app-bar__actions">
+          <a href="/workspace" class="button-link secondary-link">Workspace</a>
+          <a href="/data-lab/optimization" class="button-link">Optimization</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="lab-shell">
+      <aside class="lab-rail panel">
+        <div class="lab-rail__top">
+          <p class="eyebrow eyebrow-compact">Workbench</p>
+          <h2 id="data-lab-step-title">Dataset</h2>
+          <p class="muted" id="data-lab-step-copy">Build the prepared sample.</p>
+        </div>
+        <nav class="lab-rail-nav" aria-label="Data Lab sections">
+          <a href="/data-lab" data-lab-shell-link="dataset">Dataset</a>
+          <a href="/data-lab/preparation" data-lab-shell-link="preparation">Preparation</a>
+          <a href="/data-lab/model" data-lab-shell-link="model">Model</a>
+          <a href="/data-lab/optimization" data-lab-shell-link="optimization">Optimization</a>
+          <a href="/data-lab/results" data-lab-shell-link="results">Results</a>
+          <a href="/data-lab/history" data-lab-shell-link="history">History</a>
+        </nav>
+        <div class="lab-rail__footer">
+          <a href="/data-lab/optimization" class="button-link secondary-link">Open optimization suite</a>
+          <a id="data-lab-run-link" href="#analysis-asset-select" class="button-link">Inspect dataset</a>
+        </div>
+      </aside>
+
+      <section class="lab-main">
+        <div class="lab-stage-content" id="data-lab-workbench">
+<section class="lab-stage-card panel" data-lab-stage="preparation model">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <p class="eyebrow eyebrow-compact">Workflow</p>
+                <h2>Workflow</h2>
+                <p class="muted">Select preparation or model.</p>
+              </div>
+            </div>
+            <div class="card stack compact">
+              <div class="split">
+                <div class="stack compact">
+                  <label for="lab-workflow-type">Primary workflow</label>
+                  <select id="lab-workflow-type">
+                    <option value="data_processing">Data Processing</option>
+                    <option value="model">Model</option>
+                  </select>
+                </div>
+                <div class="stack compact" id="processing-family-wrap">
+                  <label for="processing-family">Processing family</label>
+                  <select id="processing-family">
+                    <option value="sample_preparation">Sample Preparation</option>
+                    <option value="cleaning_transforms">Cleaning &amp; Transforms</option>
+                    <option value="time_series_features">Time-Series Features</option>
+                    <option value="visualization">Visualization</option>
+                  </select>
+                </div>
+                <div class="stack compact hidden" id="model-family-wrap">
+                  <label for="model-family">Model family</label>
+                  <select id="model-family">
+                    <option value="econometrics_baseline">Econometrics Baseline</option>
+                    <option value="time_series_finance">Time Series &amp; Econometric Finance</option>
+                    <option value="corporate_finance">Corporate Finance</option>
+                    <option value="risk_management">Risk Management</option>
+                    <option value="derivatives_pricing">Derivatives Pricing</option>
+                    <option value="macro_finance_dsge">Macro Finance &amp; DSGE</option>
+                    <option value="portfolio_allocation">Portfolio Allocation</option>
+                    <option value="asset_pricing">Asset Pricing</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </section>
+
+<section class="lab-stage-card panel" data-lab-stage="preparation">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <p class="eyebrow eyebrow-compact">Preparation</p>
+                <h2>Preparation</h2>
+                <p class="muted">Build the prepared sample.</p>
+              </div>
+            </div>
+            <div class="lab-stage-stack">
+              <form id="prepare-form" class="stack">
+                <div class="lab-template-builder">
+                  <div class="panel-head panel-head-wrap">
+                    <div>
+                      <h4>Processing Templates &amp; Variant Builder</h4>
+                      <span class="muted">Apply a template or variant.</span>
+                    </div>
+                  </div>
+                  <div class="split">
+                    <div class="stack compact">
+                      <label for="prepare-template-select">Saved template</label>
+                      <select id="prepare-template-select"></select>
+                    </div>
+                    <div class="stack compact">
+                      <label for="prepare-variant-select">Preset variant</label>
+                      <select id="prepare-variant-select"></select>
+                    </div>
+                  </div>
+                  <div class="stack compact">
+                    <label for="prepare-variant-json">Advanced specification (JSON)</label>
+                  <textarea id="prepare-variant-json" rows="5" placeholder='{"impute_method": "median", "winsor_lower_quantile": 0.02, "winsor_upper_quantile": 0.98}' data-i18n-placeholder='{"impute_method": "median", "winsor_lower_quantile": 0.02, "winsor_upper_quantile": 0.98}'></textarea>
+                  </div>
+                  <div class="actions compact-actions">
+                    <button type="button" class="secondary" id="prepare-save-template">Save current processing template</button>
+                    <span class="muted" id="prepare-template-status">No template selected.</span>
+                  </div>
+                </div>
+                <div id="prepare-core-fields" class="stack">
+                <div class="panel-head">
+                  <h3>Sample Preparation</h3>
+                  <span class="muted">Choose core columns.</span>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="prepare-keep-columns">Keep columns</label>
+                    <select id="prepare-keep-columns" multiple size="6"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="prepare-required-columns">Required columns</label>
+                    <select id="prepare-required-columns" multiple size="6"></select>
+                  </div>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="prepare-numeric-columns">Force numeric</label>
+                    <select id="prepare-numeric-columns" multiple size="6"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="prepare-binary-columns">Force binary</label>
+                    <select id="prepare-binary-columns" multiple size="6"></select>
+                  </div>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="prepare-date-columns">Parse as date</label>
+                    <select id="prepare-date-columns" multiple size="6"></select>
+                  </div>
+                  <div class="stack compact">
+                    <span class="muted">Optional.</span>
+                  </div>
+                </div>
+                </div>
+                <div id="prepare-cleaning-fields" class="stack">
+                <div class="panel-head">
+                  <h3>Cleaning Toolkit</h3>
+                  <span class="muted">Clean and transform columns.</span>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="prepare-impute-method">Imputation</label>
+                    <select id="prepare-impute-method" name="impute_method">
+                      <option value="none">None</option>
+                      <option value="mean">Mean</option>
+                      <option value="median">Median</option>
+                      <option value="zero">Zero</option>
+                      <option value="ffill">Forward fill</option>
+                      <option value="bfill">Backward fill</option>
+                    </select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="prepare-impute-columns">Impute columns</label>
+                    <select id="prepare-impute-columns" multiple size="6"></select>
+                  </div>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="prepare-winsorize-columns">Winsorize columns</label>
+                    <select id="prepare-winsorize-columns" multiple size="6"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="prepare-standardize-columns">Standardize columns</label>
+                    <select id="prepare-standardize-columns" multiple size="6"></select>
+                  </div>
+                </div>
+                <div class="stack compact">
+                  <label for="prepare-minmax-scale-columns">Min-max scale columns</label>
+                  <select id="prepare-minmax-scale-columns" multiple size="6"></select>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="prepare-winsor-lower">Winsor lower quantile</label>
+                    <input id="prepare-winsor-lower" name="winsor_lower_quantile" type="number" min="0" max="0.49" step="0.01" value="0.01" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="prepare-winsor-upper">Winsor upper quantile</label>
+                    <input id="prepare-winsor-upper" name="winsor_upper_quantile" type="number" min="0.51" max="1" step="0.01" value="0.99" />
+                  </div>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="prepare-log-transform-columns">Log-transform columns</label>
+                    <select id="prepare-log-transform-columns" multiple size="6"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="prepare-outlier-columns">Outlier filter columns</label>
+                    <select id="prepare-outlier-columns" multiple size="6"></select>
+                  </div>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="prepare-outlier-method">Outlier method</label>
+                    <select id="prepare-outlier-method" name="outlier_method">
+                      <option value="none">None</option>
+                      <option value="iqr">IQR</option>
+                      <option value="zscore">Z-score</option>
+                    </select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="prepare-outlier-threshold">Outlier threshold</label>
+                    <input id="prepare-outlier-threshold" name="outlier_threshold" type="number" min="0.5" step="0.1" value="1.5" />
+                  </div>
+                </div>
+                </div>
+                <div id="prepare-time-series-fields" class="stack hidden">
+                  <div class="panel-head">
+                    <h3>Time-Series Feature Engineering</h3>
+                    <span class="muted">Build derived features.</span>
+                  </div>
+                  <div class="split">
+                    <div class="stack compact">
+                      <label for="prepare-sort-column">Sort column</label>
+                      <select id="prepare-sort-column"></select>
+                    </div>
+                    <div class="stack compact">
+                      <label for="prepare-time-group-column">Group column (optional)</label>
+                      <select id="prepare-time-group-column"></select>
+                    </div>
+                  </div>
+                  <div class="split">
+                    <div class="stack compact">
+                      <label for="prepare-difference-columns">Difference columns</label>
+                      <select id="prepare-difference-columns" multiple size="6"></select>
+                    </div>
+                    <div class="stack compact">
+                      <label for="prepare-return-columns">Return columns</label>
+                      <select id="prepare-return-columns" multiple size="6"></select>
+                    </div>
+                  </div>
+                  <div class="split">
+                    <div class="stack compact">
+                      <label for="prepare-return-method">Return method</label>
+                      <select id="prepare-return-method">
+                        <option value="simple">Simple Return</option>
+                        <option value="log">Log Return</option>
+                      </select>
+                    </div>
+                    <div class="stack compact">
+                      <label for="prepare-rolling-window">Rolling window</label>
+                      <input id="prepare-rolling-window" type="number" min="2" step="1" value="5" />
+                    </div>
+                  </div>
+                  <div class="split">
+                    <div class="stack compact">
+                      <label for="prepare-lag-columns">Lag columns</label>
+                      <select id="prepare-lag-columns" multiple size="6"></select>
+                    </div>
+                    <div class="stack compact">
+                      <label for="prepare-lead-columns">Lead columns</label>
+                      <select id="prepare-lead-columns" multiple size="6"></select>
+                    </div>
+                  </div>
+                  <div class="split">
+                    <div class="stack compact">
+                      <label for="prepare-lag-periods">Lag periods</label>
+                      <input id="prepare-lag-periods" type="number" min="1" step="1" value="1" />
+                    </div>
+                    <div class="stack compact">
+                      <label for="prepare-lead-periods">Lead periods</label>
+                      <input id="prepare-lead-periods" type="number" min="1" step="1" value="1" />
+                    </div>
+                  </div>
+                  <div class="split">
+                    <div class="stack compact">
+                      <label for="prepare-rolling-mean-columns">Rolling mean columns</label>
+                      <select id="prepare-rolling-mean-columns" multiple size="6"></select>
+                    </div>
+                    <div class="stack compact">
+                      <label for="prepare-rolling-volatility-columns">Rolling volatility columns</label>
+                      <select id="prepare-rolling-volatility-columns" multiple size="6"></select>
+                    </div>
+                  </div>
+                </div>
+                <label class="checkbox"><input name="drop_duplicates" type="checkbox" checked /> Drop duplicate rows</label>
+                <label class="checkbox"><input name="drop_missing_required" type="checkbox" checked /> Drop rows missing required variables</label>
+                <button type="submit">Prepare analysis sample</button>
+              </form>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <aside class="lab-inspector">
+        <section class="panel lab-inspector-card" id="auth-panel">
+          <div class="module-session-panel__copy">
+            <div>
+              <h2 id="auth-panel-title">Workspace</h2>
+              <p class="muted" id="auth-panel-copy">Select a workspace.</p>
+            </div>
+            <div class="status-row">
+              <span class="pill" id="session-indicator">Signed out</span>
+              <span class="muted" id="user-summary">Sign in from the homepage to continue.</span>
+              <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
+            </div>
+          </div>
+          <div class="auth-grid workspace-auth-grid" id="auth-grid">
+            <div class="stack workspace-box workspace-box--read-only" id="workspace-box">
+              <h3>Workspace</h3>
+              <select id="workspace-select"></select>
+              <p class="muted">Keep this run in one workspace.</p>
+              <a href="/workspace" class="button-link secondary-link">Manage workspaces</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel lab-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Run Summary</h3>
+              <span class="muted">Current status.</span>
+            </div>
+          </div>
+          <div class="workflow-guide-grid lab-inspector-steps">
+            <article class="workflow-step-card" id="lab-step-access">
+              <span class="pill">Access</span>
+              <h4>Access workspace</h4>
+              <p class="muted" id="lab-step-access-text">Signed out</p>
+            </article>
+            <article class="workflow-step-card" id="lab-step-dataset">
+              <span class="pill">Dataset</span>
+              <h4>Inspect dataset</h4>
+              <p class="muted" id="lab-step-dataset-text">No dataset</p>
+            </article>
+            <article class="workflow-step-card" id="lab-step-workflow">
+              <span class="pill">Workflow</span>
+              <h4>Choose workflow</h4>
+              <p class="muted" id="lab-step-workflow-text">Choose a page</p>
+            </article>
+            <article class="workflow-step-card" id="lab-step-output">
+              <span class="pill">Output</span>
+              <h4>Review output</h4>
+              <p class="muted" id="lab-step-output-text">No result</p>
+            </article>
+          </div>
+          <div class="context-grid">
+            <p><strong>Access:</strong> <span id="lab-context-access">Signed out</span></p>
+            <p><strong>Workspace:</strong> <span id="lab-context-workspace">No workspace selected</span></p>
+            <p><strong>Dataset:</strong> <span id="lab-context-dataset">No dataset selected</span></p>
+            <p><strong>Workflow:</strong> <span id="lab-context-workflow">Data Processing</span></p>
+            <p><strong>Family:</strong> <span id="lab-context-family">Sample Preparation</span></p>
+            <p><strong>Model:</strong> <span id="lab-context-model">No model selected</span></p>
+          </div>
+          <div class="stack compact">
+            <label for="lab-case-select">Active case</label>
+            <select id="lab-case-select">
+              <option value="">No active case</option>
+            </select>
+            <p class="muted" id="lab-case-meta">Optional case link.</p>
+          </div>
+          <div class="actions compact-actions">
+            <span class="muted" id="lab-context-next-action">Sign in or select a workspace.</span>
+            <a id="lab-case-home-link" href="/knowledge-base" class="button-link secondary-link">Open case workspace</a>
+            <a id="lab-context-detail-link" href="/data-lab/processing/sample_preparation" class="button-link secondary-link">Open family detail</a>
+          </div>
+        </section>
+
+        <section class="panel lab-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Method Summary</h3>
+              <span class="muted">Current family and methods.</span>
+            </div>
+          </div>
+          <p class="eyebrow eyebrow-compact" id="lab-active-family-eyebrow">Data Processing Family</p>
+          <h3 id="lab-active-family-title">Sample Preparation</h3>
+          <p class="muted" id="lab-active-family-summary">Current family info.</p>
+          <div class="chip-row chip-row-compact" id="lab-active-family-methods"></div>
+          <div class="card-list card-list-inline" id="lab-active-family-checks"></div>
+          <div class="actions compact-actions">
+            <a id="lab-active-family-link" href="/data-lab/processing/sample_preparation" class="button-link secondary-link">Open method detail page</a>
+          </div>
+        </section>
+
+        <section class="panel lab-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Validation</h3>
+              <span class="muted">Current run setup.</span>
+            </div>
+          </div>
+          <p class="eyebrow eyebrow-compact">Current design</p>
+          <h4 id="lab-run-design-title">Select a workflow and family</h4>
+          <p class="muted" id="lab-run-design-copy">Inputs and outputs for this stage.</p>
+          <div class="chip-row chip-row-compact" id="lab-run-design-surfaces"></div>
+          <div id="lab-run-design-checks" class="card-list card-list-inline">
+            <div class="card"><p>Checks appear here.</p></div>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
+

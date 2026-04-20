@@ -3,66 +3,54 @@ from __future__ import annotations
 from copy import deepcopy
 
 
+_LOCAL_PROVIDER_KINDS = {
+    "ollama",
+    "lmstudio",
+    "vllm",
+    "local_openai_compatible",
+}
+
+
 _LLM_PROVIDER_SPECS: list[dict[str, str]] = [
     {
-        "kind": "openai",
+        "kind": "ollama",
         "category": "llm",
-        "label": "OpenAI",
-        "description": "Official OpenAI API connection for GPT models.",
-        "default_base_url": "",
-        "default_model": "",
-        "docs_url": "https://platform.openai.com/docs/overview",
-        "family": "native",
+        "label": "Ollama",
+        "description": "Local Ollama server via the OpenAI-compatible /v1 interface.",
+        "default_base_url": "http://127.0.0.1:11434/v1",
+        "default_model": "qwen2.5:7b-instruct",
+        "docs_url": "https://github.com/ollama/ollama/blob/main/docs/openai.md",
+        "family": "self_hosted",
     },
     {
-        "kind": "deepseek",
+        "kind": "lmstudio",
         "category": "llm",
-        "label": "DeepSeek",
-        "description": "DeepSeek OpenAI-compatible chat completions endpoint.",
-        "default_base_url": "https://api.deepseek.com",
-        "default_model": "deepseek-chat",
-        "docs_url": "https://api-docs.deepseek.com/",
-        "family": "openai_compatible",
+        "label": "LM Studio",
+        "description": "Local LM Studio server using its OpenAI-compatible API.",
+        "default_base_url": "http://127.0.0.1:1234/v1",
+        "default_model": "local-model",
+        "docs_url": "https://lmstudio.ai/docs/app/api/endpoints/openai",
+        "family": "self_hosted",
     },
     {
-        "kind": "gemini",
+        "kind": "vllm",
         "category": "llm",
-        "label": "Gemini",
-        "description": "Google Gemini via the OpenAI-compatible Gemini API.",
-        "default_base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
-        "default_model": "gemini-2.5-flash",
-        "docs_url": "https://ai.google.dev/gemini-api/docs/openai",
-        "family": "openai_compatible",
+        "label": "vLLM",
+        "description": "Self-hosted vLLM OpenAI-compatible inference server.",
+        "default_base_url": "http://127.0.0.1:8010/v1",
+        "default_model": "Qwen/Qwen2.5-3B-Instruct",
+        "docs_url": "https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html",
+        "family": "self_hosted",
     },
     {
-        "kind": "anthropic",
+        "kind": "local_openai_compatible",
         "category": "llm",
-        "label": "Anthropic",
-        "description": "Anthropic Claude via the OpenAI SDK compatibility layer.",
-        "default_base_url": "https://api.anthropic.com/v1/",
-        "default_model": "claude-sonnet-4-0",
-        "docs_url": "https://docs.anthropic.com/en/api/openai-sdk",
-        "family": "openai_compatible",
-    },
-    {
-        "kind": "kimi",
-        "category": "llm",
-        "label": "Kimi",
-        "description": "Moonshot AI Kimi models through the Moonshot API.",
-        "default_base_url": "https://api.moonshot.ai/v1",
-        "default_model": "kimi-k2.5",
-        "docs_url": "https://platform.moonshot.ai/docs/guide/use-kimi-k2-thinking-model.en-US",
-        "family": "openai_compatible",
-    },
-    {
-        "kind": "openai_compatible",
-        "category": "llm",
-        "label": "OpenAI Compatible",
-        "description": "Custom OpenAI-compatible endpoint such as OpenRouter or self-hosted gateways.",
-        "default_base_url": "",
-        "default_model": "",
+        "label": "Local OpenAI-Compatible",
+        "description": "Any self-hosted OpenAI-compatible gateway running on your own infrastructure.",
+        "default_base_url": "http://127.0.0.1:8010/v1",
+        "default_model": "local-model",
         "docs_url": "",
-        "family": "openai_compatible",
+        "family": "self_hosted",
     },
 ]
 
@@ -99,6 +87,10 @@ def get_provider_spec(kind: str, default_openai_model: str) -> dict[str, str] | 
             if item["kind"] == normalized:
                 return item
     return None
+
+
+def is_local_provider_kind(kind: str) -> bool:
+    return (kind or "").strip() in _LOCAL_PROVIDER_KINDS
 
 
 def apply_provider_defaults(

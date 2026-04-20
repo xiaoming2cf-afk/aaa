@@ -205,9 +205,15 @@ class ResearchSession:
         topic: str,
         markdown_content: str,
         source_ids: list[str],
+        extra_sources: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         ordered_source_ids = unique_preserve_order(source_ids)
-        artifact = self.persist_outputs(topic=topic, report_markdown=markdown_content, source_ids=ordered_source_ids)
+        artifact = self.persist_outputs(
+            topic=topic,
+            report_markdown=markdown_content,
+            source_ids=ordered_source_ids,
+            extra_sources=extra_sources,
+        )
         return {
             "status": "saved",
             "report_path": str(artifact.report_path),
@@ -221,12 +227,14 @@ class ResearchSession:
         topic: str,
         report_markdown: str,
         source_ids: list[str],
+        extra_sources: list[dict[str, Any]] | None = None,
     ) -> ResearchArtifact:
         report_path = self.session_dir / "report.md"
         bibtex_path = self.session_dir / "references.bib"
         sources_path = self.session_dir / "sources.json"
 
         records = [self.sources[source_id] for source_id in source_ids if source_id in self.sources]
+        attachment_sources = [dict(item) for item in (extra_sources or []) if isinstance(item, dict)]
         report_path.write_text(report_markdown.strip() + "\n", encoding="utf-8")
         bibtex_path.write_text(
             "\n\n".join(work_to_bibtex(record) for record in records).strip() + "\n",
@@ -238,6 +246,7 @@ class ResearchSession:
                 "topic": topic,
                 "source_ids": source_ids,
                 "sources": [record.model_dump(mode="json") for record in records],
+                "attachment_sources": attachment_sources,
             },
         )
         return ResearchArtifact(

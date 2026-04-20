@@ -15,6 +15,7 @@ SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from session_auth import same_origin_headers, session_token_from_cookies  # noqa: E402
 from verify_data_lab import auth_headers, configure_test_environment  # noqa: E402
 from verify_public_monitor import insert_public_briefing  # noqa: E402
 
@@ -55,10 +56,10 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
 
         home = client.get("/", headers=remote_headers)
         home.raise_for_status()
-        if "Platform Navigation" not in home.text:
-            raise AssertionError("Home page lost the platform navigation surface")
-        if "Daily" not in home.text and "Public Daily Monitor" not in home.text:
-            raise AssertionError("Home page no longer exposes the public daily-report surface")
+        if 'href="#public-report-panel"' not in home.text or 'href="#auth-panel"' not in home.text:
+            raise AssertionError("Home page lost the current public/private orientation links")
+        if "/public-monitor" not in home.text or 'id="public-latest-view"' not in home.text:
+            raise AssertionError("Home page no longer exposes the current public briefing surface")
 
         public_api_routes = [
             "/api/public/briefings/latest",
@@ -73,12 +74,18 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
                 raise AssertionError(f"{route}: expected public access, got {response.status_code}")
 
         private_pages = [
+            "/workspace",
+            "/provider-center",
+            "/knowledge-base",
+            "/paper-library",
             "/data-lab",
+            "/data-lab/optimization",
             "/public-monitor",
             "/summaries/weekly",
             "/summaries/monthly",
             "/data-lab/models/econometrics_baseline/ols",
             "/data-lab/learn/models/econometrics_baseline/ols",
+            "/data-lab/results/models/demo-model-result",
         ]
         page_redirects: dict[str, Any] = {}
         for route in private_pages:
@@ -88,9 +95,9 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
         legacy_opt_response = client.get("/optimization-lab", headers=remote_headers, follow_redirects=False)
         if legacy_opt_response.status_code not in {302, 303, 307, 308}:
             raise AssertionError(
-                f"/optimization-lab: expected redirect into Data Lab anchor, got {legacy_opt_response.status_code}"
+                f"/optimization-lab: expected redirect into the standalone optimization workbench, got {legacy_opt_response.status_code}"
             )
-        if legacy_opt_response.headers.get("location") != "/data-lab#optimization-module":
+        if legacy_opt_response.headers.get("location") != "/data-lab/optimization":
             raise AssertionError(
                 f"/optimization-lab: unexpected location {legacy_opt_response.headers.get('location')!r}"
             )
@@ -100,6 +107,8 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
             "/api/optimization/catalog",
             "/api/openalex/search?q=inflation&max_results=1",
             "/api/auth/me",
+            "/api/workspaces",
+            "/api/integrations",
         ]
         private_api_status: dict[str, int] = {}
         for route in private_api_routes:
@@ -110,10 +119,11 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
 
         register = client.post(
             "/api/auth/register",
+            headers=same_origin_headers("http://testserver"),
             json={"full_name": "Gate Reviewer", "email": "gate@example.com", "password": "StrongPass123!"},
         )
         register.raise_for_status()
-        token = register.json()["session_token"]
+        token = session_token_from_cookies(client)
 
         authenticated_pages: dict[str, int] = {}
         for route in private_pages:
@@ -122,12 +132,23 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
             if response.status_code != 200:
                 raise AssertionError(f"{route}: expected authenticated access, got {response.status_code}")
 
+        authenticated_private_api_expectations = {
+            "/api/data-lab/catalog": {200},
+            "/api/optimization/catalog": {200},
+            "/api/openalex/search?q=inflation&max_results=1": {200, 502},
+            "/api/auth/me": {200},
+            "/api/workspaces": {200},
+            "/api/integrations": {200},
+        }
         authenticated_private_api_status: dict[str, int] = {}
         for route in private_api_routes:
             response = client.get(route, headers={**remote_headers, **auth_headers(token)})
             authenticated_private_api_status[route] = response.status_code
-            if response.status_code != 200:
-                raise AssertionError(f"{route}: expected authenticated API access, got {response.status_code}")
+            expected_status = authenticated_private_api_expectations.get(route, {200})
+            if response.status_code not in expected_status:
+                raise AssertionError(
+                    f"{route}: expected authenticated API access in {sorted(expected_status)}, got {response.status_code}"
+                )
 
         me_response = client.get("/api/auth/me", headers={**remote_headers, **auth_headers(token)})
         me_response.raise_for_status()

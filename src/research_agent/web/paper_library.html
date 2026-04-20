@@ -3,76 +3,201 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Paper Library | Economic Research Platform</title>
+    <meta
+      name="description"
+      content="Search literature, import papers and PDFs, and route findings into the active research workspace."
+      data-i18n-content="Search literature, import papers and PDFs, and route findings into the active research workspace."
+    />
+    <title data-i18n="Paper Library | Economic Research Platform">Paper Library | Economic Research Platform</title>
     <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
-  <body class="page-module">
+  <body class="page-module page-paper-library">
     <div class="page-bg"></div>
 
-    <header class="module-header">
-      <div class="module-header__inner">
+    <header class="module-app-bar">
+      <div class="module-app-bar__inner">
         <div>
+          <div class="module-app-bar__meta">
+            <a href="/workspace" class="inline-link">Workspace</a>
+            <span class="status-pill status-pill--ready">Paper Library</span>
+            <span class="mono-note">OpenAlex + private notes</span>
+          </div>
           <p class="eyebrow">Paper Library</p>
-          <h1>Search, import, and connect literature.</h1>
-          <p class="module-header__copy">Use OpenAlex search, import private copies, and route literature into your notes and cases.</p>
+          <h1>Search, import, and connect literature</h1>
+          <p class="module-app-bar__copy">
+            Run OpenAlex search, import private PDF copies, and route papers into notes or cases.
+          </p>
         </div>
-        <nav class="module-header__nav" aria-label="Module navigation">
-          <a href="/workspace">Workspace</a>
-          <a href="/knowledge-base">Knowledge Base</a>
-          <a href="/data-lab">Data Lab</a>
-        </nav>
+        <div class="module-app-bar__actions">
+          <a href="/workspace" class="button-link secondary-link">Workspace</a>
+          <a href="/knowledge-base" class="button-link secondary-link">Knowledge Base</a>
+          <a href="/data-lab" class="button-link">Data Lab</a>
+        </div>
       </div>
     </header>
 
-    <main class="shell module-shell">
-      <section class="panel module-session-panel" id="auth-panel">
-        <div class="module-session-panel__copy">
-          <div>
-            <h2 id="auth-panel-title">Private workspace session</h2>
-            <p class="muted" id="auth-panel-copy">Paper imports and private PDFs are stored in the selected workspace.</p>
-          </div>
-          <div class="status-row">
-            <span class="pill" id="session-indicator">Signed out</span>
-            <span class="muted" id="user-summary">Sign in from the homepage to continue.</span>
-            <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
-          </div>
+    <main class="module-app-shell">
+      <aside class="module-rail panel">
+        <div class="module-rail__top">
+          <p class="eyebrow eyebrow-compact">Navigation</p>
+          <h2>Literature workflow</h2>
+          <p class="muted">Search first, then import records, PDFs, and follow-up notes into the selected workspace.</p>
         </div>
-        <div class="auth-grid workspace-auth-grid" id="auth-grid">
-          <div class="stack workspace-box workspace-box--read-only" id="workspace-box">
-            <h3>Workspace</h3>
-            <select id="workspace-select"></select>
-            <p class="muted">Switch the active workspace here. Create or manage workspaces from the private workspace hub.</p>
-            <a href="/workspace" class="button-link secondary-link">Manage workspaces</a>
-          </div>
+        <nav class="module-rail-nav" aria-label="Paper Library sections">
+          <a href="#paper-session">Workspace</a>
+          <a href="#paper-search">Search</a>
+          <a href="#paper-results">Search results</a>
+          <a href="#paper-library">Imported library</a>
+        </nav>
+        <div class="module-rail__footer">
+          <a href="#paper-search" class="button-link">Run search</a>
+          <a href="#paper-library" class="button-link secondary-link">Open imported papers</a>
         </div>
+      </aside>
+
+      <section class="module-main">
+        <section class="panel module-session-strip" id="paper-session">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Workspace</p>
+              <h2>Workspace</h2>
+              <p class="muted">Search results are temporary. Imported papers, PDFs, and follow-up notes land in the workspace selected here.</p>
+            </div>
+          </div>
+          <section class="module-session-panel" id="auth-panel">
+            <div class="module-session-panel__copy">
+              <div>
+                <h3 id="auth-panel-title">Workspace session</h3>
+                <p class="muted" id="auth-panel-copy">Use the active workspace for paper imports, private PDFs, and follow-up notes.</p>
+              </div>
+              <div class="status-row">
+                <span class="pill" id="session-indicator">Signed out</span>
+                <span class="muted" id="user-summary">Sign in from the homepage to continue.</span>
+                <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
+              </div>
+            </div>
+            <div class="auth-grid workspace-auth-grid" id="auth-grid">
+              <div class="stack workspace-box workspace-box--read-only" id="workspace-box">
+                <h3>Workspace</h3>
+                <select id="workspace-select"></select>
+                <p class="muted">Switch workspace here. Create new ones from the cockpit.</p>
+                <a href="/workspace" class="button-link secondary-link">Manage workspaces</a>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="panel module-stage-card" id="paper-search">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Search</p>
+              <h2>OpenAlex search</h2>
+              <p class="muted">Search economics and finance literature, then decide what should enter the private library.</p>
+            </div>
+          </div>
+          <div id="paper-summary-grid" class="module-kpi-grid">
+            <article class="module-kpi-card">
+              <span>Search buffer</span>
+              <strong>0</strong>
+              <p>No search results loaded yet.</p>
+            </article>
+          </div>
+          <div class="module-surface-grid">
+            <form id="openalex-form" class="stack module-form-card">
+              <div class="panel-head panel-head-wrap">
+                <div>
+                  <h3>Search literature</h3>
+                  <span class="muted">Run a focused query, then bulk-import only the papers you want to preserve in the workspace.</span>
+                </div>
+              </div>
+              <input name="query" type="text" placeholder="Search economics literature, for example: monetary policy transmission" data-i18n-placeholder="Search economics literature, for example: monetary policy transmission" required />
+              <label class="checkbox"><input name="open_access_only" type="checkbox" /> Open access only</label>
+              <button type="submit">Search literature</button>
+            </form>
+
+            <section class="module-info-card">
+              <div class="panel-head panel-head-wrap">
+                <div>
+                  <h3>Import actions</h3>
+                  <span class="muted">Only move records into the private workspace when they should stay in your library or feed your notes.</span>
+                </div>
+              </div>
+              <div class="actions compact-actions module-actions-vertical">
+                <button id="import-openalex" type="button" class="secondary">Import current results</button>
+                <button id="import-literature-pdfs" type="button" class="secondary">Import all OA PDFs</button>
+                <button id="import-literature-knowledge" type="button" class="secondary">Save all to knowledge base</button>
+              </div>
+              <ul class="module-runbook-list">
+                <li>Search first and inspect abstracts before importing anything into the private library.</li>
+                <li>Import OA PDFs only when you want a stable private copy inside the workspace.</li>
+                <li>Save to the Knowledge Base only after the paper truly belongs to the current research line.</li>
+              </ul>
+            </section>
+          </div>
+        </section>
+
+        <section class="panel module-stage-card" id="paper-results">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Result buffer</p>
+              <h2>Search results</h2>
+              <p class="muted">Review the current OpenAlex result set before deciding whether it should enter the private workspace.</p>
+            </div>
+          </div>
+          <div id="openalex-results" class="card-list"></div>
+        </section>
+
+        <section class="panel module-stage-card" id="paper-library">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Library</p>
+              <h2>Imported literature</h2>
+              <p class="muted">Use the private library as the canonical list of imported papers, private PDFs, and note-generation entry points.</p>
+            </div>
+          </div>
+          <div id="literature-list" class="card-list"></div>
+        </section>
       </section>
 
-      <section class="panel module-panel">
-        <div class="panel-head">
-          <h2>OpenAlex search</h2>
-          <span class="muted">Search economics and finance literature, then import the papers you need.</span>
-        </div>
-        <form id="openalex-form" class="stack">
-          <input name="query" type="text" placeholder="Search economics literature, for example: monetary policy transmission" required />
-          <label class="checkbox"><input name="open_access_only" type="checkbox" /> Open access only</label>
-          <button type="submit">Search literature</button>
-        </form>
-        <div class="actions compact-actions">
-          <button id="import-openalex" type="button" class="secondary">Import current results</button>
-          <button id="import-literature-pdfs" type="button" class="secondary">Import all OA PDFs</button>
-          <button id="import-literature-knowledge" type="button" class="secondary">Save all to knowledge base</button>
-        </div>
-        <div id="openalex-results" class="card-list"></div>
-      </section>
+      <aside class="module-inspector">
+        <section class="panel module-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Research flow</h3>
+              <span class="muted">Keep literature work narrow and sequential.</span>
+            </div>
+          </div>
+          <div class="module-guide-list">
+            <article class="workflow-step-card is-active">
+              <h4>Search</h4>
+              <p>Build a result set around a concrete research question, not a general topic cloud.</p>
+            </article>
+            <article class="workflow-step-card">
+              <h4>Import</h4>
+              <p>Move only the papers you need into the private workspace and keep PDFs or notes optional.</p>
+            </article>
+            <article class="workflow-step-card">
+              <h4>Connect</h4>
+              <p>Route imported papers into notes, summaries, annotations, and case workspaces.</p>
+            </article>
+          </div>
+        </section>
 
-      <section class="panel module-panel">
-        <div class="panel-head">
-          <h2>Imported literature</h2>
-          <span class="muted">Private paper records, private PDFs, and note-generation actions.</span>
-        </div>
-        <div id="literature-list" class="card-list"></div>
-      </section>
+        <section class="panel module-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Library snapshot</h3>
+              <span class="muted">Current workspace literature counts.</span>
+            </div>
+          </div>
+          <div id="paper-inspector-grid" class="card-list card-list-inline">
+            <div class="card"><p>Workspace literature metrics will appear here after the first search or import.</p></div>
+          </div>
+        </section>
+      </aside>
     </main>
 
     <div id="toast" class="toast hidden"></div>

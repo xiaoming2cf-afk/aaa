@@ -11,7 +11,7 @@ from xml.etree import ElementTree
 from zoneinfo import ZoneInfo
 
 import requests
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
 from .config import Settings
@@ -28,9 +28,8 @@ from .entities import (
     Workspace,
 )
 from .platform_core import create_knowledge_record, save_upload_asset, serialize_asset
-from .provider_gateway import ProviderGateway
 from .research_tools import DEFAULT_HEADERS, OPENALEX_WORKS_API
-from .security import decrypt_secret
+from .security import decrypt_secret, validate_external_fetch_url, validate_optional_source_url
 from .utils import reconstruct_abstract, slugify, truncate_text
 
 
@@ -38,6 +37,9 @@ GDELT_DOC_API = "https://api.gdeltproject.org/api/v2/doc/doc"
 FRED_OBSERVATIONS_API = "https://api.stlouisfed.org/fred/series/observations"
 PUBLIC_TEMPLATE_VERSION = "daily-macro-v2"
 PUBLIC_OFFICIAL_LOOKBACK_DAYS = 5
+EXTERNAL_FETCH_REDIRECT_LIMIT = 4
+MAX_REMOTE_IMPORT_BYTES = 25 * 1024 * 1024
+MAX_OUTBOUND_FETCH_BYTES = 5 * 1024 * 1024
 PUBLIC_MEDIA_RSS_FEEDS = [
     {
         "name": "BBC Business",
@@ -327,6 +329,39 @@ PUBLIC_SUMMARY_WINDOWS = {
 }
 
 
+def _safe_literature_fetch_url(url: str, *, field_name: str) -> str:
+    try:
+        return validate_external_fetch_url(url, field_name=field_name)
+    except ValueError:
+        return ""
+
+
+def _literature_pdf_access_status(entry: LiteratureEntry) -> dict[str, Any]:
+    safe_pdf_url = _safe_literature_fetch_url(str(entry.pdf_url or ""), field_name="Literature PDF URL")
+    safe_landing_page_url = _safe_literature_fetch_url(
+        str(entry.landing_page_url or ""),
+        field_name="Literature landing page URL",
+    )
+    raw_has_url = bool(str(entry.pdf_url or "").strip() or str(entry.landing_page_url or "").strip())
+    can_import_pdf = bool(safe_pdf_url or safe_landing_page_url)
+    if can_import_pdf:
+        status = "ready"
+        reason = "A public external source is available for safe PDF import."
+    elif raw_has_url:
+        status = "blocked"
+        reason = "The recorded PDF source was blocked because it targets an unsafe or unsupported network location."
+    else:
+        status = "missing"
+        reason = "No open-access PDF source is available for this literature entry."
+    return {
+        "pdf_url": safe_pdf_url,
+        "landing_page_url": safe_landing_page_url,
+        "can_import_pdf": can_import_pdf,
+        "status": status,
+        "reason": reason,
+    }
+
+
 def serialize_literature_entry(entry: LiteratureEntry) -> dict[str, Any]:
     workspace_pdf_asset_id = str((entry.raw_json or {}).get("_workspace_pdf_asset_id") or "").strip()
     workspace_pdf_asset_title = str((entry.raw_json or {}).get("_workspace_pdf_asset_title") or "").strip()
@@ -338,7 +373,7 @@ def serialize_literature_entry(entry: LiteratureEntry) -> dict[str, Any]:
     workspace_annotation_record_title = str((entry.raw_json or {}).get("_workspace_annotation_record_title") or "").strip()
     workspace_question_record_id = str((entry.raw_json or {}).get("_workspace_question_record_id") or "").strip()
     workspace_question_record_title = str((entry.raw_json or {}).get("_workspace_question_record_title") or "").strip()
-    can_import_pdf = bool(str(entry.pdf_url or "").strip() or str(entry.landing_page_url or "").strip())
+    pdf_access = _literature_pdf_access_status(entry)
     return {
         "id": entry.id,
         "openalex_id": entry.openalex_id,
@@ -350,10 +385,12 @@ def serialize_literature_entry(entry: LiteratureEntry) -> dict[str, Any]:
         "doi": entry.doi,
         "cited_by_count": entry.cited_by_count,
         "venue": entry.venue,
-        "landing_page_url": entry.landing_page_url,
-        "pdf_url": entry.pdf_url,
-        "has_open_access_pdf": can_import_pdf,
-        "can_import_pdf": can_import_pdf,
+        "landing_page_url": pdf_access["landing_page_url"],
+        "pdf_url": pdf_access["pdf_url"],
+        "has_open_access_pdf": pdf_access["can_import_pdf"],
+        "can_import_pdf": pdf_access["can_import_pdf"],
+        "pdf_import_status": pdf_access["status"],
+        "pdf_import_reason": pdf_access["reason"],
         "workspace_pdf_asset_id": workspace_pdf_asset_id,
         "workspace_pdf_asset_title": workspace_pdf_asset_title,
         "workspace_pdf_download_url": f"/api/assets/{workspace_pdf_asset_id}/download" if workspace_pdf_asset_id else "",
@@ -376,6 +413,18 @@ def serialize_briefing(briefing: EconomicBriefing) -> dict[str, Any]:
     raw_json = briefing.raw_json if isinstance(briefing.raw_json, dict) else {}
     workspace_knowledge_record_id = str(raw_json.get("_workspace_knowledge_record_id") or "").strip()
     workspace_knowledge_record_title = str(raw_json.get("_workspace_knowledge_record_title") or "").strip()
+    schedule_id = str(raw_json.get("schedule_id") or "").strip()
+    schedule_name = str(raw_json.get("schedule_name") or "").strip()
+    job_run_id = str(raw_json.get("job_run_id") or "").strip()
+    trigger = str(raw_json.get("trigger") or "manual").strip() or "manual"
+    if workspace_knowledge_record_id:
+        status = "ready"
+        reason = "This briefing already has a linked workspace note."
+        next_action = "open_knowledge_note"
+    else:
+        status = "action_required"
+        reason = "Save this briefing into the workspace knowledge base before reusing it elsewhere."
+        next_action = "save_to_knowledge_base"
     return {
         "id": briefing.id,
         "title": briefing.title,
@@ -385,6 +434,16 @@ def serialize_briefing(briefing: EconomicBriefing) -> dict[str, Any]:
         "items": briefing.items_json,
         "workspace_knowledge_record_id": workspace_knowledge_record_id,
         "workspace_knowledge_record_title": workspace_knowledge_record_title,
+        "status": status,
+        "reason": reason,
+        "next_action": next_action,
+        "detail_path": "/knowledge-base",
+        "knowledge_detail_path": "/knowledge-base",
+        "schedule_id": schedule_id,
+        "schedule_name": schedule_name,
+        "job_run_id": job_run_id,
+        "trigger": trigger,
+        "has_schedule_context": bool(schedule_id),
         "created_at": briefing.created_at.isoformat(),
     }
 
@@ -596,21 +655,17 @@ def serialize_public_briefing(
 ) -> dict[str, Any]:
     theme_counts = _theme_counts(briefing.items_json)
     return {
-        "id": briefing.id,
         "slug": briefing.slug,
         "title": briefing.title,
         "briefing_date": briefing.briefing_date,
         "timezone_name": briefing.timezone_name,
         "summary_markdown": briefing.summary_markdown,
         "summary_excerpt": _extract_markdown_excerpt(briefing.summary_markdown),
-        "query_text": briefing.query_text,
-        "template_version": briefing.template_version,
         "headline_count": briefing.headline_count,
         "items": briefing.items_json,
         "top_themes": [{"theme": theme, "count": count} for theme, count in theme_counts.most_common(5)],
         "share_url": _build_public_briefing_url(briefing.slug, public_base_url),
         "detail_path": f"/briefings/{briefing.slug}",
-        "created_at": briefing.created_at.isoformat(),
         "updated_at": briefing.updated_at.isoformat(),
     }
 
@@ -1046,7 +1101,7 @@ def moderate_public_briefing_item(
     normalized_action = action.strip().lower()
     if normalized_action not in {"exclude", "restore"}:
         raise ValueError("Unsupported moderation action.")
-    url_value = item_url.strip()
+    url_value = validate_optional_source_url(item_url, field_name="Headline URL")
     title_value = item_title.strip()
     if not url_value and not title_value:
         raise ValueError("A headline URL or title is required for moderation.")
@@ -1132,7 +1187,67 @@ def serialize_public_briefing_detail(
     return payload
 
 
-def serialize_schedule(job: ScheduleJob) -> dict[str, Any]:
+def _schedule_job_config(job: ScheduleJob) -> dict[str, Any]:
+    return dict(job.config_json or {}) if isinstance(job.config_json, dict) else {}
+
+
+def _normalize_schedule_run_error(exc: Exception) -> str:
+    return truncate_text(str(exc).strip() or "Schedule run failed.", 240) or "Schedule run failed."
+
+
+def serialize_job_run(run: JobRun, *, job: ScheduleJob | None = None) -> dict[str, Any]:
+    output_json = dict(run.output_json or {}) if isinstance(run.output_json, dict) else {}
+    error_summary = str(output_json.get("error_summary") or output_json.get("error") or "").strip()
+    detail_path = str(output_json.get("detail_path") or "").strip()
+    if not detail_path and (
+        str(output_json.get("briefing_id") or "").strip() or str(output_json.get("knowledge_record_id") or "").strip()
+    ):
+        detail_path = "/knowledge-base"
+    return {
+        "id": run.id,
+        "schedule_id": run.job_id,
+        "schedule_name": job.name if job else str(output_json.get("schedule_name") or "").strip(),
+        "job_type": job.job_type if job else str(output_json.get("job_type") or "").strip(),
+        "status": run.status,
+        "summary": run.summary,
+        "error_summary": error_summary if run.status == "failed" else "",
+        "briefing_id": str(output_json.get("briefing_id") or "").strip(),
+        "briefing_title": str(output_json.get("briefing_title") or "").strip(),
+        "knowledge_record_id": str(output_json.get("knowledge_record_id") or "").strip(),
+        "knowledge_record_title": str(output_json.get("knowledge_record_title") or "").strip(),
+        "detail_path": detail_path,
+        "started_at": run.started_at.isoformat(),
+        "finished_at": run.finished_at.isoformat() if run.finished_at else None,
+        "created_at": run.started_at.isoformat(),
+    }
+
+
+def serialize_schedule(
+    job: ScheduleJob,
+    *,
+    latest_run: JobRun | None = None,
+    recent_runs: list[JobRun] | None = None,
+    run_count: int = 0,
+) -> dict[str, Any]:
+    config = _schedule_job_config(job)
+    latest_run_payload = serialize_job_run(latest_run, job=job) if latest_run else None
+    recent_run_payloads = [serialize_job_run(item, job=job) for item in (recent_runs or [])]
+    if not job.enabled:
+        status = "paused"
+        reason = "This schedule is paused and will not execute automatically."
+        next_action = "resume_schedule"
+    elif latest_run_payload and latest_run_payload["status"] == "failed":
+        status = "attention"
+        reason = latest_run_payload["error_summary"] or "The latest run failed."
+        next_action = "review_last_failure"
+    elif latest_run_payload:
+        status = "ready"
+        reason = "This schedule has completed at least one run successfully."
+        next_action = "open_latest_result"
+    else:
+        status = "scheduled"
+        reason = "This schedule is active and waiting for its first run."
+        next_action = "run_now"
     return {
         "id": job.id,
         "name": job.name,
@@ -1140,10 +1255,21 @@ def serialize_schedule(job: ScheduleJob) -> dict[str, Any]:
         "timezone_name": job.timezone_name,
         "local_time": job.local_time,
         "enabled": job.enabled,
-        "config": job.config_json,
+        "config": config,
+        "query_text": str(config.get("query_text") or "").strip(),
+        "status": status,
+        "reason": reason,
+        "next_action": next_action,
         "last_run_at": job.last_run_at.isoformat() if job.last_run_at else None,
         "next_run_at": job.next_run_at.isoformat() if job.next_run_at else None,
+        "run_count": int(run_count),
+        "latest_run": latest_run_payload,
+        "recent_runs": recent_run_payloads,
+        "last_run_status": latest_run_payload["status"] if latest_run_payload else "",
+        "last_run_summary": latest_run_payload["summary"] if latest_run_payload else "",
+        "last_failure_summary": latest_run_payload["error_summary"] if latest_run_payload else "",
         "created_at": job.created_at.isoformat(),
+        "updated_at": job.updated_at.isoformat(),
     }
 
 
@@ -1266,6 +1392,7 @@ def _build_literature_followup_note_content(
     base_record: KnowledgeRecord,
 ) -> tuple[str, str, list[str], dict[str, Any]]:
     spec = _get_literature_note_spec(mode)
+    pdf_access = _literature_pdf_access_status(entry)
     citation_text = build_literature_citation(entry)
     authors = [str(name).strip() for name in entry.authors_json if str(name).strip()]
     claims = _extract_primary_claims(entry)
@@ -1389,8 +1516,8 @@ def _build_literature_followup_note_content(
         "publication_year": entry.publication_year,
         "venue": entry.venue,
         "authors": authors,
-        "pdf_url": entry.pdf_url,
-        "landing_page_url": entry.landing_page_url,
+        "pdf_url": pdf_access["pdf_url"],
+        "landing_page_url": pdf_access["landing_page_url"],
         "keywords": keywords,
     }
     return title, "\n".join(lines).strip(), list(spec["tags"]), metadata
@@ -1420,21 +1547,104 @@ def _extract_pdf_urls_from_html(html_text: str, *, base_url: str) -> list[str]:
     return candidates
 
 
+def _read_limited_response_body(response: requests.Response, *, limit_bytes: int) -> bytes:
+    content_length = str(response.headers.get("Content-Length", "")).strip()
+    if content_length.isdigit() and int(content_length) > limit_bytes:
+        raise ValueError(f"Remote document exceeds {limit_bytes} bytes.")
+    chunks: list[bytes] = []
+    total = 0
+    for chunk in response.iter_content(chunk_size=1024 * 1024):
+        if not chunk:
+            continue
+        total += len(chunk)
+        if total > limit_bytes:
+            raise ValueError(f"Remote document exceeds {limit_bytes} bytes.")
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+def _safe_outbound_get(
+    url: str,
+    *,
+    field_name: str,
+    timeout: int,
+    headers: dict[str, str] | None = None,
+    params: dict[str, Any] | None = None,
+    limit_bytes: int = MAX_OUTBOUND_FETCH_BYTES,
+) -> requests.Response:
+    current_url = validate_external_fetch_url(url, field_name=field_name)
+    request_params = dict(params or {}) if params else None
+    with requests.Session() as session:
+        for _ in range(EXTERNAL_FETCH_REDIRECT_LIMIT + 1):
+            response = session.get(
+                current_url,
+                headers=headers or DEFAULT_HEADERS,
+                params=request_params,
+                timeout=timeout,
+                allow_redirects=False,
+                stream=True,
+            )
+            request_params = None
+            try:
+                if 300 <= response.status_code < 400:
+                    redirect_target = str(response.headers.get("Location", "")).strip()
+                    if not redirect_target:
+                        raise ValueError(f"{field_name} redirected without a valid location.")
+                    current_url = validate_external_fetch_url(
+                        urljoin(current_url, redirect_target),
+                        field_name=f"{field_name} redirect URL",
+                    )
+                    continue
+                payload = _read_limited_response_body(response, limit_bytes=limit_bytes)
+                response._content = payload
+                response._content_consumed = True
+                return response
+            finally:
+                response.close()
+    raise ValueError(f"Too many redirects while fetching {field_name}.")
+
+
+def _fetch_external_document(url: str, *, timeout: int) -> tuple[bytes, str, str]:
+    current_url = validate_external_fetch_url(url, field_name="Literature source URL")
+    with requests.Session() as session:
+        for _ in range(EXTERNAL_FETCH_REDIRECT_LIMIT + 1):
+            response = session.get(
+                current_url,
+                headers=DEFAULT_HEADERS,
+                timeout=timeout,
+                allow_redirects=False,
+                stream=True,
+            )
+            try:
+                if 300 <= response.status_code < 400:
+                    redirect_target = str(response.headers.get("Location", "")).strip()
+                    if not redirect_target:
+                        raise ValueError("External source redirected without a valid location.")
+                    current_url = validate_external_fetch_url(
+                        urljoin(current_url, redirect_target),
+                        field_name="Literature redirect URL",
+                    )
+                    continue
+                response.raise_for_status()
+                payload = _read_limited_response_body(response, limit_bytes=MAX_REMOTE_IMPORT_BYTES)
+                return payload, str(response.headers.get("Content-Type", "")).lower(), response.url or current_url
+            finally:
+                response.close()
+    raise ValueError("Too many redirects while fetching the external literature source.")
+
+
 def _download_pdf_candidate(url: str) -> tuple[bytes, str]:
-    response = requests.get(url, headers=DEFAULT_HEADERS, timeout=60)
-    response.raise_for_status()
-    content_type = str(response.headers.get("Content-Type", "")).lower()
-    content = response.content or b""
+    content, content_type, resolved_url = _fetch_external_document(url, timeout=60)
     if "application/pdf" in content_type or content.startswith(b"%PDF"):
-        return content, response.url or url
+        return content, resolved_url
     if "html" in content_type or b"<html" in content[:256].lower():
-        for nested_url in _extract_pdf_urls_from_html(content.decode("utf-8", errors="ignore"), base_url=response.url or url):
-            nested_response = requests.get(nested_url, headers=DEFAULT_HEADERS, timeout=60)
-            nested_response.raise_for_status()
-            nested_type = str(nested_response.headers.get("Content-Type", "")).lower()
-            nested_content = nested_response.content or b""
+        for nested_url in _extract_pdf_urls_from_html(
+            content.decode("utf-8", errors="ignore"),
+            base_url=resolved_url,
+        ):
+            nested_content, nested_type, nested_resolved_url = _fetch_external_document(nested_url, timeout=60)
             if "application/pdf" in nested_type or nested_content.startswith(b"%PDF"):
-                return nested_content, nested_response.url or nested_url
+                return nested_content, nested_resolved_url
         raise ValueError("Landing page did not expose a downloadable PDF link.")
     raise ValueError(f"URL did not return a PDF. Content-Type: {content_type or 'unknown'}")
 
@@ -1455,8 +1665,9 @@ def search_openalex(
     if to_year:
         filters.append(f"to_publication_date:{to_year}-12-31")
 
-    response = requests.get(
+    response = _safe_outbound_get(
         OPENALEX_WORKS_API,
+        field_name="OpenAlex API URL",
         headers=DEFAULT_HEADERS,
         params={
             "search": query,
@@ -1537,26 +1748,29 @@ def import_literature_pdf_asset(
     entry = db.get(LiteratureEntry, literature_entry_id)
     if not entry or entry.owner_user_id != user.id or entry.workspace_id != workspace.id:
         raise FileNotFoundError("Literature entry not found.")
+    pdf_access = _literature_pdf_access_status(entry)
 
     existing_asset_id = str((entry.raw_json or {}).get("_workspace_pdf_asset_id") or "").strip()
     if existing_asset_id:
         existing_asset = db.get(DataAsset, existing_asset_id)
         if existing_asset and existing_asset.owner_user_id == user.id and existing_asset.workspace_id == workspace.id:
+            pdf_access = _literature_pdf_access_status(entry)
             return {
                 "entry": serialize_literature_entry(entry),
                 "asset": serialize_asset(existing_asset),
                 "download_url": f"/api/assets/{existing_asset.id}/download",
-                "source_url": existing_asset.source_url or entry.pdf_url or entry.landing_page_url,
+                "source_url": existing_asset.source_url or pdf_access["pdf_url"] or pdf_access["landing_page_url"],
                 "imported": False,
             }
 
+    pdf_access = _literature_pdf_access_status(entry)
     candidate_urls: list[str] = []
-    for url_value in [entry.pdf_url, entry.landing_page_url]:
+    for url_value in [pdf_access["pdf_url"], pdf_access["landing_page_url"]]:
         candidate = str(url_value or "").strip()
         if candidate and candidate not in candidate_urls:
             candidate_urls.append(candidate)
     if not candidate_urls:
-        raise ValueError("This literature entry does not expose a downloadable open-access PDF.")
+        raise ValueError(pdf_access["reason"])
 
     pdf_content = b""
     resolved_source_url = ""
@@ -1624,8 +1838,9 @@ def import_literature_pdf_assets(
     skipped: list[dict[str, Any]] = []
     failed: list[dict[str, Any]] = []
     for entry in entries:
-        if not (str(entry.pdf_url or "").strip() or str(entry.landing_page_url or "").strip()):
-            skipped.append({"entry_id": entry.id, "title": entry.title, "reason": "No open-access source URL."})
+        pdf_access = _literature_pdf_access_status(entry)
+        if not pdf_access["can_import_pdf"]:
+            skipped.append({"entry_id": entry.id, "title": entry.title, "reason": pdf_access["reason"]})
             continue
         try:
             result = import_literature_pdf_asset(
@@ -1685,6 +1900,7 @@ def import_literature_knowledge_record(
 
     citation_text = build_literature_citation(entry)
     authors = [str(name).strip() for name in entry.authors_json if str(name).strip()]
+    pdf_access = _literature_pdf_access_status(entry)
     note_lines = [
         f"# {entry.title}",
         "",
@@ -1704,8 +1920,8 @@ def import_literature_knowledge_record(
         f"- DOI: {entry.doi or 'n/a'}",
         f"- Cited by count: {entry.cited_by_count}",
         f"- Authors: {', '.join(authors) if authors else 'n/a'}",
-        f"- Landing page: {entry.landing_page_url or 'n/a'}",
-        f"- Open-access PDF: {entry.pdf_url or 'n/a'}",
+        f"- Landing page: {pdf_access['landing_page_url'] or 'n/a'}",
+        f"- Open-access PDF: {pdf_access['pdf_url'] or 'n/a'}",
     ]
     if entry.keywords_json:
         note_lines.extend(["", "## Keywords", "", ", ".join(str(keyword).strip() for keyword in entry.keywords_json if str(keyword).strip())])
@@ -1726,8 +1942,8 @@ def import_literature_knowledge_record(
             "publication_year": entry.publication_year,
             "venue": entry.venue,
             "authors": authors,
-            "pdf_url": entry.pdf_url,
-            "landing_page_url": entry.landing_page_url,
+            "pdf_url": pdf_access["pdf_url"],
+            "landing_page_url": pdf_access["landing_page_url"],
         },
     )
     entry.raw_json = {
@@ -1867,8 +2083,9 @@ def fetch_gdelt_hotspots(
 ) -> dict[str, Any]:
     query = _normalize_gdelt_query(query_text.strip() or settings.gdelt_query)
     try:
-        response = requests.get(
+        response = _safe_outbound_get(
             GDELT_DOC_API,
+            field_name="GDELT API URL",
             headers=DEFAULT_HEADERS,
             params={
                 "query": query,
@@ -1879,7 +2096,7 @@ def fetch_gdelt_hotspots(
             },
             timeout=30,
         )
-    except requests.RequestException as exc:
+    except (requests.RequestException, ValueError) as exc:
         return {"status": "error", "query": query, "items": [], "message": str(exc)}
     if response.status_code == 429:
         return {"status": "rate_limited", "query": query, "items": [], "message": response.text}
@@ -2112,10 +2329,15 @@ def fetch_rss_hotspots(
     limit = max(4, max_records or settings.gdelt_max_records)
     for feed in feeds or PUBLIC_MEDIA_RSS_FEEDS:
         try:
-            response = requests.get(feed["url"], headers=DEFAULT_HEADERS, timeout=20)
+            response = _safe_outbound_get(
+                feed["url"],
+                field_name=f"{feed['name']} feed URL",
+                headers=DEFAULT_HEADERS,
+                timeout=20,
+            )
             response.raise_for_status()
             root = ElementTree.fromstring(response.content)
-        except (requests.RequestException, ElementTree.ParseError) as exc:
+        except (requests.RequestException, ElementTree.ParseError, ValueError) as exc:
             feed_status.append(
                 {
                     "name": feed["name"],
@@ -2374,10 +2596,15 @@ def fetch_official_hotspots(
     feed_status: list[dict[str, Any]] = list(rss_payload.get("feeds", []))
     for source in PUBLIC_OFFICIAL_PAGE_SOURCES:
         try:
-            response = requests.get(source["url"], headers=DEFAULT_HEADERS, timeout=25)
+            response = _safe_outbound_get(
+                source["url"],
+                field_name=f"{source['name']} source URL",
+                headers=DEFAULT_HEADERS,
+                timeout=25,
+            )
             response.raise_for_status()
             html = _decode_response_text(response)
-        except requests.RequestException as exc:
+        except (requests.RequestException, ValueError) as exc:
             feed_status.append(
                 {
                     "name": source["name"],
@@ -2504,17 +2731,21 @@ def fetch_fred_snapshots(fred_api_key: str, *, series_ids: list[str]) -> list[di
         return []
     snapshots: list[dict[str, Any]] = []
     for series_id in series_ids:
-        response = requests.get(
-            FRED_OBSERVATIONS_API,
-            params={
-                "series_id": series_id,
-                "api_key": fred_api_key,
-                "file_type": "json",
-                "sort_order": "desc",
-                "limit": 3,
-            },
-            timeout=20,
-        )
+        try:
+            response = _safe_outbound_get(
+                FRED_OBSERVATIONS_API,
+                field_name="FRED observations URL",
+                params={
+                    "series_id": series_id,
+                    "api_key": fred_api_key,
+                    "file_type": "json",
+                    "sort_order": "desc",
+                    "limit": 3,
+                },
+                timeout=20,
+            )
+        except (requests.RequestException, ValueError):
+            continue
         if response.status_code != 200:
             continue
         observations = response.json().get("observations", [])
@@ -2769,21 +3000,14 @@ def generate_economic_briefing(
     integration_id: str | None = None,
     query_text: str = "",
     title: str = "",
+    trigger: str = "manual",
+    schedule_id: str = "",
+    schedule_name: str = "",
+    job_run_id: str = "",
 ) -> EconomicBriefing:
     resolved_title = title.strip() or "Daily Economic Briefing"
-    llm_integration: IntegrationCredential | None = None
-    if integration_id:
-        llm_integration = db.get(IntegrationCredential, integration_id)
-    elif user:
-        llm_integration = db.scalar(
-            select(IntegrationCredential).where(
-                and_(
-                    IntegrationCredential.owner_user_id == user.id,
-                    IntegrationCredential.category == "llm",
-                    IntegrationCredential.is_default.is_(True),
-                )
-            )
-        )
+    if str(integration_id or "").strip():
+        raise ValueError("Runtime model integrations are not available for economic briefings in this deployment.")
 
     fred_integration = db.scalar(
         select(IntegrationCredential).where(
@@ -2805,35 +3029,11 @@ def generate_economic_briefing(
         query_text=query_text,
     )
     summary_markdown = fallback_markdown
-    if llm_integration:
-        try:
-            summary_markdown = ProviderGateway(settings).generate_markdown(
-                integration=llm_integration,
-                system_prompt=(
-                    "You are a senior economics research analyst. Produce concise markdown using exactly these sections: "
-                    "Executive Summary, Macro Theme Map, Market And Data Snapshot, Watchlist, Source Map, "
-                    "Source Countries, Research Agenda, Headline Register. Be specific, cautious, and research-oriented."
-                ),
-                user_prompt=truncate_text(
-                    json.dumps(
-                        {
-                            "query_text": query_text or settings.gdelt_query,
-                            "headlines": headlines_payload.get("items", []),
-                            "fred_snapshots": fred_snapshots,
-                        },
-                        ensure_ascii=False,
-                    ),
-                    14000,
-                ),
-                max_output_tokens=1400,
-            )
-        except Exception:
-            summary_markdown = fallback_markdown
 
     briefing = EconomicBriefing(
         workspace_id=workspace.id,
         owner_user_id=user.id,
-        integration_id=llm_integration.id if llm_integration else None,
+        integration_id=None,
         title=resolved_title,
         summary_markdown=summary_markdown,
         query_text=query_text.strip() or settings.gdelt_query,
@@ -2850,12 +3050,23 @@ def generate_economic_briefing(
         title=briefing.title,
         content=briefing.summary_markdown,
         tags=["economic-briefing", "macro", "daily"],
-        metadata={"briefing_id": briefing.id, "headline_count": briefing.headline_count},
+        metadata={
+            "briefing_id": briefing.id,
+            "headline_count": briefing.headline_count,
+            "trigger": trigger,
+            "schedule_id": schedule_id,
+            "schedule_name": schedule_name,
+            "job_run_id": job_run_id,
+        },
     )
     briefing.raw_json = {
         **(briefing.raw_json if isinstance(briefing.raw_json, dict) else {}),
         "_workspace_knowledge_record_id": record.id,
         "_workspace_knowledge_record_title": record.title,
+        "trigger": trigger,
+        "schedule_id": schedule_id,
+        "schedule_name": schedule_name,
+        "job_run_id": job_run_id,
     }
     db.flush()
     return briefing
@@ -2941,7 +3152,7 @@ def generate_public_daily_briefing(
         settings,
         query_text=query_text,
         now=now,
-        max_records=max(8, settings.gdelt_max_records),
+        max_records=max(8, settings.public_digest_max_records),
     )
     annotated_items = _annotate_headlines_with_themes(headlines_payload.get("items", []))
     fred_snapshots = fetch_fred_snapshots(
@@ -3175,10 +3386,12 @@ def create_schedule_job(
     integration_id: str | None = None,
     config: dict[str, Any] | None = None,
 ) -> ScheduleJob:
+    if str(integration_id or "").strip():
+        raise ValueError("Runtime model integrations are not available for schedules in this deployment.")
     job = ScheduleJob(
         workspace_id=workspace.id,
         owner_user_id=user.id,
-        integration_id=integration_id,
+        integration_id=None,
         name=name.strip(),
         job_type=job_type.strip(),
         timezone_name=timezone_name.strip(),
@@ -3191,6 +3404,71 @@ def create_schedule_job(
     return job
 
 
+def get_owned_schedule_job(db: Session, *, user: User, workspace: Workspace, schedule_id: str) -> ScheduleJob:
+    job = db.get(ScheduleJob, schedule_id)
+    if not job or job.owner_user_id != user.id or job.workspace_id != workspace.id:
+        raise FileNotFoundError("Schedule not found.")
+    return job
+
+
+def update_schedule_job(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    schedule_id: str,
+    name: str | None = None,
+    timezone_name: str | None = None,
+    local_time_value: str | None = None,
+    integration_id: str | None = None,
+    enabled: bool | None = None,
+    config: dict[str, Any] | None = None,
+) -> ScheduleJob:
+    job = get_owned_schedule_job(db, user=user, workspace=workspace, schedule_id=schedule_id)
+    if name is not None:
+        normalized_name = name.strip()
+        if not normalized_name:
+            raise ValueError("Schedule name is required.")
+        job.name = normalized_name
+    if timezone_name is not None:
+        normalized_timezone = timezone_name.strip()
+        if not normalized_timezone:
+            raise ValueError("Timezone is required.")
+        ZoneInfo(normalized_timezone)
+        job.timezone_name = normalized_timezone
+    if local_time_value is not None:
+        normalized_local_time = local_time_value.strip()
+        hour, minute = [int(part) for part in normalized_local_time.split(":", 1)]
+        if hour < 0 or hour > 23 or minute < 0 or minute > 59:
+            raise ValueError("Local time must be a valid HH:MM value.")
+        job.local_time = normalized_local_time
+    if integration_id is not None:
+        normalized_integration_id = integration_id.strip()
+        if normalized_integration_id:
+            raise ValueError("Runtime model integrations are not available for schedules in this deployment.")
+        else:
+            job.integration_id = None
+    if config is not None:
+        job.config_json = {
+            **_schedule_job_config(job),
+            **(config if isinstance(config, dict) else {}),
+        }
+    if enabled is not None:
+        job.enabled = bool(enabled)
+    if job.enabled:
+        job.next_run_at = compute_next_run(job.local_time, job.timezone_name)
+    else:
+        job.next_run_at = None
+    db.flush()
+    return job
+
+
+def delete_schedule_job(db: Session, *, user: User, workspace: Workspace, schedule_id: str) -> None:
+    job = get_owned_schedule_job(db, user=user, workspace=workspace, schedule_id=schedule_id)
+    db.delete(job)
+    db.flush()
+
+
 def list_schedule_jobs(db: Session, *, user: User, workspace: Workspace) -> list[ScheduleJob]:
     return list(
         db.scalars(
@@ -3199,6 +3477,143 @@ def list_schedule_jobs(db: Session, *, user: User, workspace: Workspace) -> list
             .order_by(ScheduleJob.created_at.desc())
         )
     )
+
+
+def list_job_runs(
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    schedule_id: str | None = None,
+    limit: int = 40,
+) -> list[JobRun]:
+    query = (
+        select(JobRun)
+        .join(ScheduleJob, ScheduleJob.id == JobRun.job_id)
+        .where(
+            and_(
+                ScheduleJob.owner_user_id == user.id,
+                ScheduleJob.workspace_id == workspace.id,
+            )
+        )
+        .order_by(JobRun.started_at.desc())
+        .limit(max(1, min(limit, 100)))
+    )
+    if schedule_id:
+        query = query.where(ScheduleJob.id == schedule_id)
+    return list(db.scalars(query))
+
+
+def schedule_run_counts(db: Session, *, jobs: list[ScheduleJob]) -> dict[str, int]:
+    job_ids = [job.id for job in jobs]
+    if not job_ids:
+        return {}
+    rows = db.execute(
+        select(JobRun.job_id, func.count(JobRun.id))
+        .where(JobRun.job_id.in_(job_ids))
+        .group_by(JobRun.job_id)
+    ).all()
+    return {str(job_id): int(count) for job_id, count in rows}
+
+
+def recent_schedule_runs(
+    db: Session,
+    *,
+    jobs: list[ScheduleJob],
+    per_job_limit: int = 3,
+) -> dict[str, list[JobRun]]:
+    job_ids = [job.id for job in jobs]
+    if not job_ids:
+        return {}
+    rows = list(
+        db.scalars(
+            select(JobRun)
+            .where(JobRun.job_id.in_(job_ids))
+            .order_by(JobRun.started_at.desc())
+            .limit(max(len(job_ids) * max(1, per_job_limit) * 3, 12))
+        )
+    )
+    buckets: dict[str, list[JobRun]] = {}
+    for row in rows:
+        bucket = buckets.setdefault(row.job_id, [])
+        if len(bucket) < per_job_limit:
+            bucket.append(row)
+    return buckets
+
+
+def _run_schedule_job(
+    db: Session,
+    settings: Settings,
+    *,
+    job: ScheduleJob,
+    trigger: str,
+    run_at: datetime | None = None,
+) -> JobRun:
+    now = run_at or datetime.now(timezone.utc)
+    run = JobRun(job_id=job.id, status="running")
+    db.add(run)
+    db.flush()
+    config = _schedule_job_config(job)
+    try:
+        user = db.get(User, job.owner_user_id)
+        workspace = db.get(Workspace, job.workspace_id)
+        if not user or not workspace:
+            raise RuntimeError("Job owner or workspace is missing.")
+        if job.job_type != "economic_briefing":
+            raise ValueError(f"Unsupported job type: {job.job_type}")
+        briefing = generate_economic_briefing(
+            db,
+            settings,
+            user=user,
+            workspace=workspace,
+            integration_id=job.integration_id,
+            query_text=str(config.get("query_text") or "").strip(),
+            title=str(config.get("title") or job.name).strip(),
+            trigger=trigger,
+            schedule_id=job.id,
+            schedule_name=job.name,
+            job_run_id=run.id,
+        )
+        raw_json = dict(briefing.raw_json or {}) if isinstance(briefing.raw_json, dict) else {}
+        run.status = "completed"
+        run.summary = briefing.title
+        run.output_json = {
+            "briefing_id": briefing.id,
+            "briefing_title": briefing.title,
+            "knowledge_record_id": str(raw_json.get("_workspace_knowledge_record_id") or "").strip(),
+            "knowledge_record_title": str(raw_json.get("_workspace_knowledge_record_title") or "").strip(),
+            "schedule_name": job.name,
+            "job_type": job.job_type,
+            "detail_path": "/knowledge-base",
+        }
+    except Exception as exc:
+        error_summary = _normalize_schedule_run_error(exc)
+        run.status = "failed"
+        run.summary = error_summary
+        run.output_json = {
+            "error": error_summary,
+            "error_summary": error_summary,
+            "schedule_name": job.name,
+            "job_type": job.job_type,
+        }
+    finally:
+        run.finished_at = datetime.now(timezone.utc)
+        job.last_run_at = now
+        job.next_run_at = compute_next_run(job.local_time, job.timezone_name, now=now + timedelta(seconds=1)) if job.enabled else None
+        db.flush()
+    return run
+
+
+def run_schedule_job_now(
+    db: Session,
+    settings: Settings,
+    *,
+    user: User,
+    workspace: Workspace,
+    schedule_id: str,
+) -> JobRun:
+    job = get_owned_schedule_job(db, user=user, workspace=workspace, schedule_id=schedule_id)
+    return _run_schedule_job(db, settings, job=job, trigger="manual")
 
 
 def run_due_schedule_jobs(db: Session, settings: Settings, *, limit: int = 20) -> list[dict[str, Any]]:
@@ -3219,39 +3634,6 @@ def run_due_schedule_jobs(db: Session, settings: Settings, *, limit: int = 20) -
     )
     results: list[dict[str, Any]] = []
     for job in jobs:
-        run = JobRun(job_id=job.id, status="running")
-        db.add(run)
-        db.flush()
-        try:
-            user = db.get(User, job.owner_user_id)
-            workspace = db.get(Workspace, job.workspace_id)
-            if not user or not workspace:
-                raise RuntimeError("Job owner or workspace is missing.")
-            if job.job_type != "economic_briefing":
-                raise ValueError(f"Unsupported job type: {job.job_type}")
-            briefing = generate_economic_briefing(
-                db,
-                settings,
-                user=user,
-                workspace=workspace,
-                integration_id=job.integration_id,
-                query_text=job.config_json.get("query_text", ""),
-                title=job.config_json.get("title", job.name),
-            )
-            run.status = "completed"
-            run.summary = briefing.title
-            run.output_json = {"briefing_id": briefing.id}
-            job.last_run_at = now
-            job.next_run_at = compute_next_run(job.local_time, job.timezone_name, now=now + timedelta(seconds=1))
-            results.append({"job_id": job.id, "status": "completed", "briefing_id": briefing.id})
-        except Exception as exc:
-            run.status = "failed"
-            run.summary = str(exc)
-            run.output_json = {"error": str(exc)}
-            job.last_run_at = now
-            job.next_run_at = compute_next_run(job.local_time, job.timezone_name, now=now + timedelta(seconds=1))
-            results.append({"job_id": job.id, "status": "failed", "error": str(exc)})
-        finally:
-            run.finished_at = datetime.now(timezone.utc)
-            db.flush()
+        run = _run_schedule_job(db, settings, job=job, trigger="schedule", run_at=now)
+        results.append(serialize_job_run(run, job=job))
     return results

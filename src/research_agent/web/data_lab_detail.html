@@ -3,54 +3,53 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Data Lab Method Detail | Economic Research Platform</title>
+    <meta
+      name="description"
+      content="Inspect method detail, assumptions, and controlled configuration for the selected Data Lab family."
+      data-i18n-content="Inspect method detail, assumptions, and controlled configuration for the selected Data Lab family."
+    />
+    <title data-i18n="Data Lab Method Detail | Economic Research Platform">Data Lab Method Detail | Economic Research Platform</title>
     <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
-  <body>
+  <body class="page-private-suite page-data-lab-detail">
     <div class="page-bg"></div>
-    <header class="hero">
-      <div>
-        <p class="eyebrow" id="lab-detail-eyebrow">Data Lab Method</p>
-        <h1 id="lab-detail-title">Loading method detail...</h1>
-        <p class="hero-copy" id="lab-detail-summary">
-          This page exposes the full method family, its sub-methods, required inputs, and manual verification steps.
-        </p>
-      </div>
-      <div class="hero-meta">
-        <div class="meta-card">
-          <span>Category</span>
-          <strong id="lab-detail-category">Loading...</strong>
+
+    <header class="suite-page-head">
+      <div class="suite-page-head__inner">
+        <div class="suite-page-head__copy">
+          <div class="suite-page-head__meta">
+            <a href="/data-lab" class="inline-link">Data Lab</a>
+            <span class="status-pill status-pill--ready">Method family</span>
+          </div>
+          <p class="eyebrow" id="lab-detail-eyebrow">Data Lab Method</p>
+          <h1 id="lab-detail-title">Loading method detail...</h1>
+          <p class="suite-page-head__summary" id="lab-detail-summary">
+            Family detail keeps the method catalog, required inputs, and manual review checks in one place before you return to the workbench.
+          </p>
         </div>
-        <div class="meta-card">
-          <span>Transparency</span>
-          <strong>Manual checks exposed</strong>
+        <div class="suite-page-kpis">
+          <article class="suite-page-kpi">
+            <span>Category</span>
+            <strong id="lab-detail-category">Loading...</strong>
+          </article>
+          <article class="suite-page-kpi">
+            <span>Audit posture</span>
+            <strong>Checks exposed</strong>
+          </article>
         </div>
       </div>
     </header>
 
-    <main class="shell public-shell">
-      <section class="panel platform-nav-panel">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2>Platform Navigation</h2>
-            <p class="muted">Use the standalone pages to move between Navigation, Data Lab, Optimization Lab, Public Daily Monitor, and the main platform.</p>
-          </div>
-        </div>
-        <div class="platform-nav-grid">
-          <a class="platform-nav-card" href="/"><span class="eyebrow eyebrow-compact">Main</span><h3>Main Platform</h3><p>Return to sign-in, Provider Center, Paper Library, cases, and the private cockpit.</p></a>
-          <a class="platform-nav-card" href="/data-lab"><span class="eyebrow eyebrow-compact">Standalone</span><h3>Data Lab</h3><p>Go back to the main Data Lab workbench.</p></a>
-          <a class="platform-nav-card" href="/optimization-lab"><span class="eyebrow eyebrow-compact">Standalone</span><h3>Optimization Lab</h3><p>Switch to the optimization benchmark workspace.</p></a>
-          <a class="platform-nav-card" href="/public-monitor"><span class="eyebrow eyebrow-compact">Public</span><h3>Public Daily Monitor</h3><p>Open the standalone macro monitor surface.</p></a>
-        </div>
-      </section>
-
+    <main class="suite-page-shell">
       <section class="panel access-gate-panel hidden" id="access-gate-panel" data-access-gate>
         <div class="access-gate-card">
           <p class="eyebrow eyebrow-compact" id="access-gate-eyebrow">Access Control</p>
           <h2 id="access-gate-title">Sign in to unlock Data Lab details</h2>
           <p class="muted" id="access-gate-copy">
-            On public hosts, only Platform Navigation stays open before login. Return to the main platform, sign in, then reopen this detail page.
+            On public hosts, sign in on the main platform first, then reopen this detail page in the same browser session.
           </p>
           <div class="actions compact-actions" id="access-gate-actions">
             <a href="/" class="button-link">Go to sign-in</a>
@@ -58,66 +57,70 @@
         </div>
       </section>
 
-      <section class="panel public-toolbar access-guarded">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2 id="lab-detail-heading">Method Family Detail</h2>
-            <p class="muted" id="lab-detail-description">
-              Review the family, then open the workbench with the correct family already selected.
-            </p>
-          </div>
-          <div class="actions">
-            <a href="/data-lab" class="button-link secondary-link">Back to Data Lab</a>
-            <a href="/data-lab" id="lab-detail-workbench-link" class="button-link">Open in workbench</a>
-          </div>
+      <section class="panel suite-page-toolbar access-guarded">
+        <div>
+          <p class="eyebrow eyebrow-compact">Family Detail</p>
+          <h2 id="lab-detail-heading">Method Family Detail</h2>
+          <p class="muted" id="lab-detail-description">
+            Review the family first, then reopen the workbench with the right workflow and family already selected.
+          </p>
+        </div>
+        <div class="actions actions-wrap">
+          <a href="/data-lab" class="button-link secondary-link">Back to Data Lab</a>
+          <a href="/data-lab/optimization" class="button-link secondary-link">Optimization Lab</a>
+          <a href="/data-lab" id="lab-detail-workbench-link" class="button-link">Open in workbench</a>
         </div>
       </section>
 
-      <div class="public-layout access-guarded">
-        <aside class="panel public-sidebar">
-          <div class="stack">
-            <div>
-              <p class="eyebrow eyebrow-compact">Navigate</p>
-              <h3>Method Detail</h3>
-            </div>
-            <nav class="public-section-nav">
-              <a href="#lab-method-list">Sub-methods</a>
+      <div class="suite-page-layout access-guarded">
+        <aside class="panel suite-page-sidebar">
+          <div class="suite-page-sidebar__block">
+            <p class="eyebrow eyebrow-compact">Navigate</p>
+            <h3>Family sections</h3>
+            <nav class="suite-page-sidebar__nav">
+              <a href="#lab-method-list">Methods</a>
               <a href="#lab-input-list">Inputs</a>
-              <a href="#lab-audit-list">Manual verification</a>
+              <a href="#lab-audit-list">Verification</a>
             </nav>
-            <div class="public-sidebar-note">
-              <p class="muted">
-                This page is private on public hosts. Sign in first, then return here to inspect the method family in detail.
-              </p>
+          </div>
+          <div class="suite-page-sidebar__block">
+            <p class="eyebrow eyebrow-compact">Routes</p>
+            <div class="suite-page-route-list">
+              <a href="/data-lab">Data Lab</a>
+              <a href="/workspace">Workspace hub</a>
+              <a href="/knowledge-base">Knowledge base</a>
             </div>
+          </div>
+          <div class="suite-page-note">
+            <p class="muted">Treat this page as the catalog record for a family: scope, inputs, and manual review standards.</p>
           </div>
         </aside>
 
-        <section class="public-main">
-          <article class="panel public-section" id="lab-method-list">
+        <section class="suite-page-main">
+          <article class="panel suite-page-section" id="lab-method-list">
             <div class="panel-head">
-              <h3>Sub-methods</h3>
-              <span class="muted">Every family is broken down into explicit methods.</span>
+              <h3>Methods</h3>
+              <span class="muted">Every family is broken into explicit methods you can open or reuse.</span>
             </div>
             <div id="lab-detail-method-list" class="method-browser-grid">
               <article class="method-card"><p>Loading methods...</p></article>
             </div>
           </article>
 
-          <article class="panel public-section" id="lab-input-list">
+          <article class="panel suite-page-section" id="lab-input-list">
             <div class="panel-head">
               <h3>Required Inputs</h3>
-              <span class="muted">The workbench fields you should verify before running.</span>
+              <span class="muted">The fields and assumptions that should be verified before execution.</span>
             </div>
             <div id="lab-detail-input-list" class="card-list">
               <div class="card"><p>Loading inputs...</p></div>
             </div>
           </article>
 
-          <article class="panel public-section" id="lab-audit-list">
+          <article class="panel suite-page-section" id="lab-audit-list">
             <div class="panel-head">
-              <h3>Manual Verification Steps</h3>
-              <span class="muted">Use these checks to reproduce and challenge the output manually.</span>
+              <h3>Manual Verification</h3>
+              <span class="muted">Checks to keep the family reproducible and reviewable.</span>
             </div>
             <div id="lab-detail-audit-list" class="card-list">
               <div class="card"><p>Loading audit checks...</p></div>
@@ -130,4 +133,4 @@
     <div id="toast" class="toast hidden"></div>
     <script src="/assets/app.js" defer></script>
   </body>
-  </html>
+</html>

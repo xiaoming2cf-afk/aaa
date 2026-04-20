@@ -3,54 +3,53 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Data Lab Teaching Page | Economic Research Platform</title>
+    <meta
+      name="description"
+      content="Read the teaching notes for a Data Lab method without leaving the current private research flow."
+      data-i18n-content="Read the teaching notes for a Data Lab method without leaving the current private research flow."
+    />
+    <title data-i18n="Data Lab Teaching Page | Economic Research Platform">Data Lab Teaching Page | Economic Research Platform</title>
     <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
-  <body>
+  <body class="page-private-suite page-data-lab-teaching">
     <div class="page-bg"></div>
-    <header class="hero">
-      <div>
-        <p class="eyebrow" id="lab-teaching-eyebrow">Teaching Page</p>
-        <h1 id="lab-teaching-title">Loading teaching page...</h1>
-        <p class="hero-copy" id="lab-teaching-summary">
-          This page explains when to use the model, what a normal output looks like, and how to verify it manually.
-        </p>
-      </div>
-      <div class="hero-meta">
-        <div class="meta-card">
-          <span>Model family</span>
-          <strong id="lab-teaching-family">Loading...</strong>
+
+    <header class="suite-page-head">
+      <div class="suite-page-head__inner">
+        <div class="suite-page-head__copy">
+          <div class="suite-page-head__meta">
+            <a href="/data-lab" class="inline-link">Data Lab</a>
+            <span class="status-pill status-pill--ready">Teaching page</span>
+          </div>
+          <p class="eyebrow" id="lab-teaching-eyebrow">Teaching Page</p>
+          <h1 id="lab-teaching-title">Loading teaching page...</h1>
+          <p class="suite-page-head__summary" id="lab-teaching-summary">
+            Teaching mode explains where the method fits, what a normal result looks like, and what to review before you run it.
+          </p>
         </div>
-        <div class="meta-card">
-          <span>Teaching mode</span>
-          <strong>No auto-suggestion</strong>
+        <div class="suite-page-kpis">
+          <article class="suite-page-kpi">
+            <span>Model family</span>
+            <strong id="lab-teaching-family">Loading...</strong>
+          </article>
+          <article class="suite-page-kpi">
+            <span>Teaching mode</span>
+            <strong>Guided reading</strong>
+          </article>
         </div>
       </div>
     </header>
 
-    <main class="shell public-shell">
-      <section class="panel platform-nav-panel">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2>Platform Navigation</h2>
-            <p class="muted">Only navigation stays open on public hosts before login. Use these links to move across the platform safely.</p>
-          </div>
-        </div>
-        <div class="platform-nav-grid">
-          <a class="platform-nav-card" href="/"><span class="eyebrow eyebrow-compact">Main</span><h3>Main Platform</h3><p>Return to sign-in, Provider Center, Paper Library, and the private workspace cockpit.</p></a>
-          <a class="platform-nav-card" href="/data-lab"><span class="eyebrow eyebrow-compact">Standalone</span><h3>Data Lab</h3><p>Open the main Data Lab workbench.</p></a>
-          <a class="platform-nav-card" href="/optimization-lab"><span class="eyebrow eyebrow-compact">Standalone</span><h3>Optimization Lab</h3><p>Open the optimization benchmark workspace.</p></a>
-          <a class="platform-nav-card" href="/public-monitor"><span class="eyebrow eyebrow-compact">Public</span><h3>Public Daily Monitor</h3><p>Switch to the macro monitor surface.</p></a>
-        </div>
-      </section>
-
+    <main class="suite-page-shell">
       <section class="panel access-gate-panel hidden" id="access-gate-panel" data-access-gate>
         <div class="access-gate-card">
           <p class="eyebrow eyebrow-compact" id="access-gate-eyebrow">Access Control</p>
           <h2 id="access-gate-title">Sign in to unlock teaching pages</h2>
           <p class="muted" id="access-gate-copy">
-            On public hosts, only Platform Navigation stays open before login. Sign in on the main platform, then reopen this teaching page.
+            On public hosts, sign in on the main platform first, then reopen this teaching page in the same browser session.
           </p>
           <div class="actions compact-actions" id="access-gate-actions">
             <a href="/" class="button-link">Go to sign-in</a>
@@ -58,58 +57,80 @@
         </div>
       </section>
 
-      <section class="panel public-toolbar access-guarded">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2 id="lab-teaching-heading">Teaching Page</h2>
-            <p class="muted" id="lab-teaching-description">
-              Use this page to understand the method before opening the workbench.
-            </p>
-          </div>
-          <div class="actions">
-            <a href="/data-lab" class="button-link secondary-link">Back to Data Lab</a>
-            <a href="/data-lab" id="lab-teaching-method-link" class="button-link secondary-link">Open method page</a>
-            <a href="/data-lab" id="lab-teaching-workbench-link" class="button-link">Open in workbench</a>
-          </div>
+      <section class="panel suite-page-toolbar access-guarded">
+        <div>
+          <p class="eyebrow eyebrow-compact">Teaching Document</p>
+          <h2 id="lab-teaching-heading">Teaching Page</h2>
+          <p class="muted" id="lab-teaching-description">
+            Use this page to understand the method before opening the private workbench.
+          </p>
+        </div>
+        <div class="actions actions-wrap">
+          <a href="/data-lab" class="button-link secondary-link">Back to Data Lab</a>
+          <a href="/data-lab" id="lab-teaching-method-link" class="button-link secondary-link">Open method page</a>
+          <a href="/data-lab" id="lab-teaching-workbench-link" class="button-link">Open in workbench</a>
         </div>
       </section>
 
-      <section class="panel public-section access-guarded">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h3>Learning Snapshot</h3>
-            <span class="muted">What this model is for, what a normal output package looks like, and what to verify manually.</span>
-          </div>
-        </div>
-        <div id="lab-teaching-snapshot" class="snapshot-grid">
-          <article class="snapshot-card">
-            <span>Loading...</span>
-            <strong>Teaching metadata</strong>
-            <p>The learning snapshot will appear here after the guide loads.</p>
-          </article>
-        </div>
-      </section>
-
-      <div class="public-layout access-guarded">
-        <aside class="panel public-sidebar">
-          <div class="stack">
-            <div>
-              <p class="eyebrow eyebrow-compact">Navigate</p>
-              <h3>Teaching Page</h3>
-            </div>
-            <nav class="public-section-nav">
-              <a href="#lab-teaching-sections">Core lessons</a>
+      <div class="suite-page-layout access-guarded">
+        <aside class="panel suite-page-sidebar">
+          <div class="suite-page-sidebar__block">
+            <p class="eyebrow eyebrow-compact">Navigate</p>
+            <h3>Teaching sections</h3>
+            <nav class="suite-page-sidebar__nav">
+              <a href="#lab-teaching-sections-card">Core lessons</a>
               <a href="#lab-teaching-paper-card">Paper template</a>
-              <a href="#lab-teaching-preview-card">Paper table preview</a>
+              <a href="#lab-teaching-preview-card">Preview</a>
             </nav>
-            <div class="public-sidebar-note">
-              <p class="muted">This page explains the model step by step. It does not infer your variables or generate a design suggestion.</p>
+          </div>
+          <div class="suite-page-sidebar__block">
+            <p class="eyebrow eyebrow-compact">Routes</p>
+            <div class="suite-page-route-list">
+              <a href="/data-lab">Data Lab</a>
+              <a href="/workspace">Workspace hub</a>
+              <a href="/knowledge-base">Knowledge base</a>
             </div>
+          </div>
+          <div class="suite-page-note">
+            <p class="muted">This page is for orientation and review. It should clarify the model before you touch a private dataset.</p>
           </div>
         </aside>
 
-        <section class="public-main">
-          <article class="panel public-section" id="lab-teaching-sections-card">
+        <section class="suite-page-main">
+          <section class="suite-page-band">
+            <article class="panel suite-page-section">
+              <div class="panel-head panel-head-wrap">
+                <div>
+                  <p class="eyebrow eyebrow-compact">Snapshot</p>
+                  <h3>Learning overview</h3>
+                </div>
+              </div>
+              <div id="lab-teaching-snapshot" class="snapshot-grid">
+                <article class="snapshot-card">
+                  <span>Loading...</span>
+                  <strong>Teaching metadata</strong>
+                  <p>The learning snapshot will appear here after the guide loads.</p>
+                </article>
+              </div>
+            </article>
+
+            <article class="panel suite-page-section" id="lab-teaching-runbook-card">
+              <div class="panel-head panel-head-wrap">
+                <div>
+                  <p class="eyebrow eyebrow-compact">Runbook</p>
+                  <h3>Study sequence</h3>
+                </div>
+              </div>
+              <div id="lab-teaching-runbook" class="guide-grid">
+                <article class="guide-card">
+                  <h4>Loading study runbook...</h4>
+                  <p>The study sequence will appear once the guide loads.</p>
+                </article>
+              </div>
+            </article>
+          </section>
+
+          <article class="panel suite-page-section" id="lab-teaching-sections-card">
             <div class="panel-head">
               <h3>Core Lessons</h3>
               <span class="muted">A compact teaching outline for self-study and manual replication.</span>
@@ -119,33 +140,20 @@
             </div>
           </article>
 
-          <article class="panel public-section" id="lab-teaching-paper-card">
+          <article class="panel suite-page-section" id="lab-teaching-paper-card">
             <div class="panel-head">
               <h3>Paper Reporting Template</h3>
-              <span class="muted">How to turn the workbench output into a paper-ready table/figure package.</span>
+              <span class="muted">How to translate a workbench result into paper-facing reporting.</span>
             </div>
             <div id="lab-teaching-paper" class="card-list">
               <div class="card"><p>Loading paper template...</p></div>
             </div>
           </article>
 
-          <article class="panel public-section" id="lab-teaching-runbook-card">
-            <div class="panel-head">
-              <h3>Study Runbook</h3>
-              <span class="muted">A compact sequence for learning the method before running it on a private dataset.</span>
-            </div>
-            <div id="lab-teaching-runbook" class="guide-grid">
-              <article class="guide-card">
-                <h4>Loading study runbook...</h4>
-                <p>The study sequence will appear once the guide loads.</p>
-              </article>
-            </div>
-          </article>
-
-          <article class="panel public-section" id="lab-teaching-preview-card">
+          <article class="panel suite-page-section" id="lab-teaching-preview-card">
             <div class="panel-head">
               <h3>Paper Table Preview</h3>
-              <span class="muted">A concrete illustration of how a normal results table from this method is typically arranged.</span>
+              <span class="muted">A concrete illustration of how a normal results table is typically arranged.</span>
             </div>
             <div id="lab-teaching-preview" class="card-list">
               <div class="card"><p>Loading table preview...</p></div>

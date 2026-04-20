@@ -26,6 +26,7 @@ if str(SRC_ROOT) not in sys.path:
 if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
+from session_auth import same_origin_headers, session_token_from_cookies  # noqa: E402
 from verify_data_lab import auth_headers, build_panel_dataset, build_time_series_dataset, configure_test_environment, create_workspace, upload_csv_asset  # noqa: E402
 from verify_data_lab_full import _nonempty_table_count, _save_result_bundle, _assert_model_output, _model_specs  # noqa: E402
 
@@ -409,10 +410,11 @@ def run_comparison(output_dir: Path | None = None) -> dict[str, Any]:
 
         register = client.post(
             "/api/auth/register",
+            headers=same_origin_headers("http://testserver"),
             json={"full_name": "Engine Comparator", "email": "compare@example.com", "password": "StrongPass123!"},
         )
         register.raise_for_status()
-        token = register.json()["session_token"]
+        token = session_token_from_cookies(client)
         workspace_id = create_workspace(client, token, "Engine Comparison Lab")
 
         panel_frame = build_panel_dataset()

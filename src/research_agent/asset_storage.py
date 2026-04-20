@@ -31,6 +31,20 @@ def is_remote_asset_reference(reference: str) -> bool:
     return reference.startswith(SUPABASE_PREFIX)
 
 
+def local_asset_root(settings: Settings) -> Path:
+    return (settings.storage_dir / "assets").resolve()
+
+
+def resolve_local_asset_path(settings: Settings, reference: str) -> Path:
+    file_path = Path(reference).resolve(strict=False)
+    asset_root = local_asset_root(settings)
+    if not file_path.is_relative_to(asset_root):
+        raise FileNotFoundError("Asset file is missing from storage.")
+    if not file_path.exists() or not file_path.is_file():
+        raise FileNotFoundError("Asset file is missing from storage.")
+    return file_path
+
+
 def parse_asset_reference(reference: str) -> tuple[str, str]:
     if not is_remote_asset_reference(reference):
         raise ValueError("Asset reference is not a remote object reference.")
@@ -69,9 +83,14 @@ def _store_locally(
 ) -> StoredAsset:
     safe_name = slugify(Path(filename).stem, max_length=48)
     extension = Path(filename).suffix
-    asset_dir = settings.storage_dir / "assets" / user_id / workspace_id
+    asset_root = local_asset_root(settings)
+    asset_dir = (asset_root / user_id / workspace_id).resolve()
+    if not asset_dir.is_relative_to(asset_root):
+        raise ValueError("Resolved asset directory escaped the configured storage root.")
     asset_dir.mkdir(parents=True, exist_ok=True)
-    file_path = asset_dir / f"{asset_id}-{safe_name}{extension}"
+    file_path = (asset_dir / f"{asset_id}-{safe_name}{extension}").resolve()
+    if not file_path.is_relative_to(asset_dir):
+        raise ValueError("Resolved asset file path escaped the workspace asset directory.")
     file_path.write_bytes(content)
     return StoredAsset(
         reference=str(file_path),
@@ -150,7 +169,4 @@ def load_asset_bytes(settings: Settings, reference: str) -> bytes:
         client = _get_supabase_client(settings.supabase_url, settings.supabase_service_role_key)
         return client.storage.from_(bucket).download(object_key)
 
-    file_path = Path(reference)
-    if not file_path.exists():
-        raise FileNotFoundError("Asset file is missing from storage.")
-    return file_path.read_bytes()
+    return resolve_local_asset_path(settings, reference).read_bytes()

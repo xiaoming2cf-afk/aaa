@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import fitz
 from fastapi.testclient import TestClient
+from session_auth import auth_headers, same_origin_headers, session_token_from_cookies
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -27,11 +28,7 @@ def configure_test_environment(temp_root: Path) -> None:
     os.environ["RESEARCH_AGENT_REPORTS_DIR"] = str((temp_root / "reports").resolve())
     os.environ["ASSET_STORAGE_BACKEND"] = "local"
     os.environ["PUBLIC_BASE_URL"] = "http://testserver"
-
-
-def auth_headers(token: str) -> dict[str, str]:
-    return {"Authorization": f"Bearer {token}"}
-
+    os.environ["PYTHON_DOTENV_DISABLED"] = "1"
 
 def build_pdf_bytes(title: str) -> bytes:
     document = fitz.open()
@@ -142,28 +139,31 @@ def main() -> int:
             with TestClient(create_app()) as client:
                 user_a_response = client.post(
                     "/api/auth/register",
+                    headers=same_origin_headers("http://testserver"),
                     json={
                         "email": "alice@example.com",
-                        "password": "SecurePass123",
+                        "password": "SecurePass123!",
                         "full_name": "Alice Researcher",
                     },
                 )
                 expect_status(user_a_response, 200)
                 user_a_payload = user_a_response.json()
-                user_a_token = user_a_payload["session_token"]
+                user_a_token = session_token_from_cookies(client)
                 workspace_a = user_a_payload["workspaces"][0]
+                client.cookies.clear()
 
                 user_b_response = client.post(
                     "/api/auth/register",
+                    headers=same_origin_headers("http://testserver"),
                     json={
                         "email": "bob@example.com",
-                        "password": "SecurePass123",
+                        "password": "SecurePass123!",
                         "full_name": "Bob Researcher",
                     },
                 )
                 expect_status(user_b_response, 200)
                 user_b_payload = user_b_response.json()
-                user_b_token = user_b_payload["session_token"]
+                user_b_token = session_token_from_cookies(client)
                 workspace_b = user_b_payload["workspaces"][0]
 
                 me_a = client.get("/api/auth/me", headers=auth_headers(user_a_token))

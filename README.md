@@ -1,43 +1,10 @@
 # Economic Research Platform
 
-这是一个面向经济研究的长期运维平台底座。
+Economic Research Platform is a private research workspace for literature, knowledge records, queued research runs, Data Lab runs, schedules, and public briefings.
 
-当前版本已经支持：
+## Local Run
 
-- 多用户网页工作台
-- 私有工作区、私有知识库、私有数据资产
-- 多模型 Provider
-  - `openai`
-  - `gemini`
-  - `anthropic`
-  - `openai_compatible`
-- `OpenAlex` 文献检索与文献库入库
-- 上传 `CSV / XLSX / JSON / PDF / TXT / MD`
-- 数据清洗
-- 基础 OLS 回归
-- 每日经济热点简报
-  - `GDELT`
-  - `FRED`
-- 定时任务
-
-## 代码结构
-
-```text
-src/research_agent/
-  asset_storage.py
-  asgi.py
-  cli.py
-  config.py
-  db.py
-  entities.py
-  platform_core.py
-  platform_research.py
-  provider_gateway.py
-  webapp.py
-  web/
-```
-
-## 本地启动
+### App Development Minimum
 
 ```powershell
 python -m venv .venv
@@ -47,196 +14,212 @@ Copy-Item .env.example .env
 .\.venv\Scripts\research-agent serve --host 127.0.0.1 --port 8000
 ```
 
-打开：
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
-```text
-http://127.0.0.1:8000
+Frontend shell files are not hot-reloaded by the default `serve` command. After changing `src/research_agent/web/*.html`, `src/research_agent/web/app.js`, `src/research_agent/web/locale_*.js`, or `src/research_agent/web/styles.css`, restart `research-agent serve` or launch with `--reload`.
+
+### Backend And Worker
+
+Research runs are queued through the API and processed asynchronously by the worker:
+
+```powershell
+.\.venv\Scripts\research-agent run-agent-worker --loop
 ```
 
-## 环境变量
+This repository keeps queueing, review records, publishing, knowledge capture, team library, schedules, and Data Lab workflows in the product runtime.
+Model-provider setup is not part of the production surface.
 
-`.env.example` 已包含当前所需配置。
+## Security Baseline
 
-核心字段：
+- Cookie session only for the built-in frontend. Legacy bearer/session token fields remain for external scripts.
+- CSRF protection uses the double-submit pattern:
+  - cookie: `erp_csrf_token`
+  - request header: `X-CSRF-Token`
+- Production startup requires an explicit strong `APP_SECRET`.
+- Default session lifetime is `72` hours.
+- CORS is same-origin by default. Extra origins must be added explicitly through `ALLOWED_ORIGINS`.
+- Password reset requires SMTP configuration and uses explicit SMTP transport mode.
+- Uploads are limited to approved formats and a maximum payload of `25 MiB`.
+
+## Core Environment Variables
 
 ```env
 APP_NAME=Economic Research Platform
 APP_ENV=development
-APP_SECRET=development-secret-change-me
+APP_SECRET=
 DATABASE_URL=sqlite:///./storage/platform.db
 STORAGE_DIR=storage
 ASSET_STORAGE_BACKEND=local
+RESEARCH_AGENT_REPORTS_DIR=storage/reports
+PUBLIC_BASE_URL=http://127.0.0.1:8000
+ENCRYPTION_KEY=
+CRON_SECRET=
+
+SESSION_TTL_HOURS=72
+ALLOWED_ORIGINS=http://127.0.0.1:8000
+TRUSTED_PROXY_IPS=
+
+SMTP_HOST=
+SMTP_PORT=465
+SMTP_USERNAME=
+SMTP_PASSWORD=
+SMTP_FROM_EMAIL=
+SMTP_SECURITY=ssl
+PASSWORD_RESET_TTL_MINUTES=30
+
+DB_POOL_SIZE=8
+DB_MAX_OVERFLOW=16
+DB_POOL_TIMEOUT=30
+DB_POOL_RECYCLE=1800
+
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_STORAGE_BUCKET=research-assets
-RESEARCH_AGENT_REPORTS_DIR=storage/reports
-PUBLIC_BASE_URL=
-ENCRYPTION_KEY=
-CRON_SECRET=
+
+# Compatibility-only / optional. The current production build does not execute inference at runtime.
+# RESEARCH_AGENT_MODEL=qwen2.5:7b-instruct
+# RESEARCH_AGENT_REASONING_EFFORT=medium
+
+# Training-only / optional. Render production does not require this.
 OPENAI_API_KEY=
-RESEARCH_AGENT_MODEL=gpt-5-mini
-RESEARCH_AGENT_REASONING_EFFORT=medium
-SESSION_TTL_HOURS=720
+
+GDELT_QUERY='"inflation" OR "interest rate" OR "central bank" OR "bond yield" OR "oil price" OR "tariff" OR "unemployment" OR "recession" OR "GDP" OR "trade"'
 GDELT_MAX_RECORDS=15
 DEFAULT_FRED_SERIES=FEDFUNDS,CPIAUCSL,UNRATE,DGS10
+FRED_API_KEY=
+PUBLIC_DIGEST_ENABLED=true
+PUBLIC_DIGEST_TIMEZONE=Asia/Shanghai
+PUBLIC_DIGEST_LOCAL_TIME=08:30
+PUBLIC_DIGEST_TITLE=Global Economic Daily
+PUBLIC_DIGEST_QUERY=
+PUBLIC_DIGEST_MAX_RECORDS=30
 ```
 
-说明：
+Notes:
 
-- `OPENAI_API_KEY` 仅用于私有自托管时的默认值
-- 公开部署建议使用用户自己的 Provider Key
-- 当 `ASSET_STORAGE_BACKEND=supabase` 时，上传文件会落到 `Supabase Storage`
-- 生产环境里可以直接使用 Supabase 提供的 `postgresql://...` 连接串，应用会自动规范化到 `psycopg` 驱动
+- Keep the whole `GDELT_QUERY` expression inside a single quoted string. This avoids `python-dotenv` parse warnings.
+- Never commit or store real secrets in `.env`. Use placeholders in the repo and real values only in local or deployment secrets.
+- Set `APP_SECRET` explicitly in every real environment. Development can run without it, but production should never rely on an implicit secret.
+- Use `SMTP_SECURITY=ssl` with port `465` by default. Set `SMTP_SECURITY=starttls` only when your mail provider requires explicit STARTTLS, typically on port `587`.
+- Rotate any leaked database, Supabase, or session credentials outside the codebase. The application can prevent future leaks, but it cannot rotate external secrets for you.
 
-## CLI
+## Useful CLI Commands
 
 ```powershell
 .\.venv\Scripts\research-agent doctor
 .\.venv\Scripts\research-agent create-user your@email.com
 .\.venv\Scripts\research-agent run-due-jobs
+.\.venv\Scripts\research-agent run-agent-worker --loop
+.\.venv\Scripts\research-agent prune-security-state
+.\.venv\Scripts\research-agent scan-hygiene
+.\.venv\Scripts\research-agent smoke-deploy --base-url https://economic-research-web.onrender.com
 ```
 
-## Web API
+- `prune-security-state` removes expired sessions, used or expired password reset tokens, and stale login-attempt rows.
+- `scan-hygiene` scans the repository root for leaked secrets and stray temp artifacts.
+- `doctor` reports business-platform configuration and upstream reachability only. It does not inspect model runtimes.
 
-认证：
+## Workflow Loop
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/auth/me`
+- Schedule records now expose latest run state, failure summary, recent run list, and run count.
+- Schedule management supports enable or disable, delete, and manual `run-now` execution from both API and frontend.
+- Briefing records carry schedule context so a run can jump directly to the generated briefing and linked knowledge note.
+- Knowledge, literature, case, processing, model, and optimization payloads expose a shared status contract: `status`, `reason`, `next_action`, and `detail_path`.
+- Data Lab history is now a unified workspace feed across preparation, model, and optimization outputs. `/data-lab/history` and the workspace shell read from the same source.
 
-工作区：
+## Workflow APIs
 
-- `GET /api/workspaces`
-- `POST /api/workspaces`
-
-连接管理：
-
-- `GET /api/integrations`
-- `POST /api/integrations`
-- `POST /api/integrations/{integration_id}/test`
-- `DELETE /api/integrations/{integration_id}`
-
-知识库与数据：
-
-- `GET /api/workspaces/{workspace_id}/knowledge`
-- `POST /api/workspaces/{workspace_id}/knowledge`
-- `GET /api/workspaces/{workspace_id}/assets`
-- `POST /api/workspaces/{workspace_id}/assets/upload`
-- `GET /api/assets/{asset_id}/download`
-- `POST /api/workspaces/{workspace_id}/assets/{asset_id}/clean`
-- `POST /api/workspaces/{workspace_id}/analysis/ols`
-
-文献与简报：
-
-- `GET /api/openalex/search`
-- `GET /api/workspaces/{workspace_id}/literature`
-- `POST /api/workspaces/{workspace_id}/literature/import`
-- `GET /api/workspaces/{workspace_id}/briefings`
-- `POST /api/workspaces/{workspace_id}/briefings/generate`
-
-调度：
-
-- `GET /api/workspaces/{workspace_id}/schedules`
-- `POST /api/workspaces/{workspace_id}/schedules`
+- `PATCH /api/workspaces/{workspace_id}/schedules/{schedule_id}`
+- `DELETE /api/workspaces/{workspace_id}/schedules/{schedule_id}`
+- `POST /api/workspaces/{workspace_id}/schedules/{schedule_id}/run-now`
+- `GET /api/workspaces/{workspace_id}/schedules/{schedule_id}/runs`
+- `GET /api/workspaces/{workspace_id}/job-runs`
+- `GET /api/workspaces/{workspace_id}/data-lab/history`
 - `POST /api/internal/run-due-jobs`
 
-## 免费部署路径
+The internal scheduler endpoint requires `X-Cron-Secret` and is intentionally excluded from OpenAPI. Use it from a trusted scheduler only.
 
-当前仓库已经适配一条更现实的免费部署路径：
+## Scheduled Execution
 
-- Web：Render Free Web Service
-- 数据库：Supabase Postgres
-- 文件：Supabase Storage
-- 定时任务：GitHub Actions Schedule
+For deployed environments, align these pieces together:
 
-对应文件：
+- Set `PUBLIC_BASE_URL` to the externally reachable base URL.
+- Set `CRON_SECRET` explicitly. If omitted, the app derives one from `APP_SECRET`, which is acceptable for local use but less explicit for shared operations.
+- Set `PUBLIC_DIGEST_*` values to the wall-clock schedule and timezone you want for the public briefing.
+- Set `FRED_API_KEY` if schedule-generated briefings should include FRED snapshots.
+- Trigger `POST /api/internal/run-due-jobs` on a cadence from GitHub Actions or another scheduler. The repo already includes `.github/workflows/run-due-jobs.yml`.
 
-- Render 蓝图：[render.yaml](D:/智能体/render.yaml)
-- GitHub Actions 调度：[run-due-jobs.yml](D:/智能体/.github/workflows/run-due-jobs.yml)
+## Render Deployment
 
-### 1. Supabase
+- `render.yaml` is the production contract for the single Render web service.
+- The Render build must produce `frontend-spa/dist` before the Python app starts, so `/app` is always served by FastAPI from the built SPA assets.
+- Render production must not define runtime inference variables such as `RESEARCH_AGENT_MODEL` or require `OPENAI_API_KEY`.
+- Main branch is the only release source. Merge only after the delivery gate and real workspace publish validation both pass.
 
-在 Supabase 创建：
+## Release Gate
 
-- 一个项目
-- 一个 Postgres 数据库
-- 一个私有 Storage bucket，建议名称 `research-assets`
+Run this sequence before merging to main:
 
-你需要拿到：
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+Set-Location frontend-spa
+npm.cmd run test
+npm.cmd run build
+Set-Location ..
+.\.venv\Scripts\research-agent review-delivery --workspace-id <workspace_id> --resource-type agent_run --resource-id <run_id>
+.\.venv\Scripts\research-agent review-delivery --workspace-id <workspace_id> --resource-type knowledge_record --resource-id <record_id>
+```
 
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- Postgres `DATABASE_URL`
+Release is complete only after:
 
-注意：
+- the engineering gate is fully green
+- one real `AgentRun` passes delivery review and publishes successfully
+- one real `KnowledgeRecord` passes delivery review and publishes successfully
+- the deployed Render URLs return healthy responses for `/api/health`, `/app`, `/app/research`, `/app/quality`, and `/provider-center`
 
-- `SUPABASE_SERVICE_ROLE_KEY` 只能放服务端环境变量，不能进前端
-- `research-assets` 建议保持私有 bucket
+## Testing
 
-### 2. Render Free
+Static checks:
 
-Render 使用当前仓库的 `render.yaml`，并补这些环境变量：
+```powershell
+node --check src/research_agent/web/app.js
+node --check src/research_agent/web/locale_runtime.js
+node --check src/research_agent/web/locale_init.js
+python -m compileall src tests scripts
+```
 
-- `DATABASE_URL`
-- `PUBLIC_BASE_URL`
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `CRON_SECRET`
+Automated tests:
 
-当前蓝图默认：
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+```
 
-- `plan: free`
-- `ASSET_STORAGE_BACKEND=supabase`
-- 本地临时目录仅用于运行时缓存，不依赖持久盘
+`pytest` is intentionally scoped to the repo's `tests/` directory. Vendored `_import/` libraries are excluded from collection.
 
-### 3. GitHub Actions 定时任务
+Live verification scripts:
 
-仓库里已经加了调度工作流：
+```powershell
+.\.venv\Scripts\python.exe scripts/verify_access_gate.py
+.\.venv\Scripts\python.exe scripts/verify_security_and_literature.py
+.\.venv\Scripts\python.exe scripts/verify_workbench_and_knowledge.py
+.\.venv\Scripts\python.exe scripts/verify_public_monitor.py
+.\.venv\Scripts\python.exe scripts/verify_data_lab.py
+.\.venv\Scripts\python.exe scripts/verify_optimization_lab.py
+.\.venv\Scripts\python.exe scripts/export_monte_carlo_site_audit.py
+```
 
-- 每小时的第 `7/22/37/52` 分钟触发一次
-- 调用 `POST /api/internal/run-due-jobs`
+## Main Routes
 
-需要在 GitHub 仓库的 `Actions Secrets` 里添加：
-
-- `RESEARCH_PLATFORM_BASE_URL`
-- `RESEARCH_PLATFORM_CRON_SECRET`
-
-## 验证结果
-
-当前本地已经验证：
-
-- `python -m compileall src`
-- `research-agent --help`
-- `research-agent doctor`
-- `TestClient` 烟测
-  - 注册
-  - 知识库写入
-  - OpenAlex 检索
-  - 简报生成
-  - 调度创建
-  - 文件上传
-  - 数据清洗
-  - OLS
-- Playwright 浏览器验证
-  - 首页可打开
-  - 页面标题正确
-  - 控制台错误和警告为 `0`
-  - 注册流程可用
-
-## 当前边界
-
-- 当前没有完整账户恢复和邮件系统
-- 调度任务现在主要面向经济简报
-- 更重的异步任务还没有拆到独立 worker
-- FRED 仍需要用户自己提供 key
-
-## 推荐下一步
-
-如果继续往正式产品推进，优先顺序建议是：
-
-1. 接入数据库迁移体系
-2. 补对象存储初始化和 bucket 健康检查
-3. 加用户找回密码和邮箱验证
-4. 增加 Background Worker
-5. 增加更多经济数据源
-6. 增加更完整的计量分析模块
+- `/` public entry and authentication
+- `/workspace` private cockpit
+- `/schedules` schedule list and recent execution state
+- `/provider-center` disabled placeholder explaining that runtime provider management is out of scope
+- `/paper-library` literature search and import
+- `/knowledge-base` notes and case workflow
+- `/public-monitor` public monitor and rolling summaries
+- `/data-lab` dataset intake
+- `/data-lab/preparation` preparation workflow
+- `/data-lab/model` model and chart execution
+- `/data-lab/results` latest result reading and export
+- `/data-lab/history` run history
+- `/data-lab/optimization` optimization suite

@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 from datetime import datetime
 
 from fastapi.testclient import TestClient
+from session_auth import auth_headers, same_origin_headers, session_token_from_cookies
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -29,11 +30,7 @@ def configure_test_environment(temp_root: Path) -> None:
     os.environ["PUBLIC_DIGEST_ENABLED"] = "true"
     os.environ["PUBLIC_DIGEST_TIMEZONE"] = "Asia/Shanghai"
     os.environ["PUBLIC_DIGEST_LOCAL_TIME"] = "00:00"
-
-
-def auth_headers(token: str) -> dict[str, str]:
-    return {"Authorization": f"Bearer {token}"}
-
+    os.environ["PYTHON_DOTENV_DISABLED"] = "1"
 
 def build_public_items() -> list[dict[str, object]]:
     return [
@@ -162,10 +159,11 @@ def main() -> None:
     try:
         register = client.post(
             "/api/auth/register",
+            headers=same_origin_headers("http://testserver"),
             json={"full_name": "Public Reviewer", "email": "reviewer@example.com", "password": "StrongPass123!"},
         )
         register.raise_for_status()
-        token = register.json()["session_token"]
+        token = session_token_from_cookies(client)
         slug = insert_public_briefing()
 
         latest = client.get("/api/public/briefings/latest")
@@ -186,12 +184,12 @@ def main() -> None:
         assert_overview_value(latest_payload["source_panel"], "Visible headlines", "3")
         assert_overview_value(latest_payload["source_panel"], "Filtered headlines", "0")
 
-        public_page = client.get("/public-monitor")
+        public_page = client.get("/public-monitor", headers=auth_headers(token))
         public_page.raise_for_status()
-        if "Source Panel" not in public_page.text:
-            raise AssertionError("Public monitor page is missing the source panel section")
-        if "Manual Review Queue" not in public_page.text:
-            raise AssertionError("Public monitor page is missing the manual review section")
+        if 'id="source-panel"' not in public_page.text or 'id="public-source-panel"' not in public_page.text:
+            raise AssertionError("Public monitor page is missing the source panel anchors")
+        if 'id="review-queue"' not in public_page.text or 'id="public-review-list"' not in public_page.text:
+            raise AssertionError("Public monitor page is missing the review queue anchors")
 
         exclude = client.post(
             f"/api/public/briefings/{slug}/moderation",

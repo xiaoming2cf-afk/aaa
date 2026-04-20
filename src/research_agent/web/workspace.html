@@ -3,8 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Workspace | Economic Research Platform</title>
+    <meta
+      name="description"
+      content="Review workspace state, recent activity, next actions, and module entry points from a single private cockpit."
+      data-i18n-content="Review workspace state, recent activity, next actions, and module entry points from a single private cockpit."
+    />
+    <title data-i18n="Workspace | Economic Research Platform">Workspace | Economic Research Platform</title>
     <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
   <body class="page-workspace">
@@ -13,28 +20,28 @@
     <header class="workspace-header">
       <div class="workspace-header__inner">
         <div>
-          <p class="eyebrow">Private Workspace</p>
-          <h1>Choose a research surface.</h1>
+          <p class="eyebrow">Workspace Cockpit</p>
+          <h1>Run the current workspace.</h1>
           <p class="workspace-header__copy">
-            This page is the signed-in entry point. Open a module here, then continue inside its dedicated workspace.
+            Check state, recent movement, and the next useful action.
           </p>
         </div>
         <nav class="workspace-header__nav" aria-label="Workspace navigation">
           <a href="/">Home</a>
+          <a href="/research-agent">Research Agent</a>
           <a href="/data-lab">Data Lab</a>
           <a href="/public-monitor">Daily Monitor</a>
         </nav>
       </div>
     </header>
 
-    <main class="shell workspace-shell workspace-hub-shell">
-      <section class="panel workspace-session-panel" id="auth-panel">
-        <div class="workspace-session-panel__copy">
+    <main class="shell workspace-shell workspace-dashboard-shell" id="workspace-cockpit-panel">
+      <section class="panel workspace-session-strip" id="auth-panel">
+        <div class="workspace-session-strip__head">
           <div>
-            <h2 id="auth-panel-title">Private workspace session</h2>
-            <p class="muted" id="auth-panel-copy">
-              Select the active workspace first, then enter one of the private research modules below.
-            </p>
+            <p class="eyebrow eyebrow-compact">Workspace</p>
+            <h2 id="auth-panel-title">Workspace session</h2>
+            <p class="muted" id="auth-panel-copy">Select the active workspace, then jump into the next module.</p>
           </div>
           <div class="status-row">
             <span class="pill" id="session-indicator">Signed out</span>
@@ -45,82 +52,122 @@
 
         <div class="auth-grid workspace-auth-grid" id="auth-grid">
           <div class="stack workspace-box" id="workspace-box">
-            <h3>Workspace</h3>
-            <select id="workspace-select"></select>
-            <form id="workspace-form" class="stack compact">
-              <input name="name" type="text" placeholder="New workspace name" required />
-              <input name="description" type="text" placeholder="Description (optional)" />
+            <div class="workspace-box__header">
+              <div>
+                <p class="eyebrow eyebrow-compact">Active Workspace</p>
+                <h3>Select or create</h3>
+              </div>
+              <span class="status-pill status-pill--ready">Private</span>
+            </div>
+            <select id="workspace-select" aria-label="Active workspace"></select>
+            <form id="workspace-form" class="workspace-create-inline" autocomplete="off">
+              <input id="workspace-name-input" name="name" type="text" placeholder="New workspace name" data-i18n-placeholder="New workspace name" autocomplete="off" data-1p-ignore="true" data-lpignore="true" required />
+              <input id="workspace-description-input" name="description" type="text" placeholder="Description (optional)" data-i18n-placeholder="Description (optional)" autocomplete="off" data-1p-ignore="true" data-lpignore="true" />
               <button type="submit">Create workspace</button>
             </form>
           </div>
 
-          <div class="workspace-status-card">
-            <p class="eyebrow eyebrow-compact">Session Status</p>
-            <h3>Ready for private research</h3>
+          <article class="workspace-strip-card">
+            <p class="eyebrow eyebrow-compact">Cockpit</p>
+            <h3>Read this page fast</h3>
             <p class="muted">
-              Once a workspace is selected, every module below will store outputs, notes, assets, and schedules inside that workspace.
+              State, next action, and recent movement live here. Module work stays on dedicated pages.
             </p>
             <div class="chip-row chip-row-compact">
-              <span class="topic-chip">Private</span>
-              <span class="topic-chip">Workspace-bound</span>
-              <span class="topic-chip">Modular</span>
+              <span class="topic-chip">Current state</span>
+              <span class="topic-chip">Recent activity</span>
+              <span class="topic-chip">Next action</span>
             </div>
-          </div>
+          </article>
         </div>
       </section>
 
-      <section class="panel workspace-module-panel">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <p class="eyebrow eyebrow-compact">Module Directory</p>
-            <h2>Private research modules</h2>
-            <p class="muted">Each module opens in its own page. The workspace page no longer expands their internal controls.</p>
+      <section class="workspace-overview-grid">
+        <section class="panel workspace-hero-panel">
+          <p class="eyebrow eyebrow-compact">Current Workspace</p>
+          <h2 id="cockpit-workspace-name">Sign in to begin</h2>
+          <p class="muted" id="cockpit-workspace-meta">Private cockpit data appears after authentication.</p>
+          <div class="workspace-inline-actions" id="cockpit-action-list">
+            <a href="/research-agent" class="button-link">Open Research Agent</a>
+            <a href="/provider-center" class="button-link">Open Provider Center</a>
+            <a href="/knowledge-base" class="button-link secondary-link">Open Knowledge Base</a>
           </div>
-        </div>
+        </section>
 
-        <div class="workspace-module-grid">
-          <article class="workspace-module-card">
-            <span class="status-pill status-pill--ready">Ready</span>
-            <h3>Data Lab</h3>
-            <p>Processing, estimation, optimization.</p>
-            <a href="/data-lab" class="button-link">Open module</a>
-          </article>
+        <section class="panel workspace-next-panel">
+          <p class="eyebrow eyebrow-compact">Next Action</p>
+          <h2 id="cockpit-next-action-title">Sign in</h2>
+          <p class="muted" id="cockpit-next-action-copy">Register or log in first, then create a workspace and connect a provider.</p>
+        </section>
+      </section>
 
-          <article class="workspace-module-card">
-            <span class="status-pill status-pill--ready">Ready</span>
-            <h3>Provider Center</h3>
-            <p>Connections for models and data.</p>
-            <a href="/provider-center" class="button-link">Open module</a>
-          </article>
+      <section class="workspace-dashboard-grid">
+        <section class="panel">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Status</p>
+              <h2>Workspace state</h2>
+            </div>
+          </div>
+          <div id="cockpit-stat-grid" class="workspace-stat-grid"></div>
+        </section>
 
-          <article class="workspace-module-card">
-            <span class="status-pill status-pill--ready">Ready</span>
-            <h3>Paper Library</h3>
-            <p>Search, import, and connect papers.</p>
-            <a href="/paper-library" class="button-link">Open module</a>
-          </article>
+        <section class="panel">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Flow</p>
+              <h2>Immediate next steps</h2>
+            </div>
+          </div>
+          <div id="cockpit-step-grid" class="workspace-step-grid"></div>
+        </section>
 
-          <article class="workspace-module-card">
-            <span class="status-pill status-pill--ready">Ready</span>
-            <h3>Knowledge Base</h3>
-            <p>Notes, cases, and summaries.</p>
-            <a href="/knowledge-base" class="button-link">Open module</a>
-          </article>
+        <section class="panel panel-span-full" id="cockpit-linkage-panel">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Linkage Map</p>
+              <h2>Cross-module map</h2>
+              <p class="muted">See how providers, papers, Data Lab output, and notes connect inside the current workspace.</p>
+            </div>
+          </div>
+          <div id="cockpit-linkage-grid" class="guide-grid"></div>
+        </section>
 
-          <article class="workspace-module-card">
-            <span class="status-pill status-pill--ready">Ready</span>
-            <h3>Daily Monitor</h3>
-            <p>Private monitoring workspace.</p>
-            <a href="/public-monitor" class="button-link">Open module</a>
-          </article>
+        <section class="panel">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Recent Activity</p>
+              <h2>Recent activity</h2>
+            </div>
+          </div>
+          <div id="cockpit-activity-list" class="card-list"></div>
+        </section>
 
-          <article class="workspace-module-card">
-            <span class="status-pill status-pill--ready">Ready</span>
-            <h3>Schedules</h3>
-            <p>Recurring briefing and research jobs.</p>
-            <a href="/schedules" class="button-link">Open module</a>
-          </article>
-        </div>
+        <section class="panel">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Research Flow</p>
+              <h2>Continue here</h2>
+            </div>
+          </div>
+          <div id="cockpit-flow-list" class="card-list"></div>
+        </section>
+
+        <section class="panel panel-span-full" id="workspace-memory-panel">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Workspace Memory</p>
+              <h2>Private memory chunks</h2>
+              <p class="muted">Keep the latest workspace-specific reminders, assumptions, or follow-up instructions here.</p>
+            </div>
+          </div>
+          <form id="workspace-memory-form" class="workspace-create-inline" autocomplete="off">
+            <input id="workspace-memory-title" name="title" type="text" placeholder="Memory title (optional)" data-i18n-placeholder="Memory title (optional)" maxlength="200" autocomplete="off" data-1p-ignore="true" data-lpignore="true" />
+            <textarea id="workspace-memory-content" name="content" rows="3" placeholder="Save a short workspace-specific memory chunk." data-i18n-placeholder="Save a short workspace-specific memory chunk." maxlength="4000" required></textarea>
+            <button type="submit">Save memory</button>
+          </form>
+          <div id="workspace-memory-list" class="card-list"></div>
+        </section>
       </section>
     </main>
 

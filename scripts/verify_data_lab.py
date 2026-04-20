@@ -2,16 +2,22 @@ from __future__ import annotations
 
 import io
 import json
+import math
 import os
+import requests
 import shutil
 import sys
 import tempfile
+import time
+import uuid
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 from fastapi.testclient import TestClient
+
+from session_auth import auth_headers, same_origin_headers, session_token_from_cookies
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -30,6 +36,7 @@ def configure_test_environment(temp_root: Path) -> None:
     os.environ["RESEARCH_AGENT_REPORTS_DIR"] = str((temp_root / "reports").resolve())
     os.environ["ASSET_STORAGE_BACKEND"] = "local"
     os.environ["PUBLIC_BASE_URL"] = "http://testserver"
+    os.environ["PYTHON_DOTENV_DISABLED"] = "1"
 
 
 def _write_json(path: Path, payload: Any) -> None:
@@ -247,9 +254,140 @@ def build_time_series_dataset() -> pd.DataFrame:
         }
     )
 
+def assert_page_markers(path: str, html: str, required: list[str], forbidden: list[str] | None = None) -> None:
+    for marker in required:
+        if marker not in html:
+            raise AssertionError(f"{path}: missing required anchor {marker}")
+    for marker in forbidden or []:
+        if marker in html:
+            raise AssertionError(f"{path}: unexpected marker present {marker}")
 
-def auth_headers(token: str) -> dict[str, str]:
-    return {"Authorization": f"Bearer {token}"}
+
+def authenticate_live_session(
+    session: requests.Session,
+    *,
+    base_url: str,
+    email: str,
+    password: str,
+    full_name: str,
+) -> tuple[str, str]:
+    retry_delay_seconds = 3
+
+    def try_login(target_email: str, retries: int = 3) -> requests.Response:
+        last_response = None
+        for attempt in range(retries):
+            response = session.post(
+                f"{base_url}/api/auth/login",
+                headers=same_origin_headers(base_url),
+                json={"email": target_email, "password": password},
+                timeout=20,
+            )
+            last_response = response
+            if response.status_code == 200:
+                return response
+            if response.status_code < 500:
+                return response
+            if attempt < retries - 1:
+                time.sleep(retry_delay_seconds)
+        return last_response
+
+    login_response = try_login(email)
+    if login_response.status_code == 200:
+        return email, password
+
+    register_response = session.post(
+        f"{base_url}/api/auth/register",
+        headers=same_origin_headers(base_url),
+        json={"full_name": full_name, "email": email, "password": password},
+        timeout=20,
+    )
+    if register_response.status_code == 200:
+        return email, password
+
+    if register_response.status_code == 400 and "already registered" in register_response.text.lower():
+        retry_login = try_login(email)
+        if retry_login.status_code == 200:
+            return email, password
+
+    fallback_email = email
+    if "@example.com" in email:
+        fallback_email = email.replace("@example.com", f"+{uuid.uuid4().hex[:8]}@example.com")
+    else:
+        fallback_email = f"verify-data-lab-live-{uuid.uuid4().hex[:8]}@example.com"
+
+    fallback_register = session.post(
+        f"{base_url}/api/auth/register",
+        headers=same_origin_headers(base_url),
+        json={"full_name": full_name, "email": fallback_email, "password": password},
+        timeout=20,
+    )
+    if fallback_register.status_code == 200:
+        return fallback_email, password
+
+    raise AssertionError(
+        "Live Data Lab sanity could not authenticate a session "
+        f"(login={login_response.status_code}, register={register_response.status_code}, "
+        f"fallback_register={fallback_register.status_code})."
+    )
+
+
+def verify_live_data_lab_pages() -> None:
+    base_url = os.environ.get("VERIFY_DATA_LAB_LIVE_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+    if not base_url:
+        return
+
+    session = requests.Session()
+    retry_delay_seconds = 3
+    health_error: requests.RequestException | None = None
+    for attempt in range(2):
+        try:
+            health_response = session.get(f"{base_url}/api/health", timeout=5)
+            health_response.raise_for_status()
+            health_error = None
+            break
+        except requests.RequestException as exc:
+            health_error = exc
+            if attempt == 0:
+                time.sleep(retry_delay_seconds)
+    if health_error is not None:
+        print(f"Skipping live Data Lab sanity checks: {health_error}")
+        return
+
+    email = os.environ.get("VERIFY_DATA_LAB_LIVE_EMAIL", "verify-data-lab-live@example.com")
+    password = os.environ.get("VERIFY_DATA_LAB_LIVE_PASSWORD", "StrongPass123!")
+    full_name = os.environ.get("VERIFY_DATA_LAB_LIVE_FULL_NAME", "Data Lab Live Verifier")
+    authenticate_live_session(session, base_url=base_url, email=email, password=password, full_name=full_name)
+
+    live_expectations = {
+        "/data-lab": {
+            "required": [
+                'data-page-template="data-lab-dataset"',
+                'id="analysis-asset-select"',
+                'data-lab-stage="dataset"',
+            ],
+            "forbidden": ['data-page-template="data-lab-model"'],
+        },
+        "/data-lab/model": {
+            "required": [
+                'data-page-template="data-lab-model"',
+                'id="model-form"',
+                'id="plot-form"',
+                'data-lab-stage="model"',
+            ],
+            "forbidden": [
+                'data-page-template="data-lab-dataset"',
+                'id="analysis-asset-select"',
+                'id="variable-guide-form"',
+            ],
+        },
+    }
+
+    for path, expectation in live_expectations.items():
+        response = session.get(f"{base_url}{path}", timeout=20)
+        response.raise_for_status()
+        assert_page_markers(path, response.text, expectation["required"], expectation["forbidden"])
+
+    print(f"Live Data Lab sanity checks passed for {base_url}.")
 
 
 def assert_png_response(response, label: str) -> None:
@@ -348,19 +486,38 @@ def main() -> None:
     try:
         register = client.post(
             "/api/auth/register",
+            headers=same_origin_headers("http://testserver"),
             json={"full_name": "Verifier", "email": "verifier@example.com", "password": "StrongPass123!"},
         )
         register.raise_for_status()
-        token = register.json()["session_token"]
+        token = session_token_from_cookies(client)
         workspace_id = create_workspace(client, token, "Verification Lab")
+        panel_frame = build_panel_dataset()
+        ts_frame = build_time_series_dataset()
 
-        panel_asset_id = upload_csv_asset(client, token, workspace_id, "panel_dataset.csv", build_panel_dataset())
-        ts_asset_id = upload_csv_asset(client, token, workspace_id, "timeseries_dataset.csv", build_time_series_dataset())
+        panel_asset_id = upload_csv_asset(client, token, workspace_id, "panel_dataset.csv", panel_frame)
+        ts_asset_id = upload_csv_asset(client, token, workspace_id, "timeseries_dataset.csv", ts_frame)
 
         panel_profile = client.get(f"/api/workspaces/{workspace_id}/assets/{panel_asset_id}/profile", headers=auth_headers(token))
         panel_profile.raise_for_status()
         ts_profile = client.get(f"/api/workspaces/{workspace_id}/assets/{ts_asset_id}/profile", headers=auth_headers(token))
         ts_profile.raise_for_status()
+
+        secondary_workspace_id = create_workspace(client, token, "Verification Lab Batch B")
+        secondary_panel_asset_id = upload_csv_asset(client, token, secondary_workspace_id, "panel_dataset.csv", panel_frame)
+        secondary_ts_asset_id = upload_csv_asset(client, token, secondary_workspace_id, "timeseries_dataset.csv", ts_frame)
+        workspace_bundles = [
+            {
+                "workspace_id": workspace_id,
+                "panel_asset_id": panel_asset_id,
+                "ts_asset_id": ts_asset_id,
+            },
+            {
+                "workspace_id": secondary_workspace_id,
+                "panel_asset_id": secondary_panel_asset_id,
+                "ts_asset_id": secondary_ts_asset_id,
+            },
+        ]
 
         variable_guide = client.post(
             f"/api/workspaces/{workspace_id}/analysis/variable-guide",
@@ -499,10 +656,24 @@ def main() -> None:
         ]
 
         results: dict[str, dict] = {}
-        for label, payload, expect_figure in model_specs:
+        workspace_bundle_size = max(1, math.ceil(len(model_specs) / len(workspace_bundles)))
+        for index, (label, payload, expect_figure) in enumerate(model_specs):
             print(f"Running model verification: {label}")
             try:
-                results[label] = run_model(client, token, workspace_id, payload, label, expect_figure=expect_figure)
+                bundle = workspace_bundles[min(index // workspace_bundle_size, len(workspace_bundles) - 1)]
+                run_payload = dict(payload)
+                if run_payload.get("asset_id") == panel_asset_id:
+                    run_payload["asset_id"] = bundle["panel_asset_id"]
+                elif run_payload.get("asset_id") == ts_asset_id:
+                    run_payload["asset_id"] = bundle["ts_asset_id"]
+                results[label] = run_model(
+                    client,
+                    token,
+                    bundle["workspace_id"],
+                    run_payload,
+                    label,
+                    expect_figure=expect_figure,
+                )
             except Exception as exc:  # pragma: no cover - verification script
                 raise AssertionError(f"{label} failed verification: {exc}") from exc
 
@@ -549,12 +720,68 @@ def main() -> None:
 
         home = client.get("/")
         home.raise_for_status()
-        data_lab_page = client.get("/data-lab")
-        data_lab_page.raise_for_status()
-        if "Beginner Variable Guide" not in data_lab_page.text:
-            raise AssertionError("Standalone Data Lab page is missing the beginner guide section")
-        if "Time Series &amp; Econometric Finance" not in data_lab_page.text and "Time Series & Econometric Finance" not in data_lab_page.text:
-            raise AssertionError("Standalone Data Lab page is missing the expanded time-series family section")
+        page_expectations = {
+            "/data-lab": {
+                "required": [
+                    'data-page-template="data-lab-dataset"',
+                    'id="data-lab-current-step-pill"',
+                    'id="variable-guide-form"',
+                    'id="analysis-asset-select"',
+                    'data-lab-stage="dataset"',
+                ],
+                "forbidden": ['data-page-template="data-lab-model"'],
+            },
+            "/data-lab/preparation": {
+                "required": [
+                    'data-page-template="data-lab-preparation"',
+                    'id="prepare-form"',
+                    'id="processing-family"',
+                    'data-lab-stage="preparation"',
+                ],
+                "forbidden": ['data-page-template="data-lab-dataset"'],
+            },
+            "/data-lab/model": {
+                "required": [
+                    'data-page-template="data-lab-model"',
+                    'id="model-form"',
+                    'id="model-family"',
+                    'id="plot-form"',
+                    'data-lab-stage="model"',
+                ],
+                "forbidden": [
+                    'data-page-template="data-lab-dataset"',
+                    'id="analysis-asset-select"',
+                    'id="variable-guide-form"',
+                ],
+            },
+            "/data-lab/results": {
+                "required": [
+                    'data-page-template="data-lab-results"',
+                    'id="prepare-result-summary"',
+                    'id="analysis-result-summary"',
+                    'id="asset-list"',
+                    'data-lab-stage="results"',
+                ],
+                "forbidden": ['data-page-template="data-lab-dataset"'],
+            },
+            "/data-lab/history": {
+                "required": [
+                    'data-page-template="data-lab-history"',
+                    'id="lab-recent-processing-list"',
+                    'id="lab-recent-model-list"',
+                    'id="data-lab-history"',
+                    'data-lab-stage="history"',
+                ],
+                "forbidden": ['data-page-template="data-lab-dataset"'],
+            },
+        }
+        for path, expectation in page_expectations.items():
+            response = client.get(path, headers=auth_headers(token))
+            response.raise_for_status()
+            html = response.text
+            assert_page_markers(path, html, expectation["required"], expectation["forbidden"])
+            if 'id="lab-context-next-action"' not in html:
+                raise AssertionError(f"{path}: missing shared inspector anchor id=\"lab-context-next-action\"")
 
         catalog_response = client.get("/api/data-lab/catalog")
         catalog_response.raise_for_status()
@@ -598,15 +825,20 @@ def main() -> None:
                 if "Paper Table Preview" not in teaching_page.text:
                     raise AssertionError(f"{family_slug}/{method_slug}: teaching page is missing the paper table preview section")
 
-        result_page = client.get(f"/data-lab/results/models/{results['DID']['_record_id']}")
+        result_page = client.get(f"/data-lab/results/models/{results['DID']['_record_id']}", headers=auth_headers(token))
         result_page.raise_for_status()
-        if "Interpretation &amp; Replication" not in result_page.text and "Interpretation & Replication" not in result_page.text:
-            raise AssertionError("Result detail page is missing the interpretation section")
+        if 'id="lab-result-interpretation-card"' not in result_page.text:
+            raise AssertionError("Result detail page is missing the interpretation section anchor")
+        if 'id="lab-result-export-board"' not in result_page.text:
+            raise AssertionError("Result detail page is missing the export board anchor")
+
+        verify_live_data_lab_pages()
 
         print("All Data Lab verification checks passed.")
-        print(f"Workspace: {workspace_id}")
-        print(f"Panel asset: {panel_asset_id}")
-        print(f"Time-series asset: {ts_asset_id}")
+        print(f"Primary workspace: {workspace_id}")
+        print(f"Secondary workspace: {secondary_workspace_id}")
+        print(f"Primary panel asset: {panel_asset_id}")
+        print(f"Primary time-series asset: {ts_asset_id}")
         print(f"Models verified: {len(model_specs)}")
     finally:
         client.close()

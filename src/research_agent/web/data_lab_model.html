@@ -1,0 +1,629 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Configure models and chart runs, then execute analysis against the currently selected dataset."
+      data-i18n-content="Configure models and chart runs, then execute analysis against the currently selected dataset."
+    />
+    <title data-i18n="Data Lab | Economic Research Platform">Data Lab | Economic Research Platform</title>
+    <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body class="page-data-lab page-data-lab-shell page-private-suite" data-page-template="data-lab-model">
+    <div class="page-bg"></div>
+
+    <header class="lab-app-bar">
+      <div class="lab-app-bar__inner">
+        <div>
+          <div class="lab-app-bar__meta">
+            <a href="/workspace" class="inline-link">Workspace</a>
+            <span class="status-pill status-pill--ready" id="data-lab-current-step-pill">Dataset</span>
+            <span class="mono-note" id="data-lab-app-workspace">No workspace selected</span>
+          </div>
+          <p class="eyebrow">Data Lab</p>
+          <h1 id="data-lab-app-title">Dataset workspace</h1>
+          <p class="lab-app-bar__copy" id="data-lab-app-copy">Model setup and execution.</p>
+        </div>
+        <div class="lab-app-bar__actions">
+          <a href="/workspace" class="button-link secondary-link">Workspace</a>
+          <a href="/data-lab/optimization" class="button-link">Optimization</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="lab-shell">
+      <aside class="lab-rail panel">
+        <div class="lab-rail__top">
+          <p class="eyebrow eyebrow-compact">Workbench</p>
+          <h2 id="data-lab-step-title">Dataset</h2>
+          <p class="muted" id="data-lab-step-copy">Run a model or chart.</p>
+        </div>
+        <nav class="lab-rail-nav" aria-label="Data Lab sections">
+          <a href="/data-lab" data-lab-shell-link="dataset">Dataset</a>
+          <a href="/data-lab/preparation" data-lab-shell-link="preparation">Preparation</a>
+          <a href="/data-lab/model" data-lab-shell-link="model">Model</a>
+          <a href="/data-lab/optimization" data-lab-shell-link="optimization">Optimization</a>
+          <a href="/data-lab/results" data-lab-shell-link="results">Results</a>
+          <a href="/data-lab/history" data-lab-shell-link="history">History</a>
+        </nav>
+        <div class="lab-rail__footer">
+          <a href="/data-lab/optimization" class="button-link secondary-link">Open optimization suite</a>
+          <a id="data-lab-run-link" href="#analysis-asset-select" class="button-link">Inspect dataset</a>
+        </div>
+      </aside>
+
+      <section class="lab-main">
+        <div class="lab-stage-content" id="data-lab-workbench">
+<section class="lab-stage-card panel" data-lab-stage="preparation model">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <p class="eyebrow eyebrow-compact">Workflow</p>
+                <h2>Workflow</h2>
+                <p class="muted">Select preparation or model.</p>
+              </div>
+            </div>
+            <div class="card stack compact">
+              <div class="split">
+                <div class="stack compact">
+                  <label for="lab-workflow-type">Primary workflow</label>
+                  <select id="lab-workflow-type">
+                    <option value="data_processing">Data Processing</option>
+                    <option value="model">Model</option>
+                  </select>
+                </div>
+                <div class="stack compact" id="processing-family-wrap">
+                  <label for="processing-family">Processing family</label>
+                  <select id="processing-family">
+                    <option value="sample_preparation">Sample Preparation</option>
+                    <option value="cleaning_transforms">Cleaning &amp; Transforms</option>
+                    <option value="time_series_features">Time-Series Features</option>
+                    <option value="visualization">Visualization</option>
+                  </select>
+                </div>
+                <div class="stack compact hidden" id="model-family-wrap">
+                  <label for="model-family">Model family</label>
+                  <select id="model-family">
+                    <option value="econometrics_baseline">Econometrics Baseline</option>
+                    <option value="time_series_finance">Time Series &amp; Econometric Finance</option>
+                    <option value="corporate_finance">Corporate Finance</option>
+                    <option value="risk_management">Risk Management</option>
+                    <option value="derivatives_pricing">Derivatives Pricing</option>
+                    <option value="macro_finance_dsge">Macro Finance &amp; DSGE</option>
+                    <option value="portfolio_allocation">Portfolio Allocation</option>
+                    <option value="asset_pricing">Asset Pricing</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </section>
+
+<section class="lab-stage-card panel" data-lab-stage="model">
+            <div class="panel-head panel-head-wrap">
+              <div>
+                <p class="eyebrow eyebrow-compact">Model</p>
+                <h2>Model</h2>
+                <p class="muted">Set the model or chart.</p>
+              </div>
+            </div>
+            <div class="lab-stage-stack">
+              <form id="model-form" class="stack hidden">
+                <div class="lab-template-builder">
+                  <div class="panel-head panel-head-wrap">
+                    <div>
+                      <h4>Model Templates &amp; Variant Builder</h4>
+                      <span class="muted">Apply a template or variant.</span>
+                    </div>
+                  </div>
+                  <div class="split">
+                    <div class="stack compact">
+                      <label for="model-template-select">Saved template</label>
+                      <select id="model-template-select"></select>
+                    </div>
+                    <div class="stack compact">
+                      <label for="model-variant-select">Preset variant</label>
+                      <select id="model-variant-select"></select>
+                    </div>
+                  </div>
+                  <div class="stack compact">
+                    <label for="model-variant-json">Advanced specification (JSON)</label>
+                  <textarea id="model-variant-json" rows="5" placeholder='{"robust_covariance": false, "include_time_effects": true}' data-i18n-placeholder='{"robust_covariance": false, "include_time_effects": true}'></textarea>
+                  </div>
+                  <div class="actions compact-actions">
+                    <button type="button" class="secondary" id="model-save-template">Save current model template</button>
+                    <span class="muted" id="model-template-status">No template selected.</span>
+                  </div>
+                </div>
+                <div class="panel-head">
+                  <h3>Model Lab</h3>
+                  <span class="muted">Set model and variables.</span>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="model-type">Specific model</label>
+                    <select id="model-type" name="model_type">
+                      <option value="ols">OLS</option>
+                    </select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="model-dependent">Outcome / flow variable</label>
+                    <select id="model-dependent" name="dependent"></select>
+                  </div>
+                </div>
+                <div id="ols-fields" class="stack compact">
+                  <label for="model-independents">Independent variables</label>
+                  <select id="model-independents" name="independents" multiple size="6"></select>
+                </div>
+                <div id="did-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="did-treatment-column">Treatment indicator</label>
+                    <select id="did-treatment-column" name="treatment_column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="did-post-column">Post indicator</label>
+                    <select id="did-post-column" name="post_column"></select>
+                  </div>
+                </div>
+                <div id="event-study-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="event-treatment-column">Treatment indicator</label>
+                    <select id="event-treatment-column" name="event_treatment_column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="event-time-column">Relative event time</label>
+                    <select id="event-time-column" name="event_time_column"></select>
+                  </div>
+                </div>
+                <div id="event-study-window-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="event-lead-window">Lead window</label>
+                    <input id="event-lead-window" name="lead_window" type="number" min="0" step="1" value="4" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="event-lag-window">Lag window</label>
+                    <input id="event-lag-window" name="lag_window" type="number" min="0" step="1" value="4" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="event-omitted-period">Omitted period</label>
+                    <input id="event-omitted-period" name="omitted_period" type="number" step="1" value="-1" />
+                  </div>
+                </div>
+                <div id="rdd-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="rdd-running-column">Running variable</label>
+                    <select id="rdd-running-column" name="running_column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="rdd-cutoff">Cutoff</label>
+                    <input id="rdd-cutoff" name="rdd_cutoff" type="number" step="0.01" value="0" />
+                  </div>
+                </div>
+                <div id="rdd-config-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="rdd-bandwidth">Bandwidth</label>
+                    <input id="rdd-bandwidth" name="rdd_bandwidth" type="number" step="0.01" value="0" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="rdd-polynomial-order">Polynomial order</label>
+                    <input id="rdd-polynomial-order" name="rdd_polynomial_order" type="number" min="1" max="3" step="1" value="1" />
+                  </div>
+                  <div class="stack compact">
+                    <label class="checkbox" for="rdd-treat-above-cutoff"><input id="rdd-treat-above-cutoff" name="treat_above_cutoff" type="checkbox" checked /> Treat above cutoff</label>
+                  </div>
+                </div>
+                <div id="gravity-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="gravity-origin-mass-column">Origin mass</label>
+                    <select id="gravity-origin-mass-column" name="origin_mass_column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="gravity-destination-mass-column">Destination mass</label>
+                    <select id="gravity-destination-mass-column" name="destination_mass_column"></select>
+                  </div>
+                </div>
+                <div id="gravity-distance-wrap" class="stack compact hidden">
+                  <label for="gravity-distance-column">Distance variable</label>
+                  <select id="gravity-distance-column" name="distance_column"></select>
+                </div>
+                <div id="series-model-fields" class="stack compact hidden">
+                  <label for="model-series-columns">Series / asset columns</label>
+                  <select id="model-series-columns" multiple size="6"></select>
+                </div>
+                <div id="time-series-model-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="model-time-column">Time column</label>
+                    <select id="model-time-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="forecast-steps">Forecast steps</label>
+                    <input id="forecast-steps" type="number" min="1" step="1" value="5" />
+                  </div>
+                </div>
+                <div id="arima-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="arima-p">ARIMA p</label>
+                    <input id="arima-p" type="number" min="0" step="1" value="1" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="arima-d">ARIMA d</label>
+                    <input id="arima-d" type="number" min="0" step="1" value="0" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="arima-q">ARIMA q</label>
+                    <input id="arima-q" type="number" min="0" step="1" value="0" />
+                  </div>
+                </div>
+                <div id="var-fields" class="stack compact hidden">
+                  <label for="var-lags">VAR lags</label>
+                  <input id="var-lags" type="number" min="1" step="1" value="1" />
+                </div>
+                <div id="garch-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="garch-p">ARCH / GARCH p</label>
+                    <input id="garch-p" type="number" min="1" step="1" value="1" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="garch-q">GARCH q</label>
+                    <input id="garch-q" type="number" min="0" step="1" value="1" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="virf-shock-size">VIRF shock size (sigma)</label>
+                    <input id="virf-shock-size" type="number" min="0.05" step="0.05" value="1.0" />
+                  </div>
+                </div>
+                <div id="irf-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="irf-horizon">IRF / connectedness horizon</label>
+                    <input id="irf-horizon" type="number" min="1" step="1" value="12" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="impulse-column">Impulse variable</label>
+                    <select id="impulse-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="response-column">Response variable</label>
+                    <select id="response-column"></select>
+                  </div>
+                </div>
+                <div id="bk-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="bk-short-horizon">BK short horizon</label>
+                    <input id="bk-short-horizon" type="number" min="1" step="1" value="5" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="bk-medium-horizon">BK medium horizon</label>
+                    <input id="bk-medium-horizon" type="number" min="2" step="1" value="20" />
+                  </div>
+                </div>
+                <div class="stack compact">
+                  <label for="model-controls">Controls</label>
+                  <select id="model-controls" name="controls" multiple size="6"></select>
+                </div>
+                <div id="fe-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="panel-entity-column">Entity / unit column</label>
+                    <select id="panel-entity-column" name="entity_column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="panel-time-column">Time column</label>
+                    <select id="panel-time-column" name="time_column"></select>
+                  </div>
+                </div>
+                <label id="fe-time-toggle" class="checkbox hidden"><input id="include-time-effects" name="include_time_effects" type="checkbox" /> Add time fixed effects</label>
+                <div id="iv-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="iv-endogenous-column">Endogenous regressor</label>
+                    <select id="iv-endogenous-column" name="endogenous_column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="iv-instrument-columns">Instrument columns</label>
+                    <select id="iv-instrument-columns" name="instrument_columns" multiple size="6"></select>
+                  </div>
+                </div>
+                <div id="risk-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="confidence-level">Confidence level</label>
+                    <input id="confidence-level" type="number" min="0.5" max="0.999" step="0.001" value="0.95" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="holding-period-days">Holding period (days)</label>
+                    <input id="holding-period-days" type="number" min="1" step="1" value="1" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="ewma-lambda">EWMA lambda</label>
+                    <input id="ewma-lambda" type="number" min="0.5" max="0.999" step="0.001" value="0.94" />
+                  </div>
+                </div>
+                <div id="corporate-altman-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="working-capital-column">Working capital</label>
+                    <select id="working-capital-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="retained-earnings-column">Retained earnings</label>
+                    <select id="retained-earnings-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="ebit-column">EBIT</label>
+                    <select id="ebit-column"></select>
+                  </div>
+                </div>
+                <div id="corporate-altman-fields-2" class="split hidden">
+                  <div class="stack compact">
+                    <label for="market-equity-column">Market equity</label>
+                    <select id="market-equity-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="sales-column">Sales</label>
+                    <select id="sales-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="total-assets-column">Total assets</label>
+                    <select id="total-assets-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="total-liabilities-column">Total liabilities</label>
+                    <select id="total-liabilities-column"></select>
+                  </div>
+                </div>
+                <div id="corporate-dupont-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="net-income-column">Net income</label>
+                    <select id="net-income-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="revenue-column">Revenue</label>
+                    <select id="revenue-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="equity-column">Equity</label>
+                    <select id="equity-column"></select>
+                  </div>
+                </div>
+                <div id="derivative-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="spot-column">Spot price</label>
+                    <select id="spot-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="strike-column">Strike</label>
+                    <select id="strike-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="maturity-column">Time to maturity</label>
+                    <select id="maturity-column"></select>
+                  </div>
+                </div>
+                <div id="derivative-fields-2" class="split hidden">
+                  <div class="stack compact">
+                    <label for="rate-column">Risk-free rate</label>
+                    <select id="rate-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="volatility-column">Volatility</label>
+                    <select id="volatility-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="option-type">Option type</label>
+                    <select id="option-type">
+                      <option value="call">Call</option>
+                      <option value="put">Put</option>
+                    </select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="option-steps">Binomial steps</label>
+                    <input id="option-steps" type="number" min="1" step="1" value="50" />
+                  </div>
+                </div>
+                <div id="macro-taylor-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="inflation-gap-column">Inflation gap</label>
+                    <select id="inflation-gap-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="output-gap-column">Output gap</label>
+                    <select id="output-gap-column"></select>
+                  </div>
+                </div>
+                <div id="dsge-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="dsge-alpha">Alpha</label>
+                    <input id="dsge-alpha" type="number" min="0.01" max="0.99" step="0.01" value="0.33" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="dsge-beta">Beta</label>
+                    <input id="dsge-beta" type="number" min="0.5" max="0.999" step="0.001" value="0.99" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="dsge-delta">Delta</label>
+                    <input id="dsge-delta" type="number" min="0.001" max="0.2" step="0.001" value="0.025" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="dsge-productivity">Productivity</label>
+                    <input id="dsge-productivity" type="number" min="0.1" step="0.01" value="1" />
+                  </div>
+                </div>
+                <div id="dsge-fields-2" class="split hidden">
+                  <div class="stack compact">
+                    <label for="dsge-labor">Labor</label>
+                    <input id="dsge-labor" type="number" min="0.05" max="1" step="0.01" value="0.33" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="dsge-shock-persistence">Shock persistence</label>
+                    <input id="dsge-shock-persistence" type="number" min="0" max="0.999" step="0.01" value="0.9" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="dsge-shock-size">Shock size</label>
+                    <input id="dsge-shock-size" type="number" min="0.001" max="1" step="0.001" value="0.01" />
+                  </div>
+                  <div class="stack compact">
+                    <label for="dsge-impulse-horizon">Impulse horizon</label>
+                    <input id="dsge-impulse-horizon" type="number" min="1" step="1" value="12" />
+                  </div>
+                </div>
+                <div id="portfolio-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="portfolio-risk-aversion">Risk aversion</label>
+                    <input id="portfolio-risk-aversion" type="number" min="0.1" step="0.1" value="3" />
+                  </div>
+                  <div class="stack compact">
+                    <label class="checkbox" for="portfolio-long-only"><input id="portfolio-long-only" type="checkbox" checked /> Long only</label>
+                  </div>
+                </div>
+                <div id="asset-pricing-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="market-column">Market return / factor</label>
+                    <select id="market-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="risk-free-column">Risk-free rate (optional)</label>
+                    <select id="risk-free-column"></select>
+                  </div>
+                </div>
+                <div id="ff3-fields" class="split hidden">
+                  <div class="stack compact">
+                    <label for="smb-column">SMB</label>
+                    <select id="smb-column"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="hml-column">HML</label>
+                    <select id="hml-column"></select>
+                  </div>
+                </div>
+                <label class="checkbox"><input id="model-robust-covariance" name="robust_covariance" type="checkbox" checked /> Use robust covariance (HC1)</label>
+                <button type="submit">Run selected model</button>
+              </form>
+              <form id="plot-form" class="stack hidden">
+                <div class="panel-head">
+                  <h3>Chart Lab</h3>
+                  <span class="muted">Generate charts from the dataset.</span>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="plot-type">Chart type</label>
+                    <select id="plot-type" name="chart_type">
+                      <option value="line">Line</option>
+                      <option value="scatter">Scatter</option>
+                      <option value="bar">Bar</option>
+                      <option value="histogram">Histogram</option>
+                    </select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="plot-x-column">X variable</label>
+                    <select id="plot-x-column" name="x_column"></select>
+                  </div>
+                </div>
+                <div class="split">
+                  <div class="stack compact">
+                    <label for="plot-y-columns">Y variable(s)</label>
+                    <select id="plot-y-columns" name="y_columns" multiple size="5"></select>
+                  </div>
+                  <div class="stack compact">
+                    <label for="plot-group-column">Group / color (optional)</label>
+                    <select id="plot-group-column" name="group_column"></select>
+                  </div>
+                </div>
+                  <input id="plot-title" name="title" type="text" placeholder="Chart title (optional)" data-i18n-placeholder="Chart title (optional)" />
+                <button type="submit">Generate chart</button>
+              </form>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <aside class="lab-inspector">
+        <section class="panel lab-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Run Summary</h3>
+              <span class="muted">Current status.</span>
+            </div>
+          </div>
+          <div class="workflow-guide-grid lab-inspector-steps">
+            <article class="workflow-step-card" id="lab-step-access">
+              <span class="pill">Access</span>
+              <h4>Access workspace</h4>
+              <p class="muted" id="lab-step-access-text">Signed out</p>
+            </article>
+            <article class="workflow-step-card" id="lab-step-dataset">
+              <span class="pill">Dataset</span>
+              <h4>Inspect dataset</h4>
+              <p class="muted" id="lab-step-dataset-text">No dataset</p>
+            </article>
+            <article class="workflow-step-card" id="lab-step-workflow">
+              <span class="pill">Workflow</span>
+              <h4>Choose workflow</h4>
+              <p class="muted" id="lab-step-workflow-text">Choose a page</p>
+            </article>
+            <article class="workflow-step-card" id="lab-step-output">
+              <span class="pill">Output</span>
+              <h4>Review output</h4>
+              <p class="muted" id="lab-step-output-text">No result</p>
+            </article>
+          </div>
+          <div class="context-grid">
+            <p><strong>Access:</strong> <span id="lab-context-access">Signed out</span></p>
+            <p><strong>Workspace:</strong> <span id="lab-context-workspace">No workspace selected</span></p>
+            <p><strong>Dataset:</strong> <span id="lab-context-dataset">No dataset selected</span></p>
+            <p><strong>Workflow:</strong> <span id="lab-context-workflow">Data Processing</span></p>
+            <p><strong>Family:</strong> <span id="lab-context-family">Sample Preparation</span></p>
+            <p><strong>Model:</strong> <span id="lab-context-model">No model selected</span></p>
+          </div>
+          <div class="stack compact">
+            <label for="lab-case-select">Active case</label>
+            <select id="lab-case-select">
+              <option value="">No active case</option>
+            </select>
+            <p class="muted" id="lab-case-meta">Optional case link.</p>
+          </div>
+          <div class="actions compact-actions">
+            <span class="muted" id="lab-context-next-action">Sign in or select a workspace.</span>
+            <a id="lab-case-home-link" href="/knowledge-base" class="button-link secondary-link">Open case workspace</a>
+            <a id="lab-context-detail-link" href="/data-lab/processing/sample_preparation" class="button-link secondary-link">Open family detail</a>
+          </div>
+        </section>
+
+        <section class="panel lab-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Method Summary</h3>
+              <span class="muted">Current family and methods.</span>
+            </div>
+          </div>
+          <p class="eyebrow eyebrow-compact" id="lab-active-family-eyebrow">Data Processing Family</p>
+          <h3 id="lab-active-family-title">Sample Preparation</h3>
+          <p class="muted" id="lab-active-family-summary">Current family info.</p>
+          <div class="chip-row chip-row-compact" id="lab-active-family-methods"></div>
+          <div class="card-list card-list-inline" id="lab-active-family-checks"></div>
+          <div class="actions compact-actions">
+            <a id="lab-active-family-link" href="/data-lab/processing/sample_preparation" class="button-link secondary-link">Open method detail page</a>
+          </div>
+        </section>
+
+        <section class="panel lab-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Validation</h3>
+              <span class="muted">Current run setup.</span>
+            </div>
+          </div>
+          <p class="eyebrow eyebrow-compact">Current design</p>
+          <h4 id="lab-run-design-title">Select a workflow and family</h4>
+          <p class="muted" id="lab-run-design-copy">Inputs and outputs for this stage.</p>
+          <div class="chip-row chip-row-compact" id="lab-run-design-surfaces"></div>
+          <div id="lab-run-design-checks" class="card-list card-list-inline">
+            <div class="card"><p>Checks appear here.</p></div>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
+

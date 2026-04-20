@@ -1,5 +1,6 @@
 .env
 .venv/
+.venv-vllm/
 __pycache__/
 *.pyc
 *.egg-info/
@@ -12,3 +13,7 @@ _tmp*
 catboost_info/
 _import/
 蒙特卡洛/
+frontend-spa/node_modules/
+frontend-spa/dist/
+output/
+新test/

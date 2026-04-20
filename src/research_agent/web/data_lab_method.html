@@ -3,54 +3,53 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Data Lab Model Method | Economic Research Platform</title>
+    <meta
+      name="description"
+      content="Review model method references, supported variants, and implementation notes for the current Data Lab route."
+      data-i18n-content="Review model method references, supported variants, and implementation notes for the current Data Lab route."
+    />
+    <title data-i18n="Data Lab Model Method | Economic Research Platform">Data Lab Model Method | Economic Research Platform</title>
     <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
-  <body>
+  <body class="page-private-suite page-data-lab-method">
     <div class="page-bg"></div>
-    <header class="hero">
-      <div>
-        <p class="eyebrow" id="lab-model-method-eyebrow">Model Method</p>
-        <h1 id="lab-model-method-title">Loading model method...</h1>
-        <p class="hero-copy" id="lab-model-method-summary">
-          This page exposes a single model method, its core equation, expected outputs, and manual verification checks.
-        </p>
-      </div>
-      <div class="hero-meta">
-        <div class="meta-card">
-          <span>Model family</span>
-          <strong id="lab-model-method-family">Loading...</strong>
+
+    <header class="suite-page-head">
+      <div class="suite-page-head__inner">
+        <div class="suite-page-head__copy">
+          <div class="suite-page-head__meta">
+            <a href="/data-lab" class="inline-link">Data Lab</a>
+            <span class="status-pill status-pill--ready">Model method</span>
+          </div>
+          <p class="eyebrow" id="lab-model-method-eyebrow">Model Method</p>
+          <h1 id="lab-model-method-title">Loading model method...</h1>
+          <p class="suite-page-head__summary" id="lab-model-method-summary">
+            This page keeps the core equation, required inputs, expected outputs, paper framing, and verification notes in one method document.
+          </p>
         </div>
-        <div class="meta-card">
-          <span>Transparency</span>
-          <strong>Equation and audit exposed</strong>
+        <div class="suite-page-kpis">
+          <article class="suite-page-kpi">
+            <span>Model family</span>
+            <strong id="lab-model-method-family">Loading...</strong>
+          </article>
+          <article class="suite-page-kpi">
+            <span>Audit posture</span>
+            <strong>Equation exposed</strong>
+          </article>
         </div>
       </div>
     </header>
 
-    <main class="shell public-shell">
-      <section class="panel platform-nav-panel">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2>Platform Navigation</h2>
-            <p class="muted">Only navigation stays open on public hosts before login. Use these links to move across standalone pages.</p>
-          </div>
-        </div>
-        <div class="platform-nav-grid">
-          <a class="platform-nav-card" href="/"><span class="eyebrow eyebrow-compact">Main</span><h3>Main Platform</h3><p>Return to sign-in, Provider Center, Paper Library, and the private workspace cockpit.</p></a>
-          <a class="platform-nav-card" href="/data-lab"><span class="eyebrow eyebrow-compact">Standalone</span><h3>Data Lab</h3><p>Open the main Data Lab workbench.</p></a>
-          <a class="platform-nav-card" href="/optimization-lab"><span class="eyebrow eyebrow-compact">Standalone</span><h3>Optimization Lab</h3><p>Open the optimization benchmark workspace.</p></a>
-          <a class="platform-nav-card" href="/public-monitor"><span class="eyebrow eyebrow-compact">Public</span><h3>Public Daily Monitor</h3><p>Switch to the macro monitor surface.</p></a>
-        </div>
-      </section>
-
+    <main class="suite-page-shell">
       <section class="panel access-gate-panel hidden" id="access-gate-panel" data-access-gate>
         <div class="access-gate-card">
           <p class="eyebrow eyebrow-compact" id="access-gate-eyebrow">Access Control</p>
           <h2 id="access-gate-title">Sign in to unlock model method pages</h2>
           <p class="muted" id="access-gate-copy">
-            On public hosts, only Platform Navigation stays open before login. Sign in on the main platform, then reopen this method page.
+            On public hosts, sign in on the main platform first, then reopen this method page in the same browser session.
           </p>
           <div class="actions compact-actions" id="access-gate-actions">
             <a href="/" class="button-link">Go to sign-in</a>
@@ -58,62 +57,84 @@
         </div>
       </section>
 
-      <section class="panel public-toolbar access-guarded">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2 id="lab-model-method-heading">Model Method Detail</h2>
-            <p class="muted" id="lab-model-method-description">
-              Review the method, then open the private workbench with the correct family and model type preselected.
-            </p>
-          </div>
-          <div class="actions">
-            <a href="/data-lab" class="button-link secondary-link">Back to Data Lab</a>
-            <a href="/data-lab" id="lab-model-method-family-link" class="button-link secondary-link">Open family page</a>
-            <a href="/data-lab" id="lab-model-method-teaching-link" class="button-link secondary-link">Open teaching page</a>
-            <a href="/data-lab" id="lab-model-method-workbench-link" class="button-link">Open in workbench</a>
-          </div>
+      <section class="panel suite-page-toolbar access-guarded">
+        <div>
+          <p class="eyebrow eyebrow-compact">Method Document</p>
+          <h2 id="lab-model-method-heading">Model Method Detail</h2>
+          <p class="muted" id="lab-model-method-description">
+            Review the method, then reopen the private workbench with the correct family and model preselected.
+          </p>
+        </div>
+        <div class="actions actions-wrap">
+          <a href="/data-lab" class="button-link secondary-link">Back to Data Lab</a>
+          <a href="/data-lab" id="lab-model-method-family-link" class="button-link secondary-link">Open family page</a>
+          <a href="/data-lab" id="lab-model-method-teaching-link" class="button-link secondary-link">Open teaching page</a>
+          <a href="/data-lab" id="lab-model-method-workbench-link" class="button-link">Open in workbench</a>
         </div>
       </section>
 
-      <section class="panel public-section access-guarded">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h3>Method Snapshot</h3>
-            <span class="muted">A compact overview of what this method needs, what it produces, and how to use it in the workbench.</span>
-          </div>
-        </div>
-        <div id="lab-model-method-snapshot" class="snapshot-grid">
-          <article class="snapshot-card">
-            <span>Loading...</span>
-            <strong>Method metadata</strong>
-            <p>The summary cards will load with the method detail.</p>
-          </article>
-        </div>
-      </section>
-
-      <div class="public-layout access-guarded">
-        <aside class="panel public-sidebar">
-          <div class="stack">
-            <div>
-              <p class="eyebrow eyebrow-compact">Navigate</p>
-              <h3>Method Detail</h3>
-            </div>
-            <nav class="public-section-nav">
+      <div class="suite-page-layout access-guarded">
+        <aside class="panel suite-page-sidebar">
+          <div class="suite-page-sidebar__block">
+            <p class="eyebrow eyebrow-compact">Navigate</p>
+            <h3>Method sections</h3>
+            <nav class="suite-page-sidebar__nav">
               <a href="#lab-model-method-equation-card">Equation</a>
-              <a href="#lab-model-method-inputs-card">Required Inputs</a>
-              <a href="#lab-model-method-outputs-card">Expected Outputs</a>
-              <a href="#lab-model-method-paper-card">Paper Results Template</a>
-              <a href="#lab-model-method-preview-card">Paper Table Preview</a>
-              <a href="#lab-model-method-audit-card">Manual Verification</a>
+              <a href="#lab-model-method-inputs-card">Inputs</a>
+              <a href="#lab-model-method-outputs-card">Outputs</a>
+              <a href="#lab-model-method-paper-card">Paper template</a>
+              <a href="#lab-model-method-preview-card">Preview</a>
+              <a href="#lab-model-method-audit-card">Verification</a>
             </nav>
-            <div class="public-sidebar-note">
-              <p class="muted">This page is descriptive. It explains the method but does not generate recommendations.</p>
+          </div>
+          <div class="suite-page-sidebar__block">
+            <p class="eyebrow eyebrow-compact">Routes</p>
+            <div class="suite-page-route-list">
+              <a href="/data-lab">Data Lab</a>
+              <a href="/knowledge-base">Knowledge base</a>
+              <a href="/workspace">Workspace hub</a>
             </div>
+          </div>
+          <div class="suite-page-note">
+            <p class="muted">Use this page as the readable contract for the method before opening a private dataset.</p>
           </div>
         </aside>
 
-        <section class="public-main">
-          <article class="panel public-section" id="lab-model-method-equation-card">
+        <section class="suite-page-main">
+          <section class="suite-page-band">
+            <article class="panel suite-page-section">
+              <div class="panel-head panel-head-wrap">
+                <div>
+                  <p class="eyebrow eyebrow-compact">Snapshot</p>
+                  <h3>Method overview</h3>
+                </div>
+              </div>
+              <div id="lab-model-method-snapshot" class="snapshot-grid">
+                <article class="snapshot-card">
+                  <span>Loading...</span>
+                  <strong>Method metadata</strong>
+                  <p>The summary cards will load with the method detail.</p>
+                </article>
+              </div>
+            </article>
+
+            <article class="panel suite-page-section" id="lab-model-method-runbook-card">
+              <div class="panel-head panel-head-wrap">
+                <div>
+                  <p class="eyebrow eyebrow-compact">Runbook</p>
+                  <h3>Execution sequence</h3>
+                </div>
+              </div>
+              <div id="lab-model-method-runbook" class="guide-grid">
+                <article class="guide-card">
+                  <h4>Loading runbook...</h4>
+                  <p>The execution sequence will appear once the method detail loads.</p>
+                </article>
+              </div>
+            </article>
+          </section>
+
+          <article class="panel suite-page-section" id="lab-model-method-equation-card">
             <div class="panel-head">
               <h3>Core Equation</h3>
               <span class="muted">The specification you should be able to reproduce manually.</span>
@@ -123,63 +144,50 @@
             </div>
           </article>
 
-          <article class="panel public-section" id="lab-model-method-inputs-card">
+          <article class="panel suite-page-section" id="lab-model-method-inputs-card">
             <div class="panel-head">
               <h3>Required Inputs</h3>
-              <span class="muted">The fields and design choices you should check before estimation.</span>
+              <span class="muted">Variables and design choices to check before estimation.</span>
             </div>
             <div id="lab-model-method-inputs" class="card-list">
               <div class="card"><p>Loading required inputs...</p></div>
             </div>
           </article>
 
-          <article class="panel public-section" id="lab-model-method-outputs-card">
+          <article class="panel suite-page-section" id="lab-model-method-outputs-card">
             <div class="panel-head">
               <h3>Expected Outputs</h3>
-              <span class="muted">What a normal paper-style result should look like.</span>
+              <span class="muted">What a normal paper-facing result package should contain.</span>
             </div>
             <div id="lab-model-method-outputs" class="card-list">
               <div class="card"><p>Loading outputs...</p></div>
             </div>
           </article>
 
-          <article class="panel public-section" id="lab-model-method-paper-card">
+          <article class="panel suite-page-section" id="lab-model-method-paper-card">
             <div class="panel-head">
               <h3>Paper Results Template</h3>
-              <span class="muted">A compact blueprint for how this method is usually presented in an academic paper.</span>
+              <span class="muted">A compact blueprint for how this method is usually presented in a paper.</span>
             </div>
             <div id="lab-model-method-paper" class="card-list">
               <div class="card"><p>Loading paper template...</p></div>
             </div>
           </article>
 
-          <article class="panel public-section" id="lab-model-method-runbook-card">
-            <div class="panel-head">
-              <h3>Execution Runbook</h3>
-              <span class="muted">A short sequence for moving from the method page into the private workbench without losing transparency.</span>
-            </div>
-            <div id="lab-model-method-runbook" class="guide-grid">
-              <article class="guide-card">
-                <h4>Loading runbook...</h4>
-                <p>The execution sequence will appear once the method detail loads.</p>
-              </article>
-            </div>
-          </article>
-
-          <article class="panel public-section" id="lab-model-method-preview-card">
+          <article class="panel suite-page-section" id="lab-model-method-preview-card">
             <div class="panel-head">
               <h3>Paper Table Preview</h3>
-              <span class="muted">Illustrative table structures that show how results from this method are commonly laid out in papers.</span>
+              <span class="muted">Illustrative table structures for the method's output.</span>
             </div>
             <div id="lab-model-method-preview" class="card-list">
               <div class="card"><p>Loading table preview...</p></div>
             </div>
           </article>
 
-          <article class="panel public-section" id="lab-model-method-audit-card">
+          <article class="panel suite-page-section" id="lab-model-method-audit-card">
             <div class="panel-head">
               <h3>Manual Verification</h3>
-              <span class="muted">Checks you can do outside the app to verify the result.</span>
+              <span class="muted">Checks you can apply outside the app to verify the result.</span>
             </div>
             <div id="lab-model-method-audit" class="card-list">
               <div class="card"><p>Loading audit checks...</p></div>

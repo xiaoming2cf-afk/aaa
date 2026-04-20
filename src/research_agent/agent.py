@@ -4,8 +4,6 @@ import json
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from openai import OpenAI
-from openai.types.responses import Response, ResponseFunctionToolCall
 from rich.console import Console
 
 from .config import Settings
@@ -34,15 +32,16 @@ class AcademicResearchAgent:
         *,
         settings: Settings,
         session: ResearchSession,
+        client: Any | None = None,
         console: Console | None = None,
         tool_event_handler: ToolEventHandler | None = None,
     ) -> None:
-        if not settings.openai_api_key:
-            raise ValueError("OPENAI_API_KEY is required to run the research agent.")
+        if client is None:
+            raise ValueError("A runtime client is required to run the legacy academic research agent.")
         self.settings = settings
         self.session = session
         self.console = console or Console()
-        self.client = OpenAI(api_key=settings.openai_api_key)
+        self.client = client
         self._saved_paths: dict[str, str] = {}
         self._current_topic = "Academic Research Report"
         self._tool_trace: list[dict[str, Any]] = []
@@ -141,17 +140,15 @@ class AcademicResearchAgent:
         )
         return "\n".join(prompt_lines)
 
-    def _execute_function_calls(self, response: Response) -> list[dict[str, Any]]:
+    def _execute_function_calls(self, response: Any) -> list[dict[str, Any]]:
         outputs: list[dict[str, Any]] = []
-        for item in response.output:
+        for item in getattr(response, "output", []) or []:
             if getattr(item, "type", None) != "function_call":
                 continue
 
             call = item
-            if not isinstance(call, ResponseFunctionToolCall):
-                continue
-            tool_name = call.name
-            arguments = json.loads(call.arguments or "{}")
+            tool_name = getattr(call, "name", "")
+            arguments = json.loads(getattr(call, "arguments", "") or "{}")
             self.console.print(f"[bold cyan]tool[/bold cyan] {tool_name}({arguments})")
             self._record_tool_event(
                 {
@@ -172,7 +169,7 @@ class AcademicResearchAgent:
             outputs.append(
                 {
                     "type": "function_call_output",
-                    "call_id": call.call_id,
+                    "call_id": getattr(call, "call_id", ""),
                     "output": tool_result_json(result),
                 }
             )
@@ -323,12 +320,12 @@ class AcademicResearchAgent:
             },
         ]
 
-    def _get_output_text(self, response: Response) -> str:
+    def _get_output_text(self, response: Any) -> str:
         if getattr(response, "output_text", ""):
             return response.output_text
 
         chunks: list[str] = []
-        for item in response.output:
+        for item in getattr(response, "output", []) or []:
             if getattr(item, "type", None) != "message":
                 continue
             for content in getattr(item, "content", []):

@@ -3,361 +3,300 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Public Daily Monitor | Economic Research Platform</title>
+    <meta
+      name="description"
+      content="Read the public daily monitor, inspect source panels and review queues, and follow rolling macro summaries."
+      data-i18n-content="Read the public daily monitor, inspect source panels and review queues, and follow rolling macro summaries."
+    />
+    <title data-i18n="Public Daily Monitor | Economic Research Platform">Daily Monitor | Economic Research Platform</title>
     <link rel="icon" href="/favicon.ico" />
+    <script src="/assets/locale_init.js"></script>
+    <script src="/assets/locale_runtime.js"></script>
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
-  <body class="page-monitor">
+  <body class="page-module page-daily-monitor">
     <div class="page-bg"></div>
-    <header class="hero">
-      <div>
-        <p class="eyebrow">Public Daily Monitor</p>
-        <h1>Open macro intelligence in a standalone public page.</h1>
-        <p class="hero-copy">
-          This page is dedicated to the public daily economics monitor, related-news clustering, recommended reading,
-          and weekly/monthly roundups. It does not include the private workspace controls from the main platform.
-        </p>
-        <div class="hero-signal-strip" aria-label="Daily monitor signals">
-          <div class="signal-pill">
-            <span>Reading Mode</span>
-            <strong>Edition / Cluster / Source</strong>
+
+    <header class="module-app-bar">
+      <div class="module-app-bar__inner">
+        <div>
+          <div class="module-app-bar__meta">
+            <a href="/workspace" class="inline-link">Workspace</a>
+            <span class="status-pill status-pill--ready">Daily Monitor</span>
+            <span class="mono-note">Edition + sources + summaries</span>
           </div>
-          <div class="signal-pill">
-            <span>Priority Logic</span>
-            <strong>Official + Market Media</strong>
-          </div>
-          <div class="signal-pill">
-            <span>Region Lens</span>
-            <strong>US / CN / Developed</strong>
-          </div>
+          <p class="eyebrow">Daily Monitor</p>
+          <h1>Read the current monitoring edition</h1>
+          <p class="module-app-bar__copy">
+            Keep the current edition, source panel, review queue, rolling summary, and recent editions in one focused monitor.
+          </p>
         </div>
-        <div class="hero-actions">
-          <a class="button-link" href="#latest-edition">Open latest edition</a>
-          <a class="button-link secondary-link" href="#source-panel">Review source panel</a>
-        </div>
-      </div>
-      <div class="hero-meta">
-        <div class="meta-card">
-          <span>Platform status</span>
-          <strong id="health-status">Checking...</strong>
-        </div>
-        <div class="meta-card">
-          <span>Public daily digest</span>
-          <strong id="public-status">Loading...</strong>
+        <div class="module-app-bar__actions">
+          <a href="/workspace" class="button-link secondary-link">Workspace</a>
+          <a href="/summaries/weekly" class="button-link secondary-link">Weekly</a>
+          <a href="/summaries/monthly" class="button-link secondary-link">Monthly</a>
+          <button id="refresh-public" type="button" class="button-link">Refresh feed</button>
         </div>
       </div>
     </header>
 
-    <main class="shell public-shell">
-      <section class="panel platform-nav-panel">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2>Platform Navigation</h2>
-            <p class="muted">
-              Use this strip to move between the public monitor, summary pages, the standalone Data Lab, and the main
-              private workspace.
-            </p>
-          </div>
+    <main class="module-app-shell">
+      <aside class="module-rail panel">
+        <div class="module-rail__top">
+          <p class="eyebrow eyebrow-compact">Navigation</p>
+          <h2>Monitor workflow</h2>
+          <p class="muted">Read the edition first, then inspect sources, moderation, summary, and related reading.</p>
         </div>
-        <div class="platform-nav-grid">
-          <a class="platform-nav-card" href="/">
-            <span class="eyebrow eyebrow-compact">Main</span>
-            <h3>Main Platform</h3>
-            <p>Return to private workspaces, provider setup, Paper Library, and the Private Knowledge Base.</p>
-          </a>
-          <a class="platform-nav-card" href="/data-lab">
-            <span class="eyebrow eyebrow-compact">Standalone</span>
-            <h3>Data Lab</h3>
-            <p>Open the dedicated page for data processing, econometric models, charting, and audit trails.</p>
-          </a>
-          <a class="platform-nav-card" href="/optimization-lab">
-            <span class="eyebrow eyebrow-compact">Standalone</span>
-            <h3>Optimization Lab</h3>
-            <p>Open the dedicated page for parallel optimization suites, benchmark catalogs, and exported ranking charts.</p>
-          </a>
-          <a class="platform-nav-card" href="/public-monitor/us">
-            <span class="eyebrow eyebrow-compact">Region</span>
-            <h3>United States</h3>
-            <p>Focus the monitor on U.S. official releases, policy signals, and market-related headlines.</p>
-          </a>
-          <a class="platform-nav-card" href="/public-monitor/china">
-            <span class="eyebrow eyebrow-compact">Region</span>
-            <h3>China</h3>
-            <p>Jump to the China-focused page for official releases, regulators, and macro headlines.</p>
-          </a>
-          <a class="platform-nav-card" href="/summaries/weekly">
-            <span class="eyebrow eyebrow-compact">Roundup</span>
-            <h3>Weekly Summary</h3>
-            <p>Open the public weekly summary with cross-edition synthesis.</p>
-          </a>
-          <a class="platform-nav-card" href="/summaries/monthly">
-            <span class="eyebrow eyebrow-compact">Roundup</span>
-            <h3>Monthly Summary</h3>
-            <p>Open the public monthly summary for a longer-horizon macro view.</p>
-          </a>
+        <nav class="module-rail-nav" aria-label="Daily monitor sections">
+          <a href="#monitor-session">Workspace</a>
+          <a href="#latest-edition">Latest edition</a>
+          <a href="#source-panel">Source panel</a>
+          <a href="#review-queue">Review queue</a>
+          <a href="#summary-window">Rolling summary</a>
+          <a href="#news-clusters">News clusters</a>
+          <a href="#reading-list">Reading</a>
+          <a href="#recent-editions">Recent editions</a>
+        </nav>
+        <div class="module-rail__footer">
+          <button id="copy-public-link" type="button" class="button-link secondary-link">Copy share link</button>
+          <a href="#summary-window" class="button-link">Open summary</a>
         </div>
-      </section>
+      </aside>
 
-      <section class="panel access-gate-panel hidden" id="access-gate-panel" data-access-gate>
-        <div class="access-gate-card">
-          <p class="eyebrow eyebrow-compact" id="access-gate-eyebrow">Access Control</p>
-          <h2 id="access-gate-title">Sign in to unlock the monitor</h2>
-          <p class="muted" id="access-gate-copy">
-            On public hosts, only Platform Navigation is available before login. Return to the main platform to sign in, then come back to this page.
-          </p>
-          <div class="actions compact-actions" id="access-gate-actions">
-            <a href="/" class="button-link">Go to sign-in</a>
+      <section class="module-main">
+        <section class="panel module-session-strip" id="monitor-session">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Workspace</p>
+              <h2>Workspace</h2>
+              <p class="muted">The edition is public, but moderation access and linked follow-up work still depend on the workspace selected here.</p>
+            </div>
           </div>
-        </div>
-      </section>
-
-      <section class="panel public-toolbar access-guarded">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h2>Public Daily Monitor</h2>
-            <p class="muted">
-              Open to all visitors. Switch recent editions, move across weekly/monthly views, and read the current
-              public macro note in a cleaner product-style layout.
-            </p>
-          </div>
-          <div class="actions">
-            <a href="/" class="button-link secondary-link">Back to main platform</a>
-            <button id="copy-public-link" type="button" class="secondary">Copy share link</button>
-            <button id="refresh-public" type="button" class="secondary">Refresh public feed</button>
-          </div>
-        </div>
-
-        <div class="public-toolbar-grid">
-          <div class="public-current-card">
-            <span class="eyebrow eyebrow-compact">Current View</span>
-            <h3 id="public-current-title">Loading current edition...</h3>
-            <p class="muted" id="public-current-meta">Waiting for the latest public briefing...</p>
-            <div id="public-theme-strip" class="chip-row"></div>
-          </div>
-          <div class="public-dates-card">
-            <div class="panel-head panel-head-wrap">
+          <section class="module-session-panel" id="auth-panel">
+            <div class="module-session-panel__copy">
               <div>
-                <h3>Edition Switcher</h3>
-                <span class="muted">Jump by date without leaving the page</span>
+                <h3 id="auth-panel-title">Workspace session</h3>
+                <p class="muted" id="auth-panel-copy">Use the active workspace for moderation access and linked follow-up work.</p>
+              </div>
+              <div class="status-row">
+                <span class="pill" id="session-indicator">Signed out</span>
+                <span class="muted" id="user-summary">Sign in from the homepage to continue.</span>
+                <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
               </div>
             </div>
-            <div id="public-date-switcher" class="date-switcher"></div>
-          </div>
-        </div>
-      </section>
+            <div class="auth-grid workspace-auth-grid" id="auth-grid">
+              <div class="stack workspace-box workspace-box--read-only" id="workspace-box">
+                <h3>Workspace</h3>
+                <select id="workspace-select"></select>
+                <p class="muted">Switch workspace here. Create new ones from the cockpit.</p>
+                <a href="/workspace" class="button-link secondary-link">Manage workspaces</a>
+              </div>
+            </div>
+          </section>
+        </section>
 
-      <section class="panel public-summary-rail access-guarded">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h3>Roundup Entry Bar</h3>
-            <span class="muted">Pinned links to the public weekly and monthly views</span>
-          </div>
-          <div class="chip-row chip-row-compact">
-            <button type="button" class="chip-button is-active" data-summary-days="7">7D</button>
-            <button type="button" class="chip-button" data-summary-days="14">14D</button>
-            <button type="button" class="chip-button" data-summary-days="30">30D</button>
-          </div>
-        </div>
-        <div id="public-summary-pages" class="summary-page-grid"></div>
-        <div class="summary-page-grid public-monitor-entry-grid">
-          <a class="summary-page-card" href="/public-monitor">
-            <h4>Official First</h4>
-            <p>Default monitor view with government, central-bank, and official statistics sources prioritized.</p>
-          </a>
-          <a class="summary-page-card" href="/public-monitor/us">
-            <h4>United States</h4>
-            <p>Jump directly into U.S. macro, policy, and market-related public monitoring.</p>
-          </a>
-          <a class="summary-page-card" href="/public-monitor/china">
-            <h4>China</h4>
-            <p>Jump directly into China-focused public monitoring, including official economic releases and policy news.</p>
-          </a>
-          <a class="summary-page-card" href="/public-monitor/developed-markets">
-            <h4>Developed Markets</h4>
-            <p>Focus on the U.S., Europe, Japan, Canada, and other developed-market official and media signals.</p>
-          </a>
-        </div>
-      </section>
-
-      <section class="panel public-section access-guarded">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h3>Edition Snapshot</h3>
-            <span class="muted">A quick read of today’s edition, source balance, geography, and the main reading path.</span>
-          </div>
-        </div>
-        <div id="public-snapshot-grid" class="snapshot-grid">
-          <article class="snapshot-card">
-            <span>Loading...</span>
-            <strong>Edition overview</strong>
-            <p>The edition snapshot will populate after the latest public briefing loads.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="panel public-section access-guarded">
-        <div class="panel-head panel-head-wrap">
-          <div>
-            <h3>How To Read This Page</h3>
-            <span class="muted">A simple display guide for visitors who want the public signal first and the detail second.</span>
-          </div>
-        </div>
-        <div class="guide-grid">
-          <article class="guide-card">
-            <p class="eyebrow eyebrow-compact">Step 1</p>
-            <h4>Read the latest edition</h4>
-            <p>Start with the narrative note, then check the edition snapshot before drilling into sources.</p>
-          </article>
-          <article class="guide-card">
-            <p class="eyebrow eyebrow-compact">Step 2</p>
-            <h4>Inspect the source panel</h4>
-            <p>Use source type, country, and region filters to check whether the daily view is driven by official or media sources.</p>
-          </article>
-          <article class="guide-card">
-            <p class="eyebrow eyebrow-compact">Step 3</p>
-            <h4>Use clusters and summaries</h4>
-            <p>Move from single-day headlines into clusters, recommended reading, and the 7D/14D/30D rolling summaries.</p>
-          </article>
-        </div>
-      </section>
-
-      <div class="public-layout access-guarded">
-        <aside class="panel public-sidebar">
-          <div class="stack">
+        <section class="panel module-stage-card" id="latest-edition">
+          <div class="panel-head panel-head-wrap">
             <div>
-              <p class="eyebrow eyebrow-compact">Navigate</p>
-              <h3>Public Sections</h3>
-            </div>
-            <nav class="public-section-nav">
-              <a href="#latest-edition">Latest Edition</a>
-              <a href="#source-panel">Source Panel</a>
-              <a href="#review-queue">Manual Review Queue</a>
-              <a href="#summary-window">Rolling Summary</a>
-              <a href="#news-clusters">News Clusters</a>
-              <a href="#reading-list">Recommended Reading</a>
-              <a href="#recent-editions">Recent Editions</a>
-            </nav>
-            <div class="public-sidebar-note">
-              <p class="muted">
-                This standalone page is only for public monitoring content. Private research workflows stay on the main platform.
-              </p>
+              <p class="eyebrow eyebrow-compact">Edition</p>
+              <h2>Latest edition</h2>
+              <p class="muted">Read the latest published edition first, then use the date switcher to move through recent public briefings.</p>
             </div>
           </div>
-        </aside>
-
-        <section class="public-main">
-          <article class="panel public-section" id="latest-edition">
+          <div class="module-monitor-header">
+            <div class="module-monitor-current">
+              <span class="eyebrow eyebrow-compact">Current view</span>
+              <h3 id="public-current-title">Loading current edition...</h3>
+              <p class="muted" id="public-current-meta">Waiting for the latest public briefing...</p>
+              <div id="public-theme-strip" class="chip-row"></div>
+            </div>
+            <div class="module-monitor-switcher">
+              <span class="eyebrow eyebrow-compact">Edition switcher</span>
+              <div id="public-date-switcher" class="date-switcher"></div>
+            </div>
+          </div>
+          <div class="module-monitor-report">
             <div class="panel-head panel-head-wrap">
               <div>
-                <h3>Latest Edition</h3>
+                <h3>Edition body</h3>
                 <span class="muted" id="public-latest-meta">Waiting for the latest public briefing...</span>
               </div>
             </div>
-            <div id="public-latest-view" class="report-view report-prose">Loading the latest public briefing...</div>
-          </article>
+            <div id="public-latest-view" class="report-view report-prose" data-i18n-skip>Loading the latest public briefing...</div>
+          </div>
+        </section>
 
-          <article class="panel public-section" id="source-panel">
-            <div class="panel-head">
-              <h3>Source Panel</h3>
-              <span class="muted">Media feeds, government and central-bank sources, geography, credibility, and moderation counts for the current edition</span>
+        <section class="panel module-stage-card" id="source-panel">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Sources</p>
+              <h2>Source panel</h2>
+              <p class="muted">Inspect source mix, geography, credibility, and filtering logic before you interpret the edition signal.</p>
             </div>
-            <div class="public-source-toolbar">
-              <div class="field">
-                <label for="public-source-view">Priority View</label>
-                <select id="public-source-view">
-                  <option value="all">All Sources</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="public-source-type-filter">Source Type</label>
-                <select id="public-source-type-filter">
-                  <option value="all">All Types</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="public-source-country-filter">Country</label>
-                <select id="public-source-country-filter">
-                  <option value="all">All Countries</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="public-source-region-filter">Region Focus</label>
-                <select id="public-source-region-filter">
-                  <option value="all">All Regions</option>
-                </select>
-              </div>
+          </div>
+          <div class="public-source-toolbar">
+            <div class="field">
+              <label for="public-source-view">Priority View</label>
+              <select id="public-source-view">
+                <option value="all">All Sources</option>
+              </select>
             </div>
-            <div id="public-source-panel" class="source-panel-grid"></div>
-          </article>
+            <div class="field">
+              <label for="public-source-type-filter">Source Type</label>
+              <select id="public-source-type-filter">
+                <option value="all">All Types</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="public-source-country-filter">Country</label>
+              <select id="public-source-country-filter">
+                <option value="all">All Countries</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="public-source-region-filter">Region Focus</label>
+              <select id="public-source-region-filter">
+                <option value="all">All Regions</option>
+              </select>
+            </div>
+          </div>
+          <div id="public-source-panel" class="source-panel-grid"></div>
+        </section>
 
-          <article class="panel public-section" id="review-queue">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <h3>Manual Review Queue</h3>
-                <span class="muted">Signed-in users can exclude or restore headlines without changing the public page structure</span>
-              </div>
-              <div id="public-review-note" class="muted">Checking moderation access...</div>
+        <section class="panel module-stage-card" id="review-queue">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Review</p>
+              <h2>Manual review queue</h2>
+              <p class="muted">Visible and excluded headlines stay in separate lists so moderation actions remain auditable.</p>
             </div>
-            <div class="review-grid">
-              <div class="stack">
-                <div class="panel-head">
-                  <h4>Visible Headlines</h4>
-                  <span class="muted">These items currently feed the public briefing body</span>
-                </div>
-                <div id="public-review-list" class="review-card-list"></div>
-              </div>
-              <div class="stack">
-                <div class="panel-head">
-                  <h4>Excluded Headlines</h4>
-                  <span class="muted">Items manually removed from the public edition but retained for audit</span>
-                </div>
-                <div id="public-excluded-list" class="review-card-list"></div>
-              </div>
-            </div>
-          </article>
-
-          <article class="panel public-section" id="summary-window">
-            <div class="panel-head panel-head-wrap">
-              <div>
-                <h3 id="public-summary-title">Rolling Summary</h3>
-                <span class="muted" id="public-summary-meta">Recent multi-day view</span>
-              </div>
-            </div>
-            <div id="public-summary-view" class="report-view report-view-compact report-prose">Loading the recent summary...</div>
+            <div id="public-review-note" class="muted">Checking moderation access...</div>
+          </div>
+          <div class="review-grid">
             <div class="stack">
               <div class="panel-head">
-                <h3>Featured Editions In Window</h3>
-                <span class="muted">Daily editions contributing to the current summary</span>
+                <h4>Visible Headlines</h4>
+                <span class="muted">Items currently feeding the public edition body</span>
               </div>
-              <div id="public-summary-featured" class="card-list card-list-inline"></div>
+              <div id="public-review-list" class="review-card-list"></div>
             </div>
-          </article>
-
-          <article class="panel public-section" id="news-clusters">
-            <div class="panel-head">
-              <h3>Related News Clusters</h3>
-              <span class="muted">Grouped from the current public edition</span>
+            <div class="stack">
+              <div class="panel-head">
+                <h4>Excluded Headlines</h4>
+                <span class="muted">Items removed from the edition but retained for audit</span>
+              </div>
+              <div id="public-excluded-list" class="review-card-list"></div>
             </div>
-            <div id="public-cluster-list" class="cluster-grid"></div>
-          </article>
-
-          <article class="panel public-section" id="reading-list">
-            <div class="panel-head">
-              <h3>Recommended Further Reading</h3>
-              <span class="muted">Related source articles, prior editions, and roundup pages</span>
-            </div>
-            <div id="public-reading-list" class="reading-grid"></div>
-          </article>
-
-          <article class="panel public-section" id="recent-editions">
-            <div class="panel-head">
-              <h3>Recent Public Editions</h3>
-              <span class="muted">Browse without logging in</span>
-            </div>
-            <div id="public-briefing-list" class="card-list"></div>
-          </article>
+          </div>
         </section>
-      </div>
+
+        <section class="panel module-stage-card" id="summary-window">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Summary</p>
+              <h2 id="public-summary-title">Rolling summary</h2>
+              <p class="muted" id="public-summary-meta">Recent multi-day view</p>
+            </div>
+            <div class="chip-row chip-row-compact">
+              <button type="button" class="chip-button is-active" data-summary-days="7">7D</button>
+              <button type="button" class="chip-button" data-summary-days="14">14D</button>
+              <button type="button" class="chip-button" data-summary-days="30">30D</button>
+            </div>
+          </div>
+            <div id="public-summary-view" class="report-view report-view-compact report-prose" data-i18n-skip>Loading the recent summary...</div>
+          <div class="stack">
+            <div class="panel-head">
+              <h3>Featured editions in window</h3>
+              <span class="muted">Daily editions contributing to the current rolling summary</span>
+            </div>
+            <div id="public-summary-featured" class="card-list card-list-inline"></div>
+          </div>
+        </section>
+
+        <section class="panel module-stage-card" id="news-clusters">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Clusters</p>
+              <h2>Related news clusters</h2>
+              <p class="muted">Grouped from the current edition to highlight the repeating macro threads behind the headline flow.</p>
+            </div>
+          </div>
+          <div id="public-cluster-list" class="cluster-grid"></div>
+        </section>
+
+        <section class="panel module-stage-card" id="reading-list">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Reading</p>
+              <h2>Recommended further reading</h2>
+              <p class="muted">Use related articles, prior editions, and roundup pages as the next step after the current edition.</p>
+            </div>
+          </div>
+          <div id="public-reading-list" class="reading-grid"></div>
+        </section>
+
+        <section class="panel module-stage-card" id="recent-editions">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <p class="eyebrow eyebrow-compact">Archive</p>
+              <h2>Recent public editions</h2>
+              <p class="muted">Browse recent editions without mixing this page with the homepage or weekly/monthly summary pages.</p>
+            </div>
+          </div>
+          <div id="public-briefing-list" class="card-list"></div>
+        </section>
+      </section>
+
+      <aside class="module-inspector">
+        <section class="panel module-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Edition snapshot</h3>
+              <span class="muted">Current edition metrics, source balance, and region mix.</span>
+            </div>
+          </div>
+          <div id="public-snapshot-grid" class="snapshot-grid">
+            <article class="snapshot-card">
+              <span>Loading...</span>
+              <strong>Edition overview</strong>
+              <p>The edition snapshot will populate after the latest public briefing loads.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel module-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Roundup links</h3>
+              <span class="muted">Move from the daily view into longer windows without leaving the monitoring workflow.</span>
+            </div>
+          </div>
+          <div id="public-summary-pages" class="summary-page-grid"></div>
+        </section>
+
+        <section class="panel module-inspector-card">
+          <div class="panel-head panel-head-wrap">
+            <div>
+              <h3>Reading sequence</h3>
+              <span class="muted">Keep the page narrow: edition first, sources second, clusters and roundups after.</span>
+            </div>
+          </div>
+          <div class="module-guide-list">
+            <article class="workflow-step-card is-active">
+              <h4>Read today</h4>
+              <p>Start with the edition body and note the main themes before filtering anything.</p>
+            </article>
+            <article class="workflow-step-card">
+              <h4>Inspect sources</h4>
+              <p>Check the balance between official and media sources, then verify region emphasis.</p>
+            </article>
+            <article class="workflow-step-card">
+              <h4>Move outward</h4>
+              <p>Use the rolling summary, clusters, and further reading only after the current edition is clear.</p>
+            </article>
+          </div>
+        </section>
+      </aside>
     </main>
 
     <div id="toast" class="toast hidden"></div>
