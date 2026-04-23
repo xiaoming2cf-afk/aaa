@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 import json
 import mimetypes
+import os
 from pathlib import Path
 import threading
 from typing import Any
@@ -148,9 +149,13 @@ def _spa_response(path: str, method: str) -> tuple[int, list[tuple[bytes, bytes]
         if asset_response[0] == 200:
             return asset_response
     index_path = SPA_DIST_DIR / "index.html"
-    if not index_path.exists():
+    if not index_path.exists() and _allow_source_spa_fallback():
         index_path = SPA_ROOT_DIR / "index.html"
     return _file_response(index_path, method, media_type="text/html; charset=utf-8")
+
+
+def _allow_source_spa_fallback() -> bool:
+    return os.getenv("APP_ENV", "development").strip().lower() in {"development", "dev", "test", "testing"}
 
 
 def _provider_center_response(method: str) -> tuple[int, list[tuple[bytes, bytes]], bytes]:

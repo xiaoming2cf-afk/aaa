@@ -108,6 +108,49 @@ class Settings(BaseModel):
     public_digest_max_records: int = Field(
         default_factory=lambda: int(os.getenv("PUBLIC_DIGEST_MAX_RECORDS", "30"))
     )
+    data_lab_agent_enabled: bool = Field(
+        default_factory=lambda: os.getenv("DATA_LAB_AGENT_ENABLED", "false").strip().lower()
+        in {"1", "true", "yes", "on"}
+    )
+    data_lab_agent_max_attempts: int = Field(
+        default_factory=lambda: int(os.getenv("DATA_LAB_AGENT_MAX_ATTEMPTS", "3"))
+    )
+    data_lab_agent_timeout_seconds: int = Field(
+        default_factory=lambda: int(os.getenv("DATA_LAB_AGENT_TIMEOUT_SECONDS", "20"))
+    )
+    data_lab_agent_output_limit: int = Field(
+        default_factory=lambda: int(os.getenv("DATA_LAB_AGENT_OUTPUT_LIMIT", "12000"))
+    )
+    data_lab_agent_execution_mode: str = Field(
+        default_factory=lambda: os.getenv("DATA_LAB_AGENT_EXECUTION_MODE", "subprocess_replay").strip().lower()
+    )
+    data_lab_agent_ipython_enabled: bool = Field(
+        default_factory=lambda: os.getenv("DATA_LAB_AGENT_IPYTHON_ENABLED", "false").strip().lower()
+        in {"1", "true", "yes", "on"}
+    )
+    data_lab_agent_llm_enabled: bool = Field(
+        default_factory=lambda: os.getenv("DATA_LAB_AGENT_LLM_ENABLED", "false").strip().lower()
+        in {"1", "true", "yes", "on"}
+    )
+    data_lab_agent_llm_base_url: str = Field(
+        default_factory=lambda: os.getenv("DATA_LAB_AGENT_LLM_BASE_URL", "").strip()
+    )
+    data_lab_agent_llm_api_key: str = Field(
+        default_factory=lambda: os.getenv("DATA_LAB_AGENT_LLM_API_KEY", "").strip()
+    )
+    data_lab_agent_coder_model: str = Field(
+        default_factory=lambda: os.getenv("DATA_LAB_AGENT_CODER_MODEL", "").strip()
+    )
+    data_lab_agent_reviewer_model: str = Field(
+        default_factory=lambda: os.getenv("DATA_LAB_AGENT_REVIEWER_MODEL", "").strip()
+    )
+    data_lab_agent_report_model: str = Field(
+        default_factory=lambda: os.getenv("DATA_LAB_AGENT_REPORT_MODEL", "").strip()
+    )
+    data_lab_agent_llm_timeout_seconds: int = Field(
+        default_factory=lambda: int(os.getenv("DATA_LAB_AGENT_LLM_TIMEOUT_SECONDS", "45"))
+    )
+
     def ensure_directories(self) -> None:
         self.storage_dir.mkdir(parents=True, exist_ok=True)
         self.reports_dir.mkdir(parents=True, exist_ok=True)

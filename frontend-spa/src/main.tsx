@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BrowserRouter, NavLink, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { apiFetch } from "./api";
+import { DataLabAgentPage } from "./pages/DataLabAgentPage";
 import { KnowledgePage } from "./pages/KnowledgePage";
 import { ProvidersPage } from "./pages/ProvidersPage";
 import { QualityPage } from "./pages/QualityPage";
@@ -124,6 +125,7 @@ function AppShell(): JSX.Element {
           </label>
           <nav className="nav">
             <NavLink to="/research" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Research</NavLink>
+            <NavLink to="/data-lab-agent" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Data Lab Agent</NavLink>
             <NavLink to="/team-library" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Team Library</NavLink>
             <NavLink to="/knowledge" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Knowledge</NavLink>
             <NavLink to="/providers" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Providers</NavLink>
@@ -173,6 +175,7 @@ function App(): JSX.Element {
           <Route element={<AppShell />}>
             <Route index element={<Navigate to="/research" replace />} />
             <Route path="/research" element={<ResearchPage useAppState={useSpaState} />} />
+            <Route path="/data-lab-agent" element={<DataLabAgentPage useAppState={useSpaState} />} />
             <Route path="/team-library" element={<TeamLibraryPage useAppState={useSpaState} />} />
             <Route path="/knowledge" element={<KnowledgePage useAppState={useSpaState} />} />
             <Route path="/providers" element={<ProvidersPage useAppState={useSpaState} />} />

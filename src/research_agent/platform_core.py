@@ -1297,6 +1297,23 @@ def serialize_data_lab_run(db: Session, *, user: User, run: DataLabRun) -> dict[
             "next_action": "review_failure",
         }
 
+    if run.workflow_type == "agent_session":
+        session = output.get("agent_session") if isinstance(output.get("agent_session"), dict) else {}
+        return {
+            **base,
+            "summary": str(session.get("summary") or run.summary or "").strip(),
+            "reason": str(session.get("summary") or run.summary or "Data Lab Agent session is ready.").strip(),
+            "next_action": "open_detail",
+            "message_count": len(session.get("messages") or []),
+            "cell_count": len(session.get("cells") or []),
+            "artifact_count": len(session.get("artifacts") or []),
+            "metadata": {
+                "workflow_type": "agent_session",
+                "agent_family": run.family,
+                "agent_method": run.method,
+            },
+        }
+
     if run.result_asset_id:
         asset = db.get(DataAsset, run.result_asset_id)
         if asset and asset.owner_user_id == user.id and asset.workspace_id == run.workspace_id:

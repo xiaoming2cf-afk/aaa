@@ -47,6 +47,16 @@ from .data_lab_catalog import (
     get_model_teaching_guide,
     get_processing_family,
 )
+from .data_lab_agent import (
+    create_agent_session,
+    export_agent_notebook,
+    generate_agent_report,
+    get_agent_llm_config,
+    get_agent_session,
+    send_agent_message,
+    test_agent_llm_config,
+    update_agent_llm_config,
+)
 from .db import init_database, session_scope
 from .entities import DataAsset, KnowledgeRecord, User
 from .notifications import send_password_reset_email
@@ -599,6 +609,36 @@ class VariableGuideRequest(BaseModel):
     prompt: str = Field(min_length=8, max_length=4000)
 
 
+class DataLabAgentSessionCreateRequest(BaseModel):
+    asset_ids: list[str] = Field(default_factory=list, min_length=1, max_length=8)
+    title: str = Field(default="Data Lab Agent Session", max_length=200)
+    language: str = Field(default="Chinese", max_length=40)
+
+
+class DataLabAgentMessageRequest(BaseModel):
+    message: str = Field(default="", max_length=4000)
+    user_code: str = Field(default="", max_length=12000)
+    intervention_note: str = Field(default="", max_length=1600)
+    execution_mode: str = Field(default="", max_length=40)
+
+    @model_validator(mode="after")
+    def _validate_content(self) -> "DataLabAgentMessageRequest":
+        if not self.message.strip() and not self.user_code.strip():
+            raise ValueError("Provide message or user_code.")
+        return self
+
+
+class DataLabAgentLLMConfigRequest(BaseModel):
+    enabled: bool = False
+    base_url: str = Field(default="", max_length=500)
+    api_key: str = Field(default="", max_length=600)
+    clear_api_key: bool = False
+    coder_model: str = Field(default="", max_length=120)
+    reviewer_model: str = Field(default="", max_length=120)
+    report_model: str = Field(default="", max_length=120)
+    label: str = Field(default="", max_length=120)
+
+
 class OptimizationRunRequest(BaseModel):
     suite_label: str = Field(default="Optimization Suite", min_length=2, max_length=200)
     template_id: str = ""
@@ -929,7 +969,7 @@ def _private_spa_or_home(
         return FileResponse(candidate)
     if (SPA_DIST_DIR / "index.html").exists():
         return FileResponse(SPA_DIST_DIR / "index.html")
-    if (SPA_ROOT_DIR / "index.html").exists():
+    if get_settings().is_development_env and (SPA_ROOT_DIR / "index.html").exists():
         return FileResponse(SPA_ROOT_DIR / "index.html")
     raise HTTPException(status_code=503, detail="SPA assets are not built yet.")
 
@@ -1125,6 +1165,7 @@ def _data_lab_history_payload(db, *, user, workspace, limit: int = 12) -> dict[s
     processing_runs = [item for item in run_items if item.get("workflow_type") == "processing"]
     model_runs = [item for item in run_items if item.get("workflow_type") == "model"]
     optimization_runs = [item for item in run_items if item.get("workflow_type") == "optimization"]
+    agent_session_runs = [item for item in run_items if item.get("workflow_type") == "agent_session"]
 
     assets = list_assets(db, user=user, workspace=workspace)
     legacy_processing_items = [
@@ -1160,6 +1201,7 @@ def _data_lab_history_payload(db, *, user, workspace, limit: int = 12) -> dict[s
         "processing": processing_items[:limit],
         "models": model_items[:limit],
         "optimization": optimization_items[:limit],
+        "agent_sessions": agent_session_runs[:limit],
     }
 
 
@@ -2891,6 +2933,247 @@ def create_app() -> FastAPI:
                 user = get_current_user(db, token)
                 workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
                 return clean_dataset_asset(settings, db, user=user, workspace=workspace, asset_id=asset_id)
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/workspaces/{workspace_id}/data-lab/agent/llm-config")
+    def get_data_lab_agent_llm_config(
+        workspace_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return get_agent_llm_config(settings, db, user=user, workspace=workspace)
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.put("/api/workspaces/{workspace_id}/data-lab/agent/llm-config")
+    def update_data_lab_agent_llm_config(
+        workspace_id: str,
+        request: DataLabAgentLLMConfigRequest,
+        raw_request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                result = update_agent_llm_config(
+                    settings,
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    enabled=request.enabled,
+                    base_url=request.base_url,
+                    api_key=request.api_key,
+                    clear_api_key=request.clear_api_key,
+                    coder_model=request.coder_model,
+                    reviewer_model=request.reviewer_model,
+                    report_model=request.report_model,
+                    label=request.label,
+                )
+                _audit_workspace_action(
+                    db,
+                    request=raw_request,
+                    action="data_lab.agent.llm_config.update",
+                    user=user,
+                    workspace=workspace,
+                    resource_type="data_lab_agent_llm_config",
+                    resource_id=workspace.id,
+                    summary="Updated Data Lab Agent scoped LLM config.",
+                    metadata={"enabled": request.enabled, "base_url_configured": bool(request.base_url.strip())},
+                )
+                return result
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/data-lab/agent/llm-config/test")
+    def test_data_lab_agent_llm_config(
+        workspace_id: str,
+        raw_request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                result = test_agent_llm_config(settings, db, user=user, workspace=workspace)
+                _audit_workspace_action(
+                    db,
+                    request=raw_request,
+                    action="data_lab.agent.llm_config.test",
+                    user=user,
+                    workspace=workspace,
+                    resource_type="data_lab_agent_llm_config",
+                    resource_id=workspace.id,
+                    summary="Tested Data Lab Agent scoped LLM config.",
+                    metadata={"status": result.get("status")},
+                )
+                return result
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/data-lab/agent/sessions")
+    def create_data_lab_agent_session(
+        workspace_id: str,
+        request: DataLabAgentSessionCreateRequest,
+        raw_request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                result = create_agent_session(
+                    settings,
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    asset_ids=request.asset_ids,
+                    title=request.title,
+                    language=request.language,
+                )
+                _audit_workspace_action(
+                    db,
+                    request=raw_request,
+                    action="data_lab.agent.session.create",
+                    user=user,
+                    workspace=workspace,
+                    resource_type="data_lab_run",
+                    resource_id=str(result.get("session", {}).get("run_id") or ""),
+                    summary="Created a Data Lab Agent session.",
+                    metadata={"asset_count": len(request.asset_ids)},
+                )
+                return result
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}")
+    def get_data_lab_agent_session(
+        workspace_id: str,
+        run_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return get_agent_session(db, user=user, workspace=workspace, run_id=run_id)
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/messages")
+    def send_data_lab_agent_session_message(
+        workspace_id: str,
+        run_id: str,
+        request: DataLabAgentMessageRequest,
+        raw_request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                result = send_agent_message(
+                    settings,
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    run_id=run_id,
+                    message=request.message,
+                    user_code=request.user_code,
+                    intervention_note=request.intervention_note,
+                    execution_mode=request.execution_mode,
+                )
+                _audit_workspace_action(
+                    db,
+                    request=raw_request,
+                    action="data_lab.agent.message",
+                    user=user,
+                    workspace=workspace,
+                    resource_type="data_lab_run",
+                    resource_id=run_id,
+                    summary="Ran a Data Lab Agent message.",
+                    metadata={"status": str(result.get("message", {}).get("status") or "")},
+                )
+                return result
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/report")
+    def generate_data_lab_agent_session_report(
+        workspace_id: str,
+        run_id: str,
+        raw_request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                result = generate_agent_report(settings, db, user=user, workspace=workspace, run_id=run_id)
+                _audit_workspace_action(
+                    db,
+                    request=raw_request,
+                    action="data_lab.agent.report",
+                    user=user,
+                    workspace=workspace,
+                    resource_type="data_lab_run",
+                    resource_id=run_id,
+                    summary="Generated a Data Lab Agent report.",
+                )
+                return result
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/notebook")
+    def export_data_lab_agent_session_notebook(
+        workspace_id: str,
+        run_id: str,
+        raw_request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                notebook_path = export_agent_notebook(settings, db, user=user, workspace=workspace, run_id=run_id)
+                _audit_workspace_action(
+                    db,
+                    request=raw_request,
+                    action="data_lab.agent.notebook",
+                    user=user,
+                    workspace=workspace,
+                    resource_type="data_lab_run",
+                    resource_id=run_id,
+                    summary="Exported a Data Lab Agent notebook.",
+                )
+                return FileResponse(
+                    notebook_path,
+                    media_type="application/x-ipynb+json",
+                    headers={
+                        "Content-Disposition": _build_attachment_content_disposition(notebook_path.name),
+                        "X-Content-Type-Options": "nosniff",
+                    },
+                )
         except Exception as exc:
             _raise_http_error(exc)
 

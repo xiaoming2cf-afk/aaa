@@ -93,6 +93,20 @@ PUBLIC_DIGEST_LOCAL_TIME=08:30
 PUBLIC_DIGEST_TITLE=Global Economic Daily
 PUBLIC_DIGEST_QUERY=
 PUBLIC_DIGEST_MAX_RECORDS=30
+
+DATA_LAB_AGENT_ENABLED=false
+DATA_LAB_AGENT_MAX_ATTEMPTS=3
+DATA_LAB_AGENT_TIMEOUT_SECONDS=20
+DATA_LAB_AGENT_OUTPUT_LIMIT=12000
+DATA_LAB_AGENT_EXECUTION_MODE=subprocess_replay
+DATA_LAB_AGENT_IPYTHON_ENABLED=false
+DATA_LAB_AGENT_LLM_ENABLED=false
+DATA_LAB_AGENT_LLM_BASE_URL=
+DATA_LAB_AGENT_LLM_API_KEY=
+DATA_LAB_AGENT_CODER_MODEL=
+DATA_LAB_AGENT_REVIEWER_MODEL=
+DATA_LAB_AGENT_REPORT_MODEL=
+DATA_LAB_AGENT_LLM_TIMEOUT_SECONDS=45
 ```
 
 Notes:
@@ -125,7 +139,8 @@ Notes:
 - Schedule management supports enable or disable, delete, and manual `run-now` execution from both API and frontend.
 - Briefing records carry schedule context so a run can jump directly to the generated briefing and linked knowledge note.
 - Knowledge, literature, case, processing, model, and optimization payloads expose a shared status contract: `status`, `reason`, `next_action`, and `detail_path`.
-- Data Lab history is now a unified workspace feed across preparation, model, and optimization outputs. `/data-lab/history` and the workspace shell read from the same source.
+- Data Lab history is now a unified workspace feed across preparation, model, optimization, and Data Lab Agent outputs. `/data-lab/history` and the workspace shell read from the same source.
+- Data Lab Agent is disabled by default. When `DATA_LAB_AGENT_ENABLED=true`, it runs clean-room natural-language analysis through bounded Python execution with safety checks, profile snapshots, knowledge cards, repair traces, human intervention, and report/notebook export. Scoped model configuration lives under the Data Lab Agent APIs and does not reopen the general provider center.
 
 ## Workflow APIs
 
@@ -135,6 +150,14 @@ Notes:
 - `GET /api/workspaces/{workspace_id}/schedules/{schedule_id}/runs`
 - `GET /api/workspaces/{workspace_id}/job-runs`
 - `GET /api/workspaces/{workspace_id}/data-lab/history`
+- `GET /api/workspaces/{workspace_id}/data-lab/agent/llm-config`
+- `PUT /api/workspaces/{workspace_id}/data-lab/agent/llm-config`
+- `POST /api/workspaces/{workspace_id}/data-lab/agent/llm-config/test`
+- `POST /api/workspaces/{workspace_id}/data-lab/agent/sessions`
+- `POST /api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/messages`
+- `GET /api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}`
+- `POST /api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/report`
+- `GET /api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/notebook`
 - `POST /api/internal/run-due-jobs`
 
 The internal scheduler endpoint requires `X-Cron-Secret` and is intentionally excluded from OpenAPI. Use it from a trusted scheduler only.
@@ -222,4 +245,5 @@ Live verification scripts:
 - `/data-lab/model` model and chart execution
 - `/data-lab/results` latest result reading and export
 - `/data-lab/history` run history
+- `/app/data-lab-agent` clean-room Data Lab Agent workspace
 - `/data-lab/optimization` optimization suite
