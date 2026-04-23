@@ -15,6 +15,22 @@ def test_lazy_asgi_short_circuits_render_probe_paths_without_loading_full_app():
         assert root_head.status_code == 200
         assert not root_head.content
 
+        root_get = client.get("/")
+        assert root_get.status_code == 200
+        assert "Economic Research Platform" in root_get.text
+
+        asset_get = client.get("/assets/styles.css")
+        assert asset_get.status_code == 200
+        assert asset_get.headers["content-type"].startswith("text/css")
+
+        bootstrap_get = client.get("/api/bootstrap")
+        assert bootstrap_get.status_code == 200
+        assert bootstrap_get.json()["app_name"] == "Economic Research Platform"
+
+        spa_get = client.get("/app")
+        assert spa_get.status_code == 200
+        assert "<!doctype html>" in spa_get.text.lower()
+
         health_get = client.get("/api/health")
         assert health_get.status_code == 200
         assert health_get.json() == {"status": "ok"}

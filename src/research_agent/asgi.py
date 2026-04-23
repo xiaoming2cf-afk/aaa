@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+import json
+import mimetypes
+from pathlib import Path
 import threading
 from typing import Any
 
@@ -8,6 +11,10 @@ from typing import Any
 Receive = Callable[[], Awaitable[dict[str, Any]]]
 Send = Callable[[dict[str, Any]], Awaitable[None]]
 AppFactory = Callable[[], Any]
+PACKAGE_DIR = Path(__file__).resolve().parent
+WEB_DIR = PACKAGE_DIR / "web"
+SPA_ROOT_DIR = PACKAGE_DIR.parents[1] / "frontend-spa"
+SPA_DIST_DIR = SPA_ROOT_DIR / "dist"
 
 
 class LazyApplication:
@@ -35,7 +42,12 @@ class LazyApplication:
         if scope_type == "lifespan":
             await self._handle_lifespan(receive, send)
             return
-        if self._can_short_circuit(scope):
+        static_response = self._static_response(scope)
+        if static_response is not None:
+            status, headers, body = static_response
+            await self._send_response(send, status, headers, body)
+            return
+        if self._can_probe_short_circuit(scope):
             await self._send_probe_response(scope, send)
             return
         await self._load_app()(scope, receive, send)
@@ -51,7 +63,7 @@ class LazyApplication:
                 return
 
     @staticmethod
-    def _can_short_circuit(scope: dict[str, Any]) -> bool:
+    def _can_probe_short_circuit(scope: dict[str, Any]) -> bool:
         if scope.get("type") != "http":
             return False
         method = str(scope.get("method", "")).upper()
@@ -69,8 +81,74 @@ class LazyApplication:
             (b"content-type", b"application/json" if path == "/api/health" else b"text/plain; charset=utf-8"),
             (b"content-length", str(len(body)).encode("ascii")),
         ]
-        await send({"type": "http.response.start", "status": 200, "headers": headers})
+        await LazyApplication._send_response(send, 200, headers, body)
+
+    @staticmethod
+    async def _send_response(send: Send, status: int, headers: list[tuple[bytes, bytes]], body: bytes) -> None:
+        await send({"type": "http.response.start", "status": status, "headers": headers})
         await send({"type": "http.response.body", "body": body})
+
+    @staticmethod
+    def _static_response(scope: dict[str, Any]) -> tuple[int, list[tuple[bytes, bytes]], bytes] | None:
+        if scope.get("type") != "http":
+            return None
+        method = str(scope.get("method", "")).upper()
+        if method not in {"GET", "HEAD"}:
+            return None
+        path = str(scope.get("path", ""))
+        if path == "/api/bootstrap":
+            body = b"" if method == "HEAD" else json.dumps(
+                {"app_name": "Economic Research Platform", "public_digest_enabled": True},
+                separators=(",", ":"),
+            ).encode("utf-8")
+            return 200, _headers("application/json", len(body)), body
+        if path == "/":
+            return _file_response(WEB_DIR / "index.html", method)
+        if path == "/favicon.ico":
+            return _file_response(WEB_DIR / "favicon.svg", method, media_type="image/svg+xml")
+        if path.startswith("/assets/"):
+            return _safe_file_response(WEB_DIR, path.removeprefix("/assets/"), method)
+        if path == "/app" or path.startswith("/app/"):
+            return _spa_response(path, method)
+        return None
+
+
+def _headers(media_type: str, content_length: int) -> list[tuple[bytes, bytes]]:
+    return [
+        (b"content-type", media_type.encode("ascii", errors="ignore")),
+        (b"content-length", str(content_length).encode("ascii")),
+        (b"x-content-type-options", b"nosniff"),
+    ]
+
+
+def _file_response(path: Path, method: str, *, media_type: str | None = None) -> tuple[int, list[tuple[bytes, bytes]], bytes]:
+    if not path.exists() or not path.is_file():
+        body = b"Not Found" if method != "HEAD" else b""
+        return 404, _headers("text/plain; charset=utf-8", len(body)), body
+    resolved_media_type = media_type or mimetypes.guess_type(str(path))[0] or "application/octet-stream"
+    body = b"" if method == "HEAD" else path.read_bytes()
+    return 200, _headers(resolved_media_type, len(body)), body
+
+
+def _safe_file_response(root: Path, relative_path: str, method: str) -> tuple[int, list[tuple[bytes, bytes]], bytes]:
+    root_resolved = root.resolve()
+    candidate = (root / relative_path).resolve()
+    if candidate != root_resolved and root_resolved in candidate.parents:
+        return _file_response(candidate, method)
+    body = b"Not Found" if method != "HEAD" else b""
+    return 404, _headers("text/plain; charset=utf-8", len(body)), body
+
+
+def _spa_response(path: str, method: str) -> tuple[int, list[tuple[bytes, bytes]], bytes]:
+    normalized = path.removeprefix("/app").strip("/")
+    if normalized:
+        asset_response = _safe_file_response(SPA_DIST_DIR, normalized, method)
+        if asset_response[0] == 200:
+            return asset_response
+    index_path = SPA_DIST_DIR / "index.html"
+    if not index_path.exists():
+        index_path = SPA_ROOT_DIR / "index.html"
+    return _file_response(index_path, method, media_type="text/html; charset=utf-8")
 
 
 app = LazyApplication()
