@@ -20,6 +20,8 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
     queryFn: () => apiFetch<{ items: any[] }>(`/api/workspaces/${workspaceId}/quality/runs`),
   });
 
+  const arbiterMeta = scorecardQuery.data?.metadata?.arbiter || {};
+
   return (
     <div className="page-grid">
       <section className="panel panel-emphasis">
@@ -40,6 +42,13 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
           </div>
           <p>Business gate: {scorecardQuery.data?.business_deliverable ? "PASS" : "FAIL"} / Engineering gate: {scorecardQuery.data?.engineering_gate?.passed ? "PASS" : "FAIL"}</p>
           <p>{(scorecardQuery.data?.blocking_reasons || [])[0] || "No blocking reasons recorded."}</p>
+        </div>
+        <div className="list-card static-card">
+          <div className="list-card-title">
+            <strong>ARBITER Delivery Layer</strong>
+            <span>{arbiterMeta.mode || "off"}</span>
+          </div>
+          <p>Recent delivery posteriors: {(arbiterMeta.recent_delivery_posteriors || []).length ? (arbiterMeta.recent_delivery_posteriors as number[]).map((item) => item.toFixed(3)).join(", ") : "none"}</p>
         </div>
         <div className="scorecard-grid">
           {(scorecardQuery.data?.dimensions || []).map((dimension: any) => (
@@ -84,6 +93,7 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
                 <span>{item.status}</span>
               </div>
               <p>citation {item.citation_coverage} / unsupported {item.unsupported_claim_rate} / review {item.review_block_precision}</p>
+              <p>arbiter posterior {item.metadata?.arbiter?.delivery_posterior ?? "-"}</p>
               <p>{item.blocked_reason || "No blocking reason recorded."}</p>
             </div>
           ))}

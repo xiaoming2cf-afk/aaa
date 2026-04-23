@@ -5,6 +5,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from research_agent.entities import AgentRun, KnowledgeRecord, User, Workspace
+from research_agent.config import Settings
 from research_agent.quality_center import (
     build_agent_run_delivery_review,
     build_delivery_scorecard,
@@ -36,6 +37,19 @@ def _unique_token() -> str:
     return uuid4().hex[:8]
 
 
+def _math_settings(tmp_path: Path, *, mode: str = "active") -> Settings:
+    settings = Settings(
+        app_env="test",
+        app_secret="test-secret-with-sufficient-length-1234567890",
+        storage_dir=tmp_path / "storage",
+        reports_dir=tmp_path / "reports",
+        database_url=f"sqlite:///{(tmp_path / 'quality-review.db').as_posix()}",
+        agent_math_mode=mode,
+    )
+    settings.ensure_directories()
+    return settings
+
+
 def test_agent_run_delivery_review_requires_all_checks():
     run = AgentRun(
         id="run-1",
@@ -55,6 +69,25 @@ def test_agent_run_delivery_review_requires_all_checks():
     failing = build_agent_run_delivery_review(run, engineering_gate=_passed_engineering_gate())
     assert failing["publish_allowed"] is False
     assert any("Citation coverage equals 1.00" in reason for reason in failing["blocking_reasons"])
+
+
+def test_agent_run_delivery_review_exposes_arbiter_delivery_posterior(tmp_path: Path):
+    settings = _math_settings(tmp_path, mode="active")
+    run = AgentRun(
+        id="run-math",
+        status="saved",
+        current_stage="saved",
+        report_path="storage/reports/run-math/report.md",
+        review_json={"status": "approved", "summary": "Approved.", "missing_sections": [], "invalid_source_ids": [], "unsupported_claim_count": 0},
+        metrics_json={"citation_coverage": 1.0, "unsupported_claim_count": 0},
+        final_text="# Report",
+    )
+
+    review = build_agent_run_delivery_review(run, settings=settings, engineering_gate=_passed_engineering_gate())
+
+    assert review["metadata"]["arbiter"]["mode"] == "active"
+    assert 0.0 <= review["metadata"]["arbiter"]["delivery_posterior"] <= 1.0
+    assert review["metadata"]["arbiter"]["deliverable_proxy"] is True
 
 
 def test_knowledge_record_delivery_review_handles_manual_and_agent_derived(db_session):
@@ -149,9 +182,12 @@ def test_delivery_scorecard_requires_engineering_gate_even_with_500_business_sco
         db_session,
         user=user,
         workspace=workspace,
+        settings=_math_settings(Path(db_session.bind.url.database).parent if db_session.bind and db_session.bind.url.database else Path("."), mode="active"),
         engineering_gate=_passed_engineering_gate(),
     )
     assert passing["deliverable"] is True
+    assert "arbiter" in passing["metadata"]
+    assert passing["metadata"]["arbiter"]["mode"] == "active"
 
 
 def test_production_import_scan_detects_forbidden_dependency(tmp_path: Path):

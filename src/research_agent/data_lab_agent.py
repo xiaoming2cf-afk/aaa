@@ -18,6 +18,11 @@ from typing import Any
 import pandas as pd
 from sqlalchemy.orm import Session
 
+from .agent_math import (
+    build_data_lab_repair_decision,
+    rank_retrieval_candidates,
+    settings_math_mode,
+)
 from .asset_storage import load_asset_bytes
 from .config import Settings
 from .data_lab_catalog import get_data_lab_catalog
@@ -471,7 +476,16 @@ def _require_enabled(settings: Settings) -> None:
 
 
 class DataLabKnowledgeResolver:
-    def resolve(self, db: Session, *, user: User, workspace: Workspace, instruction: str, session: dict[str, Any]) -> dict[str, Any]:
+    def resolve(
+        self,
+        db: Session,
+        *,
+        user: User,
+        workspace: Workspace,
+        instruction: str,
+        session: dict[str, Any],
+        mode: str = "off",
+    ) -> dict[str, Any]:
         tokens = {token.lower() for token in re.findall(r"[A-Za-z0-9_\u4e00-\u9fff]+", instruction or "") if len(token) > 2}
         notes = []
         cards: list[dict[str, Any]] = []
@@ -500,12 +514,18 @@ class DataLabKnowledgeResolver:
         for asset in session.get("assets") or []:
             model_suggestions.extend(asset.get("profile", {}).get("suggested_models") or [])
         cards.extend(self._method_cards(model_suggestions))
-        ranked_cards = sorted(cards, key=lambda item: int(item.get("score") or 0), reverse=True)[:10]
+        ranked_cards, arbiter_trace = rank_retrieval_candidates(
+            query_text=instruction,
+            candidates=cards,
+            limit=10,
+            mode=mode,
+        )
         return {
             "catalog": catalog_summary,
             "workspace_notes": notes,
             "suggested_methods": list(dict.fromkeys(model_suggestions))[:12],
             "cards": ranked_cards,
+            "arbiter": arbiter_trace,
         }
 
     def _catalog_summary(self, tokens: set[str]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -1560,6 +1580,9 @@ def create_agent_session(
             "max_attempts": int(settings.data_lab_agent_max_attempts),
         },
         "llm": resolve_agent_llm_config(settings, db, user=user, workspace=workspace).public_summary(),
+        "math": {
+            "mode": settings_math_mode(settings),
+        },
         "created_at": _utc_now(),
         "updated_at": _utc_now(),
     }
@@ -1603,7 +1626,16 @@ def send_agent_message(
         "created_at": _utc_now(),
     }
     session.setdefault("messages", []).append(user_record)
-    knowledge = DataLabKnowledgeResolver().resolve(db, user=user, workspace=workspace, instruction=clean_message, session=session)
+    math_mode = settings_math_mode(settings)
+    session["math"] = {"mode": math_mode}
+    knowledge = DataLabKnowledgeResolver().resolve(
+        db,
+        user=user,
+        workspace=workspace,
+        instruction=clean_message,
+        session=session,
+        mode=math_mode,
+    )
     llm_config = resolve_agent_llm_config(settings, db, user=user, workspace=workspace)
     llm_client = AgentLLMClient(llm_config) if llm_config.ready else None
     session["llm"] = llm_config.public_summary()
@@ -1614,6 +1646,7 @@ def send_agent_message(
     executor = SandboxExecutor()
     repair_trace: list[dict[str, Any]] = []
     llm_trace_summary: list[dict[str, Any]] = []
+    repair_decisions: list[dict[str, Any]] = []
     human_intervention: dict[str, Any] = {"required": False, "provided": bool(clean_user_code), "note": clean_intervention_note}
     if clean_user_code:
         code_plan = _code_plan(
@@ -1636,6 +1669,15 @@ def send_agent_message(
         except SafetyViolation as exc:
             event = {"at": _utc_now(), "message": str(exc), "code_preview": code[:400]}
             session.setdefault("safety_events", []).append(event)
+            repair_decisions.append(
+                build_data_lab_repair_decision(
+                    error_message=str(exc),
+                    attempt_index=attempt + 1,
+                    max_attempts=max(1, max_attempts),
+                    mode=math_mode,
+                    has_human_code=bool(clean_user_code),
+                )
+            )
             final_execution = {
                 "status": "blocked",
                 "stdout": "",
@@ -1663,6 +1705,38 @@ def send_agent_message(
             content = code_plan.get("explanation") or _assistant_success_text(final_execution)
             break
         error_message = str(final_execution.get("error") or final_execution.get("stderr") or "Execution failed.")
+        decision_trace = build_data_lab_repair_decision(
+            error_message=error_message,
+            attempt_index=attempt + 1,
+            max_attempts=max(1, max_attempts),
+            mode=math_mode,
+            has_human_code=bool(clean_user_code),
+        )
+        repair_decisions.append(decision_trace)
+        if math_mode == "active" and decision_trace.get("best_action") == "block":
+            final_execution["status"] = "blocked"
+            content = "Execution was blocked because ARBITER judged terminal risk to dominate feasible repair actions."
+            status = "blocked"
+            human_intervention = {
+                "required": False,
+                "provided": bool(clean_user_code),
+                "note": clean_intervention_note,
+                "reason": truncate_text(error_message, 1200),
+                "next_action": "Review the blocked code and lower execution risk before retrying.",
+            }
+            break
+        if math_mode == "active" and decision_trace.get("best_action") == "ask_human":
+            final_execution["status"] = "needs_human_intervention"
+            content = "Execution requires human intervention because ARBITER ranked intervention above autonomous repair."
+            status = "needs_human_intervention"
+            human_intervention = {
+                "required": True,
+                "provided": bool(clean_user_code),
+                "note": clean_intervention_note,
+                "reason": truncate_text(error_message, 1200),
+                "next_action": "Edit the generated Python cell and submit it as manual code.",
+            }
+            break
         if attempt >= max_attempts:
             content = "Execution failed after automated repair attempts. Human code review is required."
             status = "needs_human_intervention"
@@ -1686,6 +1760,7 @@ def send_agent_message(
                 "error_type": diagnosis.get("error_type", ""),
                 "repair_strategy": diagnosis.get("repair_strategy", ""),
                 "code": code,
+                "arbiter": decision_trace,
             }
         )
         code_plan = coder.repair_plan(
@@ -1739,6 +1814,11 @@ def send_agent_message(
         "knowledge_cards": knowledge.get("cards") or [],
         "human_intervention": human_intervention,
         "llm_trace_summary": llm_trace_summary,
+        "math_trace": {
+            "mode": math_mode,
+            "retrieval": knowledge.get("arbiter") or {},
+            "repair_decisions": repair_decisions,
+        },
         "coder_source": code_plan.get("source", ""),
         "risk_notes": code_plan.get("risk_notes") or [],
         "created_at": _utc_now(),

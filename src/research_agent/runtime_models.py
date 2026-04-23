@@ -172,6 +172,7 @@ class DeliveryReviewReport(BaseModel):
     blocking_reasons: list[str] = Field(default_factory=list)
     checks: list[ScoreCheck] = Field(default_factory=list)
     checked_at: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class RunQualitySnapshot(BaseModel):
@@ -193,6 +194,7 @@ class RunQualitySnapshot(BaseModel):
     publish_allowed: bool = False
     blocking_reasons: list[str] = Field(default_factory=list)
     delivery_review: DeliveryReviewReport | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class BundleQualitySnapshot(BaseModel):
@@ -220,6 +222,7 @@ class DeliveryScorecard(BaseModel):
     blocking_reasons: list[str] = Field(default_factory=list)
     deliverable: bool = False
     generated_at: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class RuntimeBundleVersion(BaseModel):
@@ -363,6 +366,7 @@ class CandidateDraftSummary(BaseModel):
     unsupported_claim_count: int = 0
     finding_count: int = 0
     draft_preview: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ReviewReport(BaseModel):

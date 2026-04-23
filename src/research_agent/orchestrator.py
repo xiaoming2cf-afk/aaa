@@ -8,6 +8,7 @@ from typing import Any, Generic, Protocol, TypeVar
 
 from sqlalchemy.orm import Session
 
+from .agent_math import score_candidate_review, settings_math_mode
 from .agent_run_store import AgentRunContext, AgentRunStore
 from .config import Settings
 from .entities import AgentRun, User, Workspace
@@ -226,17 +227,16 @@ def _attachment_evidence_items(attachments: list[RunAttachment]) -> list[Evidenc
     return items
 
 
-def _candidate_score(review: ReviewReport, *, cited_source_count: int) -> float:
-    severity_penalty = {"high": 18.0, "medium": 7.0, "low": 2.0}
-    score = 100.0
-    if review.status != "approved":
-        score -= 25.0
-    score -= float(review.unsupported_claim_count) * 12.0
-    score -= float(len(review.missing_sections)) * 8.0
-    score -= float(len(review.invalid_source_ids)) * 10.0
-    score -= sum(severity_penalty.get(finding.severity, 4.0) for finding in review.findings)
-    score += min(float(cited_source_count), 8.0) * 2.0
-    return round(score, 3)
+def _candidate_score(review: ReviewReport, *, cited_source_count: int, mode: str = "off") -> tuple[float, dict[str, Any]]:
+    return score_candidate_review(
+        review_status=review.status,
+        unsupported_claim_count=review.unsupported_claim_count,
+        missing_section_count=len(review.missing_sections),
+        invalid_source_id_count=len(review.invalid_source_ids),
+        finding_count=len(review.findings),
+        cited_source_count=cited_source_count,
+        mode=mode,
+    )
 
 
 def _candidate_summary_from_review(
@@ -246,12 +246,14 @@ def _candidate_summary_from_review(
     draft_markdown: str,
     cited_source_ids: list[str],
     review: ReviewReport,
+    mode: str = "off",
 ) -> CandidateDraftSummary:
+    score, metadata = _candidate_score(review, cited_source_count=len(cited_source_ids), mode=mode)
     return CandidateDraftSummary(
         draft_id=draft_id,
         variant_index=variant_index,
         status=review.status,
-        score=_candidate_score(review, cited_source_count=len(cited_source_ids)),
+        score=score,
         summary=review.summary,
         cited_source_ids=cited_source_ids,
         missing_sections=review.missing_sections,
@@ -259,6 +261,7 @@ def _candidate_summary_from_review(
         unsupported_claim_count=review.unsupported_claim_count,
         finding_count=len(review.findings),
         draft_preview=truncate_text(draft_markdown, 500),
+        metadata={"arbiter": metadata},
     )
 
 
@@ -1180,6 +1183,7 @@ class ResearchOrchestrator:
         max_draft_attempts: int = 3,
     ) -> None:
         self.settings = settings
+        self.math_mode = settings_math_mode(settings)
         self.session = session
         self.db = db
         self.user = user
@@ -1490,6 +1494,7 @@ class ResearchOrchestrator:
                             draft_markdown=writer_result.value.draft_markdown,
                             cited_source_ids=writer_result.value.cited_source_ids,
                             review=candidate_review,
+                            mode=self.math_mode,
                         )
                     )
                     self._trace(
@@ -1534,6 +1539,8 @@ class ResearchOrchestrator:
                     selected_draft_id=selected_draft_id,
                     status=review_report.status,
                     score=selected_candidate.score,
+                    math_mode=self.math_mode,
+                    arbiter=(selected_candidate.metadata or {}).get("arbiter", {}),
                 )
                 store.update(
                     status="running" if review_report.status == "approved" else "blocked",
@@ -1845,6 +1852,16 @@ class ResearchOrchestrator:
             if (self.session.consulted_source_ids or any(item.modality in {"pdf", "image", "attachment"} for item in (evidence_pack.items if evidence_pack else [])))
             else 0.0,
             "reviewer_human_agreement": None,
+            "arbiter_math_mode": self.math_mode,
+            "arbiter_candidate_selection": [
+                {
+                    "draft_id": candidate.draft_id,
+                    "status": candidate.status,
+                    "score": candidate.score,
+                    "arbiter": dict(candidate.metadata or {}).get("arbiter", {}),
+                }
+                for candidate in candidate_drafts
+            ],
             "previous_response_ids": dict(self.previous_response_ids),
             "runtime_bundle_id": str(self.runtime_bundle.get("id") or ""),
             "runtime_bundle_version": str(self.runtime_bundle.get("version") or ""),

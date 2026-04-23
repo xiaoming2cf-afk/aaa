@@ -16,10 +16,11 @@ def _reset_app_caches() -> None:
             cache_clear()
 
 
-def _new_client_with_agent_enabled(monkeypatch, app_env: Path) -> TestClient:
+def _new_client_with_agent_enabled(monkeypatch, app_env: Path, *, math_mode: str = "off") -> TestClient:
     del app_env
     monkeypatch.setenv("DATA_LAB_AGENT_ENABLED", "true")
     monkeypatch.setenv("DATA_LAB_AGENT_TIMEOUT_SECONDS", "15")
+    monkeypatch.setenv("AGENT_MATH_MODE", math_mode)
     _reset_app_caches()
     from research_agent.webapp import create_app
 
@@ -77,7 +78,7 @@ def test_data_lab_agent_feature_flag_is_disabled_by_default(client, auth_headers
 
 
 def test_data_lab_agent_session_repair_manual_code_report_and_notebook(monkeypatch, app_env):
-    client = _new_client_with_agent_enabled(monkeypatch, app_env)
+    client = _new_client_with_agent_enabled(monkeypatch, app_env, math_mode="shadow")
     auth = _register_workspace(client)
     asset = _upload_agent_csv(client, workspace_id=auth["workspace_id"], csrf_token=auth["csrf"])
 
@@ -107,6 +108,9 @@ def test_data_lab_agent_session_repair_manual_code_report_and_notebook(monkeypat
     assert repaired_message["artifact_manifest"]["count"] >= 0
     assert repaired_message["knowledge_cards"]
     assert repaired_message["profile_snapshot"]["schema_fingerprint"]
+    assert repaired_message["math_trace"]["mode"] == "shadow"
+    assert repaired_message["math_trace"]["retrieval"]["candidate_count"] >= repaired_message["math_trace"]["retrieval"]["selected_count"]
+    assert repaired_message["math_trace"]["repair_decisions"]
     assert "Available columns" in repaired_message["execution"]["stdout"]
 
     manual = client.post(

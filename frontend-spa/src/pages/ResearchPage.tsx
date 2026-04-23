@@ -112,6 +112,8 @@ export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX
   const publishAllowed = Boolean(selectedRun?.publish_allowed);
   const publishBlockers = (selectedRun?.blocking_reasons || selectedRun?.delivery_review?.blocking_reasons || []) as string[];
   const scoreSummary = useMemo(() => qualityQuery.data?.metrics || {}, [qualityQuery.data]);
+  const candidateDrafts = (selectedRun?.candidate_drafts || []) as Array<any>;
+  const arbiterMode = selectedRun?.metrics?.arbiter_math_mode || "off";
 
   return (
     <div className="page-grid">
@@ -207,6 +209,28 @@ export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX
             <div className="detail-column">
               <h4>Trace</h4>
               <pre>{JSON.stringify(selectedRun.trace || [], null, 2)}</pre>
+              <h4>ARBITER Candidates</h4>
+              {candidateDrafts.length ? (
+                <div className="list-stack">
+                  {candidateDrafts.map((candidate) => {
+                    const arbiter = candidate?.metadata?.arbiter || {};
+                    return (
+                      <div key={candidate.draft_id} className="list-card static-card">
+                        <div className="list-card-title">
+                          <strong>{candidate.draft_id}</strong>
+                          <span>{candidate.status}</span>
+                        </div>
+                        <p>{candidate.summary || "No reviewer summary."}</p>
+                        <small>
+                          mode {arbiter.mode || arbiterMode} / utility {arbiter.utility ?? "-"} / risk {arbiter.risk ?? "-"} / evidence {arbiter.evidence_support ?? "-"}
+                        </small>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="muted">No candidate-level ARBITER traces were persisted for this run.</p>
+              )}
               <h4>Final Report</h4>
               <pre>{selectedRun.final_text || ""}</pre>
             </div>

@@ -16,6 +16,7 @@ if os.getenv("PYTHON_DOTENV_DISABLED", "").strip().lower() not in {"1", "true", 
 
 _DEV_APP_ENVS = {"development", "dev", "test", "testing"}
 _WEAK_APP_SECRETS = {"", "development-secret-change-me", "changeme", "secret", "development-secret"}
+_VALID_AGENT_MATH_MODES = {"off", "shadow", "active"}
 
 
 def _default_app_secret() -> str:
@@ -150,6 +151,15 @@ class Settings(BaseModel):
     data_lab_agent_llm_timeout_seconds: int = Field(
         default_factory=lambda: int(os.getenv("DATA_LAB_AGENT_LLM_TIMEOUT_SECONDS", "45"))
     )
+    agent_math_mode: str = Field(
+        default_factory=lambda: os.getenv("AGENT_MATH_MODE", "off").strip().lower()
+    )
+    agent_math_delivery_threshold: float = Field(
+        default_factory=lambda: float(os.getenv("AGENT_MATH_DELIVERY_THRESHOLD", "0.85"))
+    )
+    agent_math_human_threshold: float = Field(
+        default_factory=lambda: float(os.getenv("AGENT_MATH_HUMAN_THRESHOLD", "0.55"))
+    )
 
     def ensure_directories(self) -> None:
         self.storage_dir.mkdir(parents=True, exist_ok=True)
@@ -248,6 +258,8 @@ class Settings(BaseModel):
             raise RuntimeError("SMTP_SECURITY must be one of: ssl, starttls.")
         if self.password_reset_ttl_minutes <= 0:
             raise RuntimeError("PASSWORD_RESET_TTL_MINUTES must be greater than zero.")
+        if self.agent_math_mode not in _VALID_AGENT_MATH_MODES:
+            raise RuntimeError("AGENT_MATH_MODE must be one of: off, shadow, active.")
 
 
 def get_settings() -> Settings:

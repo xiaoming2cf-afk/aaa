@@ -64,7 +64,7 @@ class _FakeResponsesAPI:
         return self.create_queue.pop(0)
 
 
-def _settings(tmp_path: Path) -> Settings:
+def _settings(tmp_path: Path, *, math_mode: str = "off") -> Settings:
     settings = Settings(
         app_env="test",
         app_secret="test-secret-with-sufficient-length-1234567890",
@@ -72,6 +72,7 @@ def _settings(tmp_path: Path) -> Settings:
         reports_dir=tmp_path / "reports",
         storage_dir=tmp_path / "storage",
         database_url=f"sqlite:///{(tmp_path / 'agent-runtime.db').as_posix()}",
+        agent_math_mode=math_mode,
     )
     settings.ensure_directories()
     return settings
@@ -427,7 +428,7 @@ def test_orchestrator_retries_blocked_draft_and_persists_agent_run(app, db_sessi
     )
 
     orchestrator = ResearchOrchestrator(
-        settings=_settings(tmp_path),
+        settings=_settings(tmp_path, math_mode="active"),
         session=session,
         db=db_session,
         user=user,
@@ -531,7 +532,7 @@ def test_orchestrator_selects_best_candidate_variant(app, db_session, tmp_path: 
     )
 
     orchestrator = ResearchOrchestrator(
-        settings=_settings(tmp_path),
+        settings=_settings(tmp_path, math_mode="active"),
         session=session,
         db=db_session,
         user=user,
@@ -555,6 +556,9 @@ def test_orchestrator_selects_best_candidate_variant(app, db_session, tmp_path: 
     assert len(result.candidate_drafts_json) == 2
     assert [item["draft_id"] for item in result.candidate_drafts_json] == ["D1-1", "D1-2"]
     assert result.review_json["selected_draft_id"] == "D1-2"
+    assert result.metrics_json["arbiter_math_mode"] == "active"
+    assert result.candidate_drafts_json[0]["metadata"]["arbiter"]["mode"] == "active"
+    assert result.candidate_drafts_json[1]["metadata"]["arbiter"]["evidence_support"] > result.candidate_drafts_json[0]["metadata"]["arbiter"]["evidence_support"]
 
     record = db_session.scalar(select(AgentRun).where(AgentRun.id == result.agent_run_id))
     assert record is not None

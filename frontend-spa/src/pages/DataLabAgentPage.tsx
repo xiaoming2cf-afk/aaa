@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { apiFetch } from "../api";
 
 type UseAppState = () => {
@@ -18,6 +19,65 @@ type KnowledgeCard = {
   title: string;
   summary: string;
   score?: number;
+  tags?: string[];
+};
+
+type AgentMessage = {
+  id: string;
+  role: string;
+  content: string;
+  status?: string;
+  code?: string;
+  user_code?: boolean;
+  intervention_note?: string;
+  execution_mode?: string;
+  coder_source?: string;
+  risk_notes?: string[];
+  knowledge_cards?: KnowledgeCard[];
+  llm_trace_summary?: Array<{
+    role: string;
+    source: string;
+    summary?: string;
+    fallback?: boolean;
+    llm_error?: string;
+  }>;
+  human_intervention?: {
+    required?: boolean;
+    provided?: boolean;
+    note?: string;
+    reason?: string;
+    next_action?: string;
+  };
+  artifact_manifest?: {
+    count?: number;
+    image_count?: number;
+    total_size_bytes?: number;
+    names?: string[];
+  };
+  profile_snapshot?: {
+    rows?: number;
+    columns?: number;
+    schema_fingerprint?: string;
+  };
+  execution?: {
+    stdout?: string;
+    stderr?: string;
+    error?: string;
+    artifacts?: Array<{
+      name: string;
+      path: string;
+      relative_path?: string;
+      size_bytes?: number;
+    }>;
+  };
+  repair_trace?: Array<{
+    attempt: number;
+    status: string;
+    error: string;
+    suggestion?: string;
+    reviewer_source?: string;
+    repair_strategy?: string;
+  }>;
 };
 
 type AgentSession = {
@@ -25,6 +85,10 @@ type AgentSession = {
   title: string;
   summary?: string;
   run_status?: string;
+  detail_path?: string;
+  report_path?: string;
+  notebook_path?: string;
+  updated_at?: string;
   executor?: {
     strategy?: string;
     requested_mode?: string;
@@ -47,36 +111,31 @@ type AgentSession = {
       column_names?: string[];
       schema_fingerprint?: string;
       candidate_targets?: string[];
+      candidate_features?: string[];
       quality_warnings?: string[];
+      preview_rows?: Array<Record<string, unknown>>;
     };
   }>;
-  messages?: Array<{
+  messages?: AgentMessage[];
+  cells?: Array<{
     id: string;
-    role: string;
-    content: string;
     status?: string;
-    code?: string;
     execution_mode?: string;
     coder_source?: string;
-    knowledge_cards?: KnowledgeCard[];
-    llm_trace_summary?: Array<{ role: string; source: string; summary?: string; fallback?: boolean; llm_error?: string }>;
-    human_intervention?: { required?: boolean; provided?: boolean; note?: string; reason?: string; next_action?: string };
-    artifact_manifest?: { count?: number; image_count?: number; total_size_bytes?: number; names?: string[] };
-    profile_snapshot?: { rows?: number; columns?: number; schema_fingerprint?: string };
-    execution?: {
-      stdout?: string;
-      stderr?: string;
-      error?: string;
-      artifacts?: Array<{ name: string; path: string; relative_path?: string }>;
+  }>;
+  profile_snapshots?: Array<{
+    id: string;
+    created_at?: string;
+    profile?: {
+      rows?: number;
+      columns?: number;
+      schema_fingerprint?: string;
     };
-    repair_trace?: Array<{
-      attempt: number;
-      status: string;
-      error: string;
-      suggestion?: string;
-      reviewer_source?: string;
-      repair_strategy?: string;
-    }>;
+  }>;
+  safety_events?: Array<{
+    at?: string;
+    message?: string;
+    code_preview?: string;
   }>;
 };
 
@@ -118,8 +177,66 @@ type HistoryItem = {
   summary?: string;
 };
 
+type LlmFormState = {
+  enabled: boolean;
+  base_url: string;
+  api_key: string;
+  clear_api_key: boolean;
+  coder_model: string;
+  reviewer_model: string;
+  report_model: string;
+  label: string;
+};
+
+type SendMessageInput = {
+  message: string;
+  userCode: string;
+  interventionNote: string;
+  executionMode: string;
+};
+
+type ReportResponse = {
+  session: AgentSession;
+  report: {
+    path: string;
+    markdown: string;
+  };
+};
+
+const EMPTY_LLM_FORM: LlmFormState = {
+  enabled: false,
+  base_url: "",
+  api_key: "",
+  clear_api_key: false,
+  coder_model: "",
+  reviewer_model: "",
+  report_model: "",
+  label: "",
+};
+
+function workspaceFormState(workspace?: LlmConfig["workspace"]): LlmFormState {
+  if (!workspace) {
+    return { ...EMPTY_LLM_FORM };
+  }
+  return {
+    enabled: workspace.enabled,
+    base_url: workspace.base_url,
+    api_key: "",
+    clear_api_key: false,
+    coder_model: workspace.coder_model,
+    reviewer_model: workspace.reviewer_model,
+    report_model: workspace.report_model,
+    label: workspace.label,
+  };
+}
+
+function humanInterventionRequired(message?: AgentMessage): boolean {
+  return Boolean(message?.human_intervention?.required);
+}
+
 export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }): JSX.Element {
   const { workspaceId } = useAppState();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("Data Lab Agent Session");
   const [assetId, setAssetId] = useState("");
@@ -128,17 +245,18 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
   const [manualCode, setManualCode] = useState("");
   const [interventionNote, setInterventionNote] = useState("");
   const [executionMode, setExecutionMode] = useState("");
-  const [llmForm, setLlmForm] = useState({
-    enabled: false,
-    base_url: "",
-    api_key: "",
-    clear_api_key: false,
-    coder_model: "",
-    reviewer_model: "",
-    report_model: "",
-    label: "",
-  });
+  const [llmForm, setLlmForm] = useState<LlmFormState>({ ...EMPTY_LLM_FORM });
+  const [llmHydratedWorkspaceId, setLlmHydratedWorkspaceId] = useState("");
   const [llmTestResult, setLlmTestResult] = useState("");
+  const [reportMarkdown, setReportMarkdown] = useState("");
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const datasetSelectRef = useRef<HTMLSelectElement | null>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const manualCodeInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const interventionNoteInputRef = useRef<HTMLInputElement | null>(null);
+  const executionModeSelectRef = useRef<HTMLSelectElement | null>(null);
+
+  const runFromQuery = useMemo(() => new URLSearchParams(location.search).get("run") || "", [location.search]);
 
   const assetsQuery = useQuery({
     queryKey: ["assets", workspaceId],
@@ -169,17 +287,62 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
     [assetsQuery.data],
   );
 
+  useEffect(() => {
+    setSelectedRunId(runFromQuery || "");
+    setAssetId("");
+    setReportMarkdown("");
+    setLlmTestResult("");
+    setLlmForm({ ...EMPTY_LLM_FORM });
+    setLlmHydratedWorkspaceId("");
+  }, [workspaceId, runFromQuery]);
+
+  useEffect(() => {
+    if (assetId && datasetAssets.some((asset) => asset.id === assetId)) {
+      return;
+    }
+    if (datasetAssets.length) {
+      setAssetId(datasetAssets[0].id);
+    }
+  }, [assetId, datasetAssets]);
+
+  useEffect(() => {
+    if (runFromQuery) {
+      if (selectedRunId !== runFromQuery) {
+        setSelectedRunId(runFromQuery);
+      }
+      return;
+    }
+    const firstSession = historyQuery.data?.agent_sessions?.[0];
+    if (!selectedRunId && firstSession) {
+      setSelectedRunId(firstSession.run_id || firstSession.id);
+    }
+  }, [historyQuery.data, runFromQuery, selectedRunId]);
+
+  useEffect(() => {
+    const workspace = llmConfigQuery.data?.workspace;
+    if (!workspaceId || !workspace || llmHydratedWorkspaceId === workspaceId) {
+      return;
+    }
+    setLlmForm(workspaceFormState(workspace));
+    setLlmHydratedWorkspaceId(workspaceId);
+  }, [llmConfigQuery.data, llmHydratedWorkspaceId, workspaceId]);
+
+  useEffect(() => {
+    setReportMarkdown("");
+  }, [selectedRunId]);
+
   const createSessionMutation = useMutation({
-    mutationFn: () => apiFetch<{ session: AgentSession }>(`/api/workspaces/${workspaceId}/data-lab/agent/sessions`, {
+    mutationFn: (payload: { nextTitle: string; nextAssetId: string }) => apiFetch<{ session: AgentSession }>(`/api/workspaces/${workspaceId}/data-lab/agent/sessions`, {
       method: "POST",
       body: JSON.stringify({
-        title,
+        title: payload.nextTitle,
         language: "Chinese",
-        asset_ids: [assetId],
+        asset_ids: [payload.nextAssetId],
       }),
     }),
     onSuccess: (payload) => {
       setSelectedRunId(payload.session.run_id);
+      setReportMarkdown("");
       void queryClient.invalidateQueries({ queryKey: ["data-lab-history", workspaceId] });
     },
   });
@@ -191,6 +354,8 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
     }),
     onSuccess: () => {
       setLlmForm((current) => ({ ...current, api_key: "", clear_api_key: false }));
+      setLlmHydratedWorkspaceId("");
+      setLlmTestResult("");
       void queryClient.invalidateQueries({ queryKey: ["data-lab-agent-llm-config", workspaceId] });
     },
   });
@@ -205,58 +370,87 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: () => apiFetch<{ session: AgentSession }>(`/api/workspaces/${workspaceId}/data-lab/agent/sessions/${selectedRunId}/messages`, {
+    mutationFn: (payload: SendMessageInput) => apiFetch<{ session: AgentSession }>(`/api/workspaces/${workspaceId}/data-lab/agent/sessions/${selectedRunId}/messages`, {
       method: "POST",
       body: JSON.stringify({
-        message,
-        user_code: manualCode,
-        intervention_note: interventionNote,
-        execution_mode: executionMode,
+        message: payload.message,
+        user_code: payload.userCode,
+        intervention_note: payload.interventionNote,
+        execution_mode: payload.executionMode,
       }),
     }),
-    onSuccess: () => {
-      setManualCode("");
-      setInterventionNote("");
+    onSuccess: (_payload, variables) => {
+      const currentManualCode = manualCodeInputRef.current?.value ?? "";
+      const currentInterventionNote = interventionNoteInputRef.current?.value ?? "";
+      if (currentManualCode === variables.userCode) {
+        setManualCode("");
+      }
+      if (currentInterventionNote === variables.interventionNote) {
+        setInterventionNote("");
+      }
       void queryClient.invalidateQueries({ queryKey: ["data-lab-agent-session", workspaceId, selectedRunId] });
       void queryClient.invalidateQueries({ queryKey: ["data-lab-history", workspaceId] });
     },
   });
 
   const reportMutation = useMutation({
-    mutationFn: () => apiFetch(`/api/workspaces/${workspaceId}/data-lab/agent/sessions/${selectedRunId}/report`, {
+    mutationFn: () => apiFetch<ReportResponse>(`/api/workspaces/${workspaceId}/data-lab/agent/sessions/${selectedRunId}/report`, {
       method: "POST",
     }),
-    onSuccess: () => {
+    onSuccess: (payload) => {
+      setReportMarkdown(payload.report.markdown);
       void queryClient.invalidateQueries({ queryKey: ["data-lab-agent-session", workspaceId, selectedRunId] });
+      void queryClient.invalidateQueries({ queryKey: ["data-lab-history", workspaceId] });
     },
   });
 
   const currentSession = sessionQuery.data?.session;
+  const messages = currentSession?.messages || [];
   const firstProfile = currentSession?.assets?.[0]?.profile;
-  const latestAssistant = [...(currentSession?.messages || [])].reverse().find((item) => item.role === "assistant" && item.code);
-  const needsHuman = currentSession?.run_status === "needs_human_intervention"
-    || latestAssistant?.human_intervention?.required;
+  const latestAssistant = [...messages].reverse().find((item) => item.role === "assistant");
+  const latestAssistantWithCode = [...messages].reverse().find((item) => item.role === "assistant" && item.code);
+  const latestUser = [...messages].reverse().find((item) => item.role === "user");
+  const needsHuman = currentSession?.run_status === "needs_human_intervention" || humanInterventionRequired(latestAssistantWithCode);
+  const notebookHref = selectedRunId ? `/api/workspaces/${workspaceId}/data-lab/agent/sessions/${selectedRunId}/notebook` : "";
+  const permalinkHref = currentSession?.detail_path || (selectedRunId ? `/app/data-lab-agent?run=${selectedRunId}` : "");
+  const latestPrompt = latestUser?.content || message;
   const mutationError = createSessionMutation.error
     || sendMessageMutation.error
     || reportMutation.error
     || saveLlmConfigMutation.error
     || testLlmConfigMutation.error;
 
-  const loadWorkspaceConfig = (): void => {
-    const workspace = llmConfigQuery.data?.workspace;
-    if (!workspace) {
+  const runMessage = (): void => {
+    const payload = {
+      message: messageInputRef.current?.value ?? message,
+      userCode: manualCodeInputRef.current?.value ?? manualCode,
+      interventionNote: interventionNoteInputRef.current?.value ?? interventionNote,
+      executionMode: executionModeSelectRef.current?.value ?? executionMode,
+    };
+    setMessage(payload.message);
+    setManualCode(payload.userCode);
+    setInterventionNote(payload.interventionNote);
+    setExecutionMode(payload.executionMode);
+    sendMessageMutation.mutate(payload);
+  };
+
+  const retryLatestPrompt = (): void => {
+    if (!latestPrompt) {
       return;
     }
-    setLlmForm({
-      enabled: workspace.enabled,
-      base_url: workspace.base_url,
-      api_key: "",
-      clear_api_key: false,
-      coder_model: workspace.coder_model,
-      reviewer_model: workspace.reviewer_model,
-      report_model: workspace.report_model,
-      label: workspace.label,
+    setMessage(latestPrompt);
+    setManualCode("");
+    setInterventionNote("Retry after previous failure.");
+    sendMessageMutation.mutate({
+      message: latestPrompt,
+      userCode: "",
+      interventionNote: "Retry after previous failure.",
+      executionMode,
     });
+  };
+
+  const loadWorkspaceConfig = (): void => {
+    setLlmForm(workspaceFormState(llmConfigQuery.data?.workspace));
   };
 
   return (
@@ -272,11 +466,11 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
         <div className="form-grid">
           <label className="field">
             <span>Session Title</span>
-            <input value={title} onChange={(event) => setTitle(event.target.value)} />
+            <input ref={titleInputRef} value={title} onChange={(event) => setTitle(event.target.value)} />
           </label>
           <label className="field">
             <span>Dataset</span>
-            <select value={assetId} onChange={(event) => setAssetId(event.target.value)}>
+            <select ref={datasetSelectRef} value={assetId} onChange={(event) => setAssetId(event.target.value)}>
               <option value="">Select dataset</option>
               {datasetAssets.map((asset) => (
                 <option key={asset.id} value={asset.id}>{asset.title}</option>
@@ -289,11 +483,20 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
             className="primary-button"
             type="button"
             disabled={!workspaceId || !assetId || createSessionMutation.isPending}
-            onClick={() => createSessionMutation.mutate()}
+            onClick={() => {
+              const nextTitle = titleInputRef.current?.value ?? title;
+              const nextAssetId = datasetSelectRef.current?.value ?? assetId;
+              setTitle(nextTitle);
+              setAssetId(nextAssetId);
+              createSessionMutation.mutate({ nextTitle, nextAssetId });
+            }}
           >
             Create Session
           </button>
           <span className="muted">Feature flag required: DATA_LAB_AGENT_ENABLED=true.</span>
+          {permalinkHref ? (
+            <a className="ghost-button" href={permalinkHref}>Open Session Link</a>
+          ) : null}
         </div>
       </section>
 
@@ -325,6 +528,20 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
           <label className="field">
             <span>API Key</span>
             <input value={llmForm.api_key} onChange={(event) => setLlmForm((current) => ({ ...current, api_key: event.target.value }))} placeholder={llmConfigQuery.data?.workspace.api_key_configured ? "Stored; leave blank to keep" : "Optional for local gateways"} />
+          </label>
+          <label className="field">
+            <span>Stored Key</span>
+            <select
+              value={llmForm.clear_api_key ? "clear" : "keep"}
+              onChange={(event) => setLlmForm((current) => ({ ...current, clear_api_key: event.target.value === "clear" }))}
+            >
+              <option value="keep">Keep stored key</option>
+              <option value="clear">Clear stored key</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Label</span>
+            <input value={llmForm.label} onChange={(event) => setLlmForm((current) => ({ ...current, label: event.target.value }))} placeholder="Workspace-scoped agent config" />
           </label>
           <label className="field">
             <span>Coder Model</span>
@@ -359,20 +576,23 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
           </div>
         </div>
         <div className="list-stack">
-          {(historyQuery.data?.agent_sessions || []).map((item) => (
-            <button
-              key={item.id}
-              className={selectedRunId === (item.run_id || item.id) ? "list-card selected" : "list-card"}
-              type="button"
-              onClick={() => setSelectedRunId(item.run_id || item.id)}
-            >
-              <div className="list-card-title">
-                <strong>{item.title}</strong>
-                <span>{item.status}</span>
-              </div>
-              <p>{item.summary || "Open the session to inspect messages and cells."}</p>
-            </button>
-          ))}
+          {(historyQuery.data?.agent_sessions || []).map((item) => {
+            const runId = item.run_id || item.id;
+            return (
+              <button
+                key={item.id}
+                className={selectedRunId === runId ? "list-card selected" : "list-card"}
+                type="button"
+                onClick={() => setSelectedRunId(runId)}
+              >
+                <div className="list-card-title">
+                  <strong>{item.title}</strong>
+                  <span>{item.status}</span>
+                </div>
+                <p>{item.summary || "Open the session to inspect messages and cells."}</p>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -391,14 +611,22 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
               <p className="muted">
                 Mode: {currentSession.executor?.active_mode || "not run"}.
                 LLM: {currentSession.llm?.ready ? `${currentSession.llm.source} ${currentSession.llm.coder_model}` : "rules fallback"}.
+                Cells: {currentSession.cells?.length || 0}. Snapshots: {currentSession.profile_snapshots?.length || 0}. Safety events: {currentSession.safety_events?.length || 0}.
               </p>
             ) : null}
           </div>
-          {selectedRunId ? (
-            <a className="ghost-button" href={`/api/workspaces/${workspaceId}/data-lab/agent/sessions/${selectedRunId}/notebook`}>
-              Notebook
-            </a>
-          ) : null}
+          <div className="action-row">
+            {selectedRunId ? (
+              <a className="ghost-button" href={notebookHref}>
+                Notebook
+              </a>
+            ) : null}
+            {permalinkHref ? (
+              <a className="ghost-button" href={permalinkHref}>
+                Permalink
+              </a>
+            ) : null}
+          </div>
         </div>
         {currentSession ? (
           <div className="detail-grid">
@@ -406,26 +634,40 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
               {needsHuman ? (
                 <div className="list-card static-card">
                   <strong>Human intervention required</strong>
-                  <p>{latestAssistant?.human_intervention?.reason || "Automated repair could not complete this cell."}</p>
-                  <button
-                    className="ghost-button"
-                    type="button"
-                    onClick={() => {
-                      setManualCode(latestAssistant?.code || "");
-                      setInterventionNote("Manual correction after automated repair failed.");
-                    }}
-                  >
-                    Edit Failed Code
-                  </button>
+                  <p>{latestAssistantWithCode?.human_intervention?.reason || "Automated repair could not complete this cell."}</p>
+                  {latestAssistantWithCode?.human_intervention?.next_action ? (
+                    <p className="muted">{latestAssistantWithCode.human_intervention.next_action}</p>
+                  ) : null}
+                  <div className="action-row">
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      onClick={() => {
+                        setManualCode(latestAssistantWithCode?.code || "");
+                        setInterventionNote("Manual correction after automated repair failed.");
+                      }}
+                    >
+                      Edit Failed Code
+                    </button>
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      disabled={!latestPrompt || sendMessageMutation.isPending}
+                      onClick={retryLatestPrompt}
+                    >
+                      Retry Last Prompt
+                    </button>
+                  </div>
                 </div>
               ) : null}
+
               <label className="field">
                 <span>Instruction</span>
-                <textarea value={message} onChange={(event) => setMessage(event.target.value)} rows={4} />
+                <textarea ref={messageInputRef} value={message} onChange={(event) => setMessage(event.target.value)} rows={4} />
               </label>
               <label className="field">
                 <span>Execution Mode</span>
-                <select value={executionMode} onChange={(event) => setExecutionMode(event.target.value)}>
+                <select ref={executionModeSelectRef} value={executionMode} onChange={(event) => setExecutionMode(event.target.value)}>
                   <option value="">Session default</option>
                   <option value="subprocess_replay">Safe replay subprocess</option>
                   <option value="auto">Auto dual mode</option>
@@ -434,20 +676,31 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
               </label>
               <label className="field">
                 <span>Manual code override</span>
-                <textarea value={manualCode} onChange={(event) => setManualCode(event.target.value)} rows={8} placeholder="Optional Python code for human intervention." />
+                <textarea ref={manualCodeInputRef} value={manualCode} onChange={(event) => setManualCode(event.target.value)} rows={8} placeholder="Optional Python code for human intervention." />
               </label>
               <label className="field">
                 <span>Human note</span>
-                <input value={interventionNote} onChange={(event) => setInterventionNote(event.target.value)} placeholder="Why this manual code is being used." />
+                <input ref={interventionNoteInputRef} value={interventionNote} onChange={(event) => setInterventionNote(event.target.value)} placeholder="Why this manual code is being used." />
               </label>
               <div className="action-row">
                 <button
                   className="primary-button"
                   type="button"
-                  disabled={!selectedRunId || sendMessageMutation.isPending}
-                  onClick={() => sendMessageMutation.mutate()}
+                  disabled={!selectedRunId || (!message.trim() && !manualCode.trim()) || sendMessageMutation.isPending}
+                  onClick={runMessage}
                 >
                   {manualCode.trim() ? "Run Manual Code" : "Run Message"}
+                </button>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  disabled={!selectedRunId || sendMessageMutation.isPending || (!message.trim() && !manualCode.trim())}
+                  onClick={() => {
+                    setManualCode("");
+                    setInterventionNote("");
+                  }}
+                >
+                  Clear Draft
                 </button>
                 <button
                   className="ghost-button"
@@ -458,13 +711,46 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
                   Generate Report
                 </button>
               </div>
-              <h4>Dataset Context</h4>
-              <pre>{JSON.stringify(currentSession.assets || [], null, 2)}</pre>
+
+              <div className="list-card static-card">
+                <strong>Dataset Context</strong>
+                <p className="muted">
+                  Suggested targets: {(firstProfile?.candidate_targets || []).join(", ") || "none"}.
+                </p>
+                {firstProfile?.quality_warnings?.length ? (
+                  <ul>
+                    {firstProfile.quality_warnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="muted">No major quality warnings detected in the initial profile.</p>
+                )}
+                <details>
+                  <summary>Profile Preview</summary>
+                  <pre>{JSON.stringify(firstProfile || {}, null, 2)}</pre>
+                </details>
+              </div>
+
+              {currentSession.safety_events?.length ? (
+                <details className="list-card static-card">
+                  <summary>Safety events</summary>
+                  <pre>{JSON.stringify(currentSession.safety_events, null, 2)}</pre>
+                </details>
+              ) : null}
+
+              {reportMarkdown ? (
+                <div className="list-card static-card">
+                  <strong>Generated Report</strong>
+                  <pre>{reportMarkdown}</pre>
+                </div>
+              ) : null}
             </div>
+
             <div className="detail-column">
               <h4>Messages</h4>
               <div className="list-stack">
-                {(currentSession.messages || []).map((item) => (
+                {messages.map((item) => (
                   <article key={item.id} className="list-card static-card">
                     <div className="list-card-title">
                       <strong>{item.role}</strong>
@@ -472,16 +758,39 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
                     </div>
                     <p>{item.content}</p>
                     {item.coder_source ? <p className="muted">Coder: {item.coder_source}. Mode: {item.execution_mode || "not executed"}.</p> : null}
+                    {item.human_intervention?.required ? (
+                      <p className="muted">
+                        Human intervention required. {item.human_intervention.reason || ""}
+                      </p>
+                    ) : null}
+                    {item.human_intervention?.provided ? (
+                      <p className="muted">
+                        Manual note: {item.human_intervention.note || "Provided manually."}
+                      </p>
+                    ) : null}
                     {item.code ? <pre>{item.code}</pre> : null}
                     {item.execution?.stdout ? <pre>{item.execution.stdout}</pre> : null}
+                    {item.execution?.stderr ? <pre>{item.execution.stderr}</pre> : null}
                     {item.execution?.error ? <pre>{item.execution.error}</pre> : null}
+                    {item.risk_notes?.length ? (
+                      <p className="muted">Risk notes: {item.risk_notes.join(" | ")}</p>
+                    ) : null}
                     {item.profile_snapshot ? (
                       <p className="muted">
                         Snapshot: {item.profile_snapshot.rows || 0} rows, {item.profile_snapshot.columns || 0} columns, {item.profile_snapshot.schema_fingerprint || "no fingerprint"}.
                       </p>
                     ) : null}
                     {item.artifact_manifest?.count ? (
-                      <p className="muted">Artifacts: {item.artifact_manifest.count} files, {item.artifact_manifest.image_count || 0} images.</p>
+                      <div>
+                        <p className="muted">Artifacts: {item.artifact_manifest.count} files, {item.artifact_manifest.image_count || 0} images.</p>
+                        {item.execution?.artifacts?.length ? (
+                          <ul>
+                            {item.execution.artifacts.map((artifact) => (
+                              <li key={`${item.id}-${artifact.path}`}>{artifact.relative_path || artifact.name}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </div>
                     ) : null}
                     {item.repair_trace?.length ? (
                       <details>
@@ -492,7 +801,17 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
                     {item.knowledge_cards?.length ? (
                       <details>
                         <summary>Knowledge cards</summary>
-                        <pre>{JSON.stringify(item.knowledge_cards, null, 2)}</pre>
+                        <div className="list-stack">
+                          {item.knowledge_cards.map((card) => (
+                            <div key={`${item.id}-${card.id}`} className="list-card static-card">
+                              <div className="list-card-title">
+                                <strong>{card.title}</strong>
+                                <span>{card.source_type}</span>
+                              </div>
+                              <p>{card.summary}</p>
+                            </div>
+                          ))}
+                        </div>
                       </details>
                     ) : null}
                     {item.llm_trace_summary?.length ? (

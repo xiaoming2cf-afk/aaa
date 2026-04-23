@@ -11,6 +11,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from .agent_math import build_delivery_posterior_trace, settings_math_mode
 from .entities import AgentRun, KnowledgeRecord, User, Workspace
 from .runtime_models import (
     DeliveryReviewReport,
@@ -564,6 +565,7 @@ def _failed_engineering_reasons(engineering_gate: dict[str, Any] | None) -> list
 def build_agent_run_delivery_review(
     run: AgentRun,
     *,
+    settings: Any | None = None,
     engineering_gate: dict[str, Any] | EngineeringGateReport | None = None,
 ) -> dict[str, Any]:
     normalized_gate = _normalize_engineering_gate(engineering_gate)
@@ -611,11 +613,25 @@ def build_agent_run_delivery_review(
     ]
     business_deliverable = all(check.passed for check in checks)
     engineering_gate_passed = bool(normalized_gate and normalized_gate.get("passed"))
+    math_mode = settings_math_mode(settings) if settings is not None else "off"
+    posterior_trace = build_delivery_posterior_trace(
+        citation_coverage=citation_coverage,
+        unsupported_claim_rate=unsupported_claim_rate,
+        review_block_precision=review_block_precision,
+        review_approved=str(review.get("status") or "").strip().lower() == "approved",
+        artifact_present=bool(str(run.report_path or "").strip()) or bool(str(run.final_text or "").strip()),
+        engineering_gate_passed=engineering_gate_passed,
+        mode=math_mode,
+        threshold=float(getattr(settings, "agent_math_delivery_threshold", 0.85) if settings is not None else 0.85),
+    )
     blocking_reasons = [
         f"{check.label}: {check.detail or 'failed'}"
         for check in checks
         if not check.passed
     ]
+    if math_mode == "active" and not posterior_trace.get("deliverable_proxy"):
+        business_deliverable = False
+        blocking_reasons.append("ARBITER delivery posterior is below threshold.")
     if not engineering_gate_passed:
         blocking_reasons.extend(_failed_engineering_reasons(normalized_gate))
     deliverable = business_deliverable and engineering_gate_passed
@@ -632,6 +648,7 @@ def build_agent_run_delivery_review(
         blocking_reasons=blocking_reasons,
         checks=checks,
         checked_at=_utc_now_iso(),
+        metadata={"arbiter": posterior_trace},
     ).model_dump(mode="json")
 
 
@@ -651,6 +668,7 @@ def build_knowledge_record_delivery_review(
     db: Session,
     record: KnowledgeRecord,
     *,
+    settings: Any | None = None,
     engineering_gate: dict[str, Any] | EngineeringGateReport | None = None,
 ) -> dict[str, Any]:
     normalized_gate = _normalize_engineering_gate(engineering_gate)
@@ -709,6 +727,17 @@ def build_knowledge_record_delivery_review(
 
     business_deliverable = all(check.passed for check in checks)
     engineering_gate_passed = bool(normalized_gate and normalized_gate.get("passed"))
+    math_mode = settings_math_mode(settings) if settings is not None else "off"
+    posterior_trace = build_delivery_posterior_trace(
+        citation_coverage=1.0 if (linked_run_review or {}).get("publish_allowed") or _manual_knowledge_source_present(metadata) else 0.0,
+        unsupported_claim_rate=0.0 if business_deliverable else 1.0,
+        review_block_precision=1.0 if business_deliverable else 0.0,
+        review_approved=business_deliverable,
+        artifact_present=bool(str(record.content or "").strip()),
+        engineering_gate_passed=engineering_gate_passed,
+        mode=math_mode,
+        threshold=float(getattr(settings, "agent_math_delivery_threshold", 0.85) if settings is not None else 0.85),
+    )
     blocking_reasons = [
         f"{check.label}: {check.detail or 'failed'}"
         for check in checks
@@ -722,6 +751,9 @@ def build_knowledge_record_delivery_review(
     if not engineering_gate_passed:
         blocking_reasons.extend(_failed_engineering_reasons(normalized_gate))
 
+    if math_mode == "active" and not posterior_trace.get("deliverable_proxy"):
+        business_deliverable = False
+        blocking_reasons.append("ARBITER delivery posterior is below threshold.")
     deliverable = business_deliverable and engineering_gate_passed
     return DeliveryReviewReport(
         resource_type="knowledge_record",
@@ -736,6 +768,7 @@ def build_knowledge_record_delivery_review(
         blocking_reasons=blocking_reasons,
         checks=checks,
         checked_at=_utc_now_iso(),
+        metadata={"arbiter": posterior_trace},
     ).model_dump(mode="json")
 
 
@@ -750,6 +783,9 @@ def persist_agent_run_delivery_review(
         "business_deliverable": delivery_review.get("business_deliverable", False),
         "engineering_gate_passed": delivery_review.get("engineering_gate_passed", False),
         "deliverable": delivery_review.get("deliverable", False),
+        "delivery_posterior": (
+            ((delivery_review.get("metadata") or {}).get("arbiter") or {}).get("delivery_posterior")
+        ),
         "blocked_actions": list(delivery_review.get("blocked_actions") or []),
         "reviewed_at": delivery_review.get("checked_at", _utc_now_iso()),
     }
@@ -780,7 +816,7 @@ def review_agent_run_delivery(
         refresh=refresh_engineering,
         auto_refresh_if_missing=auto_refresh_if_missing,
     )
-    delivery_review = build_agent_run_delivery_review(run, engineering_gate=normalized_gate)
+    delivery_review = build_agent_run_delivery_review(run, settings=settings, engineering_gate=normalized_gate)
     persist_agent_run_delivery_review(run, delivery_review)
     return delivery_review, normalized_gate
 
@@ -799,7 +835,7 @@ def review_knowledge_record_delivery(
         refresh=refresh_engineering,
         auto_refresh_if_missing=auto_refresh_if_missing,
     )
-    delivery_review = build_knowledge_record_delivery_review(db, record, engineering_gate=normalized_gate)
+    delivery_review = build_knowledge_record_delivery_review(db, record, settings=settings, engineering_gate=normalized_gate)
     persist_knowledge_record_delivery_review(record, delivery_review)
     return delivery_review, normalized_gate
 
@@ -822,6 +858,7 @@ def ensure_delivery_allowed(
 def build_run_quality_snapshot(
     run: AgentRun,
     *,
+    settings: Any | None = None,
     engineering_gate: dict[str, Any] | EngineeringGateReport | None = None,
 ) -> dict[str, Any]:
     citation_coverage = _run_citation_coverage(run)
@@ -829,7 +866,7 @@ def build_run_quality_snapshot(
     review_block_precision = _run_review_block_precision(run)
     review = dict(run.review_json or {}) if isinstance(run.review_json, dict) else {}
     review_status = str(review.get("status") or "").strip().lower()
-    delivery_review = build_agent_run_delivery_review(run, engineering_gate=engineering_gate)
+    delivery_review = build_agent_run_delivery_review(run, settings=settings, engineering_gate=engineering_gate)
     snapshot = RunQualitySnapshot(
         run_id=run.id,
         status=run.status,
@@ -849,6 +886,7 @@ def build_run_quality_snapshot(
         publish_allowed=bool(delivery_review.get("publish_allowed")),
         blocking_reasons=list(delivery_review.get("blocking_reasons") or []),
         delivery_review=DeliveryReviewReport.model_validate(delivery_review),
+        metadata={"arbiter": dict(delivery_review.get("metadata") or {}).get("arbiter", {})},
     )
     return snapshot.model_dump(mode="json")
 
@@ -868,7 +906,7 @@ def list_run_quality_snapshots(
         settings,
         auto_refresh_if_missing=auto_refresh_if_missing,
     )
-    return [build_run_quality_snapshot(run, engineering_gate=normalized_gate) for run in runs]
+    return [build_run_quality_snapshot(run, settings=settings, engineering_gate=normalized_gate) for run in runs]
 
 
 def build_delivery_scorecard(
@@ -889,7 +927,7 @@ def build_delivery_scorecard(
         refresh=refresh_engineering,
         auto_refresh_if_missing=auto_refresh_if_missing,
     )
-    run_snapshots = [build_run_quality_snapshot(run, engineering_gate=normalized_gate) for run in runs]
+    run_snapshots = [build_run_quality_snapshot(run, settings=settings, engineering_gate=normalized_gate) for run in runs]
 
     workflow_integrity = _dimension(
         "workflow_integrity",
@@ -935,6 +973,20 @@ def build_delivery_scorecard(
         blocking_reasons=blocking_reasons,
         deliverable=deliverable,
         generated_at=_utc_now_iso(),
+        metadata={
+            "arbiter": {
+                "mode": settings_math_mode(settings) if settings is not None else "off",
+                "recent_delivery_posteriors": [
+                    float(
+                        (
+                            ((item.get("delivery_review") or {}).get("metadata") or {}).get("arbiter") or {}
+                        ).get("delivery_posterior")
+                        or 0.0
+                    )
+                    for item in run_snapshots
+                ],
+            }
+        },
     ).model_dump(mode="json")
     scorecard["active_bundle"] = None
     scorecard["recent_runs"] = run_snapshots

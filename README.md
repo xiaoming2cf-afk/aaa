@@ -141,6 +141,7 @@ Notes:
 - Knowledge, literature, case, processing, model, and optimization payloads expose a shared status contract: `status`, `reason`, `next_action`, and `detail_path`.
 - Data Lab history is now a unified workspace feed across preparation, model, optimization, and Data Lab Agent outputs. `/data-lab/history` and the workspace shell read from the same source.
 - Data Lab Agent is disabled by default. When `DATA_LAB_AGENT_ENABLED=true`, it runs clean-room natural-language analysis through bounded Python execution with safety checks, profile snapshots, knowledge cards, repair traces, human intervention, and report/notebook export. Scoped model configuration lives under the Data Lab Agent APIs and does not reopen the general provider center.
+- The internal ARBITER math kernel is gated by `AGENT_MATH_MODE=off|shadow|active`. `shadow` computes retrieval / control / delivery traces without changing the public workflow, while `active` lets those surrogates influence candidate ranking, intervention, and delivery gating.
 
 ## Workflow APIs
 
@@ -161,6 +162,10 @@ Notes:
 - `POST /api/internal/run-due-jobs`
 
 The internal scheduler endpoint requires `X-Cron-Secret` and is intentionally excluded from OpenAPI. Use it from a trusted scheduler only.
+
+## Research Docs
+
+- Agent mathematics research pack: [docs/agent_math/README.md](./docs/agent_math/README.md)
 
 ## Scheduled Execution
 
