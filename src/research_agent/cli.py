@@ -569,12 +569,13 @@ def smoke_deploy(
         if response is None:
             continue
         location = response.headers.get("location", "")
+        built_spa_assets = "/app/assets/" in response.text and "/src/main.tsx" not in response.text
         if expect_authenticated:
-            passed = response.status_code == 200
-            detail = response.text[:200]
+            passed = response.status_code == 200 and built_spa_assets
+            detail = "built_spa_assets" if passed else response.text[:200]
         else:
-            passed = response.status_code == 200 or (response.status_code == 307 and location == "/")
-            detail = location or response.text[:200]
+            passed = (response.status_code == 200 and built_spa_assets) or (response.status_code == 307 and location == "/")
+            detail = location or ("built_spa_assets" if built_spa_assets else response.text[:200])
         _record(
             path,
             passed=passed,

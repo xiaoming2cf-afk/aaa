@@ -116,3 +116,48 @@ def test_smoke_deploy_checks_expected_routes(monkeypatch, tmp_path):
     assert output_path.exists()
     payload = json.loads(output_path.read_text(encoding="utf-8"))
     assert any(item["path"] == "/app/data-lab-agent" for item in payload["checks"])
+
+
+def test_smoke_deploy_rejects_source_entry_shell(monkeypatch, tmp_path):
+    def fake_get(url: str, timeout: int = 20, allow_redirects: bool = False):
+        del timeout, allow_redirects
+        if url.endswith("/api/health"):
+            return SimpleNamespace(
+                status_code=200,
+                headers={},
+                text='{"status":"ok"}',
+                json=lambda: {"status": "ok"},
+            )
+        if url.endswith("/provider-center"):
+            return SimpleNamespace(
+                status_code=200,
+                headers={},
+                text="Provider Center is not part of the current product scope.",
+                json=lambda: {},
+            )
+        if url.endswith("/app/data-lab-agent"):
+            return SimpleNamespace(
+                status_code=200,
+                headers={},
+                text='<script type="module" src="/src/main.tsx"></script>',
+                json=lambda: {},
+            )
+        return SimpleNamespace(
+            status_code=307,
+            headers={"location": "/"},
+            text="",
+            json=lambda: {},
+        )
+
+    monkeypatch.setattr("research_agent.cli.requests.get", fake_get)
+    output_path = tmp_path / "deploy-smoke-source-entry.json"
+
+    result = runner.invoke(
+        cli_app,
+        ["smoke-deploy", "--base-url", "https://economic-research-web.onrender.com", "--output", str(output_path)],
+    )
+
+    assert result.exit_code == 1, result.stdout
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    failing = next(item for item in payload["checks"] if item["path"] == "/app/data-lab-agent")
+    assert failing["passed"] is False
