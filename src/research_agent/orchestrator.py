@@ -8,7 +8,7 @@ from typing import Any, Generic, Protocol, TypeVar
 
 from sqlalchemy.orm import Session
 
-from .agent_math import score_candidate_review, settings_math_mode
+from .agent_math import score_candidate_review, select_candidate_draft, settings_math_mode
 from .agent_run_store import AgentRunContext, AgentRunStore
 from .config import Settings
 from .entities import AgentRun, User, Workspace
@@ -263,6 +263,28 @@ def _candidate_summary_from_review(
         draft_preview=truncate_text(draft_markdown, 500),
         metadata={"arbiter": metadata},
     )
+
+
+def _default_selection_trace(mode: str, override_margin: float, *, reason: str) -> dict[str, Any]:
+    return {
+        "mode": mode,
+        "candidate_count": 0,
+        "baseline_draft_id": "",
+        "proposed_draft_id": "",
+        "chosen_draft_id": "",
+        "comparison": {
+            "baseline_choice": "",
+            "proposed_choice": "",
+            "chosen_choice": "",
+            "baseline_score": 0.0,
+            "proposed_score": 0.0,
+            "advantage": 0.0,
+            "override_margin": float(override_margin),
+            "override_applied": False,
+            "fallback_reason": reason,
+        },
+        "items": [],
+    }
 
 
 def _synthetic_review_report_from_candidate(candidate: CandidateDraftSummary) -> ReviewReport:
@@ -1307,6 +1329,11 @@ class ResearchOrchestrator:
                 draft_attempts=0,
                 candidate_drafts=[],
                 attachment_count=len(attachment_list),
+                selection_trace=_default_selection_trace(
+                    self.math_mode,
+                    float(getattr(self.settings, "agent_math_override_margin", 0.05)),
+                    reason="scope_blocked",
+                ),
             )
             store.update(
                 status="blocked",
@@ -1353,6 +1380,11 @@ class ResearchOrchestrator:
         draft_attempts = 0
         selected_draft_id: str | None = None
         candidate_drafts_json: list[dict[str, Any]] = []
+        selection_trace = _default_selection_trace(
+            self.math_mode,
+            float(getattr(self.settings, "agent_math_override_margin", 0.05)),
+            reason="selection_not_run",
+        )
         try:
             if plan is None or evidence_pack is None:
                 plan_result = self.planner.run(
@@ -1518,9 +1550,10 @@ class ResearchOrchestrator:
                     current_candidate_summaries = [synthetic_candidate]
                     candidate_reviews[synthetic_candidate.draft_id] = _synthetic_review_report_from_candidate(synthetic_candidate)
 
-                selected_candidate = max(
-                    current_candidate_summaries,
-                    key=lambda item: (item.status == "approved", item.score, -item.variant_index),
+                selected_candidate, selection_trace = select_candidate_draft(
+                    candidates=current_candidate_summaries,
+                    mode=self.math_mode,
+                    override_margin=float(getattr(self.settings, "agent_math_override_margin", 0.05)),
                 )
                 selected_draft_id = selected_candidate.draft_id
                 last_draft = candidate_texts.get(selected_draft_id, last_draft)
@@ -1541,6 +1574,7 @@ class ResearchOrchestrator:
                     score=selected_candidate.score,
                     math_mode=self.math_mode,
                     arbiter=(selected_candidate.metadata or {}).get("arbiter", {}),
+                    arbiter_selection=selection_trace,
                 )
                 store.update(
                     status="running" if review_report.status == "approved" else "blocked",
@@ -1561,6 +1595,7 @@ class ResearchOrchestrator:
                         draft_attempts=draft_attempts,
                         candidate_drafts=current_candidate_summaries,
                         attachment_count=len(attachment_list),
+                        selection_trace=selection_trace,
                     ),
                     final_text=last_draft,
                 )
@@ -1583,6 +1618,7 @@ class ResearchOrchestrator:
                     draft_attempts=draft_attempts,
                     candidate_drafts=[CandidateDraftSummary.model_validate(item) for item in candidate_drafts_json],
                     attachment_count=len(attachment_list),
+                    selection_trace=selection_trace,
                 )
                 self._trace("blocked", "stage_completed", summary=final_review.summary)
                 store.update(
@@ -1662,6 +1698,7 @@ class ResearchOrchestrator:
                 draft_attempts=draft_attempts,
                 candidate_drafts=[CandidateDraftSummary.model_validate(item) for item in candidate_drafts_json],
                 attachment_count=len(attachment_list),
+                selection_trace=selection_trace,
             )
             store.update(
                 status="saved",
@@ -1721,6 +1758,7 @@ class ResearchOrchestrator:
                 draft_attempts=draft_attempts,
                 candidate_drafts=[CandidateDraftSummary.model_validate(item) for item in candidate_drafts_json],
                 attachment_count=len(attachment_list),
+                selection_trace=selection_trace,
             )
             store.update(
                 status="failed",
@@ -1824,6 +1862,7 @@ class ResearchOrchestrator:
         draft_attempts: int,
         candidate_drafts: list[CandidateDraftSummary],
         attachment_count: int,
+        selection_trace: dict[str, Any],
     ) -> dict[str, Any]:
         evidence_ids = evidence_pack.included_source_ids if evidence_pack else []
         cited_ids = []
@@ -1862,6 +1901,7 @@ class ResearchOrchestrator:
                 }
                 for candidate in candidate_drafts
             ],
+            "arbiter_selection_v2": selection_trace,
             "previous_response_ids": dict(self.previous_response_ids),
             "runtime_bundle_id": str(self.runtime_bundle.get("id") or ""),
             "runtime_bundle_version": str(self.runtime_bundle.get("version") or ""),

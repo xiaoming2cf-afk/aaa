@@ -78,6 +78,44 @@ type AgentMessage = {
     reviewer_source?: string;
     repair_strategy?: string;
   }>;
+  math_trace?: {
+    mode?: string;
+    override_margin?: number;
+    retrieval?: {
+      candidate_count?: number;
+      selected_count?: number;
+      v2?: {
+        comparison?: {
+          baseline_choice?: string;
+          proposed_choice?: string;
+          chosen_choice?: string;
+          advantage?: number;
+          override_margin?: number;
+          fallback_reason?: string;
+        };
+      };
+    };
+    repair_decisions?: Array<{
+      best_action?: string;
+      error_class?: string;
+      v2?: {
+        comparison?: {
+          baseline_choice?: string;
+          proposed_choice?: string;
+          chosen_choice?: string;
+          advantage?: number;
+          override_margin?: number;
+          fallback_reason?: string;
+        };
+      };
+    }>;
+    v2_state_summary?: {
+      successful_cell_count?: number;
+      safety_event_count?: number;
+      recent_failure_classes?: string[];
+      run_status?: string;
+    };
+  };
 };
 
 type AgentSession = {
@@ -137,6 +175,16 @@ type AgentSession = {
     message?: string;
     code_preview?: string;
   }>;
+  math?: {
+    mode?: string;
+    override_margin?: number;
+    v2_state_summary?: {
+      successful_cell_count?: number;
+      safety_event_count?: number;
+      recent_failure_classes?: string[];
+      run_status?: string;
+    };
+  };
 };
 
 type LlmConfig = {
@@ -232,6 +280,14 @@ function workspaceFormState(workspace?: LlmConfig["workspace"]): LlmFormState {
 
 function humanInterventionRequired(message?: AgentMessage): boolean {
   return Boolean(message?.human_intervention?.required);
+}
+
+function formatFallbackReason(reason?: string): string {
+  return reason || "override_applied";
+}
+
+function formatMaybeNumber(value?: number): string {
+  return typeof value === "number" ? value.toFixed(3) : "-";
 }
 
 export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }): JSX.Element {
@@ -611,6 +667,8 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
               <p className="muted">
                 Mode: {currentSession.executor?.active_mode || "not run"}.
                 LLM: {currentSession.llm?.ready ? `${currentSession.llm.source} ${currentSession.llm.coder_model}` : "rules fallback"}.
+                ARBITER: {currentSession.math?.mode || "off"}.
+                Margin: {typeof currentSession.math?.override_margin === "number" ? currentSession.math.override_margin.toFixed(2) : "-"}.
                 Cells: {currentSession.cells?.length || 0}. Snapshots: {currentSession.profile_snapshots?.length || 0}. Safety events: {currentSession.safety_events?.length || 0}.
               </p>
             ) : null}
@@ -738,6 +796,21 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
                   <pre>{JSON.stringify(currentSession.safety_events, null, 2)}</pre>
                 </details>
               ) : null}
+              {currentSession.math?.v2_state_summary ? (
+                <div className="list-card static-card">
+                  <strong>ARBITER v2 state</strong>
+                  <p className="muted">
+                    mode {currentSession.math?.mode || "off"} / override margin {typeof currentSession.math?.override_margin === "number" ? currentSession.math.override_margin.toFixed(2) : "-"} / successful cells {currentSession.math.v2_state_summary.successful_cell_count || 0} / safety events {currentSession.math.v2_state_summary.safety_event_count || 0} / run {currentSession.math.v2_state_summary.run_status || "unknown"}
+                  </p>
+                  <p className="muted">
+                    Recent failures: {(currentSession.math.v2_state_summary.recent_failure_classes || []).join(", ") || "none"}.
+                  </p>
+                  <details>
+                    <summary>Raw ARBITER state</summary>
+                    <pre>{JSON.stringify(currentSession.math.v2_state_summary, null, 2)}</pre>
+                  </details>
+                </div>
+              ) : null}
 
               {reportMarkdown ? (
                 <div className="list-card static-card">
@@ -797,6 +870,32 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
                         <summary>Repair trace</summary>
                         <pre>{JSON.stringify(item.repair_trace, null, 2)}</pre>
                       </details>
+                    ) : null}
+                    {item.math_trace ? (
+                      <div className="list-card static-card">
+                        <strong>ARBITER trace</strong>
+                        <p className="muted">
+                          mode {item.math_trace.mode || "off"} / override margin {typeof item.math_trace.override_margin === "number" ? item.math_trace.override_margin.toFixed(2) : "-"} / run {item.math_trace.v2_state_summary?.run_status || "unknown"}
+                        </p>
+                        {item.math_trace.retrieval?.v2?.comparison ? (
+                          <p className="muted">
+                            retrieval baseline {item.math_trace.retrieval.v2.comparison.baseline_choice || "none"} / proposed {item.math_trace.retrieval.v2.comparison.proposed_choice || "none"} / chosen {item.math_trace.retrieval.v2.comparison.chosen_choice || "none"} / fallback {formatFallbackReason(item.math_trace.retrieval.v2.comparison.fallback_reason)} / advantage {formatMaybeNumber(item.math_trace.retrieval.v2.comparison.advantage)}
+                          </p>
+                        ) : null}
+                        {item.math_trace.repair_decisions?.length ? (
+                          <div className="list-stack">
+                            {item.math_trace.repair_decisions.map((decision, index) => (
+                              <p key={`${item.id}-repair-${index}`} className="muted">
+                                repair {index + 1}: {decision.best_action || "unknown"} / {decision.error_class || "unknown"} / fallback {formatFallbackReason(decision.v2?.comparison?.fallback_reason)} / chosen {decision.v2?.comparison?.chosen_choice || decision.best_action || "unknown"}
+                              </p>
+                            ))}
+                          </div>
+                        ) : null}
+                        <details>
+                          <summary>Raw ARBITER trace</summary>
+                          <pre>{JSON.stringify(item.math_trace, null, 2)}</pre>
+                        </details>
+                      </div>
                     ) : null}
                     {item.knowledge_cards?.length ? (
                       <details>

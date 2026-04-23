@@ -88,6 +88,8 @@ def test_agent_run_delivery_review_exposes_arbiter_delivery_posterior(tmp_path: 
     assert review["metadata"]["arbiter"]["mode"] == "active"
     assert 0.0 <= review["metadata"]["arbiter"]["delivery_posterior"] <= 1.0
     assert review["metadata"]["arbiter"]["deliverable_proxy"] is True
+    assert review["metadata"]["arbiter"]["v2"]["chosen_deliverable"] is True
+    assert review["metadata"]["arbiter"]["v2"]["comparison"]["fallback_reason"] == "proposed_choice_matches_baseline"
 
 
 def test_knowledge_record_delivery_review_handles_manual_and_agent_derived(db_session):
@@ -188,6 +190,8 @@ def test_delivery_scorecard_requires_engineering_gate_even_with_500_business_sco
     assert passing["deliverable"] is True
     assert "arbiter" in passing["metadata"]
     assert passing["metadata"]["arbiter"]["mode"] == "active"
+    assert "v2" in passing["metadata"]["arbiter"]
+    assert isinstance(passing["metadata"]["arbiter"]["v2"]["recent_choices"], list)
 
 
 def test_production_import_scan_detects_forbidden_dependency(tmp_path: Path):

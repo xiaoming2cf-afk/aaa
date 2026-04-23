@@ -114,6 +114,7 @@ export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX
   const scoreSummary = useMemo(() => qualityQuery.data?.metrics || {}, [qualityQuery.data]);
   const candidateDrafts = (selectedRun?.candidate_drafts || []) as Array<any>;
   const arbiterMode = selectedRun?.metrics?.arbiter_math_mode || "off";
+  const selectionTrace = selectedRun?.metrics?.arbiter_selection_v2 || {};
 
   return (
     <div className="page-grid">
@@ -210,10 +211,25 @@ export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX
               <h4>Trace</h4>
               <pre>{JSON.stringify(selectedRun.trace || [], null, 2)}</pre>
               <h4>ARBITER Candidates</h4>
+              {selectionTrace?.comparison ? (
+                <div className="list-card static-card">
+                  <div className="list-card-title">
+                    <strong>Selection v2</strong>
+                    <span>{selectionTrace.mode || arbiterMode}</span>
+                  </div>
+                  <p>
+                    baseline {selectionTrace.baseline_draft_id || "none"} / proposed {selectionTrace.proposed_draft_id || "none"} / chosen {selectionTrace.chosen_draft_id || "none"}
+                  </p>
+                  <small>
+                    advantage {selectionTrace.comparison?.advantage ?? "-"} / margin {selectionTrace.comparison?.override_margin ?? "-"} / fallback {selectionTrace.comparison?.fallback_reason || "override_applied"}
+                  </small>
+                </div>
+              ) : null}
               {candidateDrafts.length ? (
                 <div className="list-stack">
                   {candidateDrafts.map((candidate) => {
                     const arbiter = candidate?.metadata?.arbiter || {};
+                    const v2 = arbiter.v2 || {};
                     return (
                       <div key={candidate.draft_id} className="list-card static-card">
                         <div className="list-card-title">
@@ -222,7 +238,7 @@ export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX
                         </div>
                         <p>{candidate.summary || "No reviewer summary."}</p>
                         <small>
-                          mode {arbiter.mode || arbiterMode} / utility {arbiter.utility ?? "-"} / risk {arbiter.risk ?? "-"} / evidence {arbiter.evidence_support ?? "-"}
+                          mode {arbiter.mode || arbiterMode} / baseline score {arbiter.baseline_score ?? candidate.score ?? "-"} / baseline utility {arbiter.utility ?? "-"} / v2 utility {v2.utility ?? "-"} / revision cost {v2.revision_cost ?? "-"} / risk {arbiter.risk ?? "-"}
                         </small>
                       </div>
                     );

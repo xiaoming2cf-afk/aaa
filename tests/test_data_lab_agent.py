@@ -109,8 +109,12 @@ def test_data_lab_agent_session_repair_manual_code_report_and_notebook(monkeypat
     assert repaired_message["knowledge_cards"]
     assert repaired_message["profile_snapshot"]["schema_fingerprint"]
     assert repaired_message["math_trace"]["mode"] == "shadow"
+    assert repaired_message["math_trace"]["override_margin"] == 0.05
     assert repaired_message["math_trace"]["retrieval"]["candidate_count"] >= repaired_message["math_trace"]["retrieval"]["selected_count"]
+    assert repaired_message["math_trace"]["retrieval"]["v2"]["comparison"]["fallback_reason"] == "shadow_mode_preserves_baseline"
     assert repaired_message["math_trace"]["repair_decisions"]
+    assert repaired_message["math_trace"]["repair_decisions"][0]["v2"]["comparison"]["fallback_reason"] == "shadow_mode_preserves_baseline"
+    assert repaired_message["math_trace"]["v2_state_summary"]["successful_cell_count"] >= 1
     assert "Available columns" in repaired_message["execution"]["stdout"]
 
     manual = client.post(
@@ -157,6 +161,8 @@ def test_data_lab_agent_session_repair_manual_code_report_and_notebook(monkeypat
     assert len(detail.json()["session"]["cells"]) >= 2
     assert detail.json()["session"]["profile_snapshots"]
     assert detail.json()["session"]["safety_events"]
+    assert detail.json()["session"]["math"]["mode"] == "shadow"
+    assert detail.json()["session"]["math"]["v2_state_summary"]["run_status"] in {"ready", "blocked", "needs_human_intervention"}
 
     history = client.get(f"/api/workspaces/{auth['workspace_id']}/data-lab/history")
     assert history.status_code == 200, history.text

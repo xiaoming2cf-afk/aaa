@@ -621,8 +621,10 @@ def build_agent_run_delivery_review(
         review_approved=str(review.get("status") or "").strip().lower() == "approved",
         artifact_present=bool(str(run.report_path or "").strip()) or bool(str(run.final_text or "").strip()),
         engineering_gate_passed=engineering_gate_passed,
+        baseline_deliverable=business_deliverable,
         mode=math_mode,
         threshold=float(getattr(settings, "agent_math_delivery_threshold", 0.85) if settings is not None else 0.85),
+        override_margin=float(getattr(settings, "agent_math_override_margin", 0.05) if settings is not None else 0.05),
     )
     blocking_reasons = [
         f"{check.label}: {check.detail or 'failed'}"
@@ -631,7 +633,9 @@ def build_agent_run_delivery_review(
     ]
     if math_mode == "active" and not posterior_trace.get("deliverable_proxy"):
         business_deliverable = False
-        blocking_reasons.append("ARBITER delivery posterior is below threshold.")
+        comparison = ((posterior_trace.get("v2") or {}).get("comparison") or {})
+        reason = str(comparison.get("fallback_reason") or "arbiter_v2_blocks_delivery")
+        blocking_reasons.append(f"ARBITER delivery posterior is below threshold: {reason}.")
     if not engineering_gate_passed:
         blocking_reasons.extend(_failed_engineering_reasons(normalized_gate))
     deliverable = business_deliverable and engineering_gate_passed
@@ -735,8 +739,10 @@ def build_knowledge_record_delivery_review(
         review_approved=business_deliverable,
         artifact_present=bool(str(record.content or "").strip()),
         engineering_gate_passed=engineering_gate_passed,
+        baseline_deliverable=business_deliverable,
         mode=math_mode,
         threshold=float(getattr(settings, "agent_math_delivery_threshold", 0.85) if settings is not None else 0.85),
+        override_margin=float(getattr(settings, "agent_math_override_margin", 0.05) if settings is not None else 0.05),
     )
     blocking_reasons = [
         f"{check.label}: {check.detail or 'failed'}"
@@ -753,7 +759,9 @@ def build_knowledge_record_delivery_review(
 
     if math_mode == "active" and not posterior_trace.get("deliverable_proxy"):
         business_deliverable = False
-        blocking_reasons.append("ARBITER delivery posterior is below threshold.")
+        comparison = ((posterior_trace.get("v2") or {}).get("comparison") or {})
+        reason = str(comparison.get("fallback_reason") or "arbiter_v2_blocks_delivery")
+        blocking_reasons.append(f"ARBITER delivery posterior is below threshold: {reason}.")
     deliverable = business_deliverable and engineering_gate_passed
     return DeliveryReviewReport(
         resource_type="knowledge_record",
@@ -785,6 +793,12 @@ def persist_agent_run_delivery_review(
         "deliverable": delivery_review.get("deliverable", False),
         "delivery_posterior": (
             ((delivery_review.get("metadata") or {}).get("arbiter") or {}).get("delivery_posterior")
+        ),
+        "delivery_posterior_v2": (
+            ((((delivery_review.get("metadata") or {}).get("arbiter") or {}).get("v2") or {}).get("delivery_posterior"))
+        ),
+        "delivery_choice_v2": bool(
+            ((((delivery_review.get("metadata") or {}).get("arbiter") or {}).get("v2") or {}).get("chosen_deliverable"))
         ),
         "blocked_actions": list(delivery_review.get("blocked_actions") or []),
         "reviewed_at": delivery_review.get("checked_at", _utc_now_iso()),
@@ -985,6 +999,25 @@ def build_delivery_scorecard(
                     )
                     for item in run_snapshots
                 ],
+                "v2": {
+                    "recent_delivery_posteriors": [
+                        float(
+                            (
+                                ((((item.get("delivery_review") or {}).get("metadata") or {}).get("arbiter") or {}).get("v2") or {})
+                            ).get("delivery_posterior")
+                            or 0.0
+                        )
+                        for item in run_snapshots
+                    ],
+                    "recent_choices": [
+                        bool(
+                            (
+                                ((((item.get("delivery_review") or {}).get("metadata") or {}).get("arbiter") or {}).get("v2") or {})
+                            ).get("chosen_deliverable")
+                        )
+                        for item in run_snapshots
+                    ],
+                },
             }
         },
     ).model_dump(mode="json")

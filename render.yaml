@@ -75,3 +75,25 @@ services:
         sync: false
       - key: PUBLIC_DIGEST_MAX_RECORDS
         value: 30
+      - key: DATA_LAB_AGENT_ENABLED
+        value: "false"
+      - key: DATA_LAB_AGENT_MAX_ATTEMPTS
+        value: 3
+      - key: DATA_LAB_AGENT_TIMEOUT_SECONDS
+        value: 20
+      - key: DATA_LAB_AGENT_OUTPUT_LIMIT
+        value: 12000
+      - key: DATA_LAB_AGENT_EXECUTION_MODE
+        value: subprocess_replay
+      - key: DATA_LAB_AGENT_IPYTHON_ENABLED
+        value: "false"
+      - key: DATA_LAB_AGENT_LLM_ENABLED
+        value: "false"
+      - key: AGENT_MATH_MODE
+        value: shadow
+      - key: AGENT_MATH_DELIVERY_THRESHOLD
+        value: 0.85
+      - key: AGENT_MATH_HUMAN_THRESHOLD
+        value: 0.55
+      - key: AGENT_MATH_OVERRIDE_MARGIN
+        value: 0.05

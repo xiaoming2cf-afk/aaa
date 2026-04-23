@@ -564,7 +564,7 @@ def smoke_deploy(
             detail=provider_detail,
         )
 
-    for path in ("/app", "/app/research", "/app/knowledge", "/app/quality"):
+    for path in ("/app", "/app/research", "/app/knowledge", "/app/quality", "/app/data-lab-agent"):
         response = _try_request(path, allow_redirects=False)
         if response is None:
             continue

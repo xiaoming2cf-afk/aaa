@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -15,3 +16,214 @@ def normalize_math_mode(value: str | None) -> str:
 
 def settings_math_mode(settings: Any) -> str:
     return normalize_math_mode(getattr(settings, "agent_math_mode", "off"))
+
+
+def clamp_unit(value: float) -> float:
+    return max(0.0, min(float(value), 1.0))
+
+
+def _json_ready(value: Any) -> Any:
+    if value is None or isinstance(value, (str, bool, int)):
+        return value
+    if isinstance(value, float):
+        return round(value, 6)
+    if isinstance(value, dict):
+        return {str(key): _json_ready(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_ready(item) for item in value]
+    return str(value)
+
+
+@dataclass
+class BeliefState:
+    W_t: dict[str, Any] = field(default_factory=dict)
+    M_t: dict[str, Any] = field(default_factory=dict)
+    C_t: dict[str, Any] = field(default_factory=dict)
+    E_t: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "W_t": _json_ready(self.W_t),
+            "M_t": _json_ready(self.M_t),
+            "C_t": _json_ready(self.C_t),
+            "E_t": _json_ready(self.E_t),
+        }
+
+
+@dataclass
+class CandidateObservation:
+    candidate_id: str
+    title: str
+    source_type: str
+    feasible: bool
+    lexical_hits: int = 0
+    profile_hits: int = 0
+    memory_hits: int = 0
+    prior: float = 1.0
+    admissibility: float = 1.0
+    baseline_probability: float = 0.0
+    posterior: float = 0.0
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "candidate_id": self.candidate_id,
+            "title": self.title,
+            "source_type": self.source_type,
+            "feasible": self.feasible,
+            "lexical_hits": self.lexical_hits,
+            "profile_hits": self.profile_hits,
+            "memory_hits": self.memory_hits,
+            "prior": round(self.prior, 6),
+            "admissibility": round(self.admissibility, 6),
+            "baseline_probability": round(self.baseline_probability, 6),
+            "posterior": round(self.posterior, 6),
+        }
+
+
+@dataclass
+class FeasibilityMask:
+    action_family: str
+    feasible: bool
+    reason: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "action_family": self.action_family,
+            "feasible": self.feasible,
+            "reason": self.reason,
+        }
+
+
+@dataclass
+class ShadowComparison:
+    baseline_choice: str
+    proposed_choice: str
+    chosen_choice: str
+    baseline_score: float
+    proposed_score: float
+    advantage: float
+    override_margin: float
+    override_applied: bool = False
+    fallback_reason: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "baseline_choice": self.baseline_choice,
+            "proposed_choice": self.proposed_choice,
+            "chosen_choice": self.chosen_choice,
+            "baseline_score": round(self.baseline_score, 6),
+            "proposed_score": round(self.proposed_score, 6),
+            "advantage": round(self.advantage, 6),
+            "override_margin": round(self.override_margin, 6),
+            "override_applied": self.override_applied,
+            "fallback_reason": self.fallback_reason,
+        }
+
+
+@dataclass
+class DecisionTrace:
+    mode: str
+    belief_state: BeliefState
+    baseline_family_scores: dict[str, float]
+    proposed_family_scores: dict[str, float]
+    chosen_family_scores: dict[str, float]
+    feasibility: dict[str, FeasibilityMask]
+    baseline_family: str
+    proposed_family: str
+    chosen_family: str
+    baseline_action: str
+    proposed_action: str
+    chosen_action: str
+    comparison: ShadowComparison
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "mode": self.mode,
+            "belief_state": self.belief_state.to_dict(),
+            "baseline_family_scores": {key: round(value, 6) for key, value in self.baseline_family_scores.items()},
+            "proposed_family_scores": {key: round(value, 6) for key, value in self.proposed_family_scores.items()},
+            "chosen_family_scores": {key: round(value, 6) for key, value in self.chosen_family_scores.items()},
+            "feasibility": {key: value.to_dict() for key, value in self.feasibility.items()},
+            "baseline_family": self.baseline_family,
+            "proposed_family": self.proposed_family,
+            "chosen_family": self.chosen_family,
+            "baseline_action": self.baseline_action,
+            "proposed_action": self.proposed_action,
+            "chosen_action": self.chosen_action,
+            "comparison": self.comparison.to_dict(),
+        }
+
+
+@dataclass
+class DeliveryPosterior:
+    mode: str
+    belief_state: BeliefState
+    adequacy_evidence: float
+    governance_evidence: float
+    delivery_posterior: float
+    threshold: float
+    baseline_deliverable: bool
+    proposed_deliverable: bool
+    chosen_deliverable: bool
+    decomposition: dict[str, float]
+    comparison: ShadowComparison
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "mode": self.mode,
+            "belief_state": self.belief_state.to_dict(),
+            "adequacy_evidence": round(self.adequacy_evidence, 6),
+            "governance_evidence": round(self.governance_evidence, 6),
+            "delivery_posterior": round(self.delivery_posterior, 6),
+            "threshold": round(self.threshold, 6),
+            "baseline_deliverable": self.baseline_deliverable,
+            "proposed_deliverable": self.proposed_deliverable,
+            "chosen_deliverable": self.chosen_deliverable,
+            "decomposition": {key: round(value, 6) for key, value in self.decomposition.items()},
+            "comparison": self.comparison.to_dict(),
+        }
+
+
+def build_shadow_comparison(
+    *,
+    baseline_choice: str,
+    proposed_choice: str,
+    baseline_score: float,
+    proposed_score: float,
+    override_margin: float,
+    mode: str,
+    feasible: bool = True,
+    fallback_reason: str = "",
+) -> ShadowComparison:
+    normalized_mode = normalize_math_mode(mode)
+    baseline_value = float(baseline_score)
+    proposed_value = float(proposed_score)
+    advantage = proposed_value - baseline_value
+    chosen_choice = baseline_choice
+    override_applied = False
+    reason = fallback_reason
+    if normalized_mode == "shadow":
+        reason = reason or "shadow_mode_preserves_baseline"
+    elif normalized_mode == "off":
+        reason = reason or "math_mode_off"
+    elif proposed_choice == baseline_choice:
+        reason = reason or "proposed_choice_matches_baseline"
+    elif not feasible:
+        reason = reason or "proposed_choice_infeasible"
+    elif advantage < float(override_margin):
+        reason = reason or "advantage_below_override_margin"
+    else:
+        chosen_choice = proposed_choice
+        override_applied = True
+        reason = ""
+    return ShadowComparison(
+        baseline_choice=baseline_choice,
+        proposed_choice=proposed_choice,
+        chosen_choice=chosen_choice,
+        baseline_score=baseline_value,
+        proposed_score=proposed_value,
+        advantage=advantage,
+        override_margin=float(override_margin),
+        override_applied=override_applied,
+        fallback_reason=reason,
+    )

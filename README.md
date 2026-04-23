@@ -107,6 +107,11 @@ DATA_LAB_AGENT_CODER_MODEL=
 DATA_LAB_AGENT_REVIEWER_MODEL=
 DATA_LAB_AGENT_REPORT_MODEL=
 DATA_LAB_AGENT_LLM_TIMEOUT_SECONDS=45
+
+AGENT_MATH_MODE=off
+AGENT_MATH_DELIVERY_THRESHOLD=0.85
+AGENT_MATH_HUMAN_THRESHOLD=0.55
+AGENT_MATH_OVERRIDE_MARGIN=0.05
 ```
 
 Notes:
@@ -142,6 +147,7 @@ Notes:
 - Data Lab history is now a unified workspace feed across preparation, model, optimization, and Data Lab Agent outputs. `/data-lab/history` and the workspace shell read from the same source.
 - Data Lab Agent is disabled by default. When `DATA_LAB_AGENT_ENABLED=true`, it runs clean-room natural-language analysis through bounded Python execution with safety checks, profile snapshots, knowledge cards, repair traces, human intervention, and report/notebook export. Scoped model configuration lives under the Data Lab Agent APIs and does not reopen the general provider center.
 - The internal ARBITER math kernel is gated by `AGENT_MATH_MODE=off|shadow|active`. `shadow` computes retrieval / control / delivery traces without changing the public workflow, while `active` lets those surrogates influence candidate ranking, intervention, and delivery gating.
+- `AGENT_MATH_OVERRIDE_MARGIN` sets the minimum v2 advantage required before `active` overrides a baseline choice.
 
 ## Workflow APIs
 
@@ -182,6 +188,7 @@ For deployed environments, align these pieces together:
 - `render.yaml` is the production contract for the single Render web service.
 - The Render build must produce `frontend-spa/dist` before the Python app starts, so `/app` is always served by FastAPI from the built SPA assets.
 - Render production must not define runtime inference variables such as `RESEARCH_AGENT_MODEL` or require `OPENAI_API_KEY`.
+- Render defaults should keep `DATA_LAB_AGENT_ENABLED=false` and `AGENT_MATH_MODE=shadow`, with delivery threshold and override margin configured explicitly in environment variables.
 - Main branch is the only release source. Merge only after the delivery gate and real workspace publish validation both pass.
 
 ## Release Gate
@@ -203,7 +210,7 @@ Release is complete only after:
 - the engineering gate is fully green
 - one real `AgentRun` passes delivery review and publishes successfully
 - one real `KnowledgeRecord` passes delivery review and publishes successfully
-- the deployed Render URLs return healthy responses for `/api/health`, `/app`, `/app/research`, `/app/quality`, and `/provider-center`
+- the deployed Render URLs return healthy responses for `/api/health`, `/app`, `/app/research`, `/app/quality`, `/app/data-lab-agent`, and `/provider-center`
 
 ## Testing
 

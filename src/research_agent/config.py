@@ -160,6 +160,9 @@ class Settings(BaseModel):
     agent_math_human_threshold: float = Field(
         default_factory=lambda: float(os.getenv("AGENT_MATH_HUMAN_THRESHOLD", "0.55"))
     )
+    agent_math_override_margin: float = Field(
+        default_factory=lambda: float(os.getenv("AGENT_MATH_OVERRIDE_MARGIN", "0.05"))
+    )
 
     def ensure_directories(self) -> None:
         self.storage_dir.mkdir(parents=True, exist_ok=True)
@@ -260,6 +263,12 @@ class Settings(BaseModel):
             raise RuntimeError("PASSWORD_RESET_TTL_MINUTES must be greater than zero.")
         if self.agent_math_mode not in _VALID_AGENT_MATH_MODES:
             raise RuntimeError("AGENT_MATH_MODE must be one of: off, shadow, active.")
+        if not 0.0 <= self.agent_math_delivery_threshold <= 1.0:
+            raise RuntimeError("AGENT_MATH_DELIVERY_THRESHOLD must be between 0.0 and 1.0.")
+        if not 0.0 <= self.agent_math_human_threshold <= 1.0:
+            raise RuntimeError("AGENT_MATH_HUMAN_THRESHOLD must be between 0.0 and 1.0.")
+        if not 0.0 <= self.agent_math_override_margin <= 1.0:
+            raise RuntimeError("AGENT_MATH_OVERRIDE_MARGIN must be between 0.0 and 1.0.")
 
 
 def get_settings() -> Settings:

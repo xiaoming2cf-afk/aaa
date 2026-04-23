@@ -21,6 +21,7 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
   });
 
   const arbiterMeta = scorecardQuery.data?.metadata?.arbiter || {};
+  const arbiterV2 = arbiterMeta.v2 || {};
 
   return (
     <div className="page-grid">
@@ -49,6 +50,8 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
             <span>{arbiterMeta.mode || "off"}</span>
           </div>
           <p>Recent delivery posteriors: {(arbiterMeta.recent_delivery_posteriors || []).length ? (arbiterMeta.recent_delivery_posteriors as number[]).map((item) => item.toFixed(3)).join(", ") : "none"}</p>
+          <p>Recent v2 posteriors: {(arbiterV2.recent_delivery_posteriors || []).length ? (arbiterV2.recent_delivery_posteriors as number[]).map((item) => item.toFixed(3)).join(", ") : "none"}</p>
+          <p>Recent v2 choices: {(arbiterV2.recent_choices || []).length ? (arbiterV2.recent_choices as boolean[]).map((item) => (item ? "deliver" : "block")).join(", ") : "none"}</p>
         </div>
         <div className="scorecard-grid">
           {(scorecardQuery.data?.dimensions || []).map((dimension: any) => (
@@ -94,6 +97,8 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
               </div>
               <p>citation {item.citation_coverage} / unsupported {item.unsupported_claim_rate} / review {item.review_block_precision}</p>
               <p>arbiter posterior {item.metadata?.arbiter?.delivery_posterior ?? "-"}</p>
+              <p>arbiter v2 posterior {item.metadata?.arbiter?.v2?.delivery_posterior ?? "-"}</p>
+              <p>arbiter v2 fallback {item.metadata?.arbiter?.v2?.comparison?.fallback_reason || "override_applied"}</p>
               <p>{item.blocked_reason || "No blocking reason recorded."}</p>
             </div>
           ))}

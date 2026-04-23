@@ -559,6 +559,9 @@ def test_orchestrator_selects_best_candidate_variant(app, db_session, tmp_path: 
     assert result.metrics_json["arbiter_math_mode"] == "active"
     assert result.candidate_drafts_json[0]["metadata"]["arbiter"]["mode"] == "active"
     assert result.candidate_drafts_json[1]["metadata"]["arbiter"]["evidence_support"] > result.candidate_drafts_json[0]["metadata"]["arbiter"]["evidence_support"]
+    assert result.candidate_drafts_json[1]["metadata"]["arbiter"]["v2"]["utility"] >= result.candidate_drafts_json[0]["metadata"]["arbiter"]["v2"]["utility"]
+    assert result.metrics_json["arbiter_selection_v2"]["chosen_draft_id"] == "D1-2"
+    assert result.metrics_json["arbiter_selection_v2"]["comparison"]["fallback_reason"] == "proposed_choice_matches_baseline"
 
     record = db_session.scalar(select(AgentRun).where(AgentRun.id == result.agent_run_id))
     assert record is not None

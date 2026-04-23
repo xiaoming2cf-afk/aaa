@@ -475,6 +475,83 @@ def _require_enabled(settings: Settings) -> None:
         raise DataLabAgentFeatureDisabled("Data Lab Agent is disabled. Set DATA_LAB_AGENT_ENABLED=true to enable it.")
 
 
+def _recent_failure_classes(session: dict[str, Any]) -> list[str]:
+    classes: list[str] = []
+    for message in session.get("messages") or []:
+        trace = (message.get("math_trace") or {}).get("repair_decisions") or []
+        for item in trace:
+            if not isinstance(item, dict):
+                continue
+            error_class = str(item.get("error_class") or "").strip()
+            if error_class:
+                classes.append(error_class)
+    return classes[-6:]
+
+
+def _data_lab_internal_math_state(
+    session: dict[str, Any],
+    *,
+    instruction: str = "",
+    requested_execution_mode: str = "",
+    status: str = "",
+) -> dict[str, Any]:
+    assets = list(session.get("assets") or [])
+    profile = dict((assets[0] or {}).get("profile") or {}) if assets else {}
+    successful_cells = [cell for cell in (session.get("cells") or []) if str(cell.get("status") or "") == "success"]
+    artifacts = [artifact for cell in successful_cells for artifact in (cell.get("artifacts") or [])]
+    artifact_names = [
+        str(artifact.get("name") or artifact.get("relative_path") or "")
+        for artifact in artifacts
+        if str(artifact.get("name") or artifact.get("relative_path") or "").strip()
+    ]
+    human_intervention_count = sum(
+        1
+        for message in session.get("messages") or []
+        if isinstance(message.get("human_intervention"), dict) and (message.get("human_intervention") or {}).get("provided")
+    )
+    return {
+        "W_t": {
+            "instruction": truncate_text(instruction or str(((session.get("messages") or [{}])[-1] or {}).get("content") or ""), 500),
+            "requested_execution_mode": requested_execution_mode or str((session.get("executor") or {}).get("requested_mode") or ""),
+            "dataset_fingerprint": str(profile.get("schema_fingerprint") or ""),
+        },
+        "M_t": {
+            "successful_cell_count": len(successful_cells),
+            "recent_failure_classes": _recent_failure_classes(session),
+            "artifact_names_recent": artifact_names[-10:],
+            "human_intervention_count": human_intervention_count,
+        },
+        "C_t": {
+            "safety_event_count": len(session.get("safety_events") or []),
+            "active_mode": str((session.get("executor") or {}).get("active_mode") or ""),
+            "llm_ready": bool((session.get("llm") or {}).get("ready")),
+        },
+        "E_t": {
+            "profile_snapshot_count": len(session.get("profile_snapshots") or []),
+            "last_schema_fingerprint": str(profile.get("schema_fingerprint") or ""),
+            "run_status": status or str(session.get("run_status") or ""),
+        },
+    }
+
+
+def _public_math_state_summary(state: dict[str, Any]) -> dict[str, Any]:
+    memory = dict(state.get("M_t") or {})
+    constraints = dict(state.get("C_t") or {})
+    evaluation = dict(state.get("E_t") or {})
+    working = dict(state.get("W_t") or {})
+    return {
+        "instruction": working.get("instruction", ""),
+        "requested_execution_mode": working.get("requested_execution_mode", ""),
+        "dataset_fingerprint": working.get("dataset_fingerprint", ""),
+        "successful_cell_count": int(memory.get("successful_cell_count") or 0),
+        "recent_failure_classes": list(memory.get("recent_failure_classes") or []),
+        "human_intervention_count": int(memory.get("human_intervention_count") or 0),
+        "safety_event_count": int(constraints.get("safety_event_count") or 0),
+        "profile_snapshot_count": int(evaluation.get("profile_snapshot_count") or 0),
+        "run_status": str(evaluation.get("run_status") or ""),
+    }
+
+
 class DataLabKnowledgeResolver:
     def resolve(
         self,
@@ -485,6 +562,7 @@ class DataLabKnowledgeResolver:
         instruction: str,
         session: dict[str, Any],
         mode: str = "off",
+        override_margin: float = 0.05,
     ) -> dict[str, Any]:
         tokens = {token.lower() for token in re.findall(r"[A-Za-z0-9_\u4e00-\u9fff]+", instruction or "") if len(token) > 2}
         notes = []
@@ -517,8 +595,10 @@ class DataLabKnowledgeResolver:
         ranked_cards, arbiter_trace = rank_retrieval_candidates(
             query_text=instruction,
             candidates=cards,
+            session=session,
             limit=10,
             mode=mode,
+            override_margin=override_margin,
         )
         return {
             "catalog": catalog_summary,
@@ -1582,10 +1662,15 @@ def create_agent_session(
         "llm": resolve_agent_llm_config(settings, db, user=user, workspace=workspace).public_summary(),
         "math": {
             "mode": settings_math_mode(settings),
+            "override_margin": float(getattr(settings, "agent_math_override_margin", 0.05)),
+            "v2_state_summary": {},
+            "internal_v2_state": {},
         },
         "created_at": _utc_now(),
         "updated_at": _utc_now(),
     }
+    session["math"]["internal_v2_state"] = _data_lab_internal_math_state(session, status="ready")
+    session["math"]["v2_state_summary"] = _public_math_state_summary(session["math"]["internal_v2_state"])
     _assign_session(run, session)
     db.flush()
     return {"session": public_session_payload(session)}
@@ -1627,7 +1712,10 @@ def send_agent_message(
     }
     session.setdefault("messages", []).append(user_record)
     math_mode = settings_math_mode(settings)
-    session["math"] = {"mode": math_mode}
+    override_margin = float(getattr(settings, "agent_math_override_margin", 0.05))
+    session["math"] = dict(session.get("math") or {})
+    session["math"]["mode"] = math_mode
+    session["math"]["override_margin"] = override_margin
     knowledge = DataLabKnowledgeResolver().resolve(
         db,
         user=user,
@@ -1635,12 +1723,21 @@ def send_agent_message(
         instruction=clean_message,
         session=session,
         mode=math_mode,
+        override_margin=override_margin,
     )
     llm_config = resolve_agent_llm_config(settings, db, user=user, workspace=workspace)
     llm_client = AgentLLMClient(llm_config) if llm_config.ready else None
     session["llm"] = llm_config.public_summary()
     if requested_execution_mode:
         session.setdefault("executor", {})["requested_mode"] = requested_execution_mode
+    session_state = _data_lab_internal_math_state(
+        session,
+        instruction=clean_message or "Manual code execution",
+        requested_execution_mode=requested_execution_mode,
+        status=str(session.get("run_status") or "ready"),
+    )
+    session["math"]["internal_v2_state"] = session_state
+    session["math"]["v2_state_summary"] = _public_math_state_summary(session_state)
     coder = AnalystCoder(llm_client=llm_client)
     reviewer = ExecutionReviewer(llm_client=llm_client)
     executor = SandboxExecutor()
@@ -1676,8 +1773,13 @@ def send_agent_message(
                     max_attempts=max(1, max_attempts),
                     mode=math_mode,
                     has_human_code=bool(clean_user_code),
+                    human_threshold=float(getattr(settings, "agent_math_human_threshold", 0.55)),
+                    override_margin=override_margin,
+                    session_state=session_state,
                 )
             )
+            session_state.setdefault("M_t", {}).setdefault("recent_failure_classes", []).append("safety")
+            session_state["M_t"]["recent_failure_classes"] = list(session_state["M_t"]["recent_failure_classes"])[-6:]
             final_execution = {
                 "status": "blocked",
                 "stdout": "",
@@ -1711,8 +1813,13 @@ def send_agent_message(
             max_attempts=max(1, max_attempts),
             mode=math_mode,
             has_human_code=bool(clean_user_code),
+            human_threshold=float(getattr(settings, "agent_math_human_threshold", 0.55)),
+            override_margin=override_margin,
+            session_state=session_state,
         )
         repair_decisions.append(decision_trace)
+        session_state.setdefault("M_t", {}).setdefault("recent_failure_classes", []).append(str(decision_trace.get("error_class") or "runtime"))
+        session_state["M_t"]["recent_failure_classes"] = list(session_state["M_t"]["recent_failure_classes"])[-6:]
         if math_mode == "active" and decision_trace.get("best_action") == "block":
             final_execution["status"] = "blocked"
             content = "Execution was blocked because ARBITER judged terminal risk to dominate feasible repair actions."
@@ -1818,6 +1925,8 @@ def send_agent_message(
             "mode": math_mode,
             "retrieval": knowledge.get("arbiter") or {},
             "repair_decisions": repair_decisions,
+            "v2_state_summary": _public_math_state_summary(session_state),
+            "override_margin": override_margin,
         },
         "coder_source": code_plan.get("source", ""),
         "risk_notes": code_plan.get("risk_notes") or [],
@@ -1827,6 +1936,14 @@ def send_agent_message(
     session["summary"] = content
     session["run_status"] = status if status in {"blocked", "needs_human_intervention"} else "ready"
     session.setdefault("executor", {})["active_mode"] = final_execution.get("execution_mode") or "not_executed"
+    session["math"]["internal_v2_state"] = _data_lab_internal_math_state(
+        session,
+        instruction=clean_message or "Manual code execution",
+        requested_execution_mode=requested_execution_mode,
+        status=session["run_status"],
+    )
+    session["math"]["v2_state_summary"] = _public_math_state_summary(session["math"]["internal_v2_state"])
+    assistant_record["math_trace"]["v2_state_summary"] = dict(session["math"]["v2_state_summary"])
     session["updated_at"] = _utc_now()
     _assign_session(run, session)
     db.flush()
@@ -1910,6 +2027,11 @@ def export_agent_notebook(
 
 def public_session_payload(session: dict[str, Any]) -> dict[str, Any]:
     public = dict(session)
+    math_payload = dict(public.get("math") or {})
+    if math_payload:
+        math_payload.pop("internal_v2_state", None)
+        math_payload["v2_state_summary"] = _public_math_state_summary(dict((session.get("math") or {}).get("internal_v2_state") or {}))
+        public["math"] = math_payload
     public["assets"] = [
         {
             "id": item.get("id"),

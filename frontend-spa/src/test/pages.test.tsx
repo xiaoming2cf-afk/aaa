@@ -70,6 +70,17 @@ describe("SPA delivery gating", () => {
             final_text: "# Report",
             metrics: {
               arbiter_math_mode: "active",
+              arbiter_selection_v2: {
+                mode: "active",
+                baseline_draft_id: "D1-2",
+                proposed_draft_id: "D1-2",
+                chosen_draft_id: "D1-2",
+                comparison: {
+                  fallback_reason: "proposed_choice_matches_baseline",
+                  advantage: 0,
+                  override_margin: 0.05,
+                },
+              },
             },
             candidate_drafts: [
               {
@@ -79,9 +90,14 @@ describe("SPA delivery gating", () => {
                 metadata: {
                   arbiter: {
                     mode: "active",
+                    baseline_score: 51,
                     utility: 0.51,
                     risk: 0.18,
                     evidence_support: 0.125,
+                    v2: {
+                      utility: 0.55,
+                      revision_cost: 0.18,
+                    },
                   },
                 },
               },
@@ -92,9 +108,14 @@ describe("SPA delivery gating", () => {
                 metadata: {
                   arbiter: {
                     mode: "active",
+                    baseline_score: 63,
                     utility: 0.63,
                     risk: 0.11,
                     evidence_support: 0.25,
+                    v2: {
+                      utility: 0.67,
+                      revision_cost: 0.08,
+                    },
                   },
                 },
               },
@@ -126,7 +147,8 @@ describe("SPA delivery gating", () => {
     });
     expect(screen.getByText(/Publish is blocked/i)).toBeInTheDocument();
     expect(screen.getByText(/ARBITER Candidates/i)).toBeInTheDocument();
-    expect(screen.getByText(/mode active \/ utility 0.63/i)).toBeInTheDocument();
+    expect(screen.getByText(/baseline D1-2 \/ proposed D1-2 \/ chosen D1-2/i)).toBeInTheDocument();
+    expect(screen.getByText(/mode active \/ baseline score 63 \/ baseline utility 0.63 \/ v2 utility 0.67/i)).toBeInTheDocument();
   });
 
   test("KnowledgePage disables publish when the knowledge record is not deliverable", async () => {
@@ -171,6 +193,10 @@ describe("SPA delivery gating", () => {
             arbiter: {
               mode: "active",
               recent_delivery_posteriors: [0.91],
+              v2: {
+                recent_delivery_posteriors: [0.91],
+                recent_choices: [false],
+              },
             },
           },
           dimensions: [
@@ -206,6 +232,12 @@ describe("SPA delivery gating", () => {
               metadata: {
                 arbiter: {
                   delivery_posterior: 0.91,
+                  v2: {
+                    delivery_posterior: 0.91,
+                    comparison: {
+                      fallback_reason: "override_applied",
+                    },
+                  },
                 },
               },
               blocked_reason: "",
@@ -228,6 +260,8 @@ describe("SPA delivery gating", () => {
     expect(screen.getByText(/Business gate: PASS \/ Engineering gate: FAIL/i)).toBeInTheDocument();
     expect(screen.getByText(/ARBITER Delivery Layer/i)).toBeInTheDocument();
     expect(screen.getByText(/Recent delivery posteriors: 0.910/i)).toBeInTheDocument();
+    expect(screen.getByText(/Recent v2 posteriors: 0.910/i)).toBeInTheDocument();
+    expect(screen.getByText(/arbiter v2 posterior 0.91/i)).toBeInTheDocument();
   });
 
   test("DataLabAgentPage hydrates from query run id and surfaces human intervention and report preview", async () => {
@@ -333,6 +367,16 @@ describe("SPA delivery gating", () => {
               source: "workspace",
               coder_model: "coder-a",
             },
+            math: {
+              mode: "shadow",
+              override_margin: 0.05,
+              v2_state_summary: {
+                successful_cell_count: 1,
+                safety_event_count: 1,
+                recent_failure_classes: ["syntax"],
+                run_status: "needs_human_intervention",
+              },
+            },
             assets: [
               {
                 title: "agent-sample.csv",
@@ -392,6 +436,41 @@ describe("SPA delivery gating", () => {
                     suggestion: "Use available columns instead.",
                   },
                 ],
+                math_trace: {
+                  mode: "shadow",
+                  override_margin: 0.05,
+                  retrieval: {
+                    candidate_count: 3,
+                    selected_count: 1,
+                    v2: {
+                      comparison: {
+                        baseline_choice: "card-1",
+                        proposed_choice: "card-1",
+                        chosen_choice: "card-1",
+                        fallback_reason: "shadow_mode_preserves_baseline",
+                        advantage: 0,
+                      },
+                    },
+                  },
+                  repair_decisions: [
+                    {
+                      best_action: "ask_human",
+                      error_class: "syntax",
+                      v2: {
+                        comparison: {
+                          chosen_choice: "ask_human",
+                          fallback_reason: "shadow_mode_preserves_baseline",
+                        },
+                      },
+                    },
+                  ],
+                  v2_state_summary: {
+                    successful_cell_count: 1,
+                    safety_event_count: 1,
+                    recent_failure_classes: ["syntax"],
+                    run_status: "needs_human_intervention",
+                  },
+                },
               },
             ],
           },
@@ -432,6 +511,9 @@ describe("SPA delivery gating", () => {
     expect(await screen.findByDisplayValue("https://gateway.example/v1")).toBeInTheDocument();
     expect(screen.getAllByText(/Human intervention required/i).length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: /Notebook/i })).toHaveAttribute("href", "/api/workspaces/ws-1/data-lab/agent/sessions/run-1/notebook");
+    expect(screen.getByText(/mode shadow \/ override margin 0\.05 \/ successful cells 1 \/ safety events 1 \/ run needs_human_intervention/i)).toBeInTheDocument();
+    expect(screen.getByText(/retrieval baseline card-1 \/ proposed card-1 \/ chosen card-1 \/ fallback shadow_mode_preserves_baseline/i)).toBeInTheDocument();
+    expect(screen.getByText(/repair 1: ask_human \/ syntax \/ fallback shadow_mode_preserves_baseline/i)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: /Edit Failed Code/i }));
 

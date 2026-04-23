@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -74,6 +75,9 @@ def test_render_contract_builds_spa_without_runtime_model_variables():
     assert "npm run build" in render_yaml
     assert "RESEARCH_AGENT_MODEL" not in render_yaml
     assert "OPENAI_API_KEY" not in render_yaml
+    assert "DATA_LAB_AGENT_ENABLED" in render_yaml
+    assert "AGENT_MATH_MODE" in render_yaml
+    assert "AGENT_MATH_OVERRIDE_MARGIN" in render_yaml
 
 
 def test_smoke_deploy_checks_expected_routes(monkeypatch, tmp_path):
@@ -110,3 +114,5 @@ def test_smoke_deploy_checks_expected_routes(monkeypatch, tmp_path):
     assert result.exit_code == 0, result.stdout
     assert "Deploy Smoke" in result.stdout
     assert output_path.exists()
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert any(item["path"] == "/app/data-lab-agent" for item in payload["checks"])
