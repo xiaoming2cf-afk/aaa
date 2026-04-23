@@ -1239,6 +1239,10 @@ def create_app() -> FastAPI:
     def index() -> FileResponse:
         return FileResponse(WEB_DIR / "index.html")
 
+    @app.head("/")
+    def index_head() -> Response:
+        return Response(status_code=200)
+
     @app.get("/workspace")
     def workspace_page(
         request: Request,
@@ -1539,6 +1543,10 @@ def create_app() -> FastAPI:
     @app.get("/api/health")
     def health() -> dict[str, Any]:
         return {"status": "ok"}
+
+    @app.head("/api/health")
+    def health_head() -> Response:
+        return Response(status_code=200)
 
     @app.get("/api/bootstrap")
     def bootstrap() -> dict[str, Any]:

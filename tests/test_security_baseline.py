@@ -22,6 +22,10 @@ def test_health_and_bootstrap_are_minimized(client):
     assert health.status_code == 200
     assert health.json() == {"status": "ok"}
 
+    health_head = client.head("/api/health")
+    assert health_head.status_code == 200
+    assert not health_head.content
+
     bootstrap = client.get("/api/bootstrap")
     assert bootstrap.status_code == 200
     payload = bootstrap.json()
@@ -40,6 +44,10 @@ def test_root_sets_security_headers_without_unsafe_inline(client):
     assert response.headers["X-Frame-Options"] == "DENY"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
+
+    head_response = client.head("/")
+    assert head_response.status_code == 200
+    assert not head_response.content
 
 
 def test_docs_are_available_in_test_with_docs_specific_csp(client):
