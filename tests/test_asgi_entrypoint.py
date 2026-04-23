@@ -27,6 +27,10 @@ def test_lazy_asgi_short_circuits_render_probe_paths_without_loading_full_app():
         assert bootstrap_get.status_code == 200
         assert bootstrap_get.json()["app_name"] == "Economic Research Platform"
 
+        provider_center = client.get("/provider-center")
+        assert provider_center.status_code == 200
+        assert "not part of the current product scope" in provider_center.text.lower()
+
         spa_get = client.get("/app")
         assert spa_get.status_code == 200
         assert "<!doctype html>" in spa_get.text.lower()

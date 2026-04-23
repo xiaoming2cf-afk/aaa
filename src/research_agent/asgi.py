@@ -106,6 +106,8 @@ class LazyApplication:
             return _file_response(WEB_DIR / "index.html", method)
         if path == "/favicon.ico":
             return _file_response(WEB_DIR / "favicon.svg", method, media_type="image/svg+xml")
+        if path == "/provider-center":
+            return _provider_center_response(method)
         if path.startswith("/assets/"):
             return _safe_file_response(WEB_DIR, path.removeprefix("/assets/"), method)
         if path == "/app" or path.startswith("/app/"):
@@ -149,6 +151,38 @@ def _spa_response(path: str, method: str) -> tuple[int, list[tuple[bytes, bytes]
     if not index_path.exists():
         index_path = SPA_ROOT_DIR / "index.html"
     return _file_response(index_path, method, media_type="text/html; charset=utf-8")
+
+
+def _provider_center_response(method: str) -> tuple[int, list[tuple[bytes, bytes]], bytes]:
+    body = b"" if method == "HEAD" else """<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Provider Center Unavailable</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 0; background: #f6f3ee; color: #1c1a17; }
+      main { max-width: 760px; margin: 6rem auto; padding: 2rem; }
+      .card { background: #fffdf8; border: 1px solid #d7cbb7; border-radius: 18px; padding: 2rem; box-shadow: 0 20px 60px rgba(40, 26, 10, 0.08); }
+      .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.8rem; color: #7a5c32; margin: 0 0 0.75rem; }
+      h1 { margin: 0 0 1rem; font-size: 2rem; }
+      p { line-height: 1.7; margin: 0 0 1rem; }
+      a { color: #7a3d00; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="card">
+        <p class="eyebrow">Disabled Surface</p>
+        <h1>Provider Center is not part of the current product scope</h1>
+        <p>This build keeps research runs, review gates, publishing, knowledge capture, and team library workflows, but it does not expose runtime model provider management.</p>
+        <p>Return to the <a href="/">home page</a> or the <a href="/app/quality">quality dashboard</a>.</p>
+      </section>
+    </main>
+  </body>
+</html>
+""".encode("utf-8")
+    return 200, _headers("text/html; charset=utf-8", len(body)), body
 
 
 app = LazyApplication()
