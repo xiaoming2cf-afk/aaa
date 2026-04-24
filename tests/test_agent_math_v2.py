@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import math
+from types import SimpleNamespace
 
+from research_agent.agent import AcademicResearchAgent
 from research_agent.agent_math import (
+    BeliefState,
+    build_shadow_comparison,
     build_data_lab_repair_decision,
     build_delivery_posterior_trace,
     rank_retrieval_candidates,
+    select_candidate_draft,
 )
 
 
@@ -116,6 +121,119 @@ def test_active_retrieval_uncalibrated_surrogate_cannot_override_baseline():
     assert trace["math_status"]["calibrated"] is False
 
 
+def test_retrieval_admissibility_is_consistent_between_baseline_and_v2():
+    candidates = [
+        {
+            "id": "soft-card",
+            "title": "General regression note",
+            "summary": "Regression note",
+            "source_type": "workspace_knowledge",
+            "policy": "legacy_policy",
+            "score": 10,
+        }
+    ]
+
+    ranked, trace = rank_retrieval_candidates(
+        query_text="regression",
+        candidates=candidates,
+        session=_session_state(),
+        limit=5,
+        mode="shadow",
+    )
+
+    assert ranked[0]["arbiter"]["admissibility"] == 0.7
+    assert trace["v2"]["candidates"][0]["admissibility"] == 0.7
+    assert trace["v2"]["candidates"][0]["feasible"] is True
+
+
+def test_retrieval_handles_empty_candidates_and_large_limit():
+    ranked, trace = rank_retrieval_candidates(
+        query_text="anything",
+        candidates=[],
+        session=_session_state(),
+        limit=20,
+        mode="shadow",
+    )
+
+    assert ranked == []
+    assert trace["selected_count"] == 0
+    assert trace["v2"]["posterior_mass_top_k"] == 0.0
+
+
+def test_retrieval_uses_optional_embedding_similarity_when_available():
+    candidates = [
+        {
+            "id": "baseline-card",
+            "title": "Run report",
+            "summary": "General report workflow.",
+            "source_type": "workspace_knowledge",
+            "policy": "interface_only_no_external_source_injection",
+            "score": 10,
+            "embedding": [0.0, 1.0],
+        },
+        {
+            "id": "semantic-card",
+            "title": "Different words",
+            "summary": "No direct overlap here.",
+            "source_type": "workspace_knowledge",
+            "policy": "interface_only_no_external_source_injection",
+            "score": 10,
+            "embedding": [1.0, 0.0],
+        },
+    ]
+    session = _session_state()
+    session["query_embedding"] = [1.0, 0.0]
+
+    _, trace = rank_retrieval_candidates(
+        query_text="Run report",
+        candidates=candidates,
+        session=session,
+        limit=1,
+        mode="shadow",
+    )
+
+    semantic = next(item for item in trace["v2"]["candidates"] if item["candidate_id"] == "semantic-card")
+    baseline = next(item for item in trace["v2"]["candidates"] if item["candidate_id"] == "baseline-card")
+    assert semantic["semantic_similarity"] == 1.0
+    assert baseline["semantic_similarity"] == 0.5
+
+
+def test_shadow_comparison_reports_normalized_advantage():
+    comparison = build_shadow_comparison(
+        baseline_choice="baseline",
+        proposed_choice="proposed",
+        baseline_score=0.001,
+        proposed_score=0.006,
+        override_margin=0.05,
+        mode="active",
+        calibrated=True,
+    )
+
+    payload = comparison.to_dict()
+    assert comparison.override_applied is True
+    assert math.isclose(payload["advantage"], 0.833333, rel_tol=1e-6)
+    assert payload["raw_advantage"] == 0.005
+    assert payload["advantage_semantics"] == "relative_to_max_abs_score"
+
+
+def test_belief_state_update_normalizes_and_tracks_entropy():
+    state = BeliefState(belief_distribution={"ok": 0.5, "risky": 0.5})
+    updated = state.update(
+        action="review",
+        observation={"finding": "low risk"},
+        transition={
+            "ok": {"ok": 0.9, "risky": 0.1},
+            "risky": {"ok": 0.3, "risky": 0.7},
+        },
+        likelihood={"ok": 0.8, "risky": 0.2},
+    )
+
+    distribution = updated.normalized_distribution()
+    assert math.isclose(sum(distribution.values()), 1.0, abs_tol=1e-9)
+    assert distribution["ok"] > distribution["risky"]
+    assert updated.to_dict()["belief_entropy"] > 0.0
+
+
 def test_control_v2_feasibility_blocks_auto_repair_for_safety_errors():
     decision = build_data_lab_repair_decision(
         error_message="Blocked by safety policy: os.system is not allowed",
@@ -191,3 +309,59 @@ def test_active_delivery_uncalibrated_surrogate_cannot_block_baseline_delivery()
     assert trace["deliverable_proxy"] is True
     assert trace["v2"]["comparison"]["fallback_reason"] == "uncalibrated_surrogate_blocked"
     assert trace["math_status"]["validation_metrics"]["brier_score"] is None
+
+
+def test_delivery_empty_evidence_proxy_is_zero_when_gate_passes():
+    trace = build_delivery_posterior_trace(
+        citation_coverage=0.0,
+        unsupported_claim_rate=1.0,
+        review_block_precision=0.0,
+        review_approved=False,
+        artifact_present=False,
+        engineering_gate_passed=True,
+        baseline_deliverable=False,
+        mode="shadow",
+        threshold=0.5,
+    )
+
+    assert trace["delivery_probability_proxy"] == 0.0
+    assert trace["deliverable_proxy"] is False
+    assert trace["surrogate"] == "zero_safe_weighted_delivery_evidence_proxy"
+
+
+def test_candidate_selection_records_missing_v2_metadata_without_overriding_baseline():
+    baseline = SimpleNamespace(
+        draft_id="baseline",
+        status="approved",
+        score=80.0,
+        variant_index=0,
+        metadata={},
+    )
+    candidate = SimpleNamespace(
+        draft_id="candidate",
+        status="approved",
+        score=20.0,
+        variant_index=1,
+        metadata={},
+    )
+
+    chosen, trace = select_candidate_draft(
+        candidates=[baseline, candidate],
+        mode="active",
+        override_margin=0.01,
+    )
+
+    assert chosen.draft_id == "baseline"
+    assert trace["metadata_warnings"]["baseline"] == "missing_metadata_arbiter"
+    assert trace["comparison"]["fallback_reason"] == "proposed_choice_matches_baseline"
+
+
+def test_unknown_agent_tool_is_fatal_and_lists_available_tools():
+    agent = object.__new__(AcademicResearchAgent)
+    agent._handlers = {"known_tool": lambda: {"status": "ok"}}
+
+    result = agent._invoke_tool("missing_tool", {})
+
+    assert result["status"] == "error"
+    assert result["fatal"] is True
+    assert result["available_tools"] == ["known_tool"]

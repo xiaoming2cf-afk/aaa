@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import math
-
 from .runtime import (
     MATH_STATUS_OPERATIONAL,
     BeliefState,
@@ -43,24 +41,15 @@ def build_delivery_posterior_trace(
     precision_term = clamp_unit(review_block_precision)
     artifact_term = 1.0 if artifact_present else 0.0
     review_term = 1.0 if review_approved else 0.0
+    governance = 1.0 if engineering_gate_passed else 0.0
     adequacy = (
         0.3 * coverage_term
-        + 0.24 * unsupported_term
+        + 0.26 * unsupported_term
         + 0.2 * precision_term
         + 0.14 * review_term
-        + 0.12 * artifact_term
+        + 0.1 * artifact_term
     )
-    governance = 1.0 if engineering_gate_passed else 0.0
-    logit = (
-        -1.6
-        + 2.3 * coverage_term
-        + 1.9 * unsupported_term
-        + 1.4 * precision_term
-        + 0.7 * review_term
-        + 0.5 * artifact_term
-        + 0.8 * governance
-    )
-    delivery_posterior = 1.0 / (1.0 + math.exp(-logit))
+    delivery_posterior = clamp_unit(adequacy * governance)
     proposed_deliverable = delivery_posterior >= float(threshold) and engineering_gate_passed
     comparison = build_shadow_comparison(
         baseline_choice="deliver" if baseline_deliverable else "block",
@@ -111,6 +100,7 @@ def build_delivery_posterior_trace(
             "precision_term": precision_term,
             "artifact_term": artifact_term,
             "review_term": review_term,
+            "governance_term": governance,
         },
         comparison=comparison,
         math_status=status,
@@ -124,7 +114,7 @@ def build_delivery_posterior_trace(
         "posterior_semantics": "uncalibrated_surrogate",
         "threshold": round(float(threshold), 6),
         "deliverable_proxy": chosen_deliverable,
-        "surrogate": "adequacy_governance_delivery_proxy",
+        "surrogate": "zero_safe_weighted_delivery_evidence_proxy",
         "math_status": status,
         "calibration": status,
         "v2": v2,

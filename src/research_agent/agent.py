@@ -166,6 +166,8 @@ class AcademicResearchAgent:
                     "result_preview": self._preview_tool_result(result),
                 }
             )
+            if result.get("fatal"):
+                raise RuntimeError(str(result.get("message") or f"Fatal tool error for {tool_name}."))
             outputs.append(
                 {
                     "type": "function_call_output",
@@ -176,7 +178,16 @@ class AcademicResearchAgent:
         return outputs
 
     def _invoke_tool(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        handler = self._handlers[tool_name]
+        handler = self._handlers.get(tool_name)
+        if handler is None:
+            available_tools = sorted(self._handlers)
+            return {
+                "status": "error",
+                "fatal": True,
+                "tool": tool_name,
+                "message": f"Unknown tool '{tool_name}'.",
+                "available_tools": available_tools,
+            }
         try:
             result = handler(**arguments)
             return result

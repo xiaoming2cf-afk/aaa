@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .runtime import MATH_STATUS_OPERATIONAL, build_shadow_comparison, clamp_unit, math_status_metadata
+from .runtime import ArbiterV2Metadata, MATH_STATUS_OPERATIONAL, build_shadow_comparison, clamp_unit, math_status_metadata
 
 
 def score_candidate_review(
@@ -90,20 +90,27 @@ def select_candidate_draft(
         key=lambda item: (item.status == "approved", float(item.score or 0.0), -int(item.variant_index or 0)),
         reverse=True,
     )
+    v2_by_draft_id = {
+        str(item.draft_id): ArbiterV2Metadata.from_candidate_metadata(item.metadata or {})
+        for item in candidates
+    }
     proposed_sorted = sorted(
         candidates,
         key=lambda item: (
             item.status == "approved",
-            float((((item.metadata or {}).get("arbiter") or {}).get("v2") or {}).get("utility") or 0.0),
+            v2_by_draft_id[str(item.draft_id)].present,
+            v2_by_draft_id[str(item.draft_id)].utility,
             -int(item.variant_index or 0),
         ),
         reverse=True,
     )
     baseline_candidate = baseline_sorted[0]
     proposed_candidate = proposed_sorted[0]
-    baseline_v2_utility = float((((baseline_candidate.metadata or {}).get("arbiter") or {}).get("v2") or {}).get("utility") or 0.0)
-    proposed_v2_utility = float((((proposed_candidate.metadata or {}).get("arbiter") or {}).get("v2") or {}).get("utility") or 0.0)
-    proposed_status = dict(((((proposed_candidate.metadata or {}).get("arbiter") or {}).get("v2") or {}).get("math_status") or {}))
+    baseline_v2 = v2_by_draft_id[str(baseline_candidate.draft_id)]
+    proposed_v2 = v2_by_draft_id[str(proposed_candidate.draft_id)]
+    baseline_v2_utility = baseline_v2.utility
+    proposed_v2_utility = proposed_v2.utility
+    proposed_status = dict(proposed_v2.math_status)
     comparison = build_shadow_comparison(
         baseline_choice=str(baseline_candidate.draft_id),
         proposed_choice=str(proposed_candidate.draft_id),
@@ -111,9 +118,7 @@ def select_candidate_draft(
         proposed_score=proposed_v2_utility,
         override_margin=float(override_margin),
         mode=mode,
-        feasible=bool(
-            ((((proposed_candidate.metadata or {}).get("arbiter") or {}).get("v2") or {}).get("feasible", True))
-        ),
+        feasible=bool(proposed_v2.feasible),
         calibrated=bool(proposed_status.get("calibrated")),
         calibration_version=str(proposed_status.get("calibration_version") or ""),
         validation_metrics=dict(proposed_status.get("validation_metrics") or {}),
@@ -130,14 +135,21 @@ def select_candidate_draft(
         "proposed_v2_utility": round(proposed_v2_utility, 6),
         "proposed_v2_utility_proxy": round(proposed_v2_utility, 6),
         "math_status": proposed_status,
+        "metadata_warnings": {
+            str(candidate.draft_id): v2_by_draft_id[str(candidate.draft_id)].warning
+            for candidate in candidates
+            if v2_by_draft_id[str(candidate.draft_id)].warning
+        },
         "items": [
             {
                 "draft_id": candidate.draft_id,
                 "status": candidate.status,
                 "baseline_score": float(candidate.score or 0.0),
-                "v2_utility": float((((candidate.metadata or {}).get("arbiter") or {}).get("v2") or {}).get("utility") or 0.0),
-                "v2_utility_proxy": float((((candidate.metadata or {}).get("arbiter") or {}).get("v2") or {}).get("utility") or 0.0),
-                "math_status": dict(((((candidate.metadata or {}).get("arbiter") or {}).get("v2") or {}).get("math_status") or {})),
+                "v2_utility": v2_by_draft_id[str(candidate.draft_id)].utility,
+                "v2_utility_proxy": v2_by_draft_id[str(candidate.draft_id)].utility,
+                "v2_metadata_present": v2_by_draft_id[str(candidate.draft_id)].present,
+                "v2_metadata_warning": v2_by_draft_id[str(candidate.draft_id)].warning,
+                "math_status": dict(v2_by_draft_id[str(candidate.draft_id)].math_status),
             }
             for candidate in candidates
         ],

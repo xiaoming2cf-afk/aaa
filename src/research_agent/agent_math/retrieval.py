@@ -22,6 +22,9 @@ _SOURCE_PRIOR = {
     "processing_catalog": 0.9,
     "model_catalog": 0.9,
 }
+_PREFERRED_POLICY = "interface_only_no_external_source_injection"
+_DEFAULT_SOFT_ADMISSIBILITY = 0.7
+_FEASIBILITY_THRESHOLD = 0.65
 
 
 def _tokens(text: str) -> set[str]:
@@ -41,6 +44,66 @@ def _candidate_text(candidate: dict[str, Any]) -> str:
         str((candidate.get("interface") or {}).get("slug") or ""),
     ]
     return " ".join(part for part in parts if part).strip()
+
+
+def _admissibility(candidate: dict[str, Any]) -> float:
+    policy = str(candidate.get("policy") or "").strip()
+    if policy == _PREFERRED_POLICY:
+        return 1.0
+    return _DEFAULT_SOFT_ADMISSIBILITY
+
+
+def _feasible(admissibility: float) -> bool:
+    return float(admissibility) >= _FEASIBILITY_THRESHOLD
+
+
+def _numeric_vector(value: Any) -> list[float]:
+    if not isinstance(value, (list, tuple)):
+        return []
+    vector: list[float] = []
+    for item in value:
+        try:
+            vector.append(float(item))
+        except (TypeError, ValueError):
+            return []
+    return vector
+
+
+def _cosine_similarity(left: list[float], right: list[float]) -> float:
+    if not left or len(left) != len(right):
+        return 0.0
+    left_norm = math.sqrt(sum(value * value for value in left))
+    right_norm = math.sqrt(sum(value * value for value in right))
+    if left_norm <= 0.0 or right_norm <= 0.0:
+        return 0.0
+    cosine = sum(a * b for a, b in zip(left, right)) / (left_norm * right_norm)
+    return clamp_unit((cosine + 1.0) / 2.0)
+
+
+def _query_embedding(session: dict[str, Any] | None) -> list[float]:
+    session = session or {}
+    math_state = dict((session.get("math") or {}).get("internal_v2_state") or {})
+    for value in (
+        session.get("query_embedding"),
+        math_state.get("query_embedding"),
+        (math_state.get("W_t") or {}).get("query_embedding") if isinstance(math_state.get("W_t"), dict) else None,
+    ):
+        vector = _numeric_vector(value)
+        if vector:
+            return vector
+    return []
+
+
+def _semantic_similarity(*, query_tokens: set[str], candidate: dict[str, Any], session: dict[str, Any] | None) -> float:
+    query_vector = _query_embedding(session)
+    candidate_vector = _numeric_vector(candidate.get("embedding") or candidate.get("vector"))
+    embedding_similarity = _cosine_similarity(query_vector, candidate_vector)
+    if embedding_similarity > 0.0:
+        return embedding_similarity
+    candidate_tokens = _tokens(_candidate_text(candidate))
+    if not query_tokens or not candidate_tokens:
+        return 0.0
+    return len(query_tokens & candidate_tokens) / max(len(query_tokens | candidate_tokens), 1)
 
 
 def _profile_tokens(session: dict[str, Any] | None) -> set[str]:
@@ -76,7 +139,7 @@ def _baseline_rank(candidates: list[dict[str, Any]], query_tokens: set[str], *, 
         text = _candidate_text(candidate).lower()
         hits = sum(1 for token in query_tokens if token in text)
         prior = float(_SOURCE_PRIOR.get(str(candidate.get("source_type") or ""), 1.0))
-        admissibility = 1.0 if str(candidate.get("policy") or "").strip() == "interface_only_no_external_source_injection" else 0.7
+        admissibility = _admissibility(candidate)
         raw = float(hits + 1) * prior * admissibility
         scored.append(
             {
@@ -198,12 +261,14 @@ def rank_retrieval_candidates(
         profile_hits = sum(1 for token in profile_tokens if token in text)
         memory_hits = sum(1 for token in memory_tokens if token in text)
         prior = float(_SOURCE_PRIOR.get(str(candidate.get("source_type") or ""), 1.0))
-        admissibility = 1.0 if str(candidate.get("policy") or "").strip() == "interface_only_no_external_source_injection" else 0.2
-        feasible = admissibility >= 0.5
+        admissibility = _admissibility(candidate)
+        feasible = _feasible(admissibility)
+        semantic_similarity = _semantic_similarity(query_tokens=query_tokens, candidate=candidate, session=session)
         raw_score = (
             1.15 * lexical_hits
             + 0.75 * profile_hits
             + 0.45 * memory_hits
+            + 0.55 * semantic_similarity
             + 0.22 * min(int(candidate.get("score") or 0) / 100.0, 1.0)
             + math.log(max(prior, 1e-6))
             + math.log(max(admissibility, 1e-6))
@@ -217,6 +282,7 @@ def rank_retrieval_candidates(
                 lexical_hits=lexical_hits,
                 profile_hits=profile_hits,
                 memory_hits=memory_hits,
+                semantic_similarity=semantic_similarity,
                 prior=prior,
                 admissibility=admissibility,
                 baseline_probability=float(baseline_probabilities.get(str(candidate.get("id") or ""), 0.0)),
@@ -272,6 +338,7 @@ def rank_retrieval_candidates(
             "posterior_semantics": "uncalibrated_surrogate",
             "baseline_probability": round(float(v2_observation.baseline_probability if v2_observation is not None else 0.0), 6),
             "feasible": bool(v2_observation.feasible) if v2_observation is not None else False,
+            "semantic_similarity": round(float(v2_observation.semantic_similarity if v2_observation is not None else 0.0), 6),
             "math_status": status,
         }
         item["arbiter"] = arbiter
@@ -281,7 +348,7 @@ def rank_retrieval_candidates(
         "query_tokens": sorted(query_tokens),
         "candidate_count": len(candidates),
         "selected_count": len(chosen_ranked),
-        "surrogate": "candidate_set_normalized_lexical_prior",
+        "surrogate": "candidate_set_normalized_lexical_semantic_prior",
         "math_status": status,
         "calibration": status,
         "items": [
@@ -291,6 +358,8 @@ def rank_retrieval_candidates(
                 "source_type": str(item.get("source_type") or ""),
                 "surrogate_probability": float((item.get("arbiter") or {}).get("surrogate_probability") or 0.0),
                 "lexical_hits": int((item.get("arbiter") or {}).get("lexical_hits") or 0),
+                "semantic_similarity": float(((item.get("arbiter") or {}).get("v2") or {}).get("semantic_similarity") or 0.0),
+                "admissibility": float((item.get("arbiter") or {}).get("admissibility") or 0.0),
                 "math_status": status,
             }
             for item in chosen_ranked

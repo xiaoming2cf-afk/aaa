@@ -151,6 +151,11 @@ def build_data_lab_repair_decision(
         ),
     }
     utility_decomposition = {
+        "semantics": {
+            "risk": "positive_penalty",
+            "cost": "positive_penalty",
+            "utility_proxy": "uncalibrated_action_score",
+        },
         "A_auto": {
             "success": round({"syntax": 0.64, "schema": 0.59, "runtime": 0.46, "safety": 0.01}.get(cls, 0.42), 6),
             "information": round(0.05 * min(successful_cells, 4) / 4.0, 6),
@@ -176,8 +181,8 @@ def build_data_lab_repair_decision(
             "information": 0.0,
             "alignment": 0.0,
             "trace": 0.0,
-            "risk": round(-(0.09 * repeated_failures + 0.08 * safety_events), 6),
-            "cost": round(-(0.24 if attempt_index >= max_attempts and cls != "safety" else 0.0), 6),
+            "risk": round(0.09 * repeated_failures + 0.08 * safety_events, 6),
+            "cost": round(0.24 if attempt_index >= max_attempts and cls != "safety" else 0.0, 6),
             "human_burden": 0.0,
             "utility_proxy": proposed_scores["A_terminal"],
         },
