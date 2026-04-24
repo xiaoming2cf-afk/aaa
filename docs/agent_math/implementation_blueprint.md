@@ -18,7 +18,7 @@ Future implementation should support:
 
 - `off`: current heuristics only
 - `shadow`: compute ARBITER outputs in parallel without changing behavior
-- `active`: ARBITER becomes the runtime decision core
+- `active`: ARBITER may become the runtime decision core only for calibrated subsystems; uncalibrated surrogates must preserve baseline behavior and record `uncalibrated_surrogate_blocked`
 
 ## 2. Future Internal Module Layout
 
@@ -175,6 +175,7 @@ Public APIs should not expose raw posterior vectors or internal optimization det
 - keep Data Lab safety policy hard and non-negotiable
 - keep current delivery scorecard outputs stable while the internal math changes
 - never expose a variational surrogate as if it were the exact mathematical object
+- never let an uncalibrated surrogate override the baseline in `active` mode
 
 ## 7. Acceptance Conditions For Future Implementation
 
@@ -185,3 +186,4 @@ Implementation should only move from `shadow` to `active` when:
 - orchestrator candidate selection is at least as safe as the current penalty score
 - delivery posterior maps cleanly to current publish/no-publish behavior
 - no circular action-set definition remains in runtime control
+- each active subsystem trace carries `calibrated=true`, a calibration version, validation metrics, and a derivation reference

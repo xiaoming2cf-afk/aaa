@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import math
 
-from .runtime import BeliefState, DeliveryPosterior, build_shadow_comparison, clamp_unit
+from .runtime import (
+    MATH_STATUS_OPERATIONAL,
+    BeliefState,
+    DeliveryPosterior,
+    build_shadow_comparison,
+    clamp_unit,
+    math_status_metadata,
+)
 
 
 def build_delivery_posterior_trace(
@@ -18,6 +25,19 @@ def build_delivery_posterior_trace(
     threshold: float = 0.85,
     override_margin: float = 0.05,
 ) -> dict[str, object]:
+    status = math_status_metadata(
+        status=MATH_STATUS_OPERATIONAL,
+        calibrated=False,
+        derivation_ref="docs/agent_math/unified_symbol_system.md#13-delivery-posterior-operational",
+        gate="delivery_calibration_required",
+        validation_metrics={
+            "brier_score": None,
+            "expected_calibration_error": None,
+            "false_publish_rate": None,
+            "false_block_rate": None,
+            "calibration_sample_count": 0,
+        },
+    )
     coverage_term = clamp_unit(citation_coverage)
     unsupported_term = clamp_unit(1.0 - unsupported_claim_rate)
     precision_term = clamp_unit(review_block_precision)
@@ -53,6 +73,9 @@ def build_delivery_posterior_trace(
         fallback_reason="active_never_bypasses_baseline_gate"
         if not baseline_deliverable and proposed_deliverable
         else "",
+        calibrated=bool(status["calibrated"]),
+        calibration_version=str(status["calibration_version"]),
+        validation_metrics=dict(status["validation_metrics"]),
     )
     chosen_deliverable = comparison.chosen_choice == "deliver"
     v2 = DeliveryPosterior(
@@ -90,14 +113,19 @@ def build_delivery_posterior_trace(
             "review_term": review_term,
         },
         comparison=comparison,
+        math_status=status,
     ).to_dict()
     return {
         "mode": mode,
         "adequacy_evidence": round(adequacy, 6),
         "governance_evidence": round(governance, 6),
         "delivery_posterior": round(delivery_posterior, 6),
+        "delivery_probability_proxy": round(delivery_posterior, 6),
+        "posterior_semantics": "uncalibrated_surrogate",
         "threshold": round(float(threshold), 6),
         "deliverable_proxy": chosen_deliverable,
         "surrogate": "adequacy_governance_delivery_proxy",
+        "math_status": status,
+        "calibration": status,
         "v2": v2,
     }

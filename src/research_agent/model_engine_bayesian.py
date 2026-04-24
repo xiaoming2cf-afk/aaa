@@ -38,11 +38,16 @@ def _line_figure(settings: Any, db: Any, *, user: Any, workspace: Any, source_as
     return base._candidate_figure(settings, db, user=user, workspace=workspace, source_asset=source_asset, figure=fig, filename_slug=slug, title=title, summary=summary)
 
 
-def _bayes_settings(kwargs: dict[str, Any]) -> tuple[int, int, int]:
+def _bayes_settings(kwargs: dict[str, Any]) -> tuple[int, int, int, str]:
     draws = int(base._spec_option(kwargs, "draws", 150))
     tune = int(base._spec_option(kwargs, "tune", 150))
     chains = int(base._spec_option(kwargs, "chains", 2))
-    return draws, tune, chains
+    method = str(base._spec_option(kwargs, "bayesian_inference_method", kwargs.get("inference_method") or "nuts")).strip().lower()
+    if method in {"advi", "variational", "vi", "quick_preview"}:
+        method = "advi_preview"
+    elif method not in {"nuts", "mcmc"}:
+        raise ValueError("bayesian_inference_method must be 'nuts' or explicit 'advi_preview'.")
+    return draws, tune, chains, method
 
 
 def _fit_variational(model: pm.Model, *, draws: int, tune: int, seed: int) -> az.InferenceData:
@@ -56,6 +61,38 @@ def _fit_variational(model: pm.Model, *, draws: int, tune: int, seed: int) -> az
         return approx.sample(draws=max(100, draws * 10), random_seed=seed, return_inferencedata=True)
 
 
+def _fit_bayesian(model: pm.Model, *, draws: int, tune: int, chains: int, seed: int, method: str) -> az.InferenceData:
+    if method == "advi_preview":
+        return _fit_variational(model, draws=draws, tune=tune, seed=seed)
+    with model:
+        return pm.sample(
+            draws=max(100, draws),
+            tune=max(100, tune),
+            chains=max(1, chains),
+            cores=1,
+            target_accept=0.9,
+            progressbar=False,
+            random_seed=seed,
+            return_inferencedata=True,
+        )
+
+
+def _bayesian_audit(method: str) -> dict[str, Any]:
+    if method == "advi_preview":
+        return {
+            "inference_method": "advi_preview",
+            "mathematical_status": "Variational",
+            "production_ready": False,
+            "warning": "ADVI is an explicit quick-preview approximation and must not be treated as calibrated posterior inference.",
+        }
+    return {
+        "inference_method": "nuts",
+        "mathematical_status": "Exact",
+        "production_ready": True,
+        "sampler": "PyMC NUTS",
+    }
+
+
 def run_bayesian_linear_regression_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[str, Any]:
     dependent = kwargs["dependent"]
     regressors = list(kwargs.get("independents") or kwargs.get("controls") or [])
@@ -64,14 +101,14 @@ def run_bayesian_linear_regression_analysis(settings: Any, db: Any, **kwargs: An
     asset, sample = _load_sample(settings, db, user=kwargs["user"], workspace=kwargs["workspace"], asset_id=kwargs["asset_id"], required=[dependent, *regressors])
     X = sample[regressors].to_numpy(dtype=float)
     y = sample[dependent].to_numpy(dtype=float)
-    draws, tune, chains = _bayes_settings(kwargs)
+    draws, tune, chains, method = _bayes_settings(kwargs)
     with pm.Model() as model:
         beta = pm.Normal("beta", 0.0, 1.0, shape=len(regressors))
         alpha = pm.Normal("alpha", 0.0, 5.0)
         sigma = pm.HalfNormal("sigma", 1.0)
         mu = alpha + pm.math.dot(X, beta)
         pm.Normal("obs", mu=mu, sigma=sigma, observed=y)
-        idata = _fit_variational(model, draws=draws, tune=tune, seed=42)
+        idata = _fit_bayesian(model, draws=draws, tune=tune, chains=chains, seed=42, method=method)
         post_pred = pm.sample_posterior_predictive(idata, var_names=["obs"], progressbar=False, random_seed=42)
     sample["_posterior_mean"] = np.asarray(post_pred.posterior_predictive["obs"]).mean(axis=(0, 1))
     trace_asset = _trace_asset(settings, db, user=kwargs["user"], workspace=kwargs["workspace"], source_asset=asset, idata=idata, var_names=["alpha", "beta", "sigma"], slug="bayes_linear_trace", title="Bayesian linear trace", summary="Trace plots for the Bayesian linear regression.")
@@ -82,14 +119,17 @@ def run_bayesian_linear_regression_analysis(settings: Any, db: Any, **kwargs: An
         engine="pymc",
         asset=asset,
         sample=sample.reset_index(drop=True),
-        narrative_lines=["Bayesian linear regression estimated with PyMC using weakly informative priors."],
+        narrative_lines=[
+            "Bayesian linear regression estimated with PyMC using weakly informative priors.",
+            "Inference uses NUTS by default; ADVI is available only as an explicit quick-preview approximation.",
+        ],
         tables={
             "posterior_summary_table": _posterior_table(idata, ["alpha", "beta", "sigma"]),
             "predictor_contribution_table": [{"term": reg, "posterior_mean": float(az.summary(idata, var_names=['beta']).loc[f'beta[{idx}]', 'mean'])} for idx, reg in enumerate(regressors)],
         },
         figures=[trace_asset, pred_asset],
-        specification={"dependent": dependent, "regressors": regressors, "draws": draws, "tune": tune, "chains": chains},
-        audit_trail={"derived_columns": ["_posterior_mean"], "filters": []},
+        specification={"dependent": dependent, "regressors": regressors, "draws": draws, "tune": tune, "chains": chains, "inference_method": method},
+        audit_trail={"derived_columns": ["_posterior_mean"], "filters": [], **_bayesian_audit(method)},
     )
 
 
@@ -108,7 +148,7 @@ def run_bayesian_panel_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[s
     entities, entity_idx = np.unique(sample[entity_column].astype(str), return_inverse=True)
     X = sample[regressors].to_numpy(dtype=float)
     y = sample[dependent].to_numpy(dtype=float)
-    draws, tune, chains = _bayes_settings(kwargs)
+    draws, tune, chains, method = _bayes_settings(kwargs)
     with pm.Model() as model:
         alpha = pm.Normal("alpha", 0.0, 3.0)
         sigma_entity = pm.HalfNormal("sigma_entity", 1.0)
@@ -117,7 +157,7 @@ def run_bayesian_panel_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[s
         sigma = pm.HalfNormal("sigma", 1.0)
         mu = alpha + entity_effect[entity_idx] + pm.math.dot(X, beta)
         pm.Normal("obs", mu=mu, sigma=sigma, observed=y)
-        idata = _fit_variational(model, draws=draws, tune=tune, seed=43)
+        idata = _fit_bayesian(model, draws=draws, tune=tune, chains=chains, seed=43, method=method)
         post_pred = pm.sample_posterior_predictive(idata, var_names=["obs"], progressbar=False, random_seed=43)
     sample["_posterior_mean"] = np.asarray(post_pred.posterior_predictive["obs"]).mean(axis=(0, 1))
     grouped = sample.groupby(entity_column, as_index=False)[[dependent, "_posterior_mean"]].mean()
@@ -129,14 +169,17 @@ def run_bayesian_panel_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[s
         engine="pymc",
         asset=asset,
         sample=sample.reset_index(drop=True),
-        narrative_lines=["Hierarchical Bayesian panel regression with random unit effects."],
+        narrative_lines=[
+            "Hierarchical Bayesian panel regression with random unit effects.",
+            "Inference uses NUTS by default; ADVI is available only as an explicit quick-preview approximation.",
+        ],
         tables={
             "posterior_coefficient_table": _posterior_table(idata, ["alpha", "beta", "sigma"]),
             "group_variance_table": _posterior_table(idata, ["sigma_entity"]),
         },
         figures=[trace_asset, panel_asset],
-        specification={"dependent": dependent, "regressors": regressors, "entity_column": entity_column, "time_column": time_column},
-        audit_trail={"derived_columns": ["_posterior_mean"], "filters": []},
+        specification={"dependent": dependent, "regressors": regressors, "entity_column": entity_column, "time_column": time_column, "draws": draws, "tune": tune, "chains": chains, "inference_method": method},
+        audit_trail={"derived_columns": ["_posterior_mean"], "filters": [], **_bayesian_audit(method)},
     )
 
 
@@ -152,14 +195,14 @@ def run_bayesian_did_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[str
     regressors = [treated_col, post_col, "did_term", *controls]
     X = sample[regressors].to_numpy(dtype=float)
     y = sample[dependent].to_numpy(dtype=float)
-    draws, tune, chains = _bayes_settings(kwargs)
+    draws, tune, chains, method = _bayes_settings(kwargs)
     with pm.Model() as model:
         beta = pm.Normal("beta", 0.0, 1.0, shape=len(regressors))
         alpha = pm.Normal("alpha", 0.0, 5.0)
         sigma = pm.HalfNormal("sigma", 1.0)
         mu = alpha + pm.math.dot(X, beta)
         pm.Normal("obs", mu=mu, sigma=sigma, observed=y)
-        idata = _fit_variational(model, draws=draws, tune=tune, seed=44)
+        idata = _fit_bayesian(model, draws=draws, tune=tune, chains=chains, seed=44, method=method)
     effect_summary = az.summary(idata, var_names=["beta"]).reset_index()
     did_row = effect_summary.iloc[2].to_dict() if len(effect_summary) >= 3 else {}
     cell_means = (
@@ -178,14 +221,17 @@ def run_bayesian_did_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[str
         engine="pymc",
         asset=asset,
         sample=sample.reset_index(drop=True),
-        narrative_lines=["Bayesian difference-in-differences model estimated with a posterior on the treatment interaction."],
+        narrative_lines=[
+            "Bayesian difference-in-differences model estimated with a posterior on the treatment interaction.",
+            "Inference uses NUTS by default; ADVI is available only as an explicit quick-preview approximation.",
+        ],
         tables={
             "posterior_treatment_effect_table": base._serialize_rows(effect_summary),
             "cell_mean_posterior_table": base._serialize_rows(cell_means),
         },
         figures=[trace_asset, effect_asset],
-        specification={"dependent": dependent, "treated_column": treated_col, "post_column": post_col, "controls": controls},
-        audit_trail={"derived_columns": ["did_term"], "filters": []},
+        specification={"dependent": dependent, "treated_column": treated_col, "post_column": post_col, "controls": controls, "draws": draws, "tune": tune, "chains": chains, "inference_method": method},
+        audit_trail={"derived_columns": ["did_term"], "filters": [], **_bayesian_audit(method)},
     )
 
 
@@ -203,14 +249,14 @@ def run_bayesian_its_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[str
     sample["time_after_treatment"] = np.where(sample["post_treatment"] == 1, sample["_time_index"] - cutoff, 0)
     X = sample[["_time_index", "post_treatment", "time_after_treatment"]].to_numpy(dtype=float)
     y = sample[dependent].to_numpy(dtype=float)
-    draws, tune, chains = _bayes_settings(kwargs)
+    draws, tune, chains, method = _bayes_settings(kwargs)
     with pm.Model() as model:
         beta = pm.Normal("beta", 0.0, 1.0, shape=X.shape[1])
         alpha = pm.Normal("alpha", 0.0, 5.0)
         sigma = pm.HalfNormal("sigma", 1.0)
         mu = alpha + pm.math.dot(X, beta)
         pm.Normal("obs", mu=mu, sigma=sigma, observed=y)
-        idata = _fit_variational(model, draws=draws, tune=tune, seed=45)
+        idata = _fit_bayesian(model, draws=draws, tune=tune, chains=chains, seed=45, method=method)
         post_pred = pm.sample_posterior_predictive(idata, var_names=["obs"], progressbar=False, random_seed=45)
     sample["_posterior_mean"] = np.asarray(post_pred.posterior_predictive["obs"]).mean(axis=(0, 1))
     trace_asset = _trace_asset(settings, db, user=kwargs["user"], workspace=kwargs["workspace"], source_asset=asset, idata=idata, var_names=["alpha", "beta", "sigma"], slug="bayes_its_trace", title="Bayesian ITS trace", summary="Trace plots for the Bayesian interrupted time-series model.")
@@ -221,12 +267,15 @@ def run_bayesian_its_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[str
         engine="pymc",
         asset=asset,
         sample=sample.reset_index(drop=True),
-        narrative_lines=["Bayesian interrupted time-series with posterior level and slope changes."],
+        narrative_lines=[
+            "Bayesian interrupted time-series with posterior level and slope changes.",
+            "Inference uses NUTS by default; ADVI is available only as an explicit quick-preview approximation.",
+        ],
         tables={
             "posterior_intervention_table": _posterior_table(idata, ["alpha", "beta", "sigma"]),
             "slope_change_posterior_table": [{"cutoff_index": cutoff, "post_periods": int(sample["post_treatment"].sum())}],
         },
         figures=[trace_asset, pred_asset],
-        specification={"dependent": dependent, "time_column": time_column, "treatment_index": cutoff},
-        audit_trail={"derived_columns": ["_time_index", "post_treatment", "time_after_treatment", "_posterior_mean"], "filters": []},
+        specification={"dependent": dependent, "time_column": time_column, "treatment_index": cutoff, "draws": draws, "tune": tune, "chains": chains, "inference_method": method},
+        audit_trail={"derived_columns": ["_time_index", "post_treatment", "time_after_treatment", "_posterior_mean"], "filters": [], **_bayesian_audit(method)},
     )

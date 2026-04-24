@@ -76,6 +76,46 @@ def test_retrieval_v2_posterior_normalizes_and_shadow_preserves_baseline():
     assert trace["v2"]["chosen_selected_ids"] == trace["v2"]["baseline_selected_ids"]
 
 
+def test_active_retrieval_uncalibrated_surrogate_cannot_override_baseline():
+    session = _session_state()
+    session["assets"][0]["profile"]["column_names"] = ["outcome", "leverage", "growth", "revenue"]
+    session["assets"][0]["profile"]["candidate_targets"] = ["outcome"]
+    session["assets"][0]["profile"]["candidate_features"] = ["leverage", "growth", "revenue"]
+    candidates = [
+        {
+            "id": "baseline-card",
+            "title": "Run report",
+            "summary": "General report workflow.",
+            "source_type": "workspace_knowledge",
+            "policy": "interface_only_no_external_source_injection",
+            "score": 10,
+        },
+        {
+            "id": "profile-card",
+            "title": "Outcome leverage growth revenue model",
+            "summary": "Use outcome with leverage, growth, and revenue features.",
+            "source_type": "workspace_knowledge",
+            "policy": "interface_only_no_external_source_injection",
+            "score": 10,
+        },
+    ]
+
+    ranked, trace = rank_retrieval_candidates(
+        query_text="Run report",
+        candidates=candidates,
+        session=session,
+        limit=1,
+        mode="active",
+        override_margin=0.01,
+    )
+
+    assert trace["v2"]["proposed_selected_ids"][0] == "profile-card"
+    assert trace["v2"]["baseline_selected_ids"][0] == "baseline-card"
+    assert ranked[0]["id"] == "baseline-card"
+    assert trace["v2"]["comparison"]["fallback_reason"] == "uncalibrated_surrogate_blocked"
+    assert trace["math_status"]["calibrated"] is False
+
+
 def test_control_v2_feasibility_blocks_auto_repair_for_safety_errors():
     decision = build_data_lab_repair_decision(
         error_message="Blocked by safety policy: os.system is not allowed",
@@ -97,6 +137,23 @@ def test_control_v2_feasibility_blocks_auto_repair_for_safety_errors():
     assert decision["v2"]["comparison"]["chosen_choice"] == "block"
 
 
+def test_active_repair_uncalibrated_surrogate_cannot_stop_baseline_repair():
+    decision = build_data_lab_repair_decision(
+        error_message="SyntaxError: invalid syntax",
+        attempt_index=1,
+        max_attempts=3,
+        mode="active",
+        human_threshold=0.55,
+        override_margin=0.01,
+        session_state={"M_t": {"recent_failure_classes": ["syntax"]}},
+    )
+
+    assert decision["v2"]["proposed_action"] == "ask_human"
+    assert decision["best_action"] == "repair"
+    assert decision["v2"]["comparison"]["fallback_reason"] == "uncalibrated_surrogate_blocked"
+    assert decision["math_status"]["calibrated"] is False
+
+
 def test_delivery_v2_never_overrides_a_blocked_baseline_gate():
     trace = build_delivery_posterior_trace(
         citation_coverage=1.0,
@@ -114,3 +171,23 @@ def test_delivery_v2_never_overrides_a_blocked_baseline_gate():
     assert trace["v2"]["proposed_deliverable"] is True
     assert trace["deliverable_proxy"] is False
     assert trace["v2"]["comparison"]["fallback_reason"] == "active_never_bypasses_baseline_gate"
+
+
+def test_active_delivery_uncalibrated_surrogate_cannot_block_baseline_delivery():
+    trace = build_delivery_posterior_trace(
+        citation_coverage=0.0,
+        unsupported_claim_rate=1.0,
+        review_block_precision=0.0,
+        review_approved=False,
+        artifact_present=False,
+        engineering_gate_passed=True,
+        baseline_deliverable=True,
+        mode="active",
+        threshold=0.95,
+        override_margin=0.01,
+    )
+
+    assert trace["v2"]["proposed_deliverable"] is False
+    assert trace["deliverable_proxy"] is True
+    assert trace["v2"]["comparison"]["fallback_reason"] == "uncalibrated_surrogate_blocked"
+    assert trace["math_status"]["validation_metrics"]["brier_score"] is None

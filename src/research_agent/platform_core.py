@@ -2987,6 +2987,31 @@ def _coerce_binary_series(series: pd.Series) -> pd.Series:
     return series.astype(str).str.strip().str.lower().map(mapping)
 
 
+def _validate_binary_outcome_series(series: pd.Series, *, column_name: str) -> pd.Series:
+    numeric = pd.to_numeric(series, errors="coerce")
+    if numeric.notna().sum() == len(series.dropna()):
+        cleaned = numeric
+    else:
+        mapping = {
+            "true": 1.0,
+            "yes": 1.0,
+            "y": 1.0,
+            "1": 1.0,
+            "false": 0.0,
+            "no": 0.0,
+            "n": 0.0,
+            "0": 0.0,
+        }
+        cleaned = series.astype(str).str.strip().str.lower().map(mapping)
+    invalid_mask = series.notna() & cleaned.isna()
+    if bool(invalid_mask.any()):
+        raise ValueError(f"{column_name} contains non-binary values; expected explicit 0/1 or yes/no labels.")
+    observed = set(float(value) for value in cleaned.dropna().unique().tolist())
+    if not observed.issubset({0.0, 1.0}):
+        raise ValueError(f"{column_name} must be an explicit binary 0/1 outcome; coercive thresholding is not allowed.")
+    return cleaned
+
+
 def _coerce_date_series(series: pd.Series) -> pd.Series:
     return pd.to_datetime(series, errors="coerce")
 
@@ -7184,7 +7209,7 @@ def run_logit_analysis(
         raise ValueError(f"Missing required columns: {', '.join(missing)}")
 
     sample = frame[required_columns].copy()
-    sample[dependent] = _coerce_binary_series(sample[dependent])
+    sample[dependent] = _validate_binary_outcome_series(sample[dependent], column_name=dependent)
     for column in regressors:
         sample[column] = _coerce_numeric_series(sample[column])
     sample = sample.dropna().copy()
@@ -7207,7 +7232,7 @@ def run_logit_analysis(
         extra={
             "audit_trail": {
                 "derived_columns": [],
-                "filters": ["Rows with missing binary outcome or selected regressors are dropped."],
+                "filters": ["Rows with missing binary outcome or selected regressors are dropped.", "Binary outcome validated without coercive thresholding."],
             },
         },
     )
@@ -7244,7 +7269,7 @@ def run_probit_analysis(
         raise ValueError(f"Missing required columns: {', '.join(missing)}")
 
     sample = frame[required_columns].copy()
-    sample[dependent] = _coerce_binary_series(sample[dependent])
+    sample[dependent] = _validate_binary_outcome_series(sample[dependent], column_name=dependent)
     for column in regressors:
         sample[column] = _coerce_numeric_series(sample[column])
     sample = sample.dropna().copy()
@@ -7267,7 +7292,7 @@ def run_probit_analysis(
         extra={
             "audit_trail": {
                 "derived_columns": [],
-                "filters": ["Rows with missing binary outcome or selected regressors are dropped."],
+                "filters": ["Rows with missing binary outcome or selected regressors are dropped.", "Binary outcome validated without coercive thresholding."],
             },
         },
     )

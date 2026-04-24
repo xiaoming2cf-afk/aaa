@@ -8,6 +8,7 @@ import pandas as pd
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from linearmodels import IV2SLS as LMIV2SLS
+from scipy.optimize import minimize
 from sklearn.linear_model import LogisticRegression
 
 import research_agent.model_engine_extensions as base
@@ -45,6 +46,74 @@ def _line_plot(settings: Any, db: Any, *, user: Any, workspace: Any, source_asse
         title=title,
         summary=summary,
     )
+
+
+def _fit_simplex_synthetic_weights(x_pre: np.ndarray, y_pre: np.ndarray) -> tuple[np.ndarray, dict[str, Any]]:
+    if x_pre.ndim != 2 or x_pre.shape[1] == 0:
+        raise ValueError("Synthetic control requires at least one donor column.")
+    if x_pre.shape[0] == 0:
+        raise ValueError("Synthetic control requires pre-treatment observations.")
+    donor_count = x_pre.shape[1]
+    initial = np.repeat(1.0 / donor_count, donor_count)
+
+    def objective(weights: np.ndarray) -> float:
+        gap = y_pre - x_pre @ weights
+        return float(np.mean(np.square(gap)))
+
+    result = minimize(
+        objective,
+        initial,
+        method="SLSQP",
+        bounds=[(0.0, 1.0)] * donor_count,
+        constraints=[{"type": "eq", "fun": lambda weights: float(np.sum(weights) - 1.0)}],
+        options={"maxiter": 500, "ftol": 1e-10},
+    )
+    if not result.success:
+        raise ValueError(f"Synthetic control simplex optimization failed: {result.message}")
+    weights = np.asarray(result.x, dtype=float)
+    weights[np.abs(weights) < 1e-10] = 0.0
+    total = float(weights.sum())
+    if not np.isfinite(total) or abs(total - 1.0) > 1e-6:
+        raise ValueError("Synthetic control simplex optimization returned invalid weights.")
+    return weights, {
+        "optimizer": "scipy.optimize.minimize:SLSQP",
+        "objective": "pre_treatment_mean_squared_error",
+        "success": bool(result.success),
+        "objective_value": float(result.fun),
+        "weight_sum": float(weights.sum()),
+    }
+
+
+def _synthetic_placebo_rows(wide: pd.DataFrame, *, treated_unit: str, donor_cols: list[str], treatment_time: int) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    all_units = [treated_unit, *donor_cols]
+    for placebo_unit in donor_cols:
+        placebo_donors = [unit for unit in all_units if unit != placebo_unit]
+        placebo_wide = wide[[placebo_unit, *placebo_donors]].dropna()
+        pre = placebo_wide.loc[placebo_wide.index < treatment_time]
+        post = placebo_wide.loc[placebo_wide.index >= treatment_time]
+        if pre.empty or post.empty or not placebo_donors:
+            continue
+        try:
+            weights, _ = _fit_simplex_synthetic_weights(
+                pre[placebo_donors].to_numpy(dtype=float),
+                pre[placebo_unit].to_numpy(dtype=float),
+            )
+        except ValueError:
+            continue
+        pre_gap = pre[placebo_unit].to_numpy(dtype=float) - pre[placebo_donors].to_numpy(dtype=float) @ weights
+        post_gap = post[placebo_unit].to_numpy(dtype=float) - post[placebo_donors].to_numpy(dtype=float) @ weights
+        pre_rmse = float(np.sqrt(np.mean(np.square(pre_gap)))) if len(pre_gap) else float("nan")
+        post_rmse = float(np.sqrt(np.mean(np.square(post_gap)))) if len(post_gap) else float("nan")
+        rows.append(
+            {
+                "placebo_unit": str(placebo_unit),
+                "pre_rmse": base._safe_float(pre_rmse),
+                "post_rmse": base._safe_float(post_rmse),
+                "post_pre_rmse_ratio": base._safe_float(post_rmse / max(pre_rmse, 1e-12)),
+            }
+        )
+    return rows
 
 
 def run_candidate_did_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[str, Any]:
@@ -530,19 +599,18 @@ def run_synthetic_control_analysis(settings: Any, db: Any, **kwargs: Any) -> dic
     donor_cols = [col for col in control_units if col in wide.columns and col != treated_unit]
     if not donor_cols:
         raise ValueError("No valid donor units found in the panel.")
+    wide = wide[[treated_unit, *donor_cols]].dropna()
     pre = wide.loc[wide.index < treatment_time]
     post = wide.loc[wide.index >= treatment_time]
+    if pre.empty or post.empty:
+        raise ValueError("Synthetic control requires complete pre- and post-treatment observations for treated and donor units.")
     y_pre = pre[treated_unit].to_numpy(dtype=float)
     x_pre = pre[donor_cols].to_numpy(dtype=float)
-    weights, *_ = np.linalg.lstsq(x_pre, y_pre, rcond=None)
-    weights = np.clip(weights, 0, None)
-    if weights.sum() == 0:
-        weights = np.repeat(1 / len(donor_cols), len(donor_cols))
-    else:
-        weights = weights / weights.sum()
+    weights, optimization_audit = _fit_simplex_synthetic_weights(x_pre, y_pre)
     synthetic = wide[donor_cols].to_numpy(dtype=float) @ weights
     synth_frame = pd.DataFrame({"time": wide.index, "observed": wide[treated_unit].to_numpy(dtype=float), "synthetic": synthetic})
     synth_frame["gap"] = synth_frame["observed"] - synth_frame["synthetic"]
+    placebo_rows = _synthetic_placebo_rows(wide, treated_unit=treated_unit, donor_cols=donor_cols, treatment_time=treatment_time)
     fit_rows = [
         {"period": "pre", "rmse": float(np.sqrt(np.mean(np.square(pre[treated_unit].to_numpy(dtype=float) - (pre[donor_cols].to_numpy(dtype=float) @ weights)))))},
         {"period": "post", "rmse": float(np.sqrt(np.mean(np.square(post[treated_unit].to_numpy(dtype=float) - (post[donor_cols].to_numpy(dtype=float) @ weights)))))},
@@ -583,9 +651,10 @@ def run_synthetic_control_analysis(settings: Any, db: Any, **kwargs: Any) -> dic
         tables={
             "fit_table": fit_rows,
             "donor_weight_table": [{"donor_unit": donor, "weight": float(weight)} for donor, weight in zip(donor_cols, weights)],
+            "placebo_gap_table": placebo_rows,
             "path_table": base._serialize_rows(synth_frame),
         },
         figures=[path_fig, gap_fig],
-        specification={"treated_unit": treated_unit, "control_units": donor_cols, "treatment_time": treatment_time},
-        audit_trail={"derived_columns": ["synthetic", "gap"], "filters": []},
+        specification={"treated_unit": treated_unit, "control_units": donor_cols, "treatment_time": treatment_time, "weight_constraint": "simplex_nonnegative_sum_to_one"},
+        audit_trail={"derived_columns": ["synthetic", "gap"], "filters": ["Rows with missing treated or donor outcomes are dropped before optimization."], **optimization_audit},
     )

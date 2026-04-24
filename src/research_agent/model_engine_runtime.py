@@ -72,7 +72,8 @@ def _candidate_ppml_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[str,
     dependent = kwargs["dependent"]
     regressors = [*(kwargs.get("independents") or []), *(kwargs.get("controls") or [])]
     sample = base._flat_frame(frame, numeric_columns=[dependent, *regressors], keep_columns=[])
-    sample[dependent] = sample[dependent].clip(lower=0.0)
+    if (sample[dependent] < 0).any():
+        raise ValueError("PPML requires a nonnegative dependent variable; negative values must be fixed before modeling.")
     exog = base.sm.add_constant(sample[regressors], has_constant="add")
     result = GLM(sample[dependent], exog, family=Poisson()).fit(cov_type="HC1")
     return base._regression_payload(
@@ -87,7 +88,7 @@ def _candidate_ppml_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[str,
         narrative_lines=["Candidate PPML estimated with statsmodels GLM Poisson."],
         tables={"design_audit_table": [{"observation_count": int(len(sample)), "regressor_count": int(len(regressors))}]},
         figures=[],
-        audit_trail={"derived_columns": [], "filters": ["Negative dependent values are clipped at zero for PPML comparison."]},
+        audit_trail={"derived_columns": [], "filters": ["Rows with missing dependent or regressors are dropped.", "Dependent variable validated as nonnegative; no clipping applied."]},
     )
 
 
@@ -96,7 +97,9 @@ def _candidate_binary_analysis(settings: Any, db: Any, *, model_type: str, **kwa
     dependent = kwargs["dependent"]
     regressors = [*(kwargs.get("independents") or []), *(kwargs.get("controls") or [])]
     sample = base._flat_frame(frame, numeric_columns=[dependent, *regressors], keep_columns=[])
-    sample[dependent] = sample[dependent].round().clip(0, 1)
+    values = set(float(value) for value in sample[dependent].dropna().unique().tolist())
+    if not values.issubset({0.0, 1.0}):
+        raise ValueError(f"{model_type} requires a binary 0/1 dependent variable; coercive rounding is not allowed.")
     exog = base.sm.add_constant(sample[regressors], has_constant="add")
     fitter = Logit if model_type == "logit" else Probit
     result = fitter(sample[dependent], exog).fit(disp=False)
@@ -112,7 +115,7 @@ def _candidate_binary_analysis(settings: Any, db: Any, *, model_type: str, **kwa
         narrative_lines=[f"Candidate {model_type} estimated with statsmodels discrete choice model."],
         tables={"classification_audit_table": [{"positive_share": float(sample[dependent].mean()), "observation_count": int(len(sample))}]},
         figures=[],
-        audit_trail={"derived_columns": [], "filters": ["Dependent variable coerced to binary for comparison."]},
+        audit_trail={"derived_columns": [], "filters": ["Rows with missing dependent or regressors are dropped.", "Dependent variable validated as binary 0/1; no rounding or clipping applied."]},
     )
 
 

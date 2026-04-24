@@ -2,7 +2,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from .runtime import BeliefState, DecisionTrace, FeasibilityMask, build_shadow_comparison, clamp_unit
+from .runtime import (
+    MATH_STATUS_OPERATIONAL,
+    BeliefState,
+    DecisionTrace,
+    FeasibilityMask,
+    build_shadow_comparison,
+    clamp_unit,
+    math_status_metadata,
+)
 
 
 def _error_class(error_message: str) -> str:
@@ -28,18 +36,34 @@ def build_data_lab_repair_decision(
     session_state: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     cls = _error_class(error_message)
+    status = math_status_metadata(
+        status=MATH_STATUS_OPERATIONAL,
+        calibrated=False,
+        derivation_ref="docs/agent_math/unified_symbol_system.md#11-runtime-decision-rule-operational",
+        gate="repair_decision_calibration_required",
+        validation_metrics={
+            "repair_success_rate": None,
+            "human_intervention_false_positive_rate": None,
+            "human_intervention_false_negative_rate": None,
+            "calibration_sample_count": 0,
+        },
+    )
     progress_ratio = 1.0 if max_attempts <= 0 else min(max(float(attempt_index) / float(max_attempts), 0.0), 1.0)
     baseline_scores = {
         "A_auto": round(max(0.0, {"syntax": 0.62, "schema": 0.57, "runtime": 0.44, "safety": 0.02}.get(cls, 0.4) - 0.32 * progress_ratio), 6),
         "A_intervene": round(min(1.0, 0.28 + 0.42 * progress_ratio + (0.18 if has_human_code else 0.0) + (0.1 if cls in {"syntax", "runtime"} else 0.0)), 6),
         "A_terminal": round(0.96 if cls == "safety" else (0.18 if progress_ratio < 1.0 else 0.38), 6),
     }
-    baseline_family = max(baseline_scores, key=baseline_scores.get)
-    baseline_action = {
-        "A_auto": "repair",
-        "A_intervene": "ask_human",
-        "A_terminal": "block",
-    }[baseline_family]
+    # Baseline means the pre-ARBITER runtime behavior, not the proxy score above.
+    if cls == "safety":
+        baseline_family = "A_terminal"
+        baseline_action = "block"
+    elif attempt_index > max_attempts:
+        baseline_family = "A_intervene"
+        baseline_action = "ask_human"
+    else:
+        baseline_family = "A_auto"
+        baseline_action = "repair"
 
     state = dict(session_state or {})
     memory_state = dict(state.get("M_t") or {})
@@ -126,6 +150,38 @@ def build_data_lab_repair_decision(
             6,
         ),
     }
+    utility_decomposition = {
+        "A_auto": {
+            "success": round({"syntax": 0.64, "schema": 0.59, "runtime": 0.46, "safety": 0.01}.get(cls, 0.42), 6),
+            "information": round(0.05 * min(successful_cells, 4) / 4.0, 6),
+            "alignment": 0.0,
+            "trace": 0.0,
+            "risk": round(0.11 * repeated_failures + 0.08 * safety_events, 6),
+            "cost": round(0.29 * progress_ratio, 6),
+            "human_burden": 0.0,
+            "utility_proxy": proposed_scores["A_auto"],
+        },
+        "A_intervene": {
+            "success": round(max(float(human_threshold), 0.32), 6),
+            "information": round(0.2 * progress_ratio + 0.08 * repeated_failures, 6),
+            "alignment": round(0.15 if cls in {"syntax", "runtime"} else 0.05, 6),
+            "trace": 0.0,
+            "risk": 0.0,
+            "cost": 0.0,
+            "human_burden": round(-(0.08 * human_interventions + (0.14 if has_human_code else 0.0)), 6),
+            "utility_proxy": proposed_scores["A_intervene"],
+        },
+        "A_terminal": {
+            "success": round(1.0 if cls == "safety" else 0.12, 6),
+            "information": 0.0,
+            "alignment": 0.0,
+            "trace": 0.0,
+            "risk": round(-(0.09 * repeated_failures + 0.08 * safety_events), 6),
+            "cost": round(-(0.24 if attempt_index >= max_attempts and cls != "safety" else 0.0), 6),
+            "human_burden": 0.0,
+            "utility_proxy": proposed_scores["A_terminal"],
+        },
+    }
     feasible_scores = {
         key: (value if feasibility[key].feasible else -1.0)
         for key, value in proposed_scores.items()
@@ -145,6 +201,9 @@ def build_data_lab_repair_decision(
         override_margin=float(override_margin),
         mode=mode,
         feasible=feasibility[proposed_family].feasible,
+        calibrated=bool(status["calibrated"]),
+        calibration_version=str(status["calibration_version"]),
+        validation_metrics=dict(status["validation_metrics"]),
     )
     chosen_action = comparison.chosen_choice
     chosen_family = {
@@ -168,6 +227,7 @@ def build_data_lab_repair_decision(
         proposed_action=proposed_action,
         chosen_action=chosen_action,
         comparison=comparison,
+        math_status=status,
     ).to_dict()
     return {
         "mode": mode,
@@ -178,5 +238,8 @@ def build_data_lab_repair_decision(
         "best_family": chosen_family,
         "best_action": chosen_action,
         "active_override": bool(comparison.override_applied),
+        "math_status": status,
+        "calibration": status,
+        "utility_decomposition": utility_decomposition,
         "v2": v2_trace,
     }

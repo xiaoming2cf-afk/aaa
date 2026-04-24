@@ -5,6 +5,10 @@ from typing import Any
 
 
 VALID_MATH_MODES = {"off", "shadow", "active"}
+MATH_STATUS_EXACT = "Exact"
+MATH_STATUS_VARIATIONAL = "Variational"
+MATH_STATUS_OPERATIONAL = "Operational"
+UNCALIBRATED_SURROGATE_REASON = "uncalibrated_surrogate_blocked"
 
 
 def normalize_math_mode(value: str | None) -> str:
@@ -20,6 +24,29 @@ def settings_math_mode(settings: Any) -> str:
 
 def clamp_unit(value: float) -> float:
     return max(0.0, min(float(value), 1.0))
+
+
+def math_status_metadata(
+    *,
+    status: str,
+    calibrated: bool = False,
+    calibration_version: str = "",
+    validation_metrics: dict[str, Any] | None = None,
+    derivation_ref: str = "",
+    gate: str = "",
+) -> dict[str, Any]:
+    normalized_status = str(status or MATH_STATUS_OPERATIONAL).strip()
+    if normalized_status not in {MATH_STATUS_EXACT, MATH_STATUS_VARIATIONAL, MATH_STATUS_OPERATIONAL}:
+        normalized_status = MATH_STATUS_OPERATIONAL
+    return {
+        "status": normalized_status,
+        "calibrated": bool(calibrated),
+        "calibration_version": str(calibration_version or ""),
+        "validation_metrics": _json_ready(validation_metrics or {}),
+        "derivation_ref": str(derivation_ref or ""),
+        "gate": str(gate or ""),
+        "active_decision_allowed": bool(calibrated),
+    }
 
 
 def _json_ready(value: Any) -> Any:
@@ -63,6 +90,7 @@ class CandidateObservation:
     admissibility: float = 1.0
     baseline_probability: float = 0.0
     posterior: float = 0.0
+    math_status: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -77,6 +105,11 @@ class CandidateObservation:
             "admissibility": round(self.admissibility, 6),
             "baseline_probability": round(self.baseline_probability, 6),
             "posterior": round(self.posterior, 6),
+            "surrogate_probability": round(self.posterior, 6),
+            "posterior_semantics": "uncalibrated_surrogate"
+            if not bool((self.math_status or {}).get("calibrated"))
+            else "calibrated_posterior",
+            "math_status": _json_ready(self.math_status),
         }
 
 
@@ -105,6 +138,9 @@ class ShadowComparison:
     override_margin: float
     override_applied: bool = False
     fallback_reason: str = ""
+    calibrated: bool = False
+    calibration_version: str = ""
+    validation_metrics: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -117,6 +153,9 @@ class ShadowComparison:
             "override_margin": round(self.override_margin, 6),
             "override_applied": self.override_applied,
             "fallback_reason": self.fallback_reason,
+            "calibrated": self.calibrated,
+            "calibration_version": self.calibration_version,
+            "validation_metrics": _json_ready(self.validation_metrics),
         }
 
 
@@ -135,6 +174,7 @@ class DecisionTrace:
     proposed_action: str
     chosen_action: str
     comparison: ShadowComparison
+    math_status: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -151,6 +191,7 @@ class DecisionTrace:
             "proposed_action": self.proposed_action,
             "chosen_action": self.chosen_action,
             "comparison": self.comparison.to_dict(),
+            "math_status": _json_ready(self.math_status),
         }
 
 
@@ -167,6 +208,7 @@ class DeliveryPosterior:
     chosen_deliverable: bool
     decomposition: dict[str, float]
     comparison: ShadowComparison
+    math_status: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -181,6 +223,10 @@ class DeliveryPosterior:
             "chosen_deliverable": self.chosen_deliverable,
             "decomposition": {key: round(value, 6) for key, value in self.decomposition.items()},
             "comparison": self.comparison.to_dict(),
+            "posterior_semantics": "uncalibrated_surrogate"
+            if not bool((self.math_status or {}).get("calibrated"))
+            else "calibrated_posterior",
+            "math_status": _json_ready(self.math_status),
         }
 
 
@@ -194,6 +240,9 @@ def build_shadow_comparison(
     mode: str,
     feasible: bool = True,
     fallback_reason: str = "",
+    calibrated: bool = False,
+    calibration_version: str = "",
+    validation_metrics: dict[str, Any] | None = None,
 ) -> ShadowComparison:
     normalized_mode = normalize_math_mode(mode)
     baseline_value = float(baseline_score)
@@ -210,6 +259,8 @@ def build_shadow_comparison(
         reason = reason or "proposed_choice_matches_baseline"
     elif not feasible:
         reason = reason or "proposed_choice_infeasible"
+    elif not calibrated:
+        reason = reason or UNCALIBRATED_SURROGATE_REASON
     elif advantage < float(override_margin):
         reason = reason or "advantage_below_override_margin"
     else:
@@ -226,4 +277,7 @@ def build_shadow_comparison(
         override_margin=float(override_margin),
         override_applied=override_applied,
         fallback_reason=reason,
+        calibrated=bool(calibrated),
+        calibration_version=str(calibration_version or ""),
+        validation_metrics=dict(validation_metrics or {}),
     )

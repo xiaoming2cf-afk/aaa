@@ -38,6 +38,7 @@ The pack uses three status labels consistently:
 - [System Mapping](./system_mapping.md)
 - [Implementation Blueprint](./implementation_blueprint.md)
 - [Mathematical Validation](./mathematical_validation.md)
+- [Implementation Traceability Matrix](./implementation_traceability_matrix.md)
 
 ## Framework Name
 

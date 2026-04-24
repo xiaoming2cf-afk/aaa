@@ -4,7 +4,14 @@ import math
 import re
 from typing import Any
 
-from .runtime import BeliefState, CandidateObservation, build_shadow_comparison, clamp_unit
+from .runtime import (
+    MATH_STATUS_VARIATIONAL,
+    BeliefState,
+    CandidateObservation,
+    build_shadow_comparison,
+    clamp_unit,
+    math_status_metadata,
+)
 
 
 _TOKEN_RE = re.compile(r"[A-Za-z0-9_\u4e00-\u9fff]+")
@@ -156,6 +163,17 @@ def rank_retrieval_candidates(
     mode: str = "off",
     override_margin: float = 0.05,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    status = math_status_metadata(
+        status=MATH_STATUS_VARIATIONAL,
+        calibrated=False,
+        derivation_ref="docs/agent_math/unified_symbol_system.md#7-retrieval-gibbs-surrogate-variational",
+        gate="retrieval_calibration_required",
+        validation_metrics={
+            "top_k_recall": None,
+            "golden_query_count": 0,
+            "baseline": "lexical_knowledge_score",
+        },
+    )
     query_tokens = _tokens(query_text)
     baseline_ranked, baseline_probabilities = _baseline_rank(candidates, query_tokens, mode=mode)
     baseline_selected = baseline_ranked[: max(1, limit)]
@@ -202,6 +220,7 @@ def rank_retrieval_candidates(
                 prior=prior,
                 admissibility=admissibility,
                 baseline_probability=float(baseline_probabilities.get(str(candidate.get("id") or ""), 0.0)),
+                math_status=status,
             )
         )
         raw_scores.append(raw_score)
@@ -235,6 +254,9 @@ def rank_retrieval_candidates(
         override_margin=float(override_margin),
         mode=mode,
         feasible=bool(proposed_choice and next((item.feasible for item in proposed_observations if item.candidate_id == proposed_choice), False)),
+        calibrated=bool(status["calibrated"]),
+        calibration_version=str(status["calibration_version"]),
+        validation_metrics=dict(status["validation_metrics"]),
     )
     chosen_ids = proposed_ids if comparison.override_applied else baseline_ids
     chosen_ranked = [candidate_by_id[item_id] for item_id in chosen_ids if item_id in candidate_by_id]
@@ -246,8 +268,11 @@ def rank_retrieval_candidates(
         arbiter = dict(item.get("arbiter") or {})
         arbiter["v2"] = {
             "posterior": round(float(v2_observation.posterior if v2_observation is not None else 0.0), 6),
+            "surrogate_probability": round(float(v2_observation.posterior if v2_observation is not None else 0.0), 6),
+            "posterior_semantics": "uncalibrated_surrogate",
             "baseline_probability": round(float(v2_observation.baseline_probability if v2_observation is not None else 0.0), 6),
             "feasible": bool(v2_observation.feasible) if v2_observation is not None else False,
+            "math_status": status,
         }
         item["arbiter"] = arbiter
 
@@ -257,6 +282,8 @@ def rank_retrieval_candidates(
         "candidate_count": len(candidates),
         "selected_count": len(chosen_ranked),
         "surrogate": "candidate_set_normalized_lexical_prior",
+        "math_status": status,
+        "calibration": status,
         "items": [
             {
                 "id": str(item.get("id") or ""),
@@ -264,6 +291,7 @@ def rank_retrieval_candidates(
                 "source_type": str(item.get("source_type") or ""),
                 "surrogate_probability": float((item.get("arbiter") or {}).get("surrogate_probability") or 0.0),
                 "lexical_hits": int((item.get("arbiter") or {}).get("lexical_hits") or 0),
+                "math_status": status,
             }
             for item in chosen_ranked
         ],

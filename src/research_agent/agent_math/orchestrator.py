@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .runtime import build_shadow_comparison, clamp_unit
+from .runtime import MATH_STATUS_OPERATIONAL, build_shadow_comparison, clamp_unit, math_status_metadata
 
 
 def score_candidate_review(
@@ -15,6 +15,17 @@ def score_candidate_review(
     cited_source_count: int,
     mode: str,
 ) -> tuple[float, dict[str, Any]]:
+    status = math_status_metadata(
+        status=MATH_STATUS_OPERATIONAL,
+        calibrated=False,
+        derivation_ref="docs/agent_math/unified_symbol_system.md#9-action-utility-operational",
+        gate="candidate_selection_calibration_required",
+        validation_metrics={
+            "candidate_selection_win_rate": None,
+            "false_approval_rate": None,
+            "calibration_sample_count": 0,
+        },
+    )
     approved = 1.0 if str(review_status or "").strip().lower() == "approved" else 0.0
     evidence = min(float(cited_source_count), 8.0) / 8.0
     structure = max(0.0, 1.0 - 0.18 * float(missing_section_count) - 0.22 * float(invalid_source_id_count))
@@ -47,8 +58,12 @@ def score_candidate_review(
         "baseline_score": baseline_score,
         "baseline_utility": round(baseline_utility, 6),
         "surrogate": "utility_from_review_observables",
+        "math_status": status,
+        "calibration": status,
         "v2": {
             "utility": round(v2_utility, 6),
+            "utility_proxy": round(v2_utility, 6),
+            "utility_semantics": "uncalibrated_surrogate",
             "citation_validity": round(citation_validity, 6),
             "revision_cost": round(revision_cost, 6),
             "evidence_support": round(evidence, 6),
@@ -56,6 +71,7 @@ def score_candidate_review(
             "risk": round(risk, 6),
             "feasible": True,
             "surrogate": "utility_with_revision_cost_and_citation_validity",
+            "math_status": status,
         },
     }
     return baseline_score, metadata
@@ -87,6 +103,7 @@ def select_candidate_draft(
     proposed_candidate = proposed_sorted[0]
     baseline_v2_utility = float((((baseline_candidate.metadata or {}).get("arbiter") or {}).get("v2") or {}).get("utility") or 0.0)
     proposed_v2_utility = float((((proposed_candidate.metadata or {}).get("arbiter") or {}).get("v2") or {}).get("utility") or 0.0)
+    proposed_status = dict(((((proposed_candidate.metadata or {}).get("arbiter") or {}).get("v2") or {}).get("math_status") or {}))
     comparison = build_shadow_comparison(
         baseline_choice=str(baseline_candidate.draft_id),
         proposed_choice=str(proposed_candidate.draft_id),
@@ -97,6 +114,9 @@ def select_candidate_draft(
         feasible=bool(
             ((((proposed_candidate.metadata or {}).get("arbiter") or {}).get("v2") or {}).get("feasible", True))
         ),
+        calibrated=bool(proposed_status.get("calibrated")),
+        calibration_version=str(proposed_status.get("calibration_version") or ""),
+        validation_metrics=dict(proposed_status.get("validation_metrics") or {}),
     )
     chosen_candidate = proposed_candidate if comparison.override_applied else baseline_candidate
     trace = {
@@ -108,12 +128,16 @@ def select_candidate_draft(
         "comparison": comparison.to_dict(),
         "baseline_score": float(baseline_candidate.score or 0.0),
         "proposed_v2_utility": round(proposed_v2_utility, 6),
+        "proposed_v2_utility_proxy": round(proposed_v2_utility, 6),
+        "math_status": proposed_status,
         "items": [
             {
                 "draft_id": candidate.draft_id,
                 "status": candidate.status,
                 "baseline_score": float(candidate.score or 0.0),
                 "v2_utility": float((((candidate.metadata or {}).get("arbiter") or {}).get("v2") or {}).get("utility") or 0.0),
+                "v2_utility_proxy": float((((candidate.metadata or {}).get("arbiter") or {}).get("v2") or {}).get("utility") or 0.0),
+                "math_status": dict(((((candidate.metadata or {}).get("arbiter") or {}).get("v2") or {}).get("math_status") or {})),
             }
             for candidate in candidates
         ],

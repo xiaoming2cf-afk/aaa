@@ -10,8 +10,8 @@
     "fixed_effects": "baseline",
     "panel_iv": "baseline",
     "arima": "statsmodels",
-    "arch": "arch",
-    "garch": "arch",
+    "arch": "baseline",
+    "garch": "baseline",
     "var": "baseline",
     "svar_irf": "baseline",
     "mean_variance": "pypfopt",
@@ -21,5 +21,10 @@
     "fama_french_3": "baseline"
   },
   "generated_at": "2026-04-02T11:16:07.498112+08:00",
-  "source": "scripts/finalize_unified_monte_carlo.py"
+  "source": "scripts/finalize_unified_monte_carlo.py",
+  "quality_policy": {
+    "updated_at": "2026-04-24",
+    "rule": "Candidate engines may not win solely on speed when accuracy is tied, low, or uncalibrated.",
+    "speed_only_rejections": ["arch", "garch"]
+  }
 }

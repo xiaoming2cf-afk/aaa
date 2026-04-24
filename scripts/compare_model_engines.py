@@ -378,21 +378,25 @@ def _decision_reason(
         lead = "completeness"
     elif baseline_metrics["stability_score"] != candidate_metrics["stability_score"]:
         lead = "stability"
+    elif final_decision == "baseline":
+        lead = "quality gate"
     else:
         lead = "speed"
     winner_label = "candidate" if final_decision != "baseline" else "baseline"
-    return f"{winner_label} wins on {lead} under the quality-first decision order (accuracy > completeness > stability > speed)."
+    return f"{winner_label} wins on {lead} under the quality-first decision order (accuracy > completeness > stability; speed is never a candidate-only tie breaker)."
 
 
 def _pick_winner(baseline_metrics: dict[str, float], candidate_metrics: dict[str, float], candidate_engine: str) -> str:
-    priorities = ["accuracy_score", "completeness_score", "stability_score", "speed_score"]
+    priorities = ["accuracy_score", "completeness_score", "stability_score"]
     for field in priorities:
         baseline_value = baseline_metrics[field]
         candidate_value = candidate_metrics[field]
         if abs(candidate_value - baseline_value) > 2.0:
             return candidate_engine if candidate_value > baseline_value else "baseline"
-    baseline_total = 0.4 * baseline_metrics["accuracy_score"] + 0.3 * baseline_metrics["completeness_score"] + 0.2 * baseline_metrics["stability_score"] + 0.1 * baseline_metrics["speed_score"]
-    candidate_total = 0.4 * candidate_metrics["accuracy_score"] + 0.3 * candidate_metrics["completeness_score"] + 0.2 * candidate_metrics["stability_score"] + 0.1 * candidate_metrics["speed_score"]
+    baseline_total = 0.45 * baseline_metrics["accuracy_score"] + 0.35 * baseline_metrics["completeness_score"] + 0.2 * baseline_metrics["stability_score"]
+    candidate_total = 0.45 * candidate_metrics["accuracy_score"] + 0.35 * candidate_metrics["completeness_score"] + 0.2 * candidate_metrics["stability_score"]
+    if candidate_total <= baseline_total + 2.0:
+        return "baseline"
     return candidate_engine if candidate_total > baseline_total else "baseline"
 
 
@@ -580,7 +584,7 @@ def run_comparison(output_dir: Path | None = None) -> dict[str, Any]:
                         "# Model Engine Comparison",
                         "",
                         "This directory stores the baseline-vs-candidate comparison for overlapping models.",
-                        "Decision order: accuracy > completeness > stability > speed.",
+                        "Decision order: accuracy > completeness > stability. Speed is reported but cannot select a candidate engine by itself.",
                         "",
                         f"- Compared models: {len(model_reports)}",
                         f"- Candidate wins: {sum(1 for value in winners.values() if value != 'baseline')}",
