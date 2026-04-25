@@ -155,7 +155,7 @@ def _spa_response(path: str, method: str) -> tuple[int, list[tuple[bytes, bytes]
 
 
 def _allow_source_spa_fallback() -> bool:
-    return os.getenv("APP_ENV", "").strip().lower() in {"development", "dev", "test", "testing"}
+    return os.getenv("RESEARCH_AGENT_ALLOW_SOURCE_SPA_FALLBACK", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _provider_center_response(method: str) -> tuple[int, list[tuple[bytes, bytes]], bytes]:

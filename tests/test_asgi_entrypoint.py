@@ -7,11 +7,15 @@ from research_agent import asgi
 from research_agent.asgi import LazyApplication
 
 
-def test_source_spa_fallback_requires_explicit_development_env(monkeypatch):
+def test_source_spa_fallback_requires_explicit_opt_in(monkeypatch):
     monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.delenv("RESEARCH_AGENT_ALLOW_SOURCE_SPA_FALLBACK", raising=False)
     assert asgi._allow_source_spa_fallback() is False
 
     monkeypatch.setenv("APP_ENV", "development")
+    assert asgi._allow_source_spa_fallback() is False
+
+    monkeypatch.setenv("RESEARCH_AGENT_ALLOW_SOURCE_SPA_FALLBACK", "true")
     assert asgi._allow_source_spa_fallback() is True
 
 
