@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from .runtime import ArbiterV2Metadata, MATH_STATUS_OPERATIONAL, build_shadow_comparison, clamp_unit, math_status_metadata
+from .calibration import calibrated_math_status
+from .runtime import ArbiterV2Metadata, MATH_STATUS_OPERATIONAL, build_shadow_comparison, clamp_unit
 
 
 def score_candidate_review(
@@ -14,17 +15,19 @@ def score_candidate_review(
     finding_count: int,
     cited_source_count: int,
     mode: str,
+    calibration_registry_path: str | None = None,
 ) -> tuple[float, dict[str, Any]]:
-    status = math_status_metadata(
+    status = calibrated_math_status(
+        subsystem="candidate_selection",
         status=MATH_STATUS_OPERATIONAL,
-        calibrated=False,
         derivation_ref="docs/agent_math/unified_symbol_system.md#9-action-utility-operational",
         gate="candidate_selection_calibration_required",
-        validation_metrics={
+        default_validation_metrics={
             "candidate_selection_win_rate": None,
             "false_approval_rate": None,
             "calibration_sample_count": 0,
         },
+        registry_path=calibration_registry_path,
     )
     approved = 1.0 if str(review_status or "").strip().lower() == "approved" else 0.0
     evidence = min(float(cited_source_count), 8.0) / 8.0

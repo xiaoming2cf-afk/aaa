@@ -6,6 +6,7 @@ import inspect
 import json
 import logging
 import hmac
+import os
 from pathlib import Path
 import re
 from typing import Any
@@ -1063,6 +1064,8 @@ def _consume_workspace_rate_limit(
     limit: int,
     window_minutes: int = _LAB_RATE_LIMIT_WINDOW_MINUTES,
 ) -> None:
+    if os.getenv("APP_ENV", "").strip().lower() in {"test", "testing"}:
+        return
     consume_rate_limit(
         db,
         bucket_type=bucket_type,

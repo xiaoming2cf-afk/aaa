@@ -39,6 +39,7 @@ The pack uses three status labels consistently:
 - [Implementation Blueprint](./implementation_blueprint.md)
 - [Mathematical Validation](./mathematical_validation.md)
 - [Implementation Traceability Matrix](./implementation_traceability_matrix.md)
+- [Calibration Registry](./calibration_registry.json)
 
 ## Framework Name
 

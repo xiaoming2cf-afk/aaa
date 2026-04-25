@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+from .calibration import calibrated_math_status
 from .runtime import (
     MATH_STATUS_OPERATIONAL,
     BeliefState,
     DeliveryPosterior,
     build_shadow_comparison,
     clamp_unit,
-    math_status_metadata,
 )
 
 
@@ -22,19 +22,21 @@ def build_delivery_posterior_trace(
     mode: str,
     threshold: float = 0.85,
     override_margin: float = 0.05,
+    calibration_registry_path: str | None = None,
 ) -> dict[str, object]:
-    status = math_status_metadata(
+    status = calibrated_math_status(
+        subsystem="delivery",
         status=MATH_STATUS_OPERATIONAL,
-        calibrated=False,
         derivation_ref="docs/agent_math/unified_symbol_system.md#13-delivery-posterior-operational",
         gate="delivery_calibration_required",
-        validation_metrics={
+        default_validation_metrics={
             "brier_score": None,
             "expected_calibration_error": None,
             "false_publish_rate": None,
             "false_block_rate": None,
             "calibration_sample_count": 0,
         },
+        registry_path=calibration_registry_path,
     )
     coverage_term = clamp_unit(citation_coverage)
     unsupported_term = clamp_unit(1.0 - unsupported_claim_rate)

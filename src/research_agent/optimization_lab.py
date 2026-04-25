@@ -17,6 +17,8 @@ from pathlib import Path
 from types import MethodType
 from typing import Any
 
+os.environ.setdefault("MPLBACKEND", "Agg")
+
 import numpy as np
 import pandas as pd
 from scipy import stats

@@ -12,6 +12,8 @@ import os
 import tempfile
 from typing import Any
 
+os.environ.setdefault("MPLBACKEND", "Agg")
+
 import fitz
 import numpy as np
 import pandas as pd

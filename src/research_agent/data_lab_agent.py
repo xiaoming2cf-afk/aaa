@@ -15,6 +15,8 @@ import textwrap
 import uuid
 from typing import Any
 
+os.environ.setdefault("MPLBACKEND", "Agg")
+
 import pandas as pd
 from sqlalchemy.orm import Session
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .calibration import calibrated_math_status
 from .runtime import (
     MATH_STATUS_OPERATIONAL,
     BeliefState,
@@ -9,7 +10,6 @@ from .runtime import (
     FeasibilityMask,
     build_shadow_comparison,
     clamp_unit,
-    math_status_metadata,
 )
 
 
@@ -34,19 +34,21 @@ def build_data_lab_repair_decision(
     human_threshold: float = 0.55,
     override_margin: float = 0.05,
     session_state: dict[str, Any] | None = None,
+    calibration_registry_path: str | None = None,
 ) -> dict[str, Any]:
     cls = _error_class(error_message)
-    status = math_status_metadata(
+    status = calibrated_math_status(
+        subsystem="repair",
         status=MATH_STATUS_OPERATIONAL,
-        calibrated=False,
         derivation_ref="docs/agent_math/unified_symbol_system.md#11-runtime-decision-rule-operational",
         gate="repair_decision_calibration_required",
-        validation_metrics={
+        default_validation_metrics={
             "repair_success_rate": None,
             "human_intervention_false_positive_rate": None,
             "human_intervention_false_negative_rate": None,
             "calibration_sample_count": 0,
         },
+        registry_path=calibration_registry_path,
     )
     progress_ratio = 1.0 if max_attempts <= 0 else min(max(float(attempt_index) / float(max_attempts), 0.0), 1.0)
     baseline_scores = {

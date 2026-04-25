@@ -4,13 +4,13 @@ import math
 import re
 from typing import Any
 
+from .calibration import calibrated_math_status
 from .runtime import (
     MATH_STATUS_VARIATIONAL,
     BeliefState,
     CandidateObservation,
     build_shadow_comparison,
     clamp_unit,
-    math_status_metadata,
 )
 
 
@@ -225,17 +225,21 @@ def rank_retrieval_candidates(
     limit: int = 10,
     mode: str = "off",
     override_margin: float = 0.05,
+    calibration_registry_path: str | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    status = math_status_metadata(
+    status = calibrated_math_status(
+        subsystem="retrieval",
         status=MATH_STATUS_VARIATIONAL,
-        calibrated=False,
         derivation_ref="docs/agent_math/unified_symbol_system.md#7-retrieval-gibbs-surrogate-variational",
         gate="retrieval_calibration_required",
-        validation_metrics={
+        default_validation_metrics={
             "top_k_recall": None,
+            "baseline_top_k_recall": None,
+            "baseline_delta": None,
             "golden_query_count": 0,
             "baseline": "lexical_knowledge_score",
         },
+        registry_path=calibration_registry_path,
     )
     query_tokens = _tokens(query_text)
     baseline_ranked, baseline_probabilities = _baseline_rank(candidates, query_tokens, mode=mode)

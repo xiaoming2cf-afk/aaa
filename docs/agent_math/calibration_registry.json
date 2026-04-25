@@ -1,0 +1,83 @@
+{
+  "registry_version": "2026-04-24.arbiter-quality-gate.v1",
+  "policy": "Explicit offline calibration is required before any subsystem may influence active decisions.",
+  "subsystems": {
+    "retrieval": {
+      "version": "retrieval.shadow.v1",
+      "calibrated": false,
+      "metrics": {
+        "top_k_recall": null,
+        "baseline_top_k_recall": null,
+        "baseline_delta": null,
+        "golden_query_count": 0
+      },
+      "thresholds": {
+        "min": {
+          "top_k_recall": 0.8,
+          "baseline_delta": 0.0,
+          "golden_query_count": 3
+        }
+      }
+    },
+    "delivery": {
+      "version": "delivery.shadow.v1",
+      "calibrated": false,
+      "metrics": {
+        "brier_score": null,
+        "expected_calibration_error": null,
+        "false_publish_rate": null,
+        "false_block_rate": null,
+        "calibration_sample_count": 0
+      },
+      "thresholds": {
+        "max": {
+          "brier_score": 0.12,
+          "expected_calibration_error": 0.08,
+          "false_publish_rate": 0.0,
+          "false_block_rate": 0.2
+        },
+        "min": {
+          "calibration_sample_count": 30
+        }
+      }
+    },
+    "repair": {
+      "version": "repair.shadow.v1",
+      "calibrated": false,
+      "metrics": {
+        "repair_success_rate": null,
+        "human_intervention_false_positive_rate": null,
+        "human_intervention_false_negative_rate": null,
+        "calibration_sample_count": 0
+      },
+      "thresholds": {
+        "min": {
+          "repair_success_rate": 0.7,
+          "calibration_sample_count": 30
+        },
+        "max": {
+          "human_intervention_false_positive_rate": 0.2,
+          "human_intervention_false_negative_rate": 0.1
+        }
+      }
+    },
+    "candidate_selection": {
+      "version": "candidate_selection.shadow.v1",
+      "calibrated": false,
+      "metrics": {
+        "candidate_selection_win_rate": null,
+        "false_approval_rate": null,
+        "calibration_sample_count": 0
+      },
+      "thresholds": {
+        "min": {
+          "candidate_selection_win_rate": 0.55,
+          "calibration_sample_count": 30
+        },
+        "max": {
+          "false_approval_rate": 0.0
+        }
+      }
+    }
+  }
+}

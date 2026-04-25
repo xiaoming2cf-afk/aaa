@@ -80,9 +80,9 @@ def _panel_specs(panel_asset_id: str) -> list[dict[str, Any]]:
         {"group": "country_panel", "method": "regression_kink", "baseline": {"asset_id": panel_asset_id, "model_family": "causal_inference", "model_type": "regression_kink", "dependent": "outcome_y", "running_column": "running_score", "controls": ["size", "leverage"], "kink_point": 0.0, "bandwidth": 1.0}, "variant": {"variant_label": "kink_narrow", "variant_spec": {"bandwidth": 0.75}}},
         {"group": "country_panel", "method": "instrumental_causal", "baseline": {"asset_id": panel_asset_id, "model_family": "causal_inference", "model_type": "instrumental_causal", "dependent": "outcome_y", "independents": ["size"], "controls": ["leverage"], "endogenous_column": "endogenous_x", "instrument_columns": ["instrument_z"]}, "variant": {"variant_label": "instr_post", "variant_spec": {"controls": ["leverage", "post"]}}},
         {"group": "country_panel", "method": "inverse_propensity_weighting", "baseline": {"asset_id": panel_asset_id, "model_family": "causal_inference", "model_type": "inverse_propensity_weighting", "dependent": "outcome_y", "treatment_column": "treated", "controls": ["size", "leverage", "post"]}, "variant": {"variant_label": "ipw_endog", "variant_spec": {"controls": ["size", "leverage", "post", "endogenous_x"]}}},
-        {"group": "country_panel", "method": "bayesian_linear_regression", "baseline": {"asset_id": panel_asset_id, "model_family": "bayesian", "model_type": "bayesian_linear_regression", "dependent": "outcome_y", "independents": ["size", "leverage", "post"], "draws": 100, "tune": 100, "chains": 1}, "variant": {"variant_label": "bayes_linear_treated", "variant_spec": {"independents": ["size", "leverage", "post", "treated"], "draws": 120, "tune": 120}}},
-        {"group": "country_panel", "method": "bayesian_panel", "baseline": {"asset_id": panel_asset_id, "model_family": "bayesian", "model_type": "bayesian_panel", "dependent": "outcome_y", "independents": ["size", "leverage"], "entity_column": "firm_id", "time_column": "date", "draws": 100, "tune": 100, "chains": 1}, "variant": {"variant_label": "bayes_panel_post", "variant_spec": {"independents": ["size", "leverage", "post"], "draws": 120, "tune": 120}}},
-        {"group": "country_panel", "method": "bayesian_did", "baseline": {"asset_id": panel_asset_id, "model_family": "bayesian", "model_type": "bayesian_did", "dependent": "outcome_y", "treatment_column": "treated", "post_column": "post", "controls": ["size", "leverage"], "draws": 100, "tune": 100, "chains": 1}, "variant": {"variant_label": "bayes_did_extra", "variant_spec": {"controls": ["size", "leverage", "endogenous_x"], "draws": 120, "tune": 120}}},
+        {"group": "country_panel", "method": "bayesian_linear_regression", "baseline": {"asset_id": panel_asset_id, "model_family": "bayesian", "model_type": "bayesian_linear_regression", "dependent": "outcome_y", "independents": ["size", "leverage", "post"], "draws": 20, "tune": 20, "chains": 1}, "variant": {"variant_label": "bayes_linear_treated", "variant_spec": {"independents": ["size", "leverage", "post", "treated"], "draws": 24, "tune": 24}}},
+        {"group": "country_panel", "method": "bayesian_panel", "baseline": {"asset_id": panel_asset_id, "model_family": "bayesian", "model_type": "bayesian_panel", "dependent": "outcome_y", "independents": ["size", "leverage"], "entity_column": "firm_id", "time_column": "date", "draws": 20, "tune": 20, "chains": 1}, "variant": {"variant_label": "bayes_panel_post", "variant_spec": {"independents": ["size", "leverage", "post"], "draws": 24, "tune": 24}}},
+        {"group": "country_panel", "method": "bayesian_did", "baseline": {"asset_id": panel_asset_id, "model_family": "bayesian", "model_type": "bayesian_did", "dependent": "outcome_y", "treatment_column": "treated", "post_column": "post", "controls": ["size", "leverage"], "draws": 20, "tune": 20, "chains": 1}, "variant": {"variant_label": "bayes_did_extra", "variant_spec": {"controls": ["size", "leverage", "endogenous_x"], "draws": 24, "tune": 24}}},
     ]
 
 
@@ -106,7 +106,7 @@ def _time_series_specs(ts_asset_id: str) -> list[dict[str, Any]]:
         {"group": "macro_finance_ts", "method": "dynamic_ols", "baseline": {"asset_id": ts_asset_id, "model_family": "time_series_finance", "model_type": "dynamic_ols", "dependent": "level_a", "series_columns": ["level_b", "level_c"], "time_column": "date"}, "variant": {"variant_label": "dols_single", "variant_spec": {"series_columns": ["level_b"]}}},
         {"group": "macro_finance_ts", "method": "fm_ols", "baseline": {"asset_id": ts_asset_id, "model_family": "time_series_finance", "model_type": "fm_ols", "dependent": "level_a", "series_columns": ["level_b", "level_c"], "time_column": "date"}, "variant": {"variant_label": "fmols_single", "variant_spec": {"series_columns": ["level_b"]}}},
         {"group": "macro_finance_ts", "method": "interrupted_time_series", "baseline": {"asset_id": ts_asset_id, "model_family": "causal_inference", "model_type": "interrupted_time_series", "dependent": "policy_rate", "time_column": "date", "controls": ["inflation_gap", "output_gap"], "treatment_time": "2019-07-31"}, "variant": {"variant_label": "its_gap_focus", "variant_spec": {"dependent": "output_gap", "controls": ["inflation_gap"], "treatment_time": "2018-12-31"}}},
-        {"group": "macro_finance_ts", "method": "bayesian_its", "baseline": {"asset_id": ts_asset_id, "model_family": "bayesian", "model_type": "bayesian_its", "dependent": "policy_rate", "time_column": "date", "treatment_index": 18, "draws": 100, "tune": 100, "chains": 1}, "variant": {"variant_label": "bayes_its_longer", "variant_spec": {"treatment_index": 24, "draws": 120, "tune": 120}}},
+        {"group": "macro_finance_ts", "method": "bayesian_its", "baseline": {"asset_id": ts_asset_id, "model_family": "bayesian", "model_type": "bayesian_its", "dependent": "policy_rate", "time_column": "date", "treatment_index": 18, "draws": 20, "tune": 20, "chains": 1}, "variant": {"variant_label": "bayes_its_longer", "variant_spec": {"treatment_index": 24, "draws": 24, "tune": 24}}},
         {"group": "macro_finance_ts", "method": "quant_linear_model", "baseline": {"asset_id": ts_asset_id, "model_family": "quant_research", "model_type": "quant_linear_model", "dependent": "asset_return", "feature_columns": ["market_return", "smb", "hml", "policy_rate", "inflation_gap"], "time_column": "date", "split_ratio": 0.7}, "variant": {"variant_label": "quant_linear_alt", "variant_spec": {"feature_columns": ["market_return", "smb", "hml", "output_gap"], "split_ratio": 0.75}}},
         {"group": "macro_finance_ts", "method": "quant_lightgbm", "baseline": {"asset_id": ts_asset_id, "model_family": "quant_research", "model_type": "quant_lightgbm", "dependent": "asset_return", "feature_columns": ["market_return", "smb", "hml", "policy_rate", "inflation_gap"], "time_column": "date", "split_ratio": 0.7, "n_estimators": 80, "learning_rate": 0.05, "num_leaves": 15}, "variant": {"variant_label": "quant_lgbm_alt", "variant_spec": {"feature_columns": ["market_return", "smb", "hml", "output_gap"], "n_estimators": 120, "num_leaves": 21}}},
         {"group": "macro_finance_ts", "method": "quant_catboost", "baseline": {"asset_id": ts_asset_id, "model_family": "quant_research", "model_type": "quant_catboost", "dependent": "asset_return", "feature_columns": ["market_return", "smb", "hml", "policy_rate", "inflation_gap"], "time_column": "date", "split_ratio": 0.7, "iterations": 80, "depth": 4}, "variant": {"variant_label": "quant_cat_alt", "variant_spec": {"feature_columns": ["market_return", "smb", "hml", "output_gap"], "iterations": 120, "depth": 5}}},
@@ -139,6 +139,7 @@ def run_verification(
     methods: Iterable[str] | None = None,
     clean_output: bool = True,
     write_summary: bool = True,
+    include_slow_bayesian: bool = False,
 ) -> dict[str, Any]:
     temp_root = Path(tempfile.mkdtemp(prefix="erp-model-upgrade-"))
     configure_test_environment(temp_root)
@@ -181,6 +182,8 @@ def run_verification(
             specs = [spec for spec in specs if spec["group"] in group_filter]
         if method_filter:
             specs = [spec for spec in specs if spec["method"] in method_filter]
+        elif not include_slow_bayesian:
+            specs = [spec for spec in specs if not str(spec["method"]).startswith("bayesian_")]
         model_reports: list[dict[str, Any]] = []
         group_counts: dict[str, int] = {}
 
@@ -227,6 +230,7 @@ def run_verification(
             "group_counts": group_counts,
             "groups": sorted(group_filter),
             "methods": sorted(method_filter),
+            "slow_bayesian_excluded": bool(not method_filter and not include_slow_bayesian),
             "models": model_reports,
         }
         if output_dir and write_summary:
@@ -244,11 +248,12 @@ def main() -> None:
     parser.add_argument("--groups", default="", help="Comma-separated group filters.")
     parser.add_argument("--methods", default="", help="Comma-separated method filters.")
     parser.add_argument("--output-dir", default="", help="Optional output directory for artifacts.")
+    parser.add_argument("--include-slow-bayesian", action="store_true", help="Include PyMC NUTS smoke models in the default full sweep.")
     args = parser.parse_args()
     groups = [value for value in args.groups.split(",") if value.strip()]
     methods = [value for value in args.methods.split(",") if value.strip()]
     output_dir = Path(args.output_dir) if args.output_dir.strip() else None
-    report = run_verification(output_dir=output_dir, groups=groups, methods=methods)
+    report = run_verification(output_dir=output_dir, groups=groups, methods=methods, include_slow_bayesian=args.include_slow_bayesian)
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
 

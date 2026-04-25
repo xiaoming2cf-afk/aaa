@@ -12,6 +12,8 @@ This matrix links ARBITER formulas to runtime code, tests, and the validation ev
 | `eta_t` delivery readiness | Operational | `agent_math/delivery.py` | Zero-safe weighted adequacy proxy multiplied by governance evidence; compatibility field remains `delivery_posterior` but is marked uncalibrated. | Brier score, expected calibration error, false publish rate, and false block rate must pass release thresholds. | `tests/test_delivery_review.py` |
 | `Delta_v2` shadow advantage | Operational | `agent_math/runtime.py` | Relative advantage `(proposed - baseline) / max(abs(proposed), abs(baseline), eps)` plus raw delta for audit. | Active override requires calibrated subsystem, feasible proposal, and relative margin pass. | `tests/test_agent_math_v2.py` |
 | Active override comparison | Operational | `agent_math/runtime.py` | Baseline-preserving unless calibrated metadata is present. | Calibration version and validation metrics must be attached to the subsystem trace. | `tests/test_agent_math_v2.py` |
+| Calibration registry | Operational | `agent_math/calibration.py` | Versioned offline reports decide whether retrieval, delivery, repair, or candidate selection may affect active decisions. | Missing reports, failed thresholds, or `calibrated=false` must keep the subsystem blocked. | `tests/test_agent_math_v2.py`, `scripts/verify_agent_quality_gate.py` |
+| Quality gate / backtests | Operational | `scripts/verify_agent_quality_gate.py` | Runs golden retrieval, delivery labels, repair and candidate guards, vulnerability checks, and synthetic truth model backtests. | Gate must pass and emit a JSON audit report before deployment. | `tests/test_agent_math_v2.py` |
 
 ## Data Lab Model Integrity
 

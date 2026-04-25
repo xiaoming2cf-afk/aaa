@@ -87,6 +87,24 @@ class BeliefState:
         log_base = math.log(float(base)) if base and base > 0.0 else 1.0
         return -sum(probability * (math.log(probability) / log_base) for probability in distribution.values() if probability > 0.0)
 
+    def kl_divergence(self, reference_distribution: dict[str, float], *, base: float = 2.0, epsilon: float = 1e-12) -> float:
+        posterior = self.normalized_distribution()
+        reference_values = {str(key): max(0.0, float(value)) for key, value in (reference_distribution or {}).items()}
+        reference_total = sum(reference_values.values())
+        if not posterior or reference_total <= 0.0:
+            return 0.0
+        reference = {key: value / reference_total for key, value in reference_values.items()}
+        states = set(posterior) | set(reference)
+        log_base = math.log(float(base)) if base and base > 0.0 else 1.0
+        return sum(
+            max(posterior.get(state, 0.0), epsilon)
+            * (math.log(max(posterior.get(state, 0.0), epsilon) / max(reference.get(state, 0.0), epsilon)) / log_base)
+            for state in states
+        )
+
+    def information_gain(self, prior_distribution: dict[str, float], *, base: float = 2.0) -> float:
+        return self.kl_divergence(prior_distribution, base=base)
+
     def update(
         self,
         *,
@@ -121,7 +139,7 @@ class BeliefState:
             posterior = {}
 
         observation_payload = _json_ready(observation or {})
-        return BeliefState(
+        updated = BeliefState(
             W_t={
                 **dict(self.W_t),
                 "last_action": str(action or ""),
@@ -140,6 +158,9 @@ class BeliefState:
             },
             belief_distribution=posterior,
         )
+        if prior and posterior:
+            updated.E_t["information_gain"] = round(updated.information_gain(prior), 6)
+        return updated
 
     def to_dict(self) -> dict[str, Any]:
         payload = {
@@ -151,6 +172,8 @@ class BeliefState:
         if self.belief_distribution:
             payload["belief_distribution"] = _json_ready(self.normalized_distribution())
             payload["belief_entropy"] = round(self.entropy(), 6)
+            if "information_gain" in self.E_t:
+                payload["information_gain"] = _json_ready(self.E_t.get("information_gain"))
         return payload
 
 

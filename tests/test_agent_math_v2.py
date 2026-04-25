@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import math
 from types import SimpleNamespace
 
@@ -7,11 +8,13 @@ from research_agent.agent import AcademicResearchAgent
 from research_agent.agent_math import (
     BeliefState,
     build_shadow_comparison,
+    calibration_report_for_subsystem,
     build_data_lab_repair_decision,
     build_delivery_posterior_trace,
     rank_retrieval_candidates,
     select_candidate_draft,
 )
+from research_agent.model_quality_backtests import run_synthetic_truth_backtests
 
 
 def _session_state() -> dict[str, object]:
@@ -119,6 +122,96 @@ def test_active_retrieval_uncalibrated_surrogate_cannot_override_baseline():
     assert ranked[0]["id"] == "baseline-card"
     assert trace["v2"]["comparison"]["fallback_reason"] == "uncalibrated_surrogate_blocked"
     assert trace["math_status"]["calibrated"] is False
+
+
+def test_calibrated_registry_can_open_active_retrieval_gate(tmp_path):
+    registry_path = tmp_path / "calibration_registry.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "registry_version": "test.registry.v1",
+                "subsystems": {
+                    "retrieval": {
+                        "version": "retrieval.test.pass",
+                        "calibrated": True,
+                        "metrics": {
+                            "top_k_recall": 1.0,
+                            "baseline_top_k_recall": 0.5,
+                            "baseline_delta": 0.5,
+                            "golden_query_count": 3,
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    session = _session_state()
+    session["assets"][0]["profile"]["column_names"] = ["outcome", "leverage", "growth", "revenue"]
+    candidates = [
+        {
+            "id": "baseline-card",
+            "title": "Run report",
+            "summary": "General report workflow.",
+            "source_type": "workspace_knowledge",
+            "policy": "interface_only_no_external_source_injection",
+            "score": 10,
+        },
+        {
+            "id": "profile-card",
+            "title": "Outcome leverage growth revenue model",
+            "summary": "Use outcome with leverage, growth, and revenue features.",
+            "source_type": "workspace_knowledge",
+            "policy": "interface_only_no_external_source_injection",
+            "score": 10,
+        },
+    ]
+
+    ranked, trace = rank_retrieval_candidates(
+        query_text="Run report",
+        candidates=candidates,
+        session=session,
+        limit=1,
+        mode="active",
+        override_margin=0.01,
+        calibration_registry_path=str(registry_path),
+    )
+
+    assert ranked[0]["id"] == "profile-card"
+    assert trace["v2"]["comparison"]["override_applied"] is True
+    assert trace["math_status"]["calibrated"] is True
+    assert trace["math_status"]["calibration_version"] == "retrieval.test.pass"
+
+
+def test_failing_calibration_registry_keeps_surrogate_blocked(tmp_path):
+    registry_path = tmp_path / "calibration_registry.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "registry_version": "test.registry.v1",
+                "subsystems": {
+                    "retrieval": {
+                        "version": "retrieval.test.fail",
+                        "calibrated": True,
+                        "metrics": {
+                            "top_k_recall": 0.4,
+                            "baseline_top_k_recall": 0.8,
+                            "baseline_delta": -0.4,
+                            "golden_query_count": 1,
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = calibration_report_for_subsystem("retrieval", registry_path=registry_path)
+
+    assert report.requested_calibrated is True
+    assert report.calibrated is False
+    assert "top_k_recall_below_min" in report.failure_reasons
+    assert "baseline_delta_below_min" in report.failure_reasons
 
 
 def test_retrieval_admissibility_is_consistent_between_baseline_and_v2():
@@ -232,6 +325,7 @@ def test_belief_state_update_normalizes_and_tracks_entropy():
     assert math.isclose(sum(distribution.values()), 1.0, abs_tol=1e-9)
     assert distribution["ok"] > distribution["risky"]
     assert updated.to_dict()["belief_entropy"] > 0.0
+    assert updated.to_dict()["information_gain"] > 0.0
 
 
 def test_control_v2_feasibility_blocks_auto_repair_for_safety_errors():
@@ -365,3 +459,19 @@ def test_unknown_agent_tool_is_fatal_and_lists_available_tools():
     assert result["status"] == "error"
     assert result["fatal"] is True
     assert result["available_tools"] == ["known_tool"]
+
+
+def test_synthetic_truth_backtests_pass_quality_thresholds():
+    report = run_synthetic_truth_backtests()
+
+    assert report["passed"] is True
+    assert {item["name"] for item in report["checks"]} >= {
+        "ols_truth_coefficient_error",
+        "did_truth_effect_error",
+        "rdd_truth_discontinuity_error",
+        "iv_truth_effect_error",
+        "bayesian_conjugate_posterior_mean_error",
+        "synthetic_control_simplex_pre_rmse",
+        "portfolio_min_variance_relative_improvement",
+        "time_series_ar1_phi_error",
+    }

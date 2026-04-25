@@ -3,7 +3,16 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from research_agent import asgi
 from research_agent.asgi import LazyApplication
+
+
+def test_source_spa_fallback_requires_explicit_development_env(monkeypatch):
+    monkeypatch.delenv("APP_ENV", raising=False)
+    assert asgi._allow_source_spa_fallback() is False
+
+    monkeypatch.setenv("APP_ENV", "development")
+    assert asgi._allow_source_spa_fallback() is True
 
 
 def test_lazy_asgi_short_circuits_render_probe_paths_without_loading_full_app():
