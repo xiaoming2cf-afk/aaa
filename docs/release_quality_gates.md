@@ -63,7 +63,7 @@ Render deploys can be triggered with either a deploy hook or the Render API:
 
 ```powershell
 $env:RENDER_DEPLOY_HOOK = "<deploy hook url>"
-python scripts/verify_render_deploy.py --commit <commit_sha> --base-url https://economic-research-web.onrender.com --output output/render-deploy/render-deploy.<commit_sha>.json
+python scripts/verify_render_deploy.py --commit <commit_sha> --base-url https://economic-research-web.onrender.com --deep --register --output output/render-deploy/render-deploy.<commit_sha>.json
 ```
 
 or:
@@ -71,7 +71,7 @@ or:
 ```powershell
 $env:RENDER_API_KEY = "<api key>"
 $env:RENDER_SERVICE_ID = "<service id>"
-python scripts/verify_render_deploy.py --commit <commit_sha> --base-url https://economic-research-web.onrender.com --output output/render-deploy/render-deploy.<commit_sha>.json
+python scripts/verify_render_deploy.py --commit <commit_sha> --base-url https://economic-research-web.onrender.com --deep --register --output output/render-deploy/render-deploy.<commit_sha>.json
 ```
 
-If neither trigger is configured, the verifier writes blocking JSON, identifies which credential set is missing, and exits non-zero. CI uploads this report as `render-deploy-<sha>` when the workflow dispatch deploy job runs.
+Promotion requires `--base-url` plus authenticated deep smoke (`--deep` with credentials or `--register`). If those requirements are missing, the verifier writes blocking JSON and does not trigger Render. If neither trigger is configured, the verifier writes blocking JSON, identifies which credential set is missing, and exits non-zero. CI uploads this report as `render-deploy-<sha>` when the workflow dispatch deploy job runs.

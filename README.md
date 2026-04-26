@@ -95,6 +95,7 @@ PUBLIC_DIGEST_QUERY=
 PUBLIC_DIGEST_MAX_RECORDS=30
 
 DATA_LAB_AGENT_ENABLED=false
+DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED=false
 DATA_LAB_AGENT_MAX_ATTEMPTS=3
 DATA_LAB_AGENT_TIMEOUT_SECONDS=20
 DATA_LAB_AGENT_OUTPUT_LIMIT=12000
@@ -165,7 +166,8 @@ Notes:
 - `POST /api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/messages`
 - `GET /api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}`
 - `POST /api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/report`
-- `GET /api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/notebook`
+- `POST /api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/notebook` generates the notebook artifact and requires CSRF for cookie sessions.
+- `GET /api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/notebook` downloads an existing notebook artifact only.
 - `POST /api/internal/run-due-jobs`
 
 The internal scheduler endpoint requires `X-Cron-Secret` and is intentionally excluded from OpenAPI. Use it from a trusted scheduler only.

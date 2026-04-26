@@ -85,6 +85,26 @@ def _blocking_report(reason: str, *, commit_sha: str = "", detail: Any | None = 
     }
 
 
+def _promotion_smoke_guard(*, base_url: str, deep: bool, register: bool, commit_sha: str) -> dict[str, Any] | None:
+    missing: list[str] = []
+    if not base_url.strip():
+        missing.append("base_url")
+    if not (deep or register):
+        missing.append("deep_smoke")
+    if not missing:
+        return None
+    return _blocking_report(
+        "Render deploy promotion requires a deployed base URL and authenticated deep smoke checks.",
+        commit_sha=commit_sha,
+        detail={
+            "missing": missing,
+            "base_url_present": bool(base_url.strip()),
+            "deep_smoke_requested": bool(deep or register),
+            "required_flags": ["--base-url", "--deep or --register"],
+        },
+    )
+
+
 def _append_ref(url: str, commit_sha: str) -> str:
     if not commit_sha:
         return url
@@ -203,11 +223,39 @@ def main() -> int:
             output_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         return 1
 
+    smoke_guard = _promotion_smoke_guard(
+        base_url=args.base_url,
+        deep=args.deep,
+        register=args.register,
+        commit_sha=commit_sha,
+    )
+    if smoke_guard is not None:
+        report = {
+            "commit_sha": commit_sha,
+            "deploy": {
+                "status": "not_triggered",
+                "passed": False,
+                "blocked": True,
+                "commit_sha": commit_sha,
+                "reason": "Promotion smoke requirements were not satisfied before triggering Render.",
+            },
+            "promotion": smoke_guard,
+            "status": "blocked",
+            "passed": False,
+        }
+        rendered = json.dumps(report, ensure_ascii=False, indent=2)
+        if args.output.strip():
+            output_path = Path(args.output).expanduser().resolve()
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(rendered, encoding="utf-8")
+        print(rendered)
+        return 1
+
     trigger_report = trigger_render_deploy(commit_sha=commit_sha, clear_cache=args.clear_cache)
     report: dict[str, Any] = {"commit_sha": commit_sha, "deploy": trigger_report}
     passed = bool(trigger_report.get("passed"))
 
-    if passed and args.base_url.strip():
+    if passed:
         try:
             smoke_report = _run_smoke(
                 args.base_url,

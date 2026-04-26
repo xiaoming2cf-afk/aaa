@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -300,6 +301,36 @@ def test_render_deploy_missing_credentials_report_is_actionable(monkeypatch):
     assert "Configure either RENDER_DEPLOY_HOOK" in report["remediation"]
 
 
+def test_render_deploy_promotion_requires_base_url_and_deep_smoke(tmp_path, monkeypatch):
+    module = _load_script_module("verify_render_deploy_promotion_guard_test", "scripts/verify_render_deploy.py")
+    output_path = tmp_path / "render-deploy.json"
+
+    def fail_trigger(*args, **kwargs):
+        raise AssertionError("Render deploy must not be triggered before promotion smoke requirements pass")
+
+    monkeypatch.setattr(module, "trigger_render_deploy", fail_trigger)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "verify_render_deploy.py",
+            "--commit",
+            "abc123",
+            "--output",
+            str(output_path),
+        ],
+    )
+
+    exit_code = module.main()
+
+    assert exit_code == 1
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert payload["passed"] is False
+    assert payload["deploy"]["status"] == "not_triggered"
+    assert payload["promotion"]["detail"]["missing"] == ["base_url", "deep_smoke"]
+    assert "--base-url" in payload["promotion"]["detail"]["required_flags"]
+
+
 def test_engineering_gate_artifact_fails_when_dist_shell_uses_source_entry(tmp_path, monkeypatch):
     module = _load_script_module("write_engineering_gate_artifact_test", "scripts/write_engineering_gate_artifact.py")
     repo_root = tmp_path / "repo"
@@ -398,6 +429,62 @@ def test_deploy_artifact_verifier_blocks_commit_mismatch_and_failed_gate(tmp_pat
     assert "engineering_gate_commit_match" in failure_keys
     assert "engineering_gate_filename_commit_match" in failure_keys
     assert "engineering_gate_passed" in failure_keys
+
+
+def test_deploy_artifact_verifier_requires_exact_commit_bound_filenames(tmp_path):
+    module = _load_script_module("verify_deploy_artifacts_filename_test", "scripts/verify_deploy_artifacts.py")
+    commit_sha = "abc123def456"
+    engineering_gate = tmp_path / f"engineering-gate.prefix-{commit_sha}-suffix.json"
+    engineering_gate.write_text(
+        json.dumps(
+            {
+                "artifact_schema": "engineering-gate.v1",
+                "commit_sha": commit_sha,
+                "passed": True,
+                "checks": [{"key": "backend_tests_green", "passed": True}],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = module.verify_artifacts(commit_sha=commit_sha, engineering_gate=engineering_gate)
+
+    assert report["passed"] is False
+    assert {failure["key"] for failure in report["failures"]} == {"engineering_gate_filename_commit_match"}
+
+
+def test_deploy_artifact_verifier_requires_render_subreports_green(tmp_path):
+    module = _load_script_module("verify_deploy_artifacts_render_subreports_test", "scripts/verify_deploy_artifacts.py")
+    commit_sha = "abc123def456"
+    engineering_gate = tmp_path / f"engineering-gate.{commit_sha}.json"
+    engineering_gate.write_text(
+        json.dumps(
+            {
+                "artifact_schema": "engineering-gate.v1",
+                "commit_sha": commit_sha,
+                "passed": True,
+                "checks": [{"key": "backend_tests_green", "passed": True}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    render_deploy = tmp_path / f"render-deploy.{commit_sha}.json"
+    render_deploy.write_text(
+        json.dumps(
+            {
+                "commit_sha": commit_sha,
+                "passed": True,
+                "deploy": {"passed": True, "commit_sha": commit_sha},
+                "smoke": {"passed": False, "checks": []},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = module.verify_artifacts(commit_sha=commit_sha, engineering_gate=engineering_gate, render_deploy=render_deploy)
+
+    assert report["passed"] is False
+    assert "render_deploy_passed" in {failure["key"] for failure in report["failures"]}
 
 
 def test_model_upgrade_default_shards_cover_known_slow_methods():

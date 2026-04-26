@@ -136,6 +136,16 @@ def test_ci_workflow_contains_delivery_gate_slices():
         "deploy-artifacts-${{ github.sha }}",
         "Verify model upgrade slow gate",
         "Trigger Render deploy and smoke check",
+        "--deep --register",
         "render-deploy-${{ github.sha }}",
     ):
         assert expected in text
+
+
+def test_readme_documents_data_lab_agent_notebook_and_trusted_execution_contract():
+    readme = (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8")
+
+    assert "DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED=false" in readme
+    assert "POST /api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/notebook" in readme
+    assert "GET /api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/notebook" in readme
+    assert "downloads an existing notebook artifact only" in readme

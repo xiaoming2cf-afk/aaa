@@ -187,6 +187,68 @@ def test_data_lab_trusted_execution_defaults_false_in_production():
     assert settings.data_lab_agent_trusted_execution_enabled is False
 
 
+def test_data_lab_trusted_execution_subprocess_env_is_minimal(monkeypatch):
+    from research_agent.data_lab_agent import _safe_subprocess_env
+
+    monkeypatch.setenv("PATH", "safe-path")
+    monkeypatch.setenv("PYTHONPATH", "unsafe-pythonpath")
+    monkeypatch.setenv("OPENAI_API_KEY", "secret-key")
+    monkeypatch.setenv("DATABASE_URL", "sqlite:///secret.db")
+    monkeypatch.setenv("OPENBLAS_NUM_THREADS", "32")
+    monkeypatch.setenv("MKL_NUM_THREADS", "16")
+
+    env = _safe_subprocess_env()
+
+    assert env["PATH"] == "safe-path"
+    assert "PYTHONPATH" not in env
+    assert "OPENAI_API_KEY" not in env
+    assert "DATABASE_URL" not in env
+    assert env["PYTHONNOUSERSITE"] == "1"
+    assert env["MPLBACKEND"] == "Agg"
+    assert env["PYTHONIOENCODING"] == "utf-8"
+
+
+def test_data_lab_trusted_execution_subprocess_env_caps_blas_threads(monkeypatch):
+    from research_agent.data_lab_agent import _safe_subprocess_env
+
+    for key in (
+        "OMP_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+        "BLIS_NUM_THREADS",
+    ):
+        monkeypatch.setenv(key, "64")
+
+    env = _safe_subprocess_env()
+
+    assert env["OMP_NUM_THREADS"] == "1"
+    assert env["OPENBLAS_NUM_THREADS"] == "1"
+    assert env["MKL_NUM_THREADS"] == "1"
+    assert env["NUMEXPR_NUM_THREADS"] == "1"
+    assert env["VECLIB_MAXIMUM_THREADS"] == "1"
+    assert env["BLIS_NUM_THREADS"] == "1"
+
+
+def test_data_lab_trusted_execution_blocks_path_file_capabilities():
+    from research_agent.data_lab_agent import SafetyViolation, validate_code_safety
+
+    blocked_snippets = [
+        "Path(INPUT_CSV).open().read()",
+        "Path(INPUT_CSV).open('w').write('corrupt')",
+        "list(WORK_DIR.rglob('*'))",
+        "list(WORK_DIR.iterdir())",
+    ]
+
+    for snippet in blocked_snippets:
+        try:
+            validate_code_safety(snippet)
+        except SafetyViolation:
+            continue
+        raise AssertionError(f"Data Lab trusted execution should block file capability: {snippet}")
+
+
 def test_password_reset_email_uses_starttls_only_when_configured(monkeypatch):
     calls: list[tuple[str, str, int, int]] = []
 

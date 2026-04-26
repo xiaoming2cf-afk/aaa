@@ -108,8 +108,12 @@ _BLOCKED_ATTRS = {
     "chmod",
     "chown",
     "environ",
+    "glob",
+    "iterdir",
     "makedirs",
+    "open",
     "popen",
+    "read",
     "read_bytes",
     "read_text",
     "read_csv",
@@ -130,6 +134,7 @@ _BLOCKED_ATTRS = {
     "removedirs",
     "rename",
     "replace",
+    "rglob",
     "rmdir",
     "rmtree",
     "savefig",
@@ -146,6 +151,7 @@ _BLOCKED_ATTRS = {
     "to_stata",
     "touch",
     "unlink",
+    "write",
     "write_bytes",
     "write_text",
 }
@@ -1616,10 +1622,20 @@ def _artifact_manifest(artifacts: list[dict[str, Any]], *, quota: dict[str, int]
 
 
 def _safe_subprocess_env() -> dict[str, str]:
-    keep = ["PATH", "Path", "SystemRoot", "TEMP", "TMP", "HOME", "USERPROFILE", "PYTHONPATH"]
+    keep = ["PATH", "Path", "SystemRoot", "TEMP", "TMP", "HOME", "USERPROFILE"]
     env = {key: value for key, value in os.environ.items() if key in keep}
     env["MPLBACKEND"] = "Agg"
     env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONNOUSERSITE"] = "1"
+    for key in (
+        "OMP_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+        "BLIS_NUM_THREADS",
+    ):
+        env[key] = "1"
     return env
 
 

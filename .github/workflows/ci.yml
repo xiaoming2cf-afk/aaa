@@ -17,7 +17,7 @@ name: CI Quality Gates
         default: false
         type: boolean
       render_base_url:
-        description: "Optional deployed URL for smoke-deploy"
+        description: "Required deployed URL for promotion smoke-deploy"
         required: false
         default: ""
         type: string
@@ -197,7 +197,7 @@ jobs:
           RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-        run: python scripts/verify_render_deploy.py --commit "${GITHUB_SHA}" --base-url "${{ inputs.render_base_url }}" --output "output/render-deploy/render-deploy.${GITHUB_SHA}.json"
+        run: python scripts/verify_render_deploy.py --commit "${GITHUB_SHA}" --base-url "${{ inputs.render_base_url }}" --deep --register --output "output/render-deploy/render-deploy.${GITHUB_SHA}.json"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

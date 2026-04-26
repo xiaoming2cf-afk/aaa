@@ -24,6 +24,10 @@ def _load_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     return payload, None
 
 
+def _expected_artifact_name(prefix: str, commit_sha: str) -> str:
+    return f"{prefix}.{commit_sha}.json"
+
+
 def _check_engineering_gate(path: Path, *, commit_sha: str) -> list[dict[str, Any]]:
     failures: list[dict[str, Any]] = []
     payload, error = _load_json(path)
@@ -48,12 +52,13 @@ def _check_engineering_gate(path: Path, *, commit_sha: str) -> list[dict[str, An
                 "detail": f"Artifact commit {artifact_commit or '<missing>'} does not match expected {commit_sha}.",
             }
         )
-    if commit_sha not in filename:
+    expected_filename = _expected_artifact_name("engineering-gate", commit_sha)
+    if filename != expected_filename:
         failures.append(
             {
                 "key": "engineering_gate_filename_commit_match",
                 "passed": False,
-                "detail": f"Artifact filename {filename!r} does not include expected commit {commit_sha}.",
+                "detail": f"Artifact filename {filename!r} must equal {expected_filename!r}.",
             }
         )
     if payload.get("passed") is not True:
@@ -84,22 +89,27 @@ def _check_render_deploy(path: Path, *, commit_sha: str) -> list[dict[str, Any]]
                 "detail": f"Render deploy report commit {report_commit or '<missing>'} does not match expected {commit_sha}.",
             }
         )
-    if commit_sha not in path.name:
+    expected_filename = _expected_artifact_name("render-deploy", commit_sha)
+    if path.name != expected_filename:
         failures.append(
             {
                 "key": "render_deploy_filename_commit_match",
                 "passed": False,
-                "detail": f"Render deploy report filename {path.name!r} does not include expected commit {commit_sha}.",
+                "detail": f"Render deploy report filename {path.name!r} must equal {expected_filename!r}.",
             }
         )
-    if payload.get("passed") is not True:
+    deploy_payload = payload.get("deploy") if isinstance(payload.get("deploy"), dict) else {}
+    smoke_payload = payload.get("smoke") if isinstance(payload.get("smoke"), dict) else {}
+    deploy_failed = deploy_payload.get("passed") is not True
+    smoke_failed = smoke_payload.get("passed") is not True
+    if payload.get("passed") is not True or deploy_failed or smoke_failed:
         failures.append(
             {
                 "key": "render_deploy_passed",
                 "passed": False,
-                "detail": payload.get("reason") or payload.get("deploy", {}).get("reason") or "Render deploy report is not green.",
-                "deploy": payload.get("deploy", {}),
-                "smoke": payload.get("smoke", {}),
+                "detail": payload.get("reason") or deploy_payload.get("reason") or "Render deploy report is not green.",
+                "deploy": deploy_payload,
+                "smoke": smoke_payload,
             }
         )
     return failures

@@ -669,4 +669,118 @@ describe("SPA delivery gating", () => {
 
     expect(await screen.findByRole("link", { name: /Download Notebook/i })).toHaveAttribute("href", "/api/workspaces/ws-1/data-lab/agent/sessions/run-1/notebook");
   });
+
+  test("DataLabAgentPage keeps notebook download unavailable while export POST is pending", async () => {
+    let resolveNotebook: ((value: unknown) => void) | undefined;
+    const notebookPromise = new Promise((resolve) => {
+      resolveNotebook = resolve;
+    });
+
+    apiFetchMock.mockImplementation(async (path: string, init?: RequestInit) => {
+      if (path === "/api/workspaces/ws-1/assets") {
+        return {
+          items: [
+            {
+              id: "asset-1",
+              title: "agent-sample.csv",
+              kind: "dataset_csv",
+            },
+          ],
+        };
+      }
+      if (path === "/api/workspaces/ws-1/data-lab/history") {
+        return {
+          agent_sessions: [
+            {
+              id: "run-1",
+              run_id: "run-1",
+              title: "Notebook pending session",
+              status: "completed",
+            },
+          ],
+        };
+      }
+      if (path === "/api/workspaces/ws-1/data-lab/agent/llm-config") {
+        return {
+          workspace: {
+            configured: false,
+            enabled: false,
+            base_url: "",
+            api_key_configured: false,
+            coder_model: "",
+            reviewer_model: "",
+            report_model: "",
+            label: "",
+          },
+          environment: {
+            enabled: false,
+            ready: false,
+            base_url_configured: false,
+            api_key_configured: false,
+            coder_model: "",
+            reviewer_model: "",
+            report_model: "",
+          },
+          resolved: {
+            enabled: false,
+            ready: false,
+            source: "none",
+            coder_model: "",
+            reviewer_model: "",
+            report_model: "",
+          },
+        };
+      }
+      if (path === "/api/workspaces/ws-1/data-lab/agent/sessions/run-1") {
+        return {
+          session: {
+            run_id: "run-1",
+            title: "Notebook pending session",
+            run_status: "completed",
+            messages: [],
+          },
+        };
+      }
+      if (path === "/api/workspaces/ws-1/data-lab/agent/sessions/run-1/notebook" && (init?.method || "GET").toUpperCase() === "POST") {
+        return notebookPromise;
+      }
+      return {};
+    });
+
+    const useAppState = () => ({
+      workspaceId: "ws-1",
+    });
+
+    renderWithQuery(
+      <MemoryRouter initialEntries={["/data-lab-agent?run=run-1"]}>
+        <Routes>
+          <Route path="/data-lab-agent" element={<DataLabAgentPage useAppState={useAppState} />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await screen.findByRole("heading", { name: /Notebook pending session/i });
+
+    await userEvent.click(screen.getByRole("button", { name: /Prepare Notebook/i }));
+
+    expect(screen.getByRole("button", { name: /Preparing Notebook/i })).toBeDisabled();
+    expect(screen.getByText(/Preparing notebook export/i)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Download Notebook/i })).not.toBeInTheDocument();
+
+    resolveNotebook?.({
+      session: {
+        run_id: "run-1",
+        title: "Notebook pending session",
+        notebook_path: "/tmp/notebook.ipynb",
+        messages: [],
+      },
+      notebook: {
+        path: "/tmp/notebook.ipynb",
+        download_path: "/api/workspaces/ws-1/data-lab/agent/sessions/run-1/notebook?download=1",
+      },
+    });
+
+    expect(await screen.findByRole("link", { name: /Download Notebook/i })).toHaveAttribute("href", "/api/workspaces/ws-1/data-lab/agent/sessions/run-1/notebook?download=1");
+    expect(screen.getByText(/Notebook download is ready/i)).toBeInTheDocument();
+  });
 });

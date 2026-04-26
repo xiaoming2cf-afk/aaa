@@ -314,6 +314,7 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
   const [llmHydratedWorkspaceId, setLlmHydratedWorkspaceId] = useState("");
   const [llmTestResult, setLlmTestResult] = useState("");
   const [reportMarkdown, setReportMarkdown] = useState("");
+  const [preparedNotebookDownloadPath, setPreparedNotebookDownloadPath] = useState("");
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const datasetSelectRef = useRef<HTMLSelectElement | null>(null);
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -359,6 +360,7 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
     setLlmTestResult("");
     setLlmForm({ ...EMPTY_LLM_FORM });
     setLlmHydratedWorkspaceId("");
+    setPreparedNotebookDownloadPath("");
   }, [workspaceId, runFromQuery]);
 
   useEffect(() => {
@@ -394,6 +396,7 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
 
   useEffect(() => {
     setReportMarkdown("");
+    setPreparedNotebookDownloadPath("");
   }, [selectedRunId]);
 
   const createSessionMutation = useMutation({
@@ -475,6 +478,7 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
     }),
     onSuccess: (payload) => {
       queryClient.setQueryData(["data-lab-agent-session", workspaceId, selectedRunId], { session: payload.session });
+      setPreparedNotebookDownloadPath(payload.notebook.download_path || "");
       void queryClient.invalidateQueries({ queryKey: ["data-lab-history", workspaceId] });
     },
   });
@@ -486,7 +490,8 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
   const latestAssistantWithCode = [...messages].reverse().find((item) => item.role === "assistant" && item.code);
   const latestUser = [...messages].reverse().find((item) => item.role === "user");
   const needsHuman = currentSession?.run_status === "needs_human_intervention" || humanInterventionRequired(latestAssistantWithCode);
-  const notebookHref = selectedRunId && currentSession?.notebook_path ? `/api/workspaces/${workspaceId}/data-lab/agent/sessions/${selectedRunId}/notebook` : "";
+  const fallbackNotebookHref = selectedRunId && currentSession?.notebook_path ? `/api/workspaces/${workspaceId}/data-lab/agent/sessions/${selectedRunId}/notebook` : "";
+  const notebookHref = preparedNotebookDownloadPath || fallbackNotebookHref;
   const permalinkHref = currentSession?.detail_path || (selectedRunId ? `/app/data-lab-agent?run=${selectedRunId}` : "");
   const latestPrompt = latestUser?.content || message;
   const mutationError = createSessionMutation.error
@@ -719,14 +724,16 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
               <button
                 className="ghost-button"
                 type="button"
-                disabled={notebookMutation.isPending}
+                disabled={!currentSession || notebookMutation.isPending}
+                aria-busy={notebookMutation.isPending}
+                aria-describedby="data-lab-notebook-status"
                 onClick={() => notebookMutation.mutate()}
               >
-                Prepare Notebook
+                {notebookMutation.isPending ? "Preparing Notebook" : "Prepare Notebook"}
               </button>
             ) : null}
             {notebookHref ? (
-              <a className="ghost-button" href={notebookHref}>Download Notebook</a>
+              <a className="ghost-button" href={notebookHref} download>Download Notebook</a>
             ) : null}
             {permalinkHref ? (
               <a className="ghost-button" href={permalinkHref}>
@@ -734,6 +741,13 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
               </a>
             ) : null}
           </div>
+        </div>
+        <div id="data-lab-notebook-status" className="sr-only" role="status" aria-live="polite">
+          {notebookHref
+            ? "Notebook download is ready."
+            : notebookMutation.isPending
+              ? "Preparing notebook export."
+              : "Notebook download is not prepared."}
         </div>
         {sessionQuery.isError ? (
           <InlineErrorState title="Agent session could not load" description={(sessionQuery.error as Error).message} />
