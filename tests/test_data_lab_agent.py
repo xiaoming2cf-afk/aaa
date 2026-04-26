@@ -16,9 +16,19 @@ def _reset_app_caches() -> None:
             cache_clear()
 
 
-def _new_client_with_agent_enabled(monkeypatch, app_env: Path, *, math_mode: str = "off") -> TestClient:
+def _new_client_with_agent_enabled(
+    monkeypatch,
+    app_env: Path,
+    *,
+    math_mode: str = "off",
+    trusted_execution: bool = True,
+) -> TestClient:
     del app_env
     monkeypatch.setenv("DATA_LAB_AGENT_ENABLED", "true")
+    if trusted_execution:
+        monkeypatch.setenv("DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED", "true")
+    else:
+        monkeypatch.delenv("DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED", raising=False)
     monkeypatch.setenv("DATA_LAB_AGENT_TIMEOUT_SECONDS", "15")
     monkeypatch.setenv("AGENT_MATH_MODE", math_mode)
     _reset_app_caches()
@@ -77,6 +87,36 @@ def test_data_lab_agent_feature_flag_is_disabled_by_default(client, auth_headers
     assert "Data Lab Agent is disabled" in response.text
 
 
+def test_data_lab_agent_refuses_code_without_trusted_execution(monkeypatch, app_env):
+    client = _new_client_with_agent_enabled(monkeypatch, app_env, trusted_execution=False)
+    auth = _register_workspace(client)
+    asset = _upload_agent_csv(client, workspace_id=auth["workspace_id"], csrf_token=auth["csrf"])
+
+    created = client.post(
+        f"/api/workspaces/{auth['workspace_id']}/data-lab/agent/sessions",
+        headers={"X-CSRF-Token": auth["csrf"]},
+        json={"asset_ids": [asset["id"]], "title": "Untrusted Session", "language": "Chinese"},
+    )
+    assert created.status_code == 200, created.text
+    session = created.json()["session"]
+    assert session["executor"]["trusted_execution_enabled"] is False
+    run_id = session["run_id"]
+
+    response = client.post(
+        f"/api/workspaces/{auth['workspace_id']}/data-lab/agent/sessions/{run_id}/messages",
+        headers={"X-CSRF-Token": auth["csrf"]},
+        json={"message": "Count rows.", "user_code": "print(len(df))"},
+    )
+    assert response.status_code == 200, response.text
+    message = response.json()["message"]
+    assert message["status"] == "blocked"
+    assert message["execution"]["error_type"] == "trusted_execution_required"
+    assert message["execution"]["execution_mode"] == "not_executed"
+    assert message["execution"]["trace"]["trusted_execution_enabled"] is False
+    assert message["execution"]["risk_audit"]["sandbox_claim"] == "none"
+    assert response.json()["session"]["cells"] == []
+
+
 def test_data_lab_agent_session_repair_manual_code_report_and_notebook(monkeypatch, app_env):
     client = _new_client_with_agent_enabled(monkeypatch, app_env, math_mode="shadow")
     auth = _register_workspace(client)
@@ -105,6 +145,10 @@ def test_data_lab_agent_session_repair_manual_code_report_and_notebook(monkeypat
     assert repaired_message["status"] == "success"
     assert repaired_message["repair_trace"]
     assert repaired_message["execution_mode"] == "subprocess_replay"
+    assert repaired_message["execution"]["risk_audit"]["trusted_execution_enabled"] is True
+    assert repaired_message["execution"]["risk_audit"]["artifact_quota"]["max_count"] >= 1
+    assert repaired_message["execution"]["risk_audit"]["output_dir_validated"] is True
+    assert repaired_message["execution"]["risk_audit"]["sandbox_claim"] == "none"
     assert repaired_message["artifact_manifest"]["count"] >= 0
     assert repaired_message["knowledge_cards"]
     assert repaired_message["profile_snapshot"]["schema_fingerprint"]
@@ -125,6 +169,7 @@ def test_data_lab_agent_session_repair_manual_code_report_and_notebook(monkeypat
     assert manual.status_code == 200, manual.text
     assert manual.json()["message"]["status"] == "success"
     assert "1.000" in manual.json()["message"]["execution"]["stdout"]
+    assert manual.json()["message"]["execution"]["error_type"] == "none"
 
     blocked = client.post(
         f"/api/workspaces/{auth['workspace_id']}/data-lab/agent/sessions/{run_id}/messages",
@@ -133,6 +178,7 @@ def test_data_lab_agent_session_repair_manual_code_report_and_notebook(monkeypat
     )
     assert blocked.status_code == 200, blocked.text
     assert blocked.json()["message"]["status"] == "blocked"
+    assert blocked.json()["message"]["execution"]["error_type"] == "safety_policy_violation"
     assert "not allowed" in blocked.json()["message"]["execution"]["error"]
 
     syntax_error = client.post(
@@ -221,6 +267,7 @@ def test_data_lab_agent_scoped_llm_config_endpoints(client, auth_headers, monkey
 
 def test_data_lab_agent_uses_env_llm_with_rule_fallback_available(monkeypatch, app_env):
     monkeypatch.setenv("DATA_LAB_AGENT_ENABLED", "true")
+    monkeypatch.setenv("DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED", "true")
     monkeypatch.setenv("DATA_LAB_AGENT_LLM_ENABLED", "true")
     monkeypatch.setenv("DATA_LAB_AGENT_LLM_BASE_URL", "http://127.0.0.1:1234/v1")
     monkeypatch.setenv("DATA_LAB_AGENT_CODER_MODEL", "env-coder")

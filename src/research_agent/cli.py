@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import secrets
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 import requests
 import typer
@@ -513,14 +515,51 @@ def smoke_deploy(
         False,
         help="Require authenticated SPA routes to return 200 instead of allowing login redirects.",
     ),
+    deep: bool = typer.Option(False, "--deep", help="Run optional authenticated registration/login/workspace/upload/quality checks."),
+    register: bool = typer.Option(False, "--register", help="Create a smoke-test account before authenticated checks."),
+    auth_email: str = typer.Option("", help="Email for authenticated smoke checks."),
+    auth_password: str = typer.Option("", help="Password for authenticated smoke checks."),
 ) -> None:
     """Smoke-test a deployed web surface after Render finishes deploying."""
-    normalized_base_url = base_url.strip().rstrip("/")
-    if not normalized_base_url.startswith(("http://", "https://")):
-        console.print("[red]base-url must start with http:// or https://[/red]")
+    try:
+        payload = _run_deploy_smoke(
+            base_url=base_url,
+            expect_authenticated=expect_authenticated,
+            deep=deep or register,
+            register=register,
+            auth_email=auth_email,
+            auth_password=auth_password,
+        )
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
+
+    if output.strip():
+        output_path = Path(output).expanduser().resolve()
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2)
+    console.print(Panel.fit(rendered, title="Deploy Smoke"))
+    if not payload["passed"]:
         raise typer.Exit(code=1)
 
+
+def _run_deploy_smoke(
+    *,
+    base_url: str,
+    expect_authenticated: bool = False,
+    deep: bool = False,
+    register: bool = False,
+    auth_email: str = "",
+    auth_password: str = "",
+) -> dict[str, Any]:
+    normalized_base_url = base_url.strip().rstrip("/")
+    if not normalized_base_url.startswith(("http://", "https://")):
+        raise ValueError("base-url must start with http:// or https://")
+
     checks: list[dict[str, object]] = []
+    session = requests.Session()
 
     def _record(path: str, *, passed: bool, status_code: int, detail: str = "") -> None:
         checks.append(
@@ -534,10 +573,22 @@ def smoke_deploy(
 
     def _try_request(path: str, *, allow_redirects: bool = False) -> requests.Response | None:
         try:
-            return requests.get(f"{normalized_base_url}{path}", timeout=20, allow_redirects=allow_redirects)
+            return session.get(f"{normalized_base_url}{path}", timeout=20, allow_redirects=allow_redirects)
         except Exception as exc:
             _record(path, passed=False, status_code=0, detail=str(exc))
             return None
+
+    def _auth_headers(token: str = "") -> dict[str, str]:
+        return {"Authorization": f"Bearer {token}"} if token else {}
+
+    anonymous_me = _try_request("/api/auth/me", allow_redirects=False)
+    if anonymous_me is not None:
+        _record(
+            "/api/auth/me",
+            passed=anonymous_me.status_code == 401,
+            status_code=anonymous_me.status_code,
+            detail="anonymous 401" if anonymous_me.status_code == 401 else anonymous_me.text[:200],
+        )
 
     health = _try_request("/api/health", allow_redirects=True)
     if health is not None:
@@ -575,7 +626,10 @@ def smoke_deploy(
             detail = "built_spa_assets" if passed else response.text[:200]
         else:
             passed = (response.status_code == 200 and built_spa_assets) or (response.status_code == 307 and location == "/")
-            detail = location or ("built_spa_assets" if built_spa_assets else response.text[:200])
+            if response.status_code == 200 and "/src/main.tsx" in response.text:
+                detail = "SPA shell still references /src/main.tsx"
+            else:
+                detail = location or ("built_spa_assets" if built_spa_assets else response.text[:200])
         _record(
             path,
             passed=passed,
@@ -583,22 +637,137 @@ def smoke_deploy(
             detail=detail,
         )
 
-    payload = {
+    auth_payload: dict[str, object] = {"enabled": bool(deep), "registered": False}
+    if deep:
+        token = ""
+        email = auth_email.strip()
+        password = auth_password.strip()
+        if register:
+            email = email or f"deploy-smoke-{int(time.time())}-{secrets.token_hex(3)}@example.invalid"
+            password = password or f"SmokePass-{secrets.token_urlsafe(12)}!A1"
+            try:
+                register_response = session.post(
+                    f"{normalized_base_url}/api/auth/register",
+                    timeout=20,
+                    headers={"Origin": normalized_base_url},
+                    json={"full_name": "Deploy Smoke", "email": email, "password": password},
+                )
+                token = session.cookies.get("erp_session_token", "")
+                auth_payload["registered"] = register_response.status_code == 200
+                _record(
+                    "/api/auth/register",
+                    passed=register_response.status_code == 200 and bool(token),
+                    status_code=register_response.status_code,
+                    detail="registered" if register_response.status_code == 200 else register_response.text[:200],
+                )
+            except Exception as exc:
+                _record("/api/auth/register", passed=False, status_code=0, detail=str(exc))
+        else:
+            if not email or not password:
+                _record(
+                    "/api/auth/login",
+                    passed=False,
+                    status_code=0,
+                    detail="--deep requires --auth-email and --auth-password unless --register is used.",
+                )
+            else:
+                try:
+                    login_response = session.post(
+                        f"{normalized_base_url}/api/auth/login",
+                        timeout=20,
+                        headers={"Origin": normalized_base_url},
+                        json={"email": email, "password": password},
+                    )
+                    token = session.cookies.get("erp_session_token", "")
+                    _record(
+                        "/api/auth/login",
+                        passed=login_response.status_code == 200 and bool(token),
+                        status_code=login_response.status_code,
+                        detail="logged_in" if login_response.status_code == 200 else login_response.text[:200],
+                    )
+                except Exception as exc:
+                    _record("/api/auth/login", passed=False, status_code=0, detail=str(exc))
+
+        auth_payload["email"] = email
+        auth_payload["has_session"] = bool(token)
+        workspace_id = ""
+        if token:
+            me_response = _try_request("/api/auth/me", allow_redirects=False)
+            if me_response is not None:
+                try:
+                    me_payload = me_response.json()
+                except Exception:
+                    me_payload = {}
+                _record(
+                    "/api/auth/me#authenticated",
+                    passed=me_response.status_code == 200 and bool((me_payload.get("user") or {}).get("email")),
+                    status_code=me_response.status_code,
+                    detail=str((me_payload.get("user") or {}).get("email") or me_response.text[:200]),
+                )
+            try:
+                workspace_response = session.post(
+                    f"{normalized_base_url}/api/workspaces",
+                    timeout=20,
+                    headers=_auth_headers(token),
+                    json={
+                        "name": f"Deploy Smoke {int(time.time())}",
+                        "description": "Automated deploy smoke workspace.",
+                        "research_domain": "economics",
+                    },
+                )
+                workspace_payload = workspace_response.json() if workspace_response.status_code == 200 else {}
+                workspace_id = str((workspace_payload.get("workspace") or {}).get("id") or "")
+                _record(
+                    "/api/workspaces",
+                    passed=workspace_response.status_code == 200 and bool(workspace_id),
+                    status_code=workspace_response.status_code,
+                    detail=workspace_id or workspace_response.text[:200],
+                )
+            except Exception as exc:
+                _record("/api/workspaces", passed=False, status_code=0, detail=str(exc))
+
+        if token and workspace_id:
+            try:
+                upload_response = session.post(
+                    f"{normalized_base_url}/api/workspaces/{workspace_id}/assets/upload",
+                    timeout=30,
+                    headers=_auth_headers(token),
+                    data={"description": "deploy smoke csv", "source_url": ""},
+                    files={"file": ("deploy_smoke.csv", b"x,y\n1,2\n", "text/csv")},
+                )
+                upload_payload = upload_response.json() if upload_response.status_code == 200 else {}
+                asset_id = str((upload_payload.get("asset") or {}).get("id") or "")
+                _record(
+                    f"/api/workspaces/{workspace_id}/assets/upload",
+                    passed=upload_response.status_code == 200 and bool(asset_id),
+                    status_code=upload_response.status_code,
+                    detail=asset_id or upload_response.text[:200],
+                )
+            except Exception as exc:
+                _record(f"/api/workspaces/{workspace_id}/assets/upload", passed=False, status_code=0, detail=str(exc))
+
+            quality_response = _try_request(f"/api/workspaces/{workspace_id}/quality/scorecard", allow_redirects=False)
+            if quality_response is not None:
+                try:
+                    quality_payload = quality_response.json() if quality_response.status_code == 200 else {}
+                except Exception:
+                    quality_payload = {}
+                engineering_gate = quality_payload.get("engineering_gate") if isinstance(quality_payload, dict) else {}
+                gate_source = str((engineering_gate or {}).get("source") or "")
+                _record(
+                    f"/api/workspaces/{workspace_id}/quality/scorecard",
+                    passed=quality_response.status_code == 200 and gate_source.startswith(("artifact:", "snapshot", "fresh")),
+                    status_code=quality_response.status_code,
+                    detail=gate_source or quality_response.text[:200],
+                )
+
+    return {
         "base_url": normalized_base_url,
         "expect_authenticated": expect_authenticated,
+        "deep": auth_payload,
         "passed": all(bool(item["passed"]) for item in checks),
         "checks": checks,
     }
-
-    if output.strip():
-        output_path = Path(output).expanduser().resolve()
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    rendered = json.dumps(payload, ensure_ascii=False, indent=2)
-    console.print(Panel.fit(rendered, title="Deploy Smoke"))
-    if not payload["passed"]:
-        raise typer.Exit(code=1)
 
 
 @app.command()

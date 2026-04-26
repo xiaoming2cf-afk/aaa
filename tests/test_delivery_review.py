@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
 from research_agent.entities import AgentRun, KnowledgeRecord, User, Workspace
 from research_agent.config import Settings
+import research_agent.quality_center as quality_center
 from research_agent.quality_center import (
     build_agent_run_delivery_review,
     build_delivery_scorecard,
     build_knowledge_record_delivery_review,
+    load_engineering_gate_report,
     scan_production_imports,
     scan_runtime_narrative,
 )
@@ -232,3 +235,58 @@ def test_runtime_narrative_scan_detects_runtime_wording(tmp_path: Path):
     assert any("ResearchPage.tsx" in item for item in violations)
     assert any("ProvidersPage.tsx" in item for item in violations)
     assert any("render.yaml" in item for item in violations)
+
+
+def test_production_engineering_gate_reads_commit_artifact_without_refresh(tmp_path: Path, monkeypatch):
+    settings = _math_settings(tmp_path, mode="shadow").model_copy(update={"app_env": "production"})
+    commit_sha = "abc123def456"
+    monkeypatch.setenv("RESEARCH_AGENT_ENGINEERING_GATE_COMMIT", commit_sha)
+    artifact_path = settings.storage_dir / "quality" / "gates" / f"engineering-gate.{commit_sha}.json"
+    artifact_path.parent.mkdir(parents=True)
+    artifact_path.write_text(
+        json.dumps(
+            {
+                "artifact_schema": "engineering-gate.v1",
+                "commit_sha": commit_sha,
+                "passed": True,
+                "checks": [
+                    {
+                        "key": "backend_tests_green",
+                        "label": "Backend pytest suite passes",
+                        "passed": True,
+                        "detail": "passed",
+                    }
+                ],
+                "checked_at": "2026-01-01T00:00:00+00:00",
+                "source": "ci",
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    def fail_command(*args, **kwargs):
+        raise AssertionError("production quality paths must not execute local commands")
+
+    monkeypatch.setattr(quality_center, "_run_command", fail_command)
+
+    report = load_engineering_gate_report(settings, refresh=True, auto_refresh_if_missing=True)
+
+    assert report["passed"] is True
+    assert report["source"] == "artifact:abc123def456"
+
+
+def test_production_engineering_gate_missing_artifact_fails_closed(tmp_path: Path, monkeypatch):
+    settings = _math_settings(tmp_path, mode="shadow").model_copy(update={"app_env": "production"})
+    monkeypatch.setenv("RESEARCH_AGENT_ENGINEERING_GATE_COMMIT", "missing123")
+
+    def fail_command(*args, **kwargs):
+        raise AssertionError("production quality paths must not execute local commands")
+
+    monkeypatch.setattr(quality_center, "_run_command", fail_command)
+
+    report = load_engineering_gate_report(settings, auto_refresh_if_missing=True)
+
+    assert report["passed"] is False
+    assert report["source"] == "artifact_missing"
+    assert report["checks"][0]["key"] == "engineering_gate_artifact_missing"

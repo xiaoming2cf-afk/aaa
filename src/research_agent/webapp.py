@@ -6,6 +6,7 @@ import inspect
 import json
 import logging
 import hmac
+import math
 import os
 from pathlib import Path
 import re
@@ -138,6 +139,7 @@ from .quality_center import (
 )
 from .request_meta import request_ip as resolve_request_ip, validate_same_origin_request
 from .runtime_models import (
+    FeatureDisabledError,
     KnowledgePublishRequest,
     ResearchRunPublishRequest,
     ResearchRunRequest,
@@ -146,7 +148,12 @@ from .runtime_models import (
     TeamLibraryCloneRequest,
     WorkspaceTeamAttachRequest,
 )
-from .service import retry_workspace_research_run, run_agent_worker_iteration, start_workspace_research_run
+from .service import (
+    research_runtime_capability,
+    retry_workspace_research_run,
+    run_agent_worker_iteration,
+    start_workspace_research_run,
+)
 from .team_library import (
     attach_workspace_to_team,
     clone_team_library_record_to_workspace,
@@ -244,6 +251,43 @@ _MODEL_RUN_MAX_STRING_LENGTH = 240
 _MODEL_RUN_MAX_LIST_ITEMS = 128
 _MODEL_RUN_MAX_VARIANT_SPEC_KEYS = 64
 _MODEL_RUN_MAX_VARIANT_SPEC_BYTES = 12_000
+_MODEL_RUN_NUMERIC_BOUNDS: dict[str, tuple[float, float]] = {
+    "lead_window": (0, 120),
+    "lag_window": (0, 120),
+    "rdd_polynomial_order": (0, 5),
+    "arima_p": (0, 10),
+    "arima_d": (0, 5),
+    "arima_q": (0, 10),
+    "garch_p": (0, 10),
+    "garch_q": (0, 10),
+    "forecast_steps": (1, 365),
+    "var_lags": (1, 24),
+    "irf_horizon": (1, 120),
+    "bk_short_horizon": (1, 260),
+    "bk_medium_horizon": (1, 520),
+    "holding_period_days": (1, 3650),
+    "option_steps": (1, 500),
+    "dsge_impulse_horizon": (1, 120),
+    "coint_rank": (0, 20),
+    "vecm_diff_lags": (0, 24),
+    "markov_regimes": (1, 10),
+    "seasonal_periods": (1, 365),
+    "garch_o": (0, 10),
+    "forecast_simulations": (1, 10000),
+    "unit_root_lags": (0, 240),
+    "n_estimators": (1, 2000),
+    "num_leaves": (2, 4096),
+    "iterations": (1, 2000),
+    "depth": (1, 16),
+    "treatment_index": (0, 1_000_000),
+    "draws": (1, 2000),
+    "tune": (0, 2000),
+    "chains": (1, 8),
+}
+_MODEL_RUN_LIST_NUMERIC_BOUNDS: dict[str, tuple[float, float]] = {
+    "varmax_order": (0, 10),
+    "harx_lags": (1, 260),
+}
 _DOWNLOAD_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]+")
 _DOWNLOAD_ASCII_FALLBACK = re.compile(r"[^A-Za-z0-9._ -]+")
 _DEFAULT_CSP = (
@@ -450,6 +494,43 @@ class DatasetPrepareRequest(BaseModel):
     drop_missing_required: bool = True
 
 
+def _validate_model_run_numeric_bound(field_name: str, value: Any) -> None:
+    if value is None or isinstance(value, bool):
+        return
+    bounds = _MODEL_RUN_NUMERIC_BOUNDS.get(field_name)
+    if bounds is None:
+        return
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be numeric.") from exc
+    if not math.isfinite(numeric):
+        raise ValueError(f"{field_name} must be finite.")
+    minimum, maximum = bounds
+    if numeric < minimum or numeric > maximum:
+        raise ValueError(f"{field_name} must be between {minimum:g} and {maximum:g}.")
+
+
+def _validate_model_run_numeric_list_bound(field_name: str, value: Any) -> None:
+    bounds = _MODEL_RUN_LIST_NUMERIC_BOUNDS.get(field_name)
+    if bounds is None or value is None:
+        return
+    if not isinstance(value, list):
+        raise ValueError(f"{field_name} must be a list.")
+    minimum, maximum = bounds
+    for item in value:
+        if isinstance(item, bool):
+            raise ValueError(f"{field_name} must contain numeric values.")
+        try:
+            numeric = float(item)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{field_name} must contain numeric values.") from exc
+        if not math.isfinite(numeric):
+            raise ValueError(f"{field_name} must contain finite values.")
+        if numeric < minimum or numeric > maximum:
+            raise ValueError(f"{field_name} values must be between {minimum:g} and {maximum:g}.")
+
+
 class ModelRunRequest(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -578,11 +659,13 @@ class ModelRunRequest(BaseModel):
     @model_validator(mode="after")
     def _validate_payload_bounds(self) -> "ModelRunRequest":
         for field_name, value in self.__dict__.items():
+            _validate_model_run_numeric_bound(field_name, value)
             if isinstance(value, str) and len(value) > _MODEL_RUN_MAX_STRING_LENGTH:
                 raise ValueError(f"{field_name} is too long.")
             if isinstance(value, list):
                 if len(value) > _MODEL_RUN_MAX_LIST_ITEMS:
                     raise ValueError(f"{field_name} has too many items.")
+                _validate_model_run_numeric_list_bound(field_name, value)
                 for item in value:
                     if isinstance(item, str) and len(item) > _MODEL_RUN_MAX_STRING_LENGTH:
                         raise ValueError(f"{field_name} contains an item that is too long.")
@@ -592,6 +675,9 @@ class ModelRunRequest(BaseModel):
                 encoded = json.dumps(value, ensure_ascii=False, sort_keys=True)
                 if len(encoded) > _MODEL_RUN_MAX_VARIANT_SPEC_BYTES:
                     raise ValueError("variant_spec is too large.")
+                for spec_name, spec_value in value.items():
+                    _validate_model_run_numeric_bound(str(spec_name), spec_value)
+                    _validate_model_run_numeric_list_bound(str(spec_name), spec_value)
         return self
 
 
@@ -834,6 +920,8 @@ def _raise_http_error(exc: Exception) -> None:
         raise exc
     if isinstance(exc, DeliveryGateError):
         raise HTTPException(status_code=409, detail=exc.to_http_detail()) from exc
+    if isinstance(exc, FeatureDisabledError):
+        raise HTTPException(status_code=exc.status_code, detail=exc.to_http_detail()) from exc
     if isinstance(exc, RateLimitError):
         raise HTTPException(status_code=429, detail=str(exc) or "Too many requests.") from exc
     if isinstance(exc, AccountLockedError):
@@ -4460,6 +4548,21 @@ def create_app() -> FastAPI:
                         for item in rows
                     ]
                 }
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/workspaces/{workspace_id}/research/runtime")
+    def workspace_research_runtime(
+        workspace_id: str,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return {"research_runtime": research_runtime_capability(settings)}
         except Exception as exc:
             _raise_http_error(exc)
 

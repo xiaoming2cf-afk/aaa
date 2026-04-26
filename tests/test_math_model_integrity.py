@@ -5,7 +5,8 @@ import pandas as pd
 import pytest
 
 from research_agent.model_engine_bayesian import _bayes_settings
-from research_agent.model_engine_causal import _fit_simplex_synthetic_weights
+from research_agent.model_engine_causal import _fit_simplex_synthetic_weights, _require_binary_indicator
+from research_agent.model_engine_quant import _strategy_curve
 from research_agent.platform_core import _validate_binary_outcome_series
 from scripts.compare_model_engines import _pick_winner
 
@@ -35,6 +36,32 @@ def test_synthetic_control_weights_are_simplex_constrained():
     assert np.all(weights >= 0.0)
     assert audit["optimizer"] == "scipy.optimize.minimize:SLSQP"
     assert audit["success"] is True
+
+
+def test_causal_treatment_indicator_rejects_silent_rounding_or_missing_values():
+    with pytest.raises(ValueError, match="silent rounding or clipping"):
+        _require_binary_indicator(pd.Series([0, 1, 0.49]), column_name="treated")
+
+    with pytest.raises(ValueError, match="missing or nonnumeric"):
+        _require_binary_indicator(pd.Series([0, 1, None]), column_name="treated")
+
+    validated = _require_binary_indicator(pd.Series([0.0, 1.0, 1]), column_name="treated")
+    assert validated.tolist() == [0, 1, 1]
+
+
+def test_quant_strategy_uses_lagged_signal_and_transaction_costs():
+    frame = pd.DataFrame(
+        {
+            "prediction": [1.0, -1.0, -1.0],
+            "actual": [0.10, 0.20, -0.10],
+        }
+    )
+
+    strategy = _strategy_curve(frame, label="test", transaction_cost_bps=10.0)
+
+    assert strategy["executed_signal"].tolist() == [0.0, 1.0, -1.0]
+    assert strategy["strategy_return"].round(6).tolist() == [0.0, 0.199, 0.098]
+    assert strategy["transaction_cost_bps"].tolist() == [10.0, 10.0, 10.0]
 
 
 def test_model_engine_comparison_does_not_pick_candidate_on_speed_only():

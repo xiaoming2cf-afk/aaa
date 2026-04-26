@@ -33,6 +33,7 @@ from .research_tools import ResearchSession
 from .runtime_models import (
     AttachmentPageRef,
     EvidencePack,
+    FeatureDisabledError,
     ResearchPlan,
     ResearchRunRequest,
     ResearchRunRetryRequest,
@@ -45,6 +46,43 @@ from .workspace_context import build_workspace_context_pack
 
 SESSION_METADATA_FILENAME = ".session.json"
 _DEFAULT_AGENT_LEASE_SECONDS = 15 * 60
+_RESEARCH_RUNTIME_DISABLED_MESSAGE = (
+    "Research generation is not available in this deployment because no inference runtime is configured."
+)
+
+
+def _research_runtime_available(settings: Settings) -> bool:
+    return bool(getattr(settings, "research_runtime_enabled", False))
+
+
+def _research_runtime_disabled_trace(*, queue_created: bool) -> dict[str, Any]:
+    return {
+        "runtime_available": False,
+        "queue_created": queue_created,
+        "reason": "inference_runtime_missing",
+    }
+
+
+def research_runtime_capability(settings: Settings) -> dict[str, Any]:
+    enabled = _research_runtime_available(settings)
+    return {
+        "enabled": enabled,
+        "code": "available" if enabled else "feature_disabled",
+        "message": "" if enabled else _RESEARCH_RUNTIME_DISABLED_MESSAGE,
+        "trace": {"runtime_available": True, "queue_created": False}
+        if enabled
+        else _research_runtime_disabled_trace(queue_created=False),
+    }
+
+
+def _require_research_runtime_available(settings: Settings, *, queue_created: bool = False) -> None:
+    if _research_runtime_available(settings):
+        return
+    raise FeatureDisabledError(
+        feature="research_runtime",
+        message=_RESEARCH_RUNTIME_DISABLED_MESSAGE,
+        trace=_research_runtime_disabled_trace(queue_created=queue_created),
+    )
 
 
 @dataclass
@@ -531,6 +569,7 @@ def start_workspace_research_run(
     workspace: Workspace,
     request: ResearchRunRequest,
 ) -> dict[str, Any]:
+    _require_research_runtime_available(settings)
     assets = _owned_assets_for_run(db, user=user, workspace=workspace, asset_ids=request.asset_ids)
     attachments = _prepare_run_attachments(
         settings=settings,
@@ -580,6 +619,7 @@ def retry_workspace_research_run(
     current_stage = (run.current_stage or "").strip().lower()
     if current_stage not in {"drafting", "reviewing", "blocked"} and (run.status or "").strip().lower() != "blocked":
         raise ValueError("Retry is only available for blocked or in-progress drafting runs.")
+    _require_research_runtime_available(settings)
     existing_input = dict(run.input_json or {}) if isinstance(run.input_json, dict) else {}
     combined_asset_ids = list(existing_input.get("asset_ids") or []) + list(request.asset_ids or [])
     assets = _owned_assets_for_run(db, user=user, workspace=workspace, asset_ids=combined_asset_ids)
@@ -700,7 +740,6 @@ def process_claimed_agent_run(
     db: Session,
     run: AgentRun,
 ) -> dict[str, Any]:
-    del settings
     if not run.workspace_id or not run.owner_user_id:
         raise RuntimeError("Queued run is missing workspace ownership.")
     workspace = db.get(Workspace, run.workspace_id)
@@ -714,11 +753,8 @@ def process_claimed_agent_run(
     run.runtime_bundle_id = None
     run.runtime_bundle_version = ""
     db.flush()
-    raise RuntimeError(
-        "Research generation is not available in this deployment. "
-        "The current build keeps queueing, review records, publishing, and knowledge workflows, "
-        "but does not ship an inference runtime."
-    )
+    _require_research_runtime_available(settings, queue_created=True)
+    raise RuntimeError("Research runtime was reported available but no worker implementation is registered.")
 
 
 def fail_claimed_agent_run(

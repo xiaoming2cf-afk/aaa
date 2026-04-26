@@ -17,6 +17,16 @@ from sklearn.linear_model import LogisticRegression
 import research_agent.model_engine_extensions as base
 
 
+def _require_binary_indicator(values: pd.Series, *, column_name: str) -> pd.Series:
+    parsed = pd.to_numeric(values, errors="coerce")
+    if parsed.isna().any():
+        raise ValueError(f"{column_name} must be a complete binary 0/1 indicator; missing or nonnumeric values are not allowed.")
+    unique = set(float(value) for value in parsed.unique())
+    if not unique.issubset({0.0, 1.0}):
+        raise ValueError(f"{column_name} must be a binary 0/1 indicator; silent rounding or clipping is not allowed.")
+    return parsed.astype(int)
+
+
 def _load_frame(settings: Any, db: Any, *, user: Any, workspace: Any, asset_id: str) -> tuple[Any, pd.DataFrame]:
     asset, frame = base._load_asset_frame(settings, db, user=user, workspace=workspace, asset_id=asset_id)
     return asset, frame
@@ -130,8 +140,8 @@ def run_candidate_did_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[st
     sample = sample[required].copy()
     for col in [dependent, *controls]:
         sample[col] = base._pc()._coerce_numeric_series(sample[col])
-    sample[treated_col] = pd.to_numeric(sample[treated_col], errors="coerce").fillna(0).astype(int)
-    sample[post_col] = pd.to_numeric(sample[post_col], errors="coerce").fillna(0).astype(int)
+    sample[treated_col] = _require_binary_indicator(sample[treated_col], column_name=treated_col)
+    sample[post_col] = _require_binary_indicator(sample[post_col], column_name=post_col)
     sample["did_interaction"] = sample[treated_col] * sample[post_col]
     regressors = [treated_col, post_col, "did_interaction", *controls]
     result = smf.ols(f"{dependent} ~ 1 + {' + '.join(regressors)}", data=sample.dropna()).fit(cov_type="HC1")
@@ -259,7 +269,7 @@ def run_staggered_did_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[st
     sample[dependent] = base._pc()._coerce_numeric_series(sample[dependent])
     for column in controls:
         sample[column] = base._pc()._coerce_numeric_series(sample[column])
-    sample[treated_column] = pd.to_numeric(sample[treated_column], errors="coerce").fillna(0).astype(int)
+    sample[treated_column] = _require_binary_indicator(sample[treated_column], column_name=treated_column)
     sample["_time_index"] = _time_order(sample[time_column])
     sample[treatment_time_column] = pd.to_numeric(sample[treatment_time_column], errors="coerce")
     sample["_event_time"] = sample["_time_index"] - sample[treatment_time_column]
@@ -519,7 +529,7 @@ def run_inverse_propensity_weighting_analysis(settings: Any, db: Any, **kwargs: 
         raise ValueError("Inverse propensity weighting requires covariates in controls or independents.")
     asset, frame = _load_frame(settings, db, user=kwargs["user"], workspace=kwargs["workspace"], asset_id=kwargs["asset_id"])
     sample = base._flat_frame(frame, numeric_columns=[outcome, treatment, *covariates], keep_columns=[])
-    sample[treatment] = sample[treatment].round().clip(0, 1).astype(int)
+    sample[treatment] = _require_binary_indicator(sample[treatment], column_name=treatment)
     model = LogisticRegression(max_iter=500)
     model.fit(sample[covariates], sample[treatment])
     propensity = model.predict_proba(sample[covariates])[:, 1]

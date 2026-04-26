@@ -24,7 +24,19 @@ from .runtime_models import (
 )
 
 _ENGINEERING_GATE_FILENAME = "engineering-gate.json"
+_ENGINEERING_GATE_ARTIFACT_SCHEMA = "engineering-gate.v1"
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
+_COMMIT_SHA_ENV_VARS = (
+    "RESEARCH_AGENT_ENGINEERING_GATE_COMMIT",
+    "RENDER_GIT_COMMIT",
+    "GITHUB_SHA",
+    "COMMIT_SHA",
+    "SOURCE_VERSION",
+)
+_ENGINEERING_GATE_ARTIFACT_PATH_ENV_VARS = (
+    "RESEARCH_AGENT_ENGINEERING_GATE_ARTIFACT",
+    "ENGINEERING_GATE_ARTIFACT_PATH",
+)
 _PRODUCTION_IMPORT_TARGETS = (
     "src/research_agent/cli.py",
     "src/research_agent/service.py",
@@ -115,6 +127,227 @@ def _snapshot_path(settings: Any) -> Path | None:
     if not storage_dir:
         return None
     return Path(storage_dir).resolve() / "quality" / _ENGINEERING_GATE_FILENAME
+
+
+def _runtime_requires_commit_bound_gate(settings: Any | None) -> bool:
+    if settings is None:
+        return False
+    return not bool(getattr(settings, "is_development_env", False))
+
+
+def _clean_commit_sha(value: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_.-]", "", str(value or "").strip())
+
+
+def _commit_from_environment() -> str:
+    for name in _COMMIT_SHA_ENV_VARS:
+        value = _clean_commit_sha(os.getenv(name, ""))
+        if value:
+            return value
+    return ""
+
+
+def _current_commit_sha(*, allow_git: bool = False) -> str:
+    env_commit = _commit_from_environment()
+    if env_commit or not allow_git:
+        return env_commit
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(_repo_root()),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=5,
+        )
+    except Exception:
+        return ""
+    if result.returncode != 0:
+        return ""
+    return _clean_commit_sha(result.stdout)
+
+
+def _artifact_path_from_env() -> Path | None:
+    for name in _ENGINEERING_GATE_ARTIFACT_PATH_ENV_VARS:
+        value = os.getenv(name, "").strip()
+        if value:
+            return Path(value).expanduser().resolve()
+    return None
+
+
+def _commit_artifact_names(commit_sha: str) -> list[str]:
+    cleaned = _clean_commit_sha(commit_sha)
+    if not cleaned:
+        return []
+    candidates = [
+        f"engineering-gate.{cleaned}.json",
+        f"engineering-gate-{cleaned}.json",
+    ]
+    short = cleaned[:12]
+    if short and short != cleaned:
+        candidates.extend(
+            [
+                f"engineering-gate.{short}.json",
+                f"engineering-gate-{short}.json",
+            ]
+        )
+    return list(dict.fromkeys(candidates))
+
+
+def _commit_artifact_candidates(settings: Any, commit_sha: str) -> list[Path]:
+    explicit_path = _artifact_path_from_env()
+    candidates: list[Path] = [explicit_path] if explicit_path is not None else []
+
+    storage_dir = getattr(settings, "storage_dir", None)
+    if storage_dir:
+        quality_dir = Path(storage_dir).resolve() / "quality"
+        for name in _commit_artifact_names(commit_sha):
+            candidates.append(quality_dir / name)
+            candidates.append(quality_dir / "gates" / name)
+        candidates.append(quality_dir / _ENGINEERING_GATE_FILENAME)
+
+    artifact_dir = os.getenv("ENGINEERING_GATE_ARTIFACT_DIR", "").strip()
+    if artifact_dir:
+        root = Path(artifact_dir).expanduser().resolve()
+        for name in _commit_artifact_names(commit_sha):
+            candidates.append(root / name)
+
+    unique: list[Path] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key not in seen:
+            unique.append(candidate)
+            seen.add(key)
+    return unique
+
+
+def _payload_commit_sha(payload: dict[str, Any]) -> str:
+    metadata = payload.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+    return _clean_commit_sha(
+        str(
+            payload.get("commit_sha")
+            or payload.get("commit")
+            or payload.get("git_commit")
+            or metadata.get("commit_sha")
+            or metadata.get("commit")
+            or ""
+        )
+    )
+
+
+def _commit_matches(expected: str, actual: str) -> bool:
+    expected_clean = _clean_commit_sha(expected)
+    actual_clean = _clean_commit_sha(actual)
+    if not expected_clean or not actual_clean:
+        return False
+    return expected_clean == actual_clean or expected_clean.startswith(actual_clean) or actual_clean.startswith(expected_clean)
+
+
+def _artifact_failure(*, key: str, detail: str, source: str = "artifact") -> dict[str, Any]:
+    return EngineeringGateReport(
+        passed=False,
+        checks=[
+            EngineeringGateCheck(
+                key=key,
+                label="Commit-bound engineering gate artifact is available",
+                passed=False,
+                detail=detail,
+            )
+        ],
+        checked_at=_utc_now_iso(),
+        source=source,
+    ).model_dump(mode="json")
+
+
+def _validate_commit_bound_artifact(
+    payload: dict[str, Any],
+    *,
+    expected_commit: str,
+    path: Path,
+    require_commit_binding: bool,
+) -> dict[str, Any]:
+    artifact_commit = _payload_commit_sha(payload)
+    if require_commit_binding:
+        if not artifact_commit:
+            return _artifact_failure(
+                key="engineering_gate_artifact_unbound",
+                detail=f"{path}: artifact does not include commit_sha.",
+                source="artifact_unbound",
+            )
+        if not _commit_matches(expected_commit, artifact_commit):
+            return _artifact_failure(
+                key="engineering_gate_artifact_commit_mismatch",
+                detail=f"{path}: artifact commit {artifact_commit} does not match runtime commit {expected_commit}.",
+                source="artifact_mismatch",
+            )
+    try:
+        report = EngineeringGateReport.model_validate(payload).model_dump(mode="json")
+    except Exception as exc:
+        return _artifact_failure(
+            key="engineering_gate_artifact_invalid",
+            detail=f"{path}: {exc}",
+            source="artifact_invalid",
+        )
+    commit_label = artifact_commit or expected_commit
+    report["source"] = f"artifact:{commit_label[:12]}" if commit_label else "artifact"
+    return report
+
+
+def _load_commit_bound_snapshot(
+    settings: Any,
+    *,
+    expected_commit: str,
+    require_commit_binding: bool,
+) -> dict[str, Any] | None:
+    for path in _commit_artifact_candidates(settings, expected_commit):
+        if not path.exists() or not path.is_file():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            return _artifact_failure(
+                key="engineering_gate_artifact_unreadable",
+                detail=f"{path}: {exc}",
+                source="artifact_unreadable",
+            )
+        if not isinstance(payload, dict):
+            return _artifact_failure(
+                key="engineering_gate_artifact_invalid",
+                detail=f"{path}: artifact root must be a JSON object.",
+                source="artifact_invalid",
+            )
+        return _validate_commit_bound_artifact(
+            payload,
+            expected_commit=expected_commit,
+            path=path,
+            require_commit_binding=require_commit_binding,
+        )
+    return None
+
+
+def _with_commit_metadata(report: dict[str, Any], commit_sha: str) -> dict[str, Any]:
+    payload = dict(report)
+    commit = _clean_commit_sha(commit_sha)
+    if commit:
+        payload["commit_sha"] = commit
+    payload["artifact_schema"] = _ENGINEERING_GATE_ARTIFACT_SCHEMA
+    return payload
+
+
+def _write_commit_bound_snapshot(settings: Any, report: dict[str, Any], commit_sha: str) -> None:
+    storage_dir = getattr(settings, "storage_dir", None)
+    commit = _clean_commit_sha(commit_sha)
+    if not storage_dir or not commit:
+        return
+    quality_dir = Path(storage_dir).resolve() / "quality" / "gates"
+    quality_dir.mkdir(parents=True, exist_ok=True)
+    path = quality_dir / f"engineering-gate.{commit}.json"
+    path.write_text(json.dumps(_with_commit_metadata(report, commit), ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _load_snapshot(settings: Any) -> dict[str, Any] | None:
@@ -474,6 +707,31 @@ def load_engineering_gate_report(
     refresh: bool = False,
     auto_refresh_if_missing: bool = False,
 ) -> dict[str, Any]:
+    if settings is not None and _runtime_requires_commit_bound_gate(settings):
+        runtime_commit = _current_commit_sha(allow_git=False)
+        if not runtime_commit:
+            return _artifact_failure(
+                key="engineering_gate_runtime_commit_missing",
+                detail=(
+                    "Current commit SHA is unavailable. Set RESEARCH_AGENT_ENGINEERING_GATE_COMMIT "
+                    "or rely on the platform commit environment before serving production quality paths."
+                ),
+                source="runtime_commit_missing",
+            )
+        artifact = _load_commit_bound_snapshot(
+            settings,
+            expected_commit=runtime_commit,
+            require_commit_binding=True,
+        )
+        if artifact is not None:
+            return artifact
+        searched = ", ".join(str(path) for path in _commit_artifact_candidates(settings, runtime_commit)[:5])
+        return _artifact_failure(
+            key="engineering_gate_artifact_missing",
+            detail=f"No commit-bound engineering gate artifact found for {runtime_commit}. Searched: {searched}",
+            source="artifact_missing",
+        )
+
     snapshot = _load_snapshot(settings) if settings is not None else None
     if snapshot is not None and not refresh:
         snapshot["source"] = "snapshot"
@@ -487,13 +745,16 @@ def load_engineering_gate_report(
     repo_hygiene_issues = scan_repo_hygiene(repo_root)
     import_violations = scan_production_imports(repo_root)
     narrative_violations = scan_runtime_narrative(repo_root)
+    local_commit = _current_commit_sha(allow_git=True)
     backend_passed, backend_detail = _run_command([sys.executable, "-m", "pytest"], cwd=repo_root)
 
     frontend_dir = repo_root / "frontend-spa"
     if frontend_dir.exists():
-        npm_command = ["npm.cmd", "run", "build"] if os.name == "nt" else ["npm", "run", "build"]
-        frontend_passed, frontend_detail = _run_command(npm_command, cwd=frontend_dir)
+        npm_bin = "npm.cmd" if os.name == "nt" else "npm"
+        frontend_test_passed, frontend_test_detail = _run_command([npm_bin, "run", "test"], cwd=frontend_dir)
+        frontend_passed, frontend_detail = _run_command([npm_bin, "run", "build"], cwd=frontend_dir)
     else:
+        frontend_test_passed, frontend_test_detail = False, "frontend-spa directory is missing."
         frontend_passed, frontend_detail = False, "frontend-spa directory is missing."
 
     report = EngineeringGateReport(
@@ -503,6 +764,7 @@ def load_engineering_gate_report(
                 import_violations,
                 narrative_violations,
                 not backend_passed,
+                not frontend_test_passed,
                 not frontend_passed,
             )
         ),
@@ -526,6 +788,12 @@ def load_engineering_gate_report(
                 detail=backend_detail,
             ),
             EngineeringGateCheck(
+                key="frontend_tests_green",
+                label="SPA unit test suite passes",
+                passed=frontend_test_passed,
+                detail=frontend_test_detail,
+            ),
+            EngineeringGateCheck(
                 key="frontend_build_green",
                 label="SPA build passes",
                 passed=frontend_passed,
@@ -542,7 +810,8 @@ def load_engineering_gate_report(
         source="fresh",
     ).model_dump(mode="json")
     if settings is not None:
-        _write_snapshot(settings, report)
+        _write_snapshot(settings, _with_commit_metadata(report, local_commit))
+        _write_commit_bound_snapshot(settings, report, local_commit)
     return report
 
 

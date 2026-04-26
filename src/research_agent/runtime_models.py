@@ -25,6 +25,36 @@ StageName = Literal["planner", "researcher", "writer", "reviewer"]
 RuntimeBundleStatus = Literal["draft", "published", "archived"]
 
 
+class FeatureDisabledDetail(BaseModel):
+    code: Literal["feature_disabled"] = "feature_disabled"
+    feature: str
+    message: str
+    trace: dict[str, Any] = Field(default_factory=dict)
+
+
+class FeatureDisabledError(RuntimeError):
+    def __init__(
+        self,
+        *,
+        feature: str,
+        message: str,
+        trace: dict[str, Any] | None = None,
+        status_code: int = 503,
+    ) -> None:
+        super().__init__(message)
+        self.feature = feature
+        self.message = message
+        self.trace = dict(trace or {})
+        self.status_code = status_code
+
+    def to_http_detail(self) -> dict[str, Any]:
+        return FeatureDisabledDetail(
+            feature=self.feature,
+            message=self.message,
+            trace=self.trace,
+        ).model_dump(mode="json")
+
+
 class AttachmentPageRef(BaseModel):
     page_number: int = 1
     label: str = ""

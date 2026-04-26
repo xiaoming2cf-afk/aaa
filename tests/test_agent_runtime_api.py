@@ -170,6 +170,37 @@ def test_agent_run_diagnostics_endpoints(client, auth_headers, db_session):
     assert blocked_candidate["grader_labels"]["needs_human_annotation"] is True
 
 
+def test_research_run_create_returns_typed_503_when_runtime_disabled(client, auth_headers, db_session):
+    workspace_id = auth_headers["workspace_id"]
+    before_count = db_session.query(AgentRun).count()
+
+    capability = client.get(f"/api/workspaces/{workspace_id}/research/runtime")
+    assert capability.status_code == 200, capability.text
+    runtime = capability.json()["research_runtime"]
+    assert runtime["enabled"] is False
+    assert runtime["code"] == "feature_disabled"
+    assert runtime["trace"]["queue_created"] is False
+
+    created = client.post(
+        f"/api/workspaces/{workspace_id}/research/runs",
+        headers=_csrf_headers(client),
+        json={
+            "topic": "Runtime unavailable",
+            "question": "Should this enqueue?",
+            "instructions": "Do not create a doomed queue item.",
+        },
+    )
+
+    assert created.status_code == 503, created.text
+    detail = created.json()["detail"]
+    assert detail["code"] == "feature_disabled"
+    assert detail["feature"] == "research_runtime"
+    assert detail["trace"]["runtime_available"] is False
+    assert detail["trace"]["queue_created"] is False
+    db_session.expire_all()
+    assert db_session.query(AgentRun).count() == before_count
+
+
 def test_research_run_product_endpoints(client, auth_headers, db_session, monkeypatch):
     workspace_id = auth_headers["workspace_id"]
     user_id = _current_user_id(client)

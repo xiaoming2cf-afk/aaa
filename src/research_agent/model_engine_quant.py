@@ -64,13 +64,18 @@ def _ic_stats(actual: pd.Series, predicted: pd.Series) -> tuple[float, float]:
     return ic if np.isfinite(ic) else 0.0, rank_ic if np.isfinite(rank_ic) else 0.0
 
 
-def _strategy_curve(frame: pd.DataFrame, *, label: str) -> pd.DataFrame:
+def _strategy_curve(frame: pd.DataFrame, *, label: str, transaction_cost_bps: float = 0.0) -> pd.DataFrame:
     strategy = frame.copy()
+    cost_rate = max(0.0, float(transaction_cost_bps)) / 10000.0
     strategy["signal"] = np.sign(strategy["prediction"]).replace(0, 1)
-    strategy["strategy_return"] = strategy["signal"] * strategy["actual"]
+    strategy["executed_signal"] = strategy["signal"].shift(1).fillna(0.0)
+    strategy["turnover"] = strategy["executed_signal"].diff().abs().fillna(strategy["executed_signal"].abs())
+    strategy["transaction_cost"] = strategy["turnover"] * cost_rate
+    strategy["strategy_return"] = strategy["executed_signal"] * strategy["actual"] - strategy["transaction_cost"]
     strategy["cumulative_return"] = (1.0 + strategy["strategy_return"]).cumprod()
     strategy["benchmark_return"] = (1.0 + strategy["actual"]).cumprod()
     strategy["label"] = label
+    strategy["transaction_cost_bps"] = float(transaction_cost_bps)
     return strategy
 
 
@@ -107,7 +112,8 @@ def run_quant_linear_model_analysis(settings: Any, db: Any, **kwargs: Any) -> di
     model.fit(train[feature_columns], train[dependent])
     test["prediction"] = model.predict(test[feature_columns])
     ic, rank_ic = _ic_stats(test[dependent], test["prediction"])
-    strategy = _strategy_curve(test.rename(columns={dependent: "actual"}), label="linear")
+    transaction_cost_bps = float(base._spec_option(kwargs, "transaction_cost_bps", 0.0))
+    strategy = _strategy_curve(test.rename(columns={dependent: "actual"}), label="linear", transaction_cost_bps=transaction_cost_bps)
     fig_asset = _curve_figure(settings, db, user=kwargs["user"], workspace=kwargs["workspace"], source_asset=asset, strategy=strategy, time_column=time_column, slug="quant_linear_curve", title="Quant linear strategy curve", summary="Strategy curve from the linear alpha model.")
     return base._nonregression_payload(
         model_type="quant_linear_model",
@@ -127,7 +133,7 @@ def run_quant_linear_model_analysis(settings: Any, db: Any, **kwargs: Any) -> di
         },
         figures=[fig_asset],
         specification={"dependent": dependent, "feature_columns": feature_columns, "time_column": time_column},
-        audit_trail={"derived_columns": ["prediction", "strategy_return", "cumulative_return"], "filters": []},
+        audit_trail={"derived_columns": ["prediction", "signal", "executed_signal", "turnover", "transaction_cost", "strategy_return", "cumulative_return"], "filters": [], "signal_lag": 1, "transaction_cost_bps": transaction_cost_bps},
     )
 
 
@@ -150,7 +156,8 @@ def run_quant_lightgbm_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[s
     model.fit(train[feature_columns], train[dependent])
     test["prediction"] = model.predict(test[feature_columns])
     ic, rank_ic = _ic_stats(test[dependent], test["prediction"])
-    strategy = _strategy_curve(test.rename(columns={dependent: "actual"}), label="lightgbm")
+    transaction_cost_bps = float(base._spec_option(kwargs, "transaction_cost_bps", 0.0))
+    strategy = _strategy_curve(test.rename(columns={dependent: "actual"}), label="lightgbm", transaction_cost_bps=transaction_cost_bps)
     curve_asset = _curve_figure(settings, db, user=kwargs["user"], workspace=kwargs["workspace"], source_asset=asset, strategy=strategy, time_column=time_column, slug="quant_lgb_curve", title="Quant LightGBM strategy curve", summary="Strategy curve from the LightGBM alpha model.")
     importance_frame = pd.DataFrame({"feature": feature_columns, "importance": model.feature_importances_}).sort_values("importance", ascending=False)
     fig, ax = base._ts_figure("LightGBM feature importance")
@@ -172,7 +179,7 @@ def run_quant_lightgbm_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[s
         },
         figures=[importance_asset, curve_asset],
         specification={"dependent": dependent, "feature_columns": feature_columns, "time_column": time_column},
-        audit_trail={"derived_columns": ["prediction", "strategy_return", "cumulative_return"], "filters": []},
+        audit_trail={"derived_columns": ["prediction", "signal", "executed_signal", "turnover", "transaction_cost", "strategy_return", "cumulative_return"], "filters": [], "signal_lag": 1, "transaction_cost_bps": transaction_cost_bps},
     )
 
 
@@ -186,14 +193,16 @@ def run_quant_backtest_report_analysis(settings: Any, db: Any, **kwargs: Any) ->
     train, test = _split_sample(sample, time_column=time_column, split_ratio=float(base._spec_option(kwargs, "split_ratio", 0.7)))
     model = LinearRegression().fit(train[feature_columns], train[dependent])
     test["prediction"] = model.predict(test[feature_columns])
-    strategy = _strategy_curve(test.rename(columns={dependent: "actual"}), label="backtest")
-    turnover = strategy["signal"].diff().abs().fillna(0.0)
+    transaction_cost_bps = float(base._spec_option(kwargs, "transaction_cost_bps", 0.0))
+    strategy = _strategy_curve(test.rename(columns={dependent: "actual"}), label="backtest", transaction_cost_bps=transaction_cost_bps)
+    turnover = strategy["turnover"]
     metrics = {
         "mean_return": float(strategy["strategy_return"].mean()),
         "volatility": float(strategy["strategy_return"].std(ddof=1)),
         "sharpe": float(strategy["strategy_return"].mean() / (strategy["strategy_return"].std(ddof=1) or 1.0)),
         "max_drawdown": float((strategy["cumulative_return"] / strategy["cumulative_return"].cummax() - 1.0).min()),
         "turnover": float(turnover.mean()),
+        "transaction_cost_bps": transaction_cost_bps,
     }
     curve_asset = _curve_figure(settings, db, user=kwargs["user"], workspace=kwargs["workspace"], source_asset=asset, strategy=strategy, time_column=time_column, slug="quant_backtest_curve", title="Backtest equity curve", summary="Equity curve from the ranked-signal backtest.")
     fig, ax = base._ts_figure("Turnover")
@@ -219,7 +228,7 @@ def run_quant_backtest_report_analysis(settings: Any, db: Any, **kwargs: Any) ->
         },
         figures=[curve_asset, turnover_asset],
         specification={"dependent": dependent, "feature_columns": feature_columns, "time_column": time_column},
-        audit_trail={"derived_columns": ["prediction", "signal", "strategy_return", "cumulative_return"], "filters": []},
+        audit_trail={"derived_columns": ["prediction", "signal", "executed_signal", "turnover", "transaction_cost", "strategy_return", "cumulative_return"], "filters": [], "signal_lag": 1, "transaction_cost_bps": transaction_cost_bps},
     )
 
 
@@ -252,7 +261,8 @@ def run_quant_catboost_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[s
     model.fit(train[feature_columns], train[dependent])
     test["prediction"] = model.predict(test[feature_columns])
     ic, rank_ic = _ic_stats(test[dependent], test["prediction"])
-    strategy = _strategy_curve(test.rename(columns={dependent: "actual"}), label="catboost")
+    transaction_cost_bps = float(base._spec_option(kwargs, "transaction_cost_bps", 0.0))
+    strategy = _strategy_curve(test.rename(columns={dependent: "actual"}), label="catboost", transaction_cost_bps=transaction_cost_bps)
     curve_asset = _curve_figure(
         settings,
         db,
@@ -299,7 +309,7 @@ def run_quant_catboost_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[s
         },
         figures=[importance_asset, curve_asset],
         specification={"dependent": dependent, "feature_columns": feature_columns, "time_column": time_column},
-        audit_trail={"derived_columns": ["prediction", "strategy_return", "cumulative_return"], "filters": []},
+        audit_trail={"derived_columns": ["prediction", "signal", "executed_signal", "turnover", "transaction_cost", "strategy_return", "cumulative_return"], "filters": [], "signal_lag": 1, "transaction_cost_bps": transaction_cost_bps},
     )
 
 
@@ -329,7 +339,8 @@ def run_quant_position_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[s
         test.groupby("decile", as_index=False)
         .agg(mean_prediction=("prediction", "mean"), mean_actual=("actual", "mean"), count=("actual", "size"))
     )
-    strategy = _strategy_curve(test[["prediction", "actual", time_column]].copy(), label="position")
+    transaction_cost_bps = float(base._spec_option(kwargs, "transaction_cost_bps", 0.0))
+    strategy = _strategy_curve(test[["prediction", "actual", time_column]].copy(), label="position", transaction_cost_bps=transaction_cost_bps)
     curve_asset = _curve_figure(
         settings,
         db,
@@ -370,5 +381,5 @@ def run_quant_position_analysis(settings: Any, db: Any, **kwargs: Any) -> dict[s
         },
         figures=[bucket_asset, curve_asset],
         specification={"dependent": dependent, "feature_columns": feature_columns, "time_column": time_column},
-        audit_trail={"derived_columns": ["prediction", "signal", "decile", "strategy_return", "cumulative_return"], "filters": []},
+        audit_trail={"derived_columns": ["prediction", "signal", "executed_signal", "decile", "turnover", "transaction_cost", "strategy_return", "cumulative_return"], "filters": [], "signal_lag": 1, "transaction_cost_bps": transaction_cost_bps},
     )

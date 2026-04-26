@@ -8,7 +8,6 @@ import math
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import sys
 import textwrap
@@ -50,7 +49,9 @@ from .utils import truncate_text
 
 AGENT_WORKFLOW_TYPE = "agent_session"
 AGENT_FAMILY = "data_lab_agent"
-AGENT_METHOD = "sandbox_python"
+AGENT_METHOD = "trusted_python_execution"
+_DEFAULT_ARTIFACT_MAX_COUNT = 20
+_DEFAULT_ARTIFACT_MAX_BYTES = 25 * 1024 * 1024
 
 _BLOCKED_IMPORT_ROOTS = {
     "builtins",
@@ -131,8 +132,22 @@ _BLOCKED_ATTRS = {
     "replace",
     "rmdir",
     "rmtree",
+    "savefig",
     "system",
+    "to_csv",
+    "to_excel",
+    "to_feather",
+    "to_hdf",
+    "to_json",
+    "to_orc",
+    "to_parquet",
+    "to_pickle",
+    "to_sql",
+    "to_stata",
+    "touch",
     "unlink",
+    "write_bytes",
+    "write_text",
 }
 _BLOCKED_TEXT_PATTERNS = [
     re.compile(pattern, re.IGNORECASE)
@@ -163,11 +178,21 @@ _COMMON_WORDS = {
 
 
 class SafetyViolation(ValueError):
-    """Raised when user-provided code crosses the Data Lab sandbox boundary."""
+    """Raised when user-provided code crosses the Data Lab execution policy."""
 
 
 class DataLabAgentFeatureDisabled(PermissionError):
     """Raised when the Data Lab Agent feature flag is off."""
+
+
+class DataLabTrustedExecutionDisabled(PermissionError):
+    """Raised when local Python execution has not been explicitly trusted."""
+
+
+class DataLabExecutionPolicyError(ValueError):
+    def __init__(self, message: str, *, error_type: str) -> None:
+        super().__init__(message)
+        self.error_type = error_type
 
 
 def _utc_now() -> str:
@@ -779,8 +804,8 @@ def _coder_instructions(session: dict[str, Any]) -> str:
     return (
         "You are the Data Lab Agent analysis coder. Produce original, safe Python for an already-loaded pandas "
         "workspace. The variables datasets, df, WORK_DIR, INPUT_DIR, OUTPUT_DIR, pd, np, plt are already available. "
-        "Do not use shell commands, network access, package installation, environment variables, or arbitrary file reads. "
-        "Prefer concise code that prints interpretable intermediate results and saves plots through matplotlib. "
+        "Do not use shell commands, network access, package installation, environment variables, or arbitrary file reads or writes. "
+        "Prefer concise code that prints interpretable intermediate results and creates matplotlib plots for automatic capture. "
         f"Reply in {language} explanations, but return only JSON with keys code, explanation, risk_notes."
     )
 
@@ -1215,6 +1240,185 @@ class ExecutionReviewer:
         return "Simplify the code, validate column names, and print an intermediate result before plotting or modeling."
 
 
+def _data_lab_trusted_execution_enabled(settings: Settings) -> bool:
+    return bool(getattr(settings, "data_lab_agent_trusted_execution_enabled", False))
+
+
+def _artifact_quota(settings: Settings) -> dict[str, int]:
+    return {
+        "max_count": max(0, int(getattr(settings, "data_lab_agent_artifact_max_count", _DEFAULT_ARTIFACT_MAX_COUNT))),
+        "max_total_bytes": max(
+            0,
+            int(getattr(settings, "data_lab_agent_artifact_max_bytes", _DEFAULT_ARTIFACT_MAX_BYTES)),
+        ),
+    }
+
+
+def _path_is_within(path: Path, parent: Path) -> bool:
+    resolved_path = path.resolve()
+    resolved_parent = parent.resolve()
+    return resolved_path == resolved_parent or resolved_parent in resolved_path.parents
+
+
+def _execution_risk_audit(
+    settings: Settings,
+    *,
+    execution_mode: str,
+    trusted_execution_enabled: bool,
+    output_dir_validated: bool,
+    artifact_count: int = 0,
+    artifact_total_size_bytes: int = 0,
+    error_type: str = "",
+) -> dict[str, Any]:
+    return {
+        "trusted_execution_enabled": trusted_execution_enabled,
+        "runner": "local_python_subprocess" if trusted_execution_enabled else "not_executed",
+        "sandbox_claim": "none",
+        "ast_policy": "enforced" if trusted_execution_enabled else "not_reached",
+        "timeout_seconds": max(1, int(settings.data_lab_agent_timeout_seconds)),
+        "output_limit": max(1000, int(settings.data_lab_agent_output_limit)),
+        "artifact_quota": _artifact_quota(settings),
+        "output_dir_validated": output_dir_validated,
+        "artifact_count": artifact_count,
+        "artifact_total_size_bytes": artifact_total_size_bytes,
+        "error_type": error_type,
+    }
+
+
+def _execution_trace(
+    *,
+    event: str,
+    execution_mode: str,
+    trusted_execution_enabled: bool,
+    output_dir_validated: bool,
+    error_type: str = "",
+    returncode: int | None = None,
+) -> dict[str, Any]:
+    trace: dict[str, Any] = {
+        "event": event,
+        "at": _utc_now(),
+        "execution_mode": execution_mode,
+        "trusted_execution_enabled": trusted_execution_enabled,
+        "output_dir_validated": output_dir_validated,
+    }
+    if error_type:
+        trace["error_type"] = error_type
+    if returncode is not None:
+        trace["returncode"] = returncode
+    return trace
+
+
+def _execution_error_result(
+    settings: Settings,
+    *,
+    execution_mode: str,
+    error: str,
+    error_type: str,
+    stdout: str = "",
+    stderr: str = "",
+    status: str = "error",
+    trusted_execution_enabled: bool = True,
+    output_dir_validated: bool = False,
+    returncode: int | None = None,
+) -> dict[str, Any]:
+    limit = max(1000, int(settings.data_lab_agent_output_limit))
+    return {
+        "status": status,
+        "execution_mode": execution_mode,
+        "stdout": truncate_text(stdout, limit),
+        "stderr": truncate_text(stderr, limit),
+        "error": truncate_text(error, limit),
+        "error_type": error_type,
+        "artifacts": [],
+        "artifact_manifest": _artifact_manifest([], quota=_artifact_quota(settings)),
+        "trace": _execution_trace(
+            event="blocked" if status == "blocked" else "error",
+            execution_mode=execution_mode,
+            trusted_execution_enabled=trusted_execution_enabled,
+            output_dir_validated=output_dir_validated,
+            error_type=error_type,
+            returncode=returncode,
+        ),
+        "risk_audit": _execution_risk_audit(
+            settings,
+            execution_mode=execution_mode,
+            trusted_execution_enabled=trusted_execution_enabled,
+            output_dir_validated=output_dir_validated,
+            error_type=error_type,
+        ),
+    }
+
+
+def _trusted_execution_disabled_result(settings: Settings, *, requested_mode: str, message: str) -> dict[str, Any]:
+    return _execution_error_result(
+        settings,
+        execution_mode="not_executed",
+        error=message,
+        error_type="trusted_execution_required",
+        status="blocked",
+        trusted_execution_enabled=False,
+        output_dir_validated=False,
+    )
+
+
+def _validate_execution_paths(settings: Settings, *, work_dir: Path, output_dir: Path, execution_dir: Path) -> None:
+    agent_root = _agent_root(settings)
+    if not _path_is_within(work_dir, agent_root):
+        raise ValueError("Data Lab Agent work directory is outside the configured agent storage root.")
+    if output_dir.name != "outputs" or not _path_is_within(output_dir, work_dir):
+        raise ValueError("Data Lab Agent output directory is outside the session work directory.")
+    if not _path_is_within(execution_dir, work_dir):
+        raise ValueError("Data Lab Agent execution directory is outside the session work directory.")
+
+
+def _validate_artifacts(
+    settings: Settings,
+    *,
+    work_dir: Path,
+    output_dir: Path,
+    artifacts: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    quota = _artifact_quota(settings)
+    if len(artifacts) > quota["max_count"]:
+        raise DataLabExecutionPolicyError(
+            f"Artifact quota exceeded: at most {quota['max_count']} artifact(s) may be created.",
+            error_type="artifact_quota_exceeded",
+        )
+    cleaned: list[dict[str, Any]] = []
+    total_size = 0
+    for artifact in artifacts:
+        raw_path = str(artifact.get("path") or "").strip()
+        if not raw_path:
+            raise DataLabExecutionPolicyError(
+                "Artifact manifest contains an empty path.",
+                error_type="artifact_manifest_invalid",
+            )
+        path = Path(raw_path).resolve()
+        if not _path_is_within(path, output_dir):
+            raise DataLabExecutionPolicyError(
+                "Artifact path is outside the validated Data Lab Agent output directory.",
+                error_type="artifact_path_invalid",
+            )
+        if not path.is_file():
+            raise DataLabExecutionPolicyError(
+                "Artifact manifest references a missing output file.",
+                error_type="artifact_manifest_invalid",
+            )
+        size_bytes = int(path.stat().st_size)
+        total_size += size_bytes
+        if total_size > quota["max_total_bytes"]:
+            raise DataLabExecutionPolicyError(
+                f"Artifact quota exceeded: total artifact size is limited to {quota['max_total_bytes']} bytes.",
+                error_type="artifact_quota_exceeded",
+            )
+        normalized = dict(artifact)
+        normalized["path"] = str(path)
+        normalized["relative_path"] = str(path.relative_to(work_dir))
+        normalized["size_bytes"] = size_bytes
+        cleaned.append(normalized)
+    return cleaned
+
+
 class SandboxExecutor:
     def execute(
         self,
@@ -1224,12 +1428,29 @@ class SandboxExecutor:
         code: str,
         requested_mode: str = "",
     ) -> dict[str, Any]:
+        if not _data_lab_trusted_execution_enabled(settings):
+            raise DataLabTrustedExecutionDisabled(
+                "Data Lab Agent code execution requires DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED=true. "
+                "No Python code was executed."
+            )
         validate_code_safety(code)
         work_dir = Path(str(session["work_dir"])).resolve()
-        output_dir = work_dir / "outputs"
-        execution_dir = work_dir / "execution"
-        execution_dir.mkdir(parents=True, exist_ok=True)
+        output_dir = (work_dir / "outputs").resolve()
+        execution_dir = (work_dir / "execution").resolve()
         execution_mode = _select_execution_mode(settings, session=session, code=code, requested_mode=requested_mode)
+        try:
+            _validate_execution_paths(settings, work_dir=work_dir, output_dir=output_dir, execution_dir=execution_dir)
+        except ValueError as exc:
+            return _execution_error_result(
+                settings,
+                execution_mode=execution_mode,
+                error=str(exc),
+                error_type="output_directory_invalid",
+                status="blocked",
+                output_dir_validated=False,
+            )
+        output_dir.mkdir(parents=True, exist_ok=True)
+        execution_dir.mkdir(parents=True, exist_ok=True)
         runner_path = execution_dir / "runner.py"
         payload_path = execution_dir / f"payload-{uuid.uuid4().hex}.json"
         result_path = execution_dir / f"result-{uuid.uuid4().hex}.json"
@@ -1257,15 +1478,15 @@ class SandboxExecutor:
                 env=_safe_subprocess_env(),
             )
         except subprocess.TimeoutExpired as exc:
-            return {
-                "status": "error",
-                "execution_mode": execution_mode,
-                "stdout": truncate_text(exc.stdout or "", settings.data_lab_agent_output_limit),
-                "stderr": truncate_text(exc.stderr or "", settings.data_lab_agent_output_limit),
-                "error": f"Execution timed out after {settings.data_lab_agent_timeout_seconds} seconds.",
-                "artifacts": [],
-                "artifact_manifest": _artifact_manifest([]),
-            }
+            return _execution_error_result(
+                settings,
+                execution_mode=execution_mode,
+                stdout=exc.stdout or "",
+                stderr=exc.stderr or "",
+                error=f"Execution timed out after {settings.data_lab_agent_timeout_seconds} seconds.",
+                error_type="execution_timeout",
+                output_dir_validated=True,
+            )
         finally:
             try:
                 payload_path.unlink(missing_ok=True)
@@ -1274,18 +1495,55 @@ class SandboxExecutor:
         if result_path.exists():
             result = json.loads(result_path.read_text(encoding="utf-8"))
             result_path.unlink(missing_ok=True)
+            try:
+                artifacts = _validate_artifacts(
+                    settings,
+                    work_dir=work_dir,
+                    output_dir=output_dir,
+                    artifacts=list(result.get("artifacts") or []),
+                )
+            except ValueError as exc:
+                return _execution_error_result(
+                    settings,
+                    execution_mode=execution_mode,
+                    error=str(exc),
+                    error_type=str(getattr(exc, "error_type", "artifact_policy_violation")),
+                    status="error",
+                    output_dir_validated=True,
+                )
+            artifact_manifest = _artifact_manifest(artifacts, quota=_artifact_quota(settings))
             result["execution_mode"] = execution_mode
-            result["artifact_manifest"] = _artifact_manifest(result.get("artifacts") or [])
+            result["artifacts"] = artifacts
+            result["artifact_manifest"] = artifact_manifest
+            result["error_type"] = str(result.get("error_type") or ("none" if result.get("status") == "success" else "execution_error"))
+            result["trace"] = result.get("trace") or _execution_trace(
+                event="success" if result.get("status") == "success" else "error",
+                execution_mode=execution_mode,
+                trusted_execution_enabled=True,
+                output_dir_validated=True,
+                error_type="" if result.get("status") == "success" else str(result.get("error_type") or "execution_error"),
+                returncode=completed.returncode,
+            )
+            result["risk_audit"] = _execution_risk_audit(
+                settings,
+                execution_mode=execution_mode,
+                trusted_execution_enabled=True,
+                output_dir_validated=True,
+                artifact_count=artifact_manifest["count"],
+                artifact_total_size_bytes=artifact_manifest["total_size_bytes"],
+                error_type="" if result.get("status") == "success" else str(result.get("error_type") or "execution_error"),
+            )
             return _json_safe(result)
-        return {
-            "status": "error",
-            "execution_mode": execution_mode,
-            "stdout": truncate_text(completed.stdout or "", settings.data_lab_agent_output_limit),
-            "stderr": truncate_text(completed.stderr or "", settings.data_lab_agent_output_limit),
-            "error": f"Sandbox process exited with code {completed.returncode}.",
-            "artifacts": [],
-            "artifact_manifest": _artifact_manifest([]),
-        }
+        return _execution_error_result(
+            settings,
+            execution_mode=execution_mode,
+            stdout=completed.stdout or "",
+            stderr=completed.stderr or "",
+            error=f"Execution process exited with code {completed.returncode}.",
+            error_type="subprocess_error",
+            output_dir_validated=True,
+            returncode=completed.returncode,
+        )
 
 
 def _select_execution_mode(settings: Settings, *, session: dict[str, Any], code: str, requested_mode: str = "") -> str:
@@ -1309,7 +1567,7 @@ def _code_prefers_ipython(code: str) -> bool:
     return "display(" in lowered or "from IPython" in str(code or "")
 
 
-def _artifact_manifest(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
+def _artifact_manifest(artifacts: list[dict[str, Any]], *, quota: dict[str, int] | None = None) -> dict[str, Any]:
     image_count = 0
     total_size = 0
     names: list[str] = []
@@ -1320,12 +1578,18 @@ def _artifact_manifest(artifacts: list[dict[str, Any]]) -> dict[str, Any]:
         total_size += int(artifact.get("size_bytes") or 0)
         if artifact.get("name"):
             names.append(str(artifact.get("name")))
-    return {
+    manifest = {
         "count": len(artifacts),
         "image_count": image_count,
         "total_size_bytes": total_size,
         "names": names[:20],
     }
+    if quota is not None:
+        manifest["quota"] = dict(quota)
+        manifest["quota_exceeded"] = len(artifacts) > quota.get("max_count", len(artifacts)) or total_size > quota.get(
+            "max_total_bytes", total_size
+        )
+    return manifest
 
 
 def _safe_subprocess_env() -> dict[str, str]:
@@ -1355,15 +1619,15 @@ def validate_code_safety(code: str) -> None:
             for name in names:
                 root = name.split(".")[0]
                 if root in _BLOCKED_IMPORT_ROOTS or (root not in _ALLOWED_IMPORT_ROOTS and root):
-                    raise SafetyViolation(f"Importing {root!r} is not allowed in the Data Lab Agent sandbox.")
+                    raise SafetyViolation(f"Importing {root!r} is not allowed in Data Lab Agent trusted execution.")
         if isinstance(node, ast.Call):
             func = node.func
             if isinstance(func, ast.Name) and func.id in _BLOCKED_CALLS:
-                raise SafetyViolation(f"Calling {func.id!r} is not allowed in the Data Lab Agent sandbox.")
+                raise SafetyViolation(f"Calling {func.id!r} is not allowed in Data Lab Agent trusted execution.")
             if isinstance(func, ast.Attribute) and func.attr in _BLOCKED_ATTRS:
-                raise SafetyViolation(f"Calling attribute {func.attr!r} is not allowed in the Data Lab Agent sandbox.")
+                raise SafetyViolation(f"Calling attribute {func.attr!r} is not allowed in Data Lab Agent trusted execution.")
         if isinstance(node, ast.Attribute) and node.attr in _BLOCKED_ATTRS:
-            raise SafetyViolation(f"Accessing attribute {node.attr!r} is not allowed in the Data Lab Agent sandbox.")
+            raise SafetyViolation(f"Accessing attribute {node.attr!r} is not allowed in Data Lab Agent trusted execution.")
 
 
 class ReportWriter:
@@ -1654,12 +1918,17 @@ def create_agent_session(
         "profile_snapshots": [],
         "safety_events": [],
         "executor": {
-            "strategy": "dual_mode",
+            "strategy": "trusted_local_python",
             "requested_mode": str(getattr(settings, "data_lab_agent_execution_mode", "subprocess_replay") or "subprocess_replay"),
-            "active_mode": "subprocess_replay",
+            "active_mode": "not_executed"
+            if not _data_lab_trusted_execution_enabled(settings)
+            else "subprocess_replay",
+            "trusted_execution_enabled": _data_lab_trusted_execution_enabled(settings),
+            "sandbox_claim": "none",
             "ipython_enabled": bool(getattr(settings, "data_lab_agent_ipython_enabled", False)),
             "timeout_seconds": int(settings.data_lab_agent_timeout_seconds),
             "max_attempts": int(settings.data_lab_agent_max_attempts),
+            "artifact_quota": _artifact_quota(settings),
         },
         "llm": resolve_agent_llm_config(settings, db, user=user, workspace=workspace).public_summary(),
         "math": {
@@ -1730,6 +1999,9 @@ def send_agent_message(
     llm_config = resolve_agent_llm_config(settings, db, user=user, workspace=workspace)
     llm_client = AgentLLMClient(llm_config) if llm_config.ready else None
     session["llm"] = llm_config.public_summary()
+    session.setdefault("executor", {})["trusted_execution_enabled"] = _data_lab_trusted_execution_enabled(settings)
+    session.setdefault("executor", {})["artifact_quota"] = _artifact_quota(settings)
+    session.setdefault("executor", {})["sandbox_claim"] = "none"
     if requested_execution_mode:
         session.setdefault("executor", {})["requested_mode"] = requested_execution_mode
     session_state = _data_lab_internal_math_state(
@@ -1765,8 +2037,42 @@ def send_agent_message(
     for attempt in range(max_attempts + 1):
         try:
             final_execution = executor.execute(settings, session=session, code=code, requested_mode=requested_execution_mode)
+        except DataLabTrustedExecutionDisabled as exc:
+            event = {
+                "at": _utc_now(),
+                "type": "trusted_execution_required",
+                "message": str(exc),
+                "code_preview": code[:400],
+            }
+            session.setdefault("safety_events", []).append(event)
+            final_execution = _trusted_execution_disabled_result(
+                settings,
+                requested_mode=requested_execution_mode,
+                message=str(exc),
+            )
+            repair_decisions.append(
+                {
+                    "error_class": "feature_disabled",
+                    "best_action": "block",
+                    "reason": str(exc),
+                    "error_type": "trusted_execution_required",
+                    "attempt": attempt + 1,
+                }
+            )
+            session_state.setdefault("M_t", {}).setdefault("recent_failure_classes", []).append("feature_disabled")
+            session_state["M_t"]["recent_failure_classes"] = list(session_state["M_t"]["recent_failure_classes"])[-6:]
+            status = "blocked"
+            content = "Code execution is disabled until trusted execution is explicitly enabled."
+            human_intervention = {
+                "required": False,
+                "provided": bool(clean_user_code),
+                "note": clean_intervention_note,
+                "reason": str(exc),
+                "next_action": "Set DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED=true only in a trusted deployment.",
+            }
+            break
         except SafetyViolation as exc:
-            event = {"at": _utc_now(), "message": str(exc), "code_preview": code[:400]}
+            event = {"at": _utc_now(), "type": "safety_policy_violation", "message": str(exc), "code_preview": code[:400]}
             session.setdefault("safety_events", []).append(event)
             repair_decisions.append(
                 build_data_lab_repair_decision(
@@ -1782,28 +2088,27 @@ def send_agent_message(
             )
             session_state.setdefault("M_t", {}).setdefault("recent_failure_classes", []).append("safety")
             session_state["M_t"]["recent_failure_classes"] = list(session_state["M_t"]["recent_failure_classes"])[-6:]
-            final_execution = {
-                "status": "blocked",
-                "stdout": "",
-                "stderr": "",
-                "error": str(exc),
-                "artifacts": [],
-                "artifact_manifest": _artifact_manifest([]),
-                "execution_mode": "not_executed",
-            }
+            final_execution = _execution_error_result(
+                settings,
+                execution_mode="not_executed",
+                error=str(exc),
+                error_type="safety_policy_violation",
+                status="blocked",
+                trusted_execution_enabled=_data_lab_trusted_execution_enabled(settings),
+                output_dir_validated=False,
+            )
             status = "blocked"
             content = "Code was blocked by the Data Lab Agent safety policy."
             break
         except ValueError as exc:
-            final_execution = {
-                "status": "error",
-                "stdout": "",
-                "stderr": "",
-                "error": str(exc),
-                "artifacts": [],
-                "artifact_manifest": _artifact_manifest([]),
-                "execution_mode": "not_executed",
-            }
+            final_execution = _execution_error_result(
+                settings,
+                execution_mode="not_executed",
+                error=str(exc),
+                error_type="validation_error",
+                trusted_execution_enabled=_data_lab_trusted_execution_enabled(settings),
+                output_dir_validated=False,
+            )
         status = str(final_execution.get("status") or "error")
         if status == "success":
             content = code_plan.get("explanation") or _assistant_success_text(final_execution)
@@ -1894,6 +2199,7 @@ def send_agent_message(
             "artifact_manifest": final_execution.get("artifact_manifest") or _artifact_manifest(final_execution.get("artifacts") or []),
             "profile_snapshot": profile_snapshot,
             "execution_mode": final_execution.get("execution_mode") or "subprocess_replay",
+            "risk_audit": final_execution.get("risk_audit") or {},
             "coder_source": code_plan.get("source", ""),
             "created_at": _utc_now(),
         }
@@ -1918,6 +2224,7 @@ def send_agent_message(
         "execution_mode": final_execution.get("execution_mode") or "not_executed",
         "profile_snapshot": final_execution.get("profile_snapshot") or {},
         "artifact_manifest": final_execution.get("artifact_manifest") or _artifact_manifest(final_execution.get("artifacts") or []),
+        "risk_audit": final_execution.get("risk_audit") or {},
         "repair_trace": repair_trace,
         "knowledge": knowledge,
         "knowledge_cards": knowledge.get("cards") or [],
@@ -2075,6 +2382,22 @@ work_dir = Path(payload["work_dir"]).resolve()
 output_dir = Path(payload["output_dir"]).resolve()
 result_path = Path(payload["result_path"]).resolve()
 limit = int(payload.get("output_limit") or 12000)
+if output_dir.name != "outputs" or (work_dir not in output_dir.parents and output_dir != work_dir):
+    result_path.write_text(
+        json.dumps(
+            {
+                "status": "error",
+                "stdout": "",
+                "stderr": "",
+                "error": "Output directory is outside the Data Lab Agent session work directory.",
+                "error_type": "output_directory_invalid",
+                "artifacts": [],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    raise SystemExit(0)
 output_dir.mkdir(parents=True, exist_ok=True)
 os.chdir(work_dir)
 namespace = {"__name__": "__data_lab_agent__"}
@@ -2182,6 +2505,7 @@ for index, code in enumerate(payload.get("bootstrap_cells") or []):
                     "stdout": _truncate(result.get("stdout", ""), limit),
                     "stderr": _truncate(result.get("stderr", ""), limit),
                     "error": _truncate(result.get("traceback", ""), limit),
+                    "error_type": "bootstrap_error",
                     "artifacts": [],
                 },
                 ensure_ascii=False,
@@ -2200,6 +2524,7 @@ for index, code in enumerate(payload.get("replay_cells") or []):
                     "stdout": _truncate(result.get("stdout", ""), limit),
                     "stderr": _truncate(result.get("stderr", ""), limit),
                     "error": _truncate("Session replay failed:\n" + result.get("traceback", ""), limit),
+                    "error_type": "session_replay_error",
                     "artifacts": [],
                 },
                 ensure_ascii=False,
@@ -2242,6 +2567,7 @@ payload_out = {
     "stdout": _truncate(result.get("stdout", ""), limit),
     "stderr": _truncate((result.get("stderr", "") or "") + (("\n" + figure_error) if figure_error else ""), limit),
     "error": "" if result["ok"] else _truncate(result.get("traceback", ""), limit),
+    "error_type": "none" if result["ok"] else "execution_error",
     "artifacts": artifacts,
     "profile_snapshot": dataframe_profile_snapshot() if result["ok"] else {},
 }

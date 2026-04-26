@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { Suspense, createContext, lazy, useContext, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BrowserRouter, NavLink, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { apiFetch } from "./api";
-import { DataLabAgentPage } from "./pages/DataLabAgentPage";
+import { ErrorState, LoadingState } from "./components/StatusPrimitives";
 import { KnowledgePage } from "./pages/KnowledgePage";
 import { ProvidersPage } from "./pages/ProvidersPage";
 import { QualityPage } from "./pages/QualityPage";
@@ -11,8 +11,14 @@ import { ResearchPage } from "./pages/ResearchPage";
 import { TeamLibraryPage } from "./pages/TeamLibraryPage";
 import "./styles.css";
 
-type Workspace = { id: string; name: string; description: string; };
-type Team = { id: string; name: string; role: string; };
+type Workspace = { id: string; name: string; description: string };
+type Team = { id: string; name: string; role: string };
+type RouteMetadata = {
+  path: string;
+  navLabel: string;
+  title: string;
+  eyebrow: string;
+};
 
 type AppState = {
   workspaces: Workspace[];
@@ -24,7 +30,31 @@ type AppState = {
   refreshShared: () => void;
 };
 
+const STORAGE_KEYS = {
+  workspaceId: "spa-workspace-id",
+  teamId: "spa-team-id",
+} as const;
+
+const DataLabAgentPage = lazy(() => import("./pages/DataLabAgentPage").then((module) => ({
+  default: module.DataLabAgentPage,
+})));
+
+const ROUTE_METADATA: RouteMetadata[] = [
+  { path: "/research", navLabel: "Research", title: "Research Runs", eyebrow: "Command Queue" },
+  { path: "/data-lab-agent", navLabel: "Data Lab Agent", title: "Data Lab Agent", eyebrow: "Analysis Runtime" },
+  { path: "/team-library", navLabel: "Team Library", title: "Team Library", eyebrow: "Published Artifacts" },
+  { path: "/knowledge", navLabel: "Knowledge", title: "Knowledge Base", eyebrow: "Workspace Memory" },
+  { path: "/providers", navLabel: "Providers", title: "Runtime Providers", eyebrow: "Operations Scope" },
+  { path: "/quality", navLabel: "Quality", title: "Quality Gates", eyebrow: "Delivery Control" },
+];
+
+const queryClient = new QueryClient();
 const AppStateContext = createContext<AppState | null>(null);
+
+function metadataForPath(pathname: string): RouteMetadata {
+  const normalizedPath = pathname === "/" ? "/research" : pathname;
+  return ROUTE_METADATA.find((route) => route.path === normalizedPath) || ROUTE_METADATA[0];
+}
 
 function useAppState(): AppState {
   const value = useContext(AppStateContext);
@@ -34,8 +64,8 @@ function useAppState(): AppState {
   return value;
 }
 
-function AppShell(): JSX.Element {
-  const queryClient = useQueryClient();
+export function AppShell(): JSX.Element {
+  const queryClientInstance = useQueryClient();
   const location = useLocation();
   const sessionQuery = useQuery({
     queryKey: ["session"],
@@ -49,52 +79,80 @@ function AppShell(): JSX.Element {
     queryKey: ["teams"],
     queryFn: () => apiFetch<{ items: Team[] }>("/api/teams"),
   });
-  const [workspaceId, setWorkspaceId] = useState<string>(localStorage.getItem("spa-workspace-id") || "");
-  const [teamId, setTeamId] = useState<string>(localStorage.getItem("spa-team-id") || "");
+  const workspaces = useMemo(() => workspacesQuery.data?.items || [], [workspacesQuery.data]);
+  const teams = useMemo(() => teamsQuery.data?.items || [], [teamsQuery.data]);
+  const currentRoute = metadataForPath(location.pathname);
+  const [workspaceId, setWorkspaceId] = useState<string>(() => localStorage.getItem(STORAGE_KEYS.workspaceId) || "");
+  const [teamId, setTeamId] = useState<string>(() => localStorage.getItem(STORAGE_KEYS.teamId) || "");
 
   useEffect(() => {
-    if (!workspaceId && workspacesQuery.data?.items?.length) {
-      setWorkspaceId(workspacesQuery.data.items[0].id);
+    if (!workspacesQuery.isSuccess) {
+      return;
     }
-  }, [workspaceId, workspacesQuery.data]);
+    const workspaceExists = workspaces.some((workspace) => workspace.id === workspaceId);
+    const nextWorkspaceId = workspaceExists ? workspaceId : workspaces[0]?.id || "";
+    if (nextWorkspaceId !== workspaceId) {
+      setWorkspaceId(nextWorkspaceId);
+    }
+  }, [workspaceId, workspaces, workspacesQuery.isSuccess]);
 
   useEffect(() => {
-    if (!teamId && teamsQuery.data?.items?.length) {
-      setTeamId(teamsQuery.data.items[0].id);
+    if (!teamsQuery.isSuccess) {
+      return;
     }
-  }, [teamId, teamsQuery.data]);
+    const teamExists = teams.some((team) => team.id === teamId);
+    const nextTeamId = teamExists ? teamId : teams[0]?.id || "";
+    if (nextTeamId !== teamId) {
+      setTeamId(nextTeamId);
+    }
+  }, [teamId, teams, teamsQuery.isSuccess]);
 
   useEffect(() => {
     if (workspaceId) {
-      localStorage.setItem("spa-workspace-id", workspaceId);
+      localStorage.setItem(STORAGE_KEYS.workspaceId, workspaceId);
+      return;
     }
+    localStorage.removeItem(STORAGE_KEYS.workspaceId);
   }, [workspaceId]);
 
   useEffect(() => {
     if (teamId) {
-      localStorage.setItem("spa-team-id", teamId);
+      localStorage.setItem(STORAGE_KEYS.teamId, teamId);
+      return;
     }
+    localStorage.removeItem(STORAGE_KEYS.teamId);
   }, [teamId]);
 
   const state = useMemo<AppState>(() => ({
-    workspaces: workspacesQuery.data?.items || [],
-    teams: teamsQuery.data?.items || [],
+    workspaces,
+    teams,
     workspaceId,
     setWorkspaceId,
     teamId,
     setTeamId,
     refreshShared: () => {
-      void queryClient.invalidateQueries({ queryKey: ["workspaces"] });
-      void queryClient.invalidateQueries({ queryKey: ["teams"] });
+      void queryClientInstance.invalidateQueries({ queryKey: ["workspaces"] });
+      void queryClientInstance.invalidateQueries({ queryKey: ["teams"] });
     },
-  }), [queryClient, teamId, teamsQuery.data, workspaceId, workspacesQuery.data]);
+  }), [queryClientInstance, teamId, teams, workspaceId, workspaces]);
 
   if (sessionQuery.isLoading) {
-    return <div className="screen-message">Loading session…</div>;
+    return (
+      <div className="screen-message">
+        <LoadingState title="Loading session" description="Checking your research operations context." />
+      </div>
+    );
   }
 
   if (sessionQuery.isError) {
-    return <div className="screen-message">Session expired. Open the legacy login page and sign in again.</div>;
+    return (
+      <div className="screen-message">
+        <ErrorState
+          title="Session expired"
+          description="Open the legacy login page and sign in again."
+        />
+      </div>
+    );
   }
 
   return (
@@ -124,12 +182,11 @@ function AppShell(): JSX.Element {
             </select>
           </label>
           <nav className="nav">
-            <NavLink to="/research" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Research</NavLink>
-            <NavLink to="/data-lab-agent" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Data Lab Agent</NavLink>
-            <NavLink to="/team-library" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Team Library</NavLink>
-            <NavLink to="/knowledge" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Knowledge</NavLink>
-            <NavLink to="/providers" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Providers</NavLink>
-            <NavLink to="/quality" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Quality</NavLink>
+            {ROUTE_METADATA.map((route) => (
+              <NavLink key={route.path} to={route.path} className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+                {route.navLabel}
+              </NavLink>
+            ))}
           </nav>
           <div className="legacy-links">
             <a href="/workspace">Legacy Workspace</a>
@@ -141,14 +198,14 @@ function AppShell(): JSX.Element {
         <main className="main">
           <header className="main-header">
             <div>
-              <p className="eyebrow">Dual Track SPA</p>
-              <h2>{location.pathname.replace("/app/", "").replace("-", " ") || "research"}</h2>
+              <p className="eyebrow">{currentRoute.eyebrow}</p>
+              <h2>{currentRoute.title}</h2>
             </div>
             <button
               type="button"
               className="ghost-button"
               onClick={() => {
-                void queryClient.invalidateQueries();
+                void queryClientInstance.invalidateQueries();
               }}
             >
               Refresh All
@@ -165,9 +222,7 @@ export function useSpaState(): AppState {
   return useAppState();
 }
 
-const queryClient = new QueryClient();
-
-function App(): JSX.Element {
+export function App(): JSX.Element {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename="/app">
@@ -175,7 +230,14 @@ function App(): JSX.Element {
           <Route element={<AppShell />}>
             <Route index element={<Navigate to="/research" replace />} />
             <Route path="/research" element={<ResearchPage useAppState={useSpaState} />} />
-            <Route path="/data-lab-agent" element={<DataLabAgentPage useAppState={useSpaState} />} />
+            <Route
+              path="/data-lab-agent"
+              element={(
+                <Suspense fallback={<LoadingState title="Loading Data Lab Agent" description="Preparing the analysis runtime." />}>
+                  <DataLabAgentPage useAppState={useSpaState} />
+                </Suspense>
+              )}
+            />
             <Route path="/team-library" element={<TeamLibraryPage useAppState={useSpaState} />} />
             <Route path="/knowledge" element={<KnowledgePage useAppState={useSpaState} />} />
             <Route path="/providers" element={<ProvidersPage useAppState={useSpaState} />} />
@@ -187,8 +249,11 @@ function App(): JSX.Element {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+const rootElement = document.getElementById("root");
+if (rootElement) {
+  ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
+}

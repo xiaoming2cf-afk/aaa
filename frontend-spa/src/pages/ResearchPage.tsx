@@ -5,6 +5,7 @@ import { apiFetch } from "../api";
 type UseAppState = () => {
   workspaceId: string;
   teamId: string;
+  setTeamId: (value: string) => void;
   teams: Array<{ id: string; name: string }>;
 };
 
@@ -25,8 +26,17 @@ type RunSummary = {
   };
 };
 
+type ResearchRuntimeCapability = {
+  research_runtime: {
+    enabled: boolean;
+    code: string;
+    message: string;
+    trace?: Record<string, unknown>;
+  };
+};
+
 export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX.Element {
-  const { workspaceId, teamId, teams } = useAppState();
+  const { workspaceId, teamId, setTeamId, teams } = useAppState();
   const queryClient = useQueryClient();
   const [topic, setTopic] = useState("");
   const [question, setQuestion] = useState("");
@@ -60,6 +70,12 @@ export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX
     queryKey: ["quality-scorecard", workspaceId],
     enabled: Boolean(workspaceId),
     queryFn: () => apiFetch<any>(`/api/workspaces/${workspaceId}/quality/scorecard`),
+  });
+
+  const runtimeQuery = useQuery({
+    queryKey: ["research-runtime", workspaceId],
+    enabled: Boolean(workspaceId),
+    queryFn: () => apiFetch<ResearchRuntimeCapability>(`/api/workspaces/${workspaceId}/research/runtime`),
   });
 
   const createRunMutation = useMutation({
@@ -115,6 +131,15 @@ export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX
   const candidateDrafts = (selectedRun?.candidate_drafts || []) as Array<any>;
   const arbiterMode = selectedRun?.metrics?.arbiter_math_mode || "off";
   const selectionTrace = selectedRun?.metrics?.arbiter_selection_v2 || {};
+  const runtime = runtimeQuery.data?.research_runtime;
+  const runtimeReady = runtime?.enabled === true;
+  const runtimeStatus = runtimeQuery.isLoading
+    ? "Checking research runtime availability."
+    : runtimeQuery.isError
+      ? "Research runtime status could not be verified; run creation is blocked."
+      : runtimeReady
+        ? "Research runtime is available."
+        : runtime?.message || "Research generation is disabled in this deployment.";
 
   return (
     <div className="page-grid">
@@ -157,10 +182,15 @@ export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX
           </label>
         </div>
         <div className="action-row">
-          <button className="primary-button" type="button" disabled={!workspaceId || !topic || createRunMutation.isPending} onClick={() => createRunMutation.mutate()}>
+          <button
+            className="primary-button"
+            type="button"
+            disabled={!workspaceId || !topic || createRunMutation.isPending || !runtimeReady}
+            onClick={() => createRunMutation.mutate()}
+          >
             Start Run
           </button>
-          <span className="muted">{createRunMutation.isError ? (createRunMutation.error as Error).message : "Queued only. Worker executes asynchronously."}</span>
+          <span className="muted">{createRunMutation.isError ? (createRunMutation.error as Error).message : runtimeStatus}</span>
         </div>
       </section>
 
@@ -263,7 +293,7 @@ export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX
             <button className="ghost-button" type="button" disabled={!selectedRunId || retryRunMutation.isPending} onClick={() => retryRunMutation.mutate()}>
               Retry Writer/Reviewer
             </button>
-            <select value={teamId} disabled={!teams.length} onChange={() => undefined}>
+            <select value={teamId} disabled={!teams.length} onChange={(event) => setTeamId(event.target.value)}>
               <option value="">{teams.length ? "Select team" : "No team"}</option>
               {teams.map((team) => (
                 <option key={team.id} value={team.id}>{team.name}</option>

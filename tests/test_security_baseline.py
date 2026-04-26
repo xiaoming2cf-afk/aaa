@@ -174,6 +174,15 @@ def test_password_reset_email_uses_ssl_transport(monkeypatch):
     assert ("send", "user@example.com", 0, 0) in calls
 
 
+def test_data_lab_trusted_execution_defaults_false_in_production():
+    settings = Settings(
+        app_env="production",
+        app_secret="prod-secret-with-sufficient-length-1234567890",
+    )
+
+    assert settings.data_lab_agent_trusted_execution_enabled is False
+
+
 def test_password_reset_email_uses_starttls_only_when_configured(monkeypatch):
     calls: list[tuple[str, str, int, int]] = []
 
@@ -325,6 +334,37 @@ def test_model_run_request_ignores_unknown_fields_and_rejects_oversized_variant_
     except ValueError:
         return
     raise AssertionError("Oversized variant_spec should be rejected")
+
+
+def test_model_run_request_rejects_oversized_numeric_parameters(client, auth_headers):
+    for field_name, value in {
+        "draws": 2001,
+        "tune": 2001,
+        "iterations": 2001,
+        "n_estimators": 2001,
+        "forecast_steps": 366,
+        "irf_horizon": 121,
+    }.items():
+        try:
+            ModelRunRequest(asset_id="asset-oversized", **{field_name: value})
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"{field_name} should be capped")
+
+    try:
+        ModelRunRequest(asset_id="asset-oversized", variant_spec={"draws": 2001})
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("variant_spec numeric limits should be enforced")
+
+    response = client.post(
+        f"/api/workspaces/{auth_headers['workspace_id']}/analysis/models",
+        headers={"X-CSRF-Token": auth_headers["csrf"]},
+        json={"asset_id": "asset-oversized", "draws": 2001},
+    )
+    assert response.status_code == 422
 
 
 def test_init_database_upgrades_legacy_user_schema(monkeypatch, tmp_path: Path):

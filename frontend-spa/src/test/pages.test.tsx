@@ -2,9 +2,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { apiFetch } from "../api";
+import { AppShell } from "../main";
 import { DataLabAgentPage } from "../pages/DataLabAgentPage";
 import { KnowledgePage } from "../pages/KnowledgePage";
 import { QualityPage } from "../pages/QualityPage";
@@ -33,6 +34,57 @@ function renderWithQuery(ui: JSX.Element): void {
 describe("SPA delivery gating", () => {
   beforeEach(() => {
     apiFetchMock.mockReset();
+    localStorage.clear();
+  });
+
+  test("AppShell falls back when stored workspace and team ids are stale", async () => {
+    localStorage.setItem("spa-workspace-id", "ws-expired");
+    localStorage.setItem("spa-team-id", "team-expired");
+    apiFetchMock.mockImplementation(async (path: string) => {
+      if (path === "/api/auth/me") {
+        return {
+          user: {
+            full_name: "Ada Lovelace",
+            email: "ada@example.test",
+          },
+        };
+      }
+      if (path === "/api/workspaces") {
+        return {
+          items: [
+            { id: "ws-live", name: "Live Workspace", description: "Active scope" },
+          ],
+        };
+      }
+      if (path === "/api/teams") {
+        return {
+          items: [
+            { id: "team-live", name: "Live Team", role: "owner" },
+          ],
+        };
+      }
+      return {};
+    });
+
+    renderWithQuery(
+      <MemoryRouter initialEntries={["/research"]}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/research" element={<div>Research route ready</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Research route ready")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Research Runs" })).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Workspace")).toHaveValue("ws-live");
+      expect(screen.getByLabelText("Team")).toHaveValue("team-live");
+    });
+    expect(localStorage.getItem("spa-workspace-id")).toBe("ws-live");
+    expect(localStorage.getItem("spa-team-id")).toBe("team-live");
   });
 
   test("ResearchPage disables publish when delivery review blocks the run", async () => {
@@ -136,6 +188,7 @@ describe("SPA delivery gating", () => {
     const useAppState = () => ({
       workspaceId: "ws-1",
       teamId: "team-1",
+      setTeamId: vi.fn(),
       teams: [{ id: "team-1", name: "Team One" }],
     });
 
@@ -149,6 +202,46 @@ describe("SPA delivery gating", () => {
     expect(screen.getByText(/ARBITER Candidates/i)).toBeInTheDocument();
     expect(screen.getByText(/baseline D1-2 \/ proposed D1-2 \/ chosen D1-2/i)).toBeInTheDocument();
     expect(screen.getByText(/mode active \/ baseline score 63 \/ baseline utility 0.63 \/ v2 utility 0.67/i)).toBeInTheDocument();
+  });
+
+  test("ResearchPage blocks Start Run when research runtime is disabled", async () => {
+    apiFetchMock.mockImplementation(async (path: string) => {
+      if (path === "/api/workspaces/ws-1/research/runtime") {
+        return {
+          research_runtime: {
+            enabled: false,
+            code: "feature_disabled",
+            message: "Research generation is not available in this deployment because no inference runtime is configured.",
+            trace: {
+              runtime_available: false,
+              queue_created: false,
+              reason: "inference_runtime_missing",
+            },
+          },
+        };
+      }
+      if (path === "/api/workspaces/ws-1/research/runs") {
+        return { items: [] };
+      }
+      if (path === "/api/workspaces/ws-1/quality/scorecard") {
+        return { total_score: 0, deliverable: false, metrics: {} };
+      }
+      return {};
+    });
+
+    const useAppState = () => ({
+      workspaceId: "ws-1",
+      teamId: "team-1",
+      setTeamId: vi.fn(),
+      teams: [{ id: "team-1", name: "Team One" }],
+    });
+
+    renderWithQuery(<ResearchPage useAppState={useAppState} />);
+
+    await screen.findByText(/no inference runtime is configured/i);
+    await userEvent.type(screen.getByLabelText("Topic"), "Inflation persistence");
+
+    expect(screen.getByRole("button", { name: /Start Run/i })).toBeDisabled();
   });
 
   test("KnowledgePage disables publish when the knowledge record is not deliverable", async () => {

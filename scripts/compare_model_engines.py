@@ -598,7 +598,13 @@ def run_comparison(output_dir: Path | None = None) -> dict[str, Any]:
 
 
 def main() -> None:
-    report = run_comparison()
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output-dir", default="", help="Optional output directory for comparison artifacts.")
+    args = parser.parse_args()
+    output_dir = Path(args.output_dir).expanduser().resolve() if args.output_dir.strip() else None
+    report = run_comparison(output_dir=output_dir)
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
 

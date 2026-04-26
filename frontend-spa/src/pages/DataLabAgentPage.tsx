@@ -514,10 +514,16 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
       <section className="panel panel-emphasis">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">Clean-room runtime</p>
+            <p className="eyebrow">Trusted execution control</p>
             <h3>Data Lab Agent</h3>
-            <p>Natural language data analysis with LLM planning, safe Python execution, repair traces, human intervention, and exportable evidence.</p>
+            <p>Natural language data analysis with LLM planning, trusted local Python execution, repair traces, human intervention, and exportable evidence.</p>
           </div>
+        </div>
+        <div className="list-card static-card">
+          <strong>Trusted mode notice</strong>
+          <p className="muted">
+            Python execution is not a sandbox. Production blocks code execution unless DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED=true is explicitly set for an authorized deployment.
+          </p>
         </div>
         <div className="form-grid">
           <label className="field">
@@ -727,7 +733,7 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
                 <span>Execution Mode</span>
                 <select ref={executionModeSelectRef} value={executionMode} onChange={(event) => setExecutionMode(event.target.value)}>
                   <option value="">Session default</option>
-                  <option value="subprocess_replay">Safe replay subprocess</option>
+                  <option value="subprocess_replay">Trusted subprocess replay</option>
                   <option value="auto">Auto dual mode</option>
                   <option value="ipython_kernel">IPython kernel</option>
                 </select>

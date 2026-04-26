@@ -47,6 +47,8 @@ def test_lazy_asgi_short_circuits_render_probe_paths_without_loading_full_app():
         spa_get = client.get("/app")
         assert spa_get.status_code == 200
         assert "<!doctype html>" in spa_get.text.lower()
+        assert "/src/main.tsx" not in spa_get.text
+        assert "/app/assets/" in spa_get.text
 
         health_get = client.get("/api/health")
         assert health_get.status_code == 200
@@ -79,3 +81,18 @@ def test_lazy_asgi_loads_full_app_once_for_non_probe_paths():
         second = client.get("/ready")
         assert second.status_code == 200
         assert load_count == 1
+
+
+def test_auth_me_returns_401_without_session(monkeypatch, tmp_path):
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("APP_SECRET", "test-secret-with-sufficient-length-1234567890")
+    monkeypatch.setenv("STORAGE_DIR", str(tmp_path / "storage"))
+    monkeypatch.setenv("RESEARCH_AGENT_REPORTS_DIR", str(tmp_path / "reports"))
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{(tmp_path / 'asgi-auth.db').as_posix()}")
+
+    from research_agent.webapp import create_app
+
+    with TestClient(create_app()) as client:
+        response = client.get("/api/auth/me")
+
+    assert response.status_code == 401

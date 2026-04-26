@@ -188,7 +188,8 @@ For deployed environments, align these pieces together:
 - `render.yaml` is the production contract for the single Render web service.
 - The Render build must produce `frontend-spa/dist` before the Python app starts, so `/app` is always served by FastAPI from the built SPA assets.
 - Render production must not define runtime inference variables such as `RESEARCH_AGENT_MODEL` or require `OPENAI_API_KEY`.
-- Render defaults should keep `DATA_LAB_AGENT_ENABLED=false` and `AGENT_MATH_MODE=shadow`, with delivery threshold and override margin configured explicitly in environment variables.
+- Render defaults should keep `RESEARCH_RUNTIME_ENABLED=false`, `DATA_LAB_AGENT_ENABLED=false`, `DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED=false`, and `AGENT_MATH_MODE=shadow`, with delivery threshold and override margin configured explicitly in environment variables.
+- Data Lab Agent Python execution is trusted local execution, not a sandbox. Only enable `DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED=true` in an authorized deployment that accepts that risk boundary.
 - Main branch is the only release source. Merge only after the delivery gate and real workspace publish validation both pass.
 
 ## Release Gate

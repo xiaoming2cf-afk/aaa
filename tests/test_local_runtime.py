@@ -81,7 +81,15 @@ def test_render_contract_builds_spa_without_runtime_model_variables():
 
 
 def test_smoke_deploy_checks_expected_routes(monkeypatch, tmp_path):
-    def fake_get(url: str, timeout: int = 20, allow_redirects: bool = False):
+    def fake_get(self, url: str, timeout: int = 20, allow_redirects: bool = False):
+        del self
+        if url.endswith("/api/auth/me"):
+            return SimpleNamespace(
+                status_code=401,
+                headers={},
+                text='{"detail":"Not authenticated"}',
+                json=lambda: {"detail": "Not authenticated"},
+            )
         if url.endswith("/api/health"):
             return SimpleNamespace(
                 status_code=200,
@@ -103,7 +111,7 @@ def test_smoke_deploy_checks_expected_routes(monkeypatch, tmp_path):
             json=lambda: {},
         )
 
-    monkeypatch.setattr("research_agent.cli.requests.get", fake_get)
+    monkeypatch.setattr("research_agent.cli.requests.Session.get", fake_get)
     output_path = tmp_path / "deploy-smoke.json"
 
     result = runner.invoke(
@@ -119,8 +127,15 @@ def test_smoke_deploy_checks_expected_routes(monkeypatch, tmp_path):
 
 
 def test_smoke_deploy_rejects_source_entry_shell(monkeypatch, tmp_path):
-    def fake_get(url: str, timeout: int = 20, allow_redirects: bool = False):
-        del timeout, allow_redirects
+    def fake_get(self, url: str, timeout: int = 20, allow_redirects: bool = False):
+        del self, timeout, allow_redirects
+        if url.endswith("/api/auth/me"):
+            return SimpleNamespace(
+                status_code=401,
+                headers={},
+                text='{"detail":"Not authenticated"}',
+                json=lambda: {"detail": "Not authenticated"},
+            )
         if url.endswith("/api/health"):
             return SimpleNamespace(
                 status_code=200,
@@ -149,7 +164,7 @@ def test_smoke_deploy_rejects_source_entry_shell(monkeypatch, tmp_path):
             json=lambda: {},
         )
 
-    monkeypatch.setattr("research_agent.cli.requests.get", fake_get)
+    monkeypatch.setattr("research_agent.cli.requests.Session.get", fake_get)
     output_path = tmp_path / "deploy-smoke-source-entry.json"
 
     result = runner.invoke(

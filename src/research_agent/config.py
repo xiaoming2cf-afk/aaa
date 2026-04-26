@@ -59,6 +59,14 @@ class Settings(BaseModel):
         default_factory=lambda: int(os.getenv("RESEARCH_AGENT_MAX_TOOL_CALLS", "12"))
     )
     public_base_url: str = Field(default_factory=lambda: os.getenv("PUBLIC_BASE_URL", ""))
+    research_runtime_enabled: bool = Field(
+        default_factory=lambda: (
+            os.getenv("RESEARCH_RUNTIME_ENABLED", os.getenv("RESEARCH_AGENT_RUNTIME_ENABLED", "false"))
+            .strip()
+            .lower()
+            in {"1", "true", "yes", "on"}
+        )
+    )
     encryption_key: str = Field(default_factory=lambda: os.getenv("ENCRYPTION_KEY", ""))
     cron_secret: str = Field(default_factory=lambda: os.getenv("CRON_SECRET", ""))
     session_ttl_hours: int = Field(default_factory=lambda: int(os.getenv("SESSION_TTL_HOURS", "72")))
@@ -121,6 +129,16 @@ class Settings(BaseModel):
     )
     data_lab_agent_output_limit: int = Field(
         default_factory=lambda: int(os.getenv("DATA_LAB_AGENT_OUTPUT_LIMIT", "12000"))
+    )
+    data_lab_agent_trusted_execution_enabled: bool = Field(
+        default_factory=lambda: os.getenv("DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED", "false").strip().lower()
+        in {"1", "true", "yes", "on"}
+    )
+    data_lab_agent_artifact_max_count: int = Field(
+        default_factory=lambda: int(os.getenv("DATA_LAB_AGENT_ARTIFACT_MAX_COUNT", "20"))
+    )
+    data_lab_agent_artifact_max_bytes: int = Field(
+        default_factory=lambda: int(os.getenv("DATA_LAB_AGENT_ARTIFACT_MAX_BYTES", str(25 * 1024 * 1024)))
     )
     data_lab_agent_execution_mode: str = Field(
         default_factory=lambda: os.getenv("DATA_LAB_AGENT_EXECUTION_MODE", "subprocess_replay").strip().lower()

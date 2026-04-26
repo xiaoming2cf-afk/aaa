@@ -117,3 +117,21 @@ def test_repo_hygiene_reports_root_temp_directories_without_descending(tmp_path:
         for item in issues
     )
     assert not any(item["path"] == str(nested_file) for item in issues)
+
+
+def test_ci_workflow_contains_delivery_gate_slices():
+    workflow = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "ci.yml"
+    text = workflow.read_text(encoding="utf-8")
+
+    for expected in (
+        "Backend pytest",
+        "Frontend tests",
+        "Frontend build",
+        "Scan repository hygiene",
+        "Verify agent quality gate",
+        "Compare model engines",
+        "Write commit-bound engineering gate artifact",
+        "Verify model upgrade slow gate",
+        "Trigger Render deploy and smoke check",
+    ):
+        assert expected in text
