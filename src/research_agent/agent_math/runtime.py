@@ -272,6 +272,7 @@ class ShadowComparison:
     proposed_score: float
     advantage: float
     override_margin: float
+    min_raw_advantage: float = 0.01
     raw_advantage: float = 0.0
     override_applied: bool = False
     fallback_reason: str = ""
@@ -290,6 +291,7 @@ class ShadowComparison:
             "advantage_semantics": "relative_to_max_abs_score",
             "raw_advantage": round(self.raw_advantage, 6),
             "override_margin": round(self.override_margin, 6),
+            "min_raw_advantage": round(self.min_raw_advantage, 6),
             "override_applied": self.override_applied,
             "fallback_reason": self.fallback_reason,
             "calibrated": self.calibrated,
@@ -375,6 +377,7 @@ def build_shadow_comparison(
     proposed_score: float,
     override_margin: float,
     mode: str,
+    min_raw_advantage: float = 0.01,
     feasible: bool = True,
     fallback_reason: str = "",
     calibrated: bool = False,
@@ -387,6 +390,8 @@ def build_shadow_comparison(
     raw_advantage = proposed_value - baseline_value
     score_scale = max(abs(baseline_value), abs(proposed_value), 1e-9)
     advantage = raw_advantage / score_scale
+    metrics = dict(validation_metrics or {})
+    calibration_evidence_complete = bool(calibrated) and metrics.get("calibration_gate_passed") is True
     chosen_choice = baseline_choice
     override_applied = False
     reason = fallback_reason
@@ -400,6 +405,10 @@ def build_shadow_comparison(
         reason = reason or "proposed_choice_infeasible"
     elif not calibrated:
         reason = reason or UNCALIBRATED_SURROGATE_REASON
+    elif not calibration_evidence_complete:
+        reason = reason or "calibration_evidence_missing"
+    elif raw_advantage < float(min_raw_advantage):
+        reason = reason or "raw_advantage_below_minimum"
     elif advantage < float(override_margin):
         reason = reason or "advantage_below_override_margin"
     else:
@@ -413,11 +422,12 @@ def build_shadow_comparison(
         baseline_score=baseline_value,
         proposed_score=proposed_value,
         advantage=advantage,
+        min_raw_advantage=float(min_raw_advantage),
         raw_advantage=raw_advantage,
         override_margin=float(override_margin),
         override_applied=override_applied,
         fallback_reason=reason,
         calibrated=bool(calibrated),
         calibration_version=str(calibration_version or ""),
-        validation_metrics=dict(validation_metrics or {}),
+        validation_metrics=metrics,
     )

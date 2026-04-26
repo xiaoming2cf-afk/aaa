@@ -371,17 +371,53 @@ def test_shadow_comparison_reports_normalized_advantage():
         baseline_choice="baseline",
         proposed_choice="proposed",
         baseline_score=0.001,
-        proposed_score=0.006,
+        proposed_score=0.021,
         override_margin=0.05,
         mode="active",
         calibrated=True,
+        validation_metrics={"calibration_gate_passed": True},
     )
 
     payload = comparison.to_dict()
     assert comparison.override_applied is True
-    assert math.isclose(payload["advantage"], 0.833333, rel_tol=1e-6)
-    assert payload["raw_advantage"] == 0.005
+    assert math.isclose(payload["advantage"], 0.952381, rel_tol=1e-6)
+    assert payload["raw_advantage"] == 0.02
     assert payload["advantage_semantics"] == "relative_to_max_abs_score"
+    assert payload["min_raw_advantage"] == 0.01
+
+
+def test_shadow_comparison_requires_calibration_evidence_for_active_override():
+    comparison = build_shadow_comparison(
+        baseline_choice="baseline",
+        proposed_choice="proposed",
+        baseline_score=0.1,
+        proposed_score=0.9,
+        override_margin=0.05,
+        mode="active",
+        calibrated=True,
+        validation_metrics={},
+    )
+
+    assert comparison.override_applied is False
+    assert comparison.chosen_choice == "baseline"
+    assert comparison.fallback_reason == "calibration_evidence_missing"
+
+
+def test_shadow_comparison_requires_minimum_raw_advantage_for_active_override():
+    comparison = build_shadow_comparison(
+        baseline_choice="baseline",
+        proposed_choice="proposed",
+        baseline_score=0.001,
+        proposed_score=0.006,
+        override_margin=0.05,
+        mode="active",
+        calibrated=True,
+        validation_metrics={"calibration_gate_passed": True},
+    )
+
+    assert comparison.override_applied is False
+    assert comparison.chosen_choice == "baseline"
+    assert comparison.fallback_reason == "raw_advantage_below_minimum"
 
 
 def test_belief_state_update_normalizes_and_tracks_entropy():

@@ -10,6 +10,7 @@ from typer.testing import CliRunner
 
 from research_agent.cli import app as cli_app
 from research_agent.config import get_settings
+from scripts.spa_dist_manifest import collect_spa_dist_manifest
 
 
 runner = CliRunner()
@@ -22,6 +23,41 @@ def _load_script_module(name: str, relative_path: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _write_valid_spa_dist(root: Path) -> None:
+    dist = root / "frontend-spa" / "dist"
+    assets = dist / "assets"
+    assets.mkdir(parents=True)
+    (dist / "index.html").write_text(
+        '<script type="module" src="/app/assets/index-abcd.js"></script>\n'
+        '<link rel="stylesheet" href="/app/assets/index-abcd.css">\n',
+        encoding="utf-8",
+    )
+    (assets / "index-abcd.js").write_text("console.log('ok');\n", encoding="utf-8")
+    (assets / "index-abcd.css").write_text("body{color:#111;}\n", encoding="utf-8")
+
+
+def _green_engineering_gate_payload(root: Path, commit_sha: str) -> dict[str, object]:
+    manifest, failures = collect_spa_dist_manifest(root / "frontend-spa" / "dist", commit_sha=commit_sha)
+    assert failures == []
+    return {
+        "artifact_schema": "engineering-gate.v1",
+        "commit_sha": commit_sha,
+        "passed": True,
+        "checks": [{"key": "backend_tests_green", "passed": True}],
+        "spa_dist": manifest,
+    }
+
+
+def _green_render_deploy_payload(commit_sha: str) -> dict[str, object]:
+    return {
+        "commit_sha": commit_sha,
+        "passed": True,
+        "deploy": {"passed": True, "commit_sha": commit_sha},
+        "smoke": {"passed": True},
+        "spa_assets": {"passed": True},
+    }
 
 
 def test_env_defaults_do_not_expose_runtime_model_endpoints(monkeypatch):
@@ -327,7 +363,7 @@ def test_render_deploy_promotion_requires_base_url_and_deep_smoke(tmp_path, monk
     payload = json.loads(output_path.read_text(encoding="utf-8"))
     assert payload["passed"] is False
     assert payload["deploy"]["status"] == "not_triggered"
-    assert payload["promotion"]["detail"]["missing"] == ["base_url", "deep_smoke"]
+    assert payload["promotion"]["detail"]["missing"] == ["base_url", "deep_smoke", "spa_dist_manifest"]
     assert "--base-url" in payload["promotion"]["detail"]["required_flags"]
 
 
@@ -350,15 +386,14 @@ def test_engineering_gate_artifact_fails_when_dist_shell_uses_source_entry(tmp_p
 def test_engineering_gate_artifact_contains_commit_and_critical_gates(tmp_path, monkeypatch):
     module = _load_script_module("write_engineering_gate_artifact_success_test", "scripts/write_engineering_gate_artifact.py")
     repo_root = tmp_path / "repo"
-    dist = repo_root / "frontend-spa" / "dist"
-    dist.mkdir(parents=True)
-    (dist / "index.html").write_text('<script type="module" src="/app/assets/index-abcd.js"></script>', encoding="utf-8")
+    _write_valid_spa_dist(repo_root)
     monkeypatch.setattr(module, "REPO_ROOT", repo_root)
 
     artifact = module.build_artifact(commit_sha="abc123", source="test")
 
     assert artifact["passed"] is True
     assert artifact["commit_sha"] == "abc123"
+    assert artifact["spa_dist"]["commit_sha"] == "abc123"
     keys = {check["key"] for check in artifact["checks"]}
     for expected in (
         "repo_hygiene_clean",
@@ -366,6 +401,7 @@ def test_engineering_gate_artifact_contains_commit_and_critical_gates(tmp_path, 
         "frontend_tests_green",
         "frontend_build_green",
         "spa_shell_uses_built_assets",
+        "spa_dist_manifest_bound",
         "agent_quality_gate_green",
         "model_engine_comparison_green",
     ):
@@ -375,30 +411,11 @@ def test_engineering_gate_artifact_contains_commit_and_critical_gates(tmp_path, 
 def test_deploy_artifact_verifier_accepts_matching_green_artifacts(tmp_path):
     module = _load_script_module("verify_deploy_artifacts_success_test", "scripts/verify_deploy_artifacts.py")
     commit_sha = "abc123def456"
+    _write_valid_spa_dist(tmp_path)
     engineering_gate = tmp_path / f"engineering-gate.{commit_sha}.json"
-    engineering_gate.write_text(
-        json.dumps(
-            {
-                "artifact_schema": "engineering-gate.v1",
-                "commit_sha": commit_sha,
-                "passed": True,
-                "checks": [{"key": "backend_tests_green", "passed": True}],
-            }
-        ),
-        encoding="utf-8",
-    )
+    engineering_gate.write_text(json.dumps(_green_engineering_gate_payload(tmp_path, commit_sha)), encoding="utf-8")
     render_deploy = tmp_path / f"render-deploy.{commit_sha}.json"
-    render_deploy.write_text(
-        json.dumps(
-            {
-                "commit_sha": commit_sha,
-                "passed": True,
-                "deploy": {"passed": True, "commit_sha": commit_sha},
-                "smoke": {"passed": True},
-            }
-        ),
-        encoding="utf-8",
-    )
+    render_deploy.write_text(json.dumps(_green_render_deploy_payload(commit_sha)), encoding="utf-8")
 
     report = module.verify_artifacts(commit_sha=commit_sha, engineering_gate=engineering_gate, render_deploy=render_deploy)
 
@@ -434,18 +451,9 @@ def test_deploy_artifact_verifier_blocks_commit_mismatch_and_failed_gate(tmp_pat
 def test_deploy_artifact_verifier_requires_exact_commit_bound_filenames(tmp_path):
     module = _load_script_module("verify_deploy_artifacts_filename_test", "scripts/verify_deploy_artifacts.py")
     commit_sha = "abc123def456"
+    _write_valid_spa_dist(tmp_path)
     engineering_gate = tmp_path / f"engineering-gate.prefix-{commit_sha}-suffix.json"
-    engineering_gate.write_text(
-        json.dumps(
-            {
-                "artifact_schema": "engineering-gate.v1",
-                "commit_sha": commit_sha,
-                "passed": True,
-                "checks": [{"key": "backend_tests_green", "passed": True}],
-            }
-        ),
-        encoding="utf-8",
-    )
+    engineering_gate.write_text(json.dumps(_green_engineering_gate_payload(tmp_path, commit_sha)), encoding="utf-8")
 
     report = module.verify_artifacts(commit_sha=commit_sha, engineering_gate=engineering_gate)
 
@@ -456,18 +464,9 @@ def test_deploy_artifact_verifier_requires_exact_commit_bound_filenames(tmp_path
 def test_deploy_artifact_verifier_requires_render_subreports_green(tmp_path):
     module = _load_script_module("verify_deploy_artifacts_render_subreports_test", "scripts/verify_deploy_artifacts.py")
     commit_sha = "abc123def456"
+    _write_valid_spa_dist(tmp_path)
     engineering_gate = tmp_path / f"engineering-gate.{commit_sha}.json"
-    engineering_gate.write_text(
-        json.dumps(
-            {
-                "artifact_schema": "engineering-gate.v1",
-                "commit_sha": commit_sha,
-                "passed": True,
-                "checks": [{"key": "backend_tests_green", "passed": True}],
-            }
-        ),
-        encoding="utf-8",
-    )
+    engineering_gate.write_text(json.dumps(_green_engineering_gate_payload(tmp_path, commit_sha)), encoding="utf-8")
     render_deploy = tmp_path / f"render-deploy.{commit_sha}.json"
     render_deploy.write_text(
         json.dumps(
@@ -476,6 +475,7 @@ def test_deploy_artifact_verifier_requires_render_subreports_green(tmp_path):
                 "passed": True,
                 "deploy": {"passed": True, "commit_sha": commit_sha},
                 "smoke": {"passed": False, "checks": []},
+                "spa_assets": {"passed": True},
             }
         ),
         encoding="utf-8",

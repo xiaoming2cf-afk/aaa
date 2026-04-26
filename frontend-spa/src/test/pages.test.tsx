@@ -649,6 +649,9 @@ describe("SPA delivery gating", () => {
     expect(screen.getAllByText(/Human intervention required/i).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /Prepare Notebook/i })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Download Notebook/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/^Notebook Export$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^NOT PREPARED$/i)).toBeInTheDocument();
+    expect(screen.getByText(/Source: awaiting export/i)).toBeInTheDocument();
     expect(screen.getByText(/mode shadow \/ override margin 0\.05 \/ successful cells 1 \/ safety events 1 \/ run needs_human_intervention/i)).toBeInTheDocument();
     expect(screen.getByText(/retrieval baseline card-1 \/ proposed card-1 \/ chosen card-1 \/ fallback shadow_mode_preserves_baseline/i)).toBeInTheDocument();
     expect(screen.getByText(/repair 1: ask_human \/ syntax \/ fallback shadow_mode_preserves_baseline/i)).toBeInTheDocument();
@@ -668,6 +671,10 @@ describe("SPA delivery gating", () => {
     await userEvent.click(screen.getByRole("button", { name: /Prepare Notebook/i }));
 
     expect(await screen.findByRole("link", { name: /Download Notebook/i })).toHaveAttribute("href", "/api/workspaces/ws-1/data-lab/agent/sessions/run-1/notebook");
+    expect(screen.getByText(/^READY$/i)).toBeInTheDocument();
+    expect(screen.getByText(/Source: fresh export/i)).toBeInTheDocument();
+    expect(screen.getByText(/Artifact: notebook\.ipynb/i)).toBeInTheDocument();
+    expect(screen.queryByText(/\/tmp\/notebook\.ipynb/i)).not.toBeInTheDocument();
   });
 
   test("DataLabAgentPage keeps notebook download unavailable while export POST is pending", async () => {
@@ -764,6 +771,7 @@ describe("SPA delivery gating", () => {
     await userEvent.click(screen.getByRole("button", { name: /Prepare Notebook/i }));
 
     expect(screen.getByRole("button", { name: /Preparing Notebook/i })).toBeDisabled();
+    expect(screen.getByText(/^PREPARING$/i)).toBeInTheDocument();
     expect(screen.getByText(/Preparing notebook export/i)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Download Notebook/i })).not.toBeInTheDocument();
 
@@ -782,5 +790,6 @@ describe("SPA delivery gating", () => {
 
     expect(await screen.findByRole("link", { name: /Download Notebook/i })).toHaveAttribute("href", "/api/workspaces/ws-1/data-lab/agent/sessions/run-1/notebook?download=1");
     expect(screen.getByText(/Notebook download is ready/i)).toBeInTheDocument();
+    expect(screen.getByText(/^READY$/i)).toBeInTheDocument();
   });
 });

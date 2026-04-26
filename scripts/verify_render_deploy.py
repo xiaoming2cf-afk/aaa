@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -11,6 +12,11 @@ from typing import Any
 from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
 
 import requests
+
+try:
+    from scripts.spa_dist_manifest import asset_references_from_text, validate_spa_dist_manifest_payload
+except ModuleNotFoundError:  # pragma: no cover - supports `python scripts/<name>.py`
+    from spa_dist_manifest import asset_references_from_text, validate_spa_dist_manifest_payload
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +32,7 @@ COMMIT_ENV_VARS = (
     "SOURCE_VERSION",
 )
 RENDER_API_URL = "https://api.render.com/v1"
+ENGINEERING_GATE_SCHEMA = "engineering-gate.v1"
 
 
 def _clean_commit(value: str) -> str:
@@ -85,22 +92,236 @@ def _blocking_report(reason: str, *, commit_sha: str = "", detail: Any | None = 
     }
 
 
-def _promotion_smoke_guard(*, base_url: str, deep: bool, register: bool, commit_sha: str) -> dict[str, Any] | None:
+def _load_json_file(path: Path) -> tuple[dict[str, Any] | None, str | None]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    except Exception as exc:
+        return None, f"{path} is not readable JSON: {exc}"
+    if not isinstance(payload, dict):
+        return None, f"{path} must contain a JSON object."
+    return payload, None
+
+
+def _manifest_path_candidates(*, commit_sha: str, engineering_gate: str, spa_manifest: str) -> list[Path]:
+    explicit = [value for value in (spa_manifest, engineering_gate) if value.strip()]
+    if explicit:
+        return [Path(value).expanduser().resolve() for value in explicit]
+    candidates: list[Path] = []
+    for name in ("RESEARCH_AGENT_ENGINEERING_GATE_ARTIFACT", "ENGINEERING_GATE_ARTIFACT_PATH"):
+        value = os.getenv(name, "").strip()
+        if value:
+            candidates.append(Path(value).expanduser().resolve())
+    if commit_sha:
+        candidates.extend(
+            [
+                REPO_ROOT / "output" / "engineering-gate" / f"engineering-gate.{commit_sha}.json",
+                REPO_ROOT / "storage" / "quality" / "gates" / f"engineering-gate.{commit_sha}.json",
+                REPO_ROOT / "storage" / "quality" / f"engineering-gate.{commit_sha}.json",
+            ]
+        )
+    unique: list[Path] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key not in seen:
+            seen.add(key)
+            unique.append(candidate)
+    return unique
+
+
+def _resolve_expected_spa_manifest(
+    *,
+    commit_sha: str,
+    engineering_gate: str = "",
+    spa_manifest: str = "",
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    failures: list[dict[str, Any]] = []
+    candidates = _manifest_path_candidates(commit_sha=commit_sha, engineering_gate=engineering_gate, spa_manifest=spa_manifest)
+    for path in candidates:
+        if not path.exists():
+            failures.append({"path": str(path), "detail": "path does not exist"})
+            continue
+        payload, error = _load_json_file(path)
+        if error or payload is None:
+            failures.append({"path": str(path), "detail": error})
+            continue
+        if payload.get("artifact_schema") == ENGINEERING_GATE_SCHEMA or "spa_dist" in payload:
+            artifact_commit = _clean_commit(str(payload.get("commit_sha") or ""))
+            if artifact_commit != commit_sha:
+                failures.append(
+                    {
+                        "path": str(path),
+                        "detail": f"engineering gate artifact commit {artifact_commit or '<missing>'} does not match {commit_sha}",
+                    }
+                )
+                continue
+            if payload.get("passed") is not True:
+                failures.append({"path": str(path), "detail": "engineering gate artifact is not green"})
+                continue
+            manifest = payload.get("spa_dist")
+        else:
+            manifest = payload
+        manifest_failures = validate_spa_dist_manifest_payload(manifest, commit_sha=commit_sha)
+        if manifest_failures:
+            failures.append({"path": str(path), "detail": "SPA dist manifest is invalid", "failures": manifest_failures})
+            continue
+        return manifest, {
+            "status": "passed",
+            "passed": True,
+            "source": str(path),
+            "commit_sha": commit_sha,
+            "entrypoints": list(manifest.get("entrypoints", [])),
+            "asset_count": len(manifest.get("assets", [])),
+        }
+    return None, {
+        "status": "blocked",
+        "passed": False,
+        "blocked": True,
+        "commit_sha": commit_sha,
+        "reason": "No valid commit-bound SPA dist manifest was available for deploy verification.",
+        "searched": [str(path) for path in candidates],
+        "failures": failures,
+        "required": [
+            "--engineering-gate output/engineering-gate/engineering-gate.<commit>.json",
+            "--spa-manifest <spa-dist-manifest.json>",
+            "RESEARCH_AGENT_ENGINEERING_GATE_ARTIFACT",
+        ],
+    }
+
+
+def _remote_asset_path(base_path: str, asset_path: str) -> str:
+    prefix = "/" + str(base_path or "/app/").strip("/")
+    return f"{prefix}/{asset_path.lstrip('/')}"
+
+
+def _sha256_bytes(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
+
+
+def _verify_deployed_spa_assets(
+    *,
+    base_url: str,
+    manifest: dict[str, Any],
+    session: requests.Session | None = None,
+) -> dict[str, Any]:
+    normalized_base_url = base_url.strip().rstrip("/")
+    http = session or requests.Session()
+    checks: list[dict[str, Any]] = []
+    base_path = str(manifest.get("base_path") or "/app/")
+    expected_assets = {
+        str(entry.get("path")): str(entry.get("sha256"))
+        for entry in manifest.get("assets", [])
+        if isinstance(entry, dict) and entry.get("path") and entry.get("sha256")
+    }
+    expected_entrypoints = set(str(path) for path in manifest.get("entrypoints", []))
+
+    for asset_path, expected_hash in sorted(expected_assets.items()):
+        remote_path = _remote_asset_path(base_path, asset_path)
+        try:
+            response = http.get(f"{normalized_base_url}{remote_path}", timeout=30, allow_redirects=False)
+            actual_hash = _sha256_bytes(response.content) if response.status_code == 200 else ""
+            passed = response.status_code == 200 and actual_hash == expected_hash
+            checks.append(
+                {
+                    "key": "spa_asset_hash_matches_manifest",
+                    "path": remote_path,
+                    "passed": passed,
+                    "status_code": response.status_code,
+                    "detail": "sha256 match" if passed else f"expected {expected_hash}, got {actual_hash or response.text[:120]}",
+                }
+            )
+        except Exception as exc:
+            checks.append(
+                {
+                    "key": "spa_asset_hash_matches_manifest",
+                    "path": remote_path,
+                    "passed": False,
+                    "status_code": 0,
+                    "detail": str(exc),
+                }
+            )
+
+    shell_path = "/" + base_path.strip("/")
+    try:
+        response = http.get(f"{normalized_base_url}{shell_path}", timeout=20, allow_redirects=False)
+        location = response.headers.get("location", "")
+        if response.status_code == 200:
+            actual_entrypoints = asset_references_from_text(response.text)
+            passed = "/src/main.tsx" not in response.text and actual_entrypoints == expected_entrypoints
+            checks.append(
+                {
+                    "key": "spa_shell_entrypoints_match_manifest",
+                    "path": shell_path,
+                    "passed": passed,
+                    "status_code": response.status_code,
+                    "detail": "entrypoints match"
+                    if passed
+                    else "SPA shell entrypoints do not match the commit-bound manifest.",
+                    "expected_entrypoints": sorted(expected_entrypoints),
+                    "actual_entrypoints": sorted(actual_entrypoints),
+                }
+            )
+        else:
+            checks.append(
+                {
+                    "key": "spa_shell_entrypoints_match_manifest",
+                    "path": shell_path,
+                    "passed": response.status_code in {301, 302, 303, 307, 308} and location == "/",
+                    "status_code": response.status_code,
+                    "detail": location or response.text[:120],
+                    "expected_entrypoints": sorted(expected_entrypoints),
+                }
+            )
+    except Exception as exc:
+        checks.append(
+            {
+                "key": "spa_shell_entrypoints_match_manifest",
+                "path": shell_path,
+                "passed": False,
+                "status_code": 0,
+                "detail": str(exc),
+                "expected_entrypoints": sorted(expected_entrypoints),
+            }
+        )
+
+    passed = bool(checks) and all(bool(check.get("passed")) for check in checks)
+    return {
+        "status": "passed" if passed else "blocked",
+        "passed": passed,
+        "base_url": normalized_base_url,
+        "commit_sha": str(manifest.get("commit_sha") or ""),
+        "expected_entrypoints": sorted(expected_entrypoints),
+        "checked_asset_count": len(expected_assets),
+        "checks": checks,
+    }
+
+
+def _promotion_smoke_guard(
+    *,
+    base_url: str,
+    deep: bool,
+    register: bool,
+    commit_sha: str,
+    manifest_report: dict[str, Any],
+) -> dict[str, Any] | None:
     missing: list[str] = []
     if not base_url.strip():
         missing.append("base_url")
     if not (deep or register):
         missing.append("deep_smoke")
+    if manifest_report.get("passed") is not True:
+        missing.append("spa_dist_manifest")
     if not missing:
         return None
     return _blocking_report(
-        "Render deploy promotion requires a deployed base URL and authenticated deep smoke checks.",
+        "Render deploy promotion requires a deployed base URL, authenticated deep smoke checks, and a commit-bound SPA dist manifest.",
         commit_sha=commit_sha,
         detail={
             "missing": missing,
             "base_url_present": bool(base_url.strip()),
             "deep_smoke_requested": bool(deep or register),
-            "required_flags": ["--base-url", "--deep or --register"],
+            "spa_manifest": manifest_report,
+            "required_flags": ["--base-url", "--deep or --register", "--engineering-gate or --spa-manifest"],
         },
     )
 
@@ -210,6 +431,8 @@ def main() -> int:
     parser.add_argument("--register", action="store_true", help="Register a throwaway account for deep smoke checks.")
     parser.add_argument("--auth-email", default="", help="Email for deep smoke login.")
     parser.add_argument("--auth-password", default="", help="Password for deep smoke login.")
+    parser.add_argument("--engineering-gate", default="", help="Commit-bound engineering gate artifact containing spa_dist.")
+    parser.add_argument("--spa-manifest", default="", help="Optional standalone spa-dist manifest JSON.")
     parser.add_argument("--output", default="", help="Optional JSON report path for CI artifacts.")
     args = parser.parse_args()
 
@@ -223,15 +446,22 @@ def main() -> int:
             output_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         return 1
 
+    expected_manifest, manifest_report = _resolve_expected_spa_manifest(
+        commit_sha=commit_sha,
+        engineering_gate=args.engineering_gate,
+        spa_manifest=args.spa_manifest,
+    )
     smoke_guard = _promotion_smoke_guard(
         base_url=args.base_url,
         deep=args.deep,
         register=args.register,
         commit_sha=commit_sha,
+        manifest_report=manifest_report,
     )
     if smoke_guard is not None:
         report = {
             "commit_sha": commit_sha,
+            "spa_manifest": manifest_report,
             "deploy": {
                 "status": "not_triggered",
                 "passed": False,
@@ -252,7 +482,7 @@ def main() -> int:
         return 1
 
     trigger_report = trigger_render_deploy(commit_sha=commit_sha, clear_cache=args.clear_cache)
-    report: dict[str, Any] = {"commit_sha": commit_sha, "deploy": trigger_report}
+    report: dict[str, Any] = {"commit_sha": commit_sha, "spa_manifest": manifest_report, "deploy": trigger_report}
     passed = bool(trigger_report.get("passed"))
 
     if passed:
@@ -268,6 +498,10 @@ def main() -> int:
             smoke_report = _blocking_report("Deploy smoke check failed to execute.", commit_sha=commit_sha, detail=str(exc))
         report["smoke"] = smoke_report
         passed = passed and bool(smoke_report.get("passed"))
+        if passed and expected_manifest is not None:
+            spa_assets_report = _verify_deployed_spa_assets(base_url=args.base_url, manifest=expected_manifest)
+            report["spa_assets"] = spa_assets_report
+            passed = passed and bool(spa_assets_report.get("passed"))
 
     report["status"] = "passed" if passed else "blocked"
     report["passed"] = passed

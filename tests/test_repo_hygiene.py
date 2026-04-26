@@ -133,9 +133,12 @@ def test_ci_workflow_contains_delivery_gate_slices():
         "Compare model engines",
         "Write commit-bound engineering gate artifact",
         "Verify deploy artifact consistency",
+        '--spa-dist "frontend-spa/dist"',
         "deploy-artifacts-${{ github.sha }}",
         "Verify model upgrade slow gate",
         "Trigger Render deploy and smoke check",
+        "name: engineering-gate-${{ github.sha }}",
+        '--engineering-gate "output/engineering-gate/engineering-gate.${GITHUB_SHA}.json"',
         "--deep --register",
         "render-deploy-${{ github.sha }}",
     ):

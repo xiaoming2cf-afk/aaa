@@ -249,6 +249,42 @@ def test_data_lab_trusted_execution_blocks_path_file_capabilities():
         raise AssertionError(f"Data Lab trusted execution should block file capability: {snippet}")
 
 
+def test_data_lab_trusted_execution_blocks_object_capability_escape_paths():
+    from research_agent.data_lab_agent import SafetyViolation, validate_code_safety
+
+    blocked_snippets = [
+        "().__class__.__mro__[1].__subclasses__()",
+        "__builtins__['__import__']('os').system('whoami')",
+        "subprocess.run(['whoami'])",
+        "import pandas as pd\npd.io.common.os.listdir('.')",
+        "import pandas as pd\npd.io.common.urlopen('https://example.com/data.csv')",
+        "import numpy as np\nnp.save('/tmp/leak.npy', df.values)",
+        "import numpy as np\nnp.savetxt('/tmp/leak.csv', df.values)",
+        "import numpy as np\nnp.fromfile('/tmp/leak.bin')",
+        "import numpy as np\ndf.values.tofile('/tmp/leak.bin')",
+        "import numpy as np\nnp.memmap('/tmp/leak.dat', dtype='float32', mode='w+', shape=(2,))",
+    ]
+
+    for snippet in blocked_snippets:
+        try:
+            validate_code_safety(snippet)
+        except SafetyViolation:
+            continue
+        raise AssertionError(f"Data Lab trusted execution should block object escape: {snippet}")
+
+
+def test_data_lab_trusted_execution_allows_dataframe_csv_analysis_workflow():
+    from research_agent.data_lab_agent import validate_code_safety
+
+    validate_code_safety(
+        """
+summary = df[['y', 'x']].corr().round(3).to_string()
+print(summary)
+df.groupby('group')['y'].mean().plot(kind='bar')
+        """
+    )
+
+
 def test_password_reset_email_uses_starttls_only_when_configured(monkeypatch):
     calls: list[tuple[str, str, int, int]] = []
 

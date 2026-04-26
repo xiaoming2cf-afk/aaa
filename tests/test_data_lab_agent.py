@@ -171,9 +171,9 @@ def test_data_lab_agent_session_repair_manual_code_report_and_notebook(monkeypat
     )
     assert outside_write.status_code == 200, outside_write.text
     outside_message = outside_write.json()["message"]
-    assert outside_message["status"] == "needs_human_intervention"
-    assert outside_message["execution"]["error_type"] == "file_write_outside_output"
-    assert outside_message["execution"]["trace"]["error_type"] == "file_write_outside_output"
+    assert outside_message["status"] == "blocked"
+    assert outside_message["execution"]["error_type"] == "safety_policy_violation"
+    assert "not allowed" in outside_message["execution"]["error"]
 
     manual = client.post(
         f"/api/workspaces/{auth['workspace_id']}/data-lab/agent/sessions/{run_id}/messages",

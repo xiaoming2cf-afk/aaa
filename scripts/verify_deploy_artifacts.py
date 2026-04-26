@@ -6,6 +6,11 @@ import re
 from pathlib import Path
 from typing import Any
 
+try:
+    from scripts.spa_dist_manifest import compare_spa_dist_to_manifest, validate_spa_dist_manifest_payload
+except ModuleNotFoundError:  # pragma: no cover - supports `python scripts/<name>.py`
+    from spa_dist_manifest import compare_spa_dist_to_manifest, validate_spa_dist_manifest_payload
+
 
 ENGINEERING_GATE_SCHEMA = "engineering-gate.v1"
 
@@ -71,6 +76,8 @@ def _check_engineering_gate(path: Path, *, commit_sha: str) -> list[dict[str, An
                 "failed_checks": failed_checks,
             }
         )
+    manifest_failures = validate_spa_dist_manifest_payload(payload.get("spa_dist"), commit_sha=commit_sha)
+    failures.extend(manifest_failures)
     return failures
 
 
@@ -112,12 +119,30 @@ def _check_render_deploy(path: Path, *, commit_sha: str) -> list[dict[str, Any]]
                 "smoke": smoke_payload,
             }
         )
+    spa_assets_payload = payload.get("spa_assets") if isinstance(payload.get("spa_assets"), dict) else {}
+    if spa_assets_payload.get("passed") is not True:
+        failures.append(
+            {
+                "key": "render_deploy_spa_assets_bound",
+                "passed": False,
+                "detail": spa_assets_payload.get("reason")
+                or "Render deploy report must include a passing SPA asset manifest verification.",
+                "spa_assets": spa_assets_payload,
+            }
+        )
     return failures
 
 
-def verify_artifacts(*, commit_sha: str, engineering_gate: Path, render_deploy: Path | None = None) -> dict[str, Any]:
+def verify_artifacts(
+    *,
+    commit_sha: str,
+    engineering_gate: Path,
+    render_deploy: Path | None = None,
+    spa_dist: Path | None = None,
+) -> dict[str, Any]:
     expected_commit = _clean_commit(commit_sha)
     failures: list[dict[str, Any]] = []
+    engineering_gate_payload: dict[str, Any] | None = None
     if not expected_commit:
         failures.append({"key": "expected_commit_present", "passed": False, "detail": "Expected commit SHA is empty."})
     if not engineering_gate.exists():
@@ -129,7 +154,19 @@ def verify_artifacts(*, commit_sha: str, engineering_gate: Path, render_deploy: 
             }
         )
     elif expected_commit:
+        engineering_gate_payload, _ = _load_json(engineering_gate)
         failures.extend(_check_engineering_gate(engineering_gate, commit_sha=expected_commit))
+        if spa_dist is not None and engineering_gate_payload is not None:
+            if not spa_dist.exists():
+                failures.append(
+                    {
+                        "key": "spa_dist_path_present",
+                        "passed": False,
+                        "detail": f"{spa_dist} does not exist.",
+                    }
+                )
+            else:
+                failures.extend(compare_spa_dist_to_manifest(spa_dist, engineering_gate_payload.get("spa_dist", {})))
 
     if render_deploy is not None:
         if not render_deploy.exists():
@@ -149,6 +186,7 @@ def verify_artifacts(*, commit_sha: str, engineering_gate: Path, render_deploy: 
         "commit_sha": expected_commit,
         "engineering_gate": str(engineering_gate),
         "render_deploy": str(render_deploy) if render_deploy is not None else "",
+        "spa_dist": str(spa_dist) if spa_dist is not None else "",
         "failures": failures,
     }
 
@@ -158,6 +196,7 @@ def main() -> int:
     parser.add_argument("--commit", required=True, help="Expected commit SHA.")
     parser.add_argument("--engineering-gate", required=True, help="Path to engineering-gate.<commit>.json.")
     parser.add_argument("--render-deploy", default="", help="Optional path to render-deploy.<commit>.json.")
+    parser.add_argument("--spa-dist", default="", help="Optional frontend-spa/dist path to compare against the artifact SPA manifest.")
     parser.add_argument("--output", default="", help="Optional JSON report path.")
     args = parser.parse_args()
 
@@ -165,6 +204,7 @@ def main() -> int:
         commit_sha=args.commit,
         engineering_gate=Path(args.engineering_gate).expanduser().resolve(),
         render_deploy=Path(args.render_deploy).expanduser().resolve() if args.render_deploy.strip() else None,
+        spa_dist=Path(args.spa_dist).expanduser().resolve() if args.spa_dist.strip() else None,
     )
     rendered = json.dumps(report, ensure_ascii=False, indent=2)
     if args.output.strip():

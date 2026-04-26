@@ -71,6 +71,21 @@ _BLOCKED_IMPORT_ROOTS = {
     "sys",
     "urllib",
 }
+_BLOCKED_NAMES = {
+    "__builtins__",
+    "__debug__",
+    "__loader__",
+    "__spec__",
+    "builtins",
+    "importlib",
+    "os",
+    "requests",
+    "shutil",
+    "socket",
+    "subprocess",
+    "sys",
+    "urllib",
+}
 _ALLOWED_IMPORT_ROOTS = {
     "arviz",
     "arch",
@@ -91,6 +106,7 @@ _ALLOWED_IMPORT_ROOTS = {
 }
 _BLOCKED_CALLS = {
     "__import__",
+    "breakpoint",
     "compile",
     "delattr",
     "dir",
@@ -98,20 +114,37 @@ _BLOCKED_CALLS = {
     "exec",
     "getattr",
     "globals",
+    "help",
     "input",
     "locals",
     "open",
+    "quit",
     "setattr",
+    "exit",
     "vars",
 }
 _BLOCKED_ATTRS = {
+    "access",
+    "builtins",
     "chmod",
     "chown",
+    "chdir",
     "environ",
+    "execv",
+    "execve",
+    "fork",
+    "fromfile",
+    "genfromtxt",
+    "getcwd",
     "glob",
+    "importlib",
     "iterdir",
+    "kill",
+    "listdir",
     "makedirs",
+    "memmap",
     "open",
+    "os",
     "popen",
     "read",
     "read_bytes",
@@ -134,14 +167,28 @@ _BLOCKED_ATTRS = {
     "removedirs",
     "rename",
     "replace",
+    "requests",
     "rglob",
     "rmdir",
     "rmtree",
+    "save",
     "savefig",
+    "savetxt",
+    "savez",
+    "savez_compressed",
+    "scandir",
+    "socket",
+    "spawn",
+    "stat",
     "system",
+    "sys",
+    "urllib",
+    "urlopen",
+    "urlretrieve",
     "to_csv",
     "to_excel",
     "to_feather",
+    "tofile",
     "to_hdf",
     "to_json",
     "to_orc",
@@ -151,6 +198,7 @@ _BLOCKED_ATTRS = {
     "to_stata",
     "touch",
     "unlink",
+    "walk",
     "write",
     "write_bytes",
     "write_text",
@@ -181,6 +229,10 @@ _COMMON_WORDS = {
     "show",
     "summary",
 }
+
+
+def _is_dunder_identifier(name: str) -> bool:
+    return len(name) > 4 and name.startswith("__") and name.endswith("__")
 
 
 class SafetyViolation(ValueError):
@@ -1651,6 +1703,9 @@ def validate_code_safety(code: str) -> None:
     except SyntaxError as exc:
         raise ValueError(f"Invalid Python code: {exc}") from exc
     for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+            if node.id in _BLOCKED_NAMES or _is_dunder_identifier(node.id):
+                raise SafetyViolation(f"Accessing name {node.id!r} is not allowed in Data Lab Agent trusted execution.")
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             names = [alias.name for alias in node.names]
             if isinstance(node, ast.ImportFrom) and node.module:
@@ -1665,8 +1720,13 @@ def validate_code_safety(code: str) -> None:
                 raise SafetyViolation(f"Calling {func.id!r} is not allowed in Data Lab Agent trusted execution.")
             if isinstance(func, ast.Attribute) and func.attr in _BLOCKED_ATTRS:
                 raise SafetyViolation(f"Calling attribute {func.attr!r} is not allowed in Data Lab Agent trusted execution.")
-        if isinstance(node, ast.Attribute) and node.attr in _BLOCKED_ATTRS:
-            raise SafetyViolation(f"Accessing attribute {node.attr!r} is not allowed in Data Lab Agent trusted execution.")
+        if isinstance(node, ast.Attribute):
+            if _is_dunder_identifier(node.attr):
+                raise SafetyViolation(
+                    f"Accessing dunder attribute {node.attr!r} is not allowed in Data Lab Agent trusted execution."
+                )
+            if node.attr in _BLOCKED_ATTRS:
+                raise SafetyViolation(f"Accessing attribute {node.attr!r} is not allowed in Data Lab Agent trusted execution.")
 
 
 class ReportWriter:

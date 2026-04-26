@@ -299,6 +299,14 @@ function formatMaybeNumber(value?: number): string {
   return typeof value === "number" ? value.toFixed(3) : "-";
 }
 
+function artifactLabelFromPath(path?: string): string {
+  if (!path) {
+    return "";
+  }
+  const normalized = path.replace(/\\/g, "/").split("?")[0].split("#")[0];
+  return normalized.split("/").filter(Boolean).pop() || "notebook.ipynb";
+}
+
 export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }): JSX.Element {
   const { workspaceId } = useAppState();
   const location = useLocation();
@@ -492,6 +500,26 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
   const needsHuman = currentSession?.run_status === "needs_human_intervention" || humanInterventionRequired(latestAssistantWithCode);
   const fallbackNotebookHref = selectedRunId && currentSession?.notebook_path ? `/api/workspaces/${workspaceId}/data-lab/agent/sessions/${selectedRunId}/notebook` : "";
   const notebookHref = preparedNotebookDownloadPath || fallbackNotebookHref;
+  const notebookExportState = notebookHref
+    ? "READY"
+    : notebookMutation.isPending
+      ? "PREPARING"
+      : selectedRunId
+        ? "NOT PREPARED"
+        : "NO SESSION";
+  const notebookExportMessage = notebookHref
+    ? "Notebook download is ready."
+    : notebookMutation.isPending
+      ? "Preparing notebook export."
+      : selectedRunId
+        ? "Notebook download is not prepared."
+        : "Select a session before preparing a notebook export.";
+  const notebookExportSource = preparedNotebookDownloadPath
+    ? "fresh export"
+    : fallbackNotebookHref
+      ? "session artifact"
+      : "awaiting export";
+  const notebookArtifactLabel = artifactLabelFromPath(currentSession?.notebook_path);
   const permalinkHref = currentSession?.detail_path || (selectedRunId ? `/app/data-lab-agent?run=${selectedRunId}` : "");
   const latestPrompt = latestUser?.content || message;
   const mutationError = createSessionMutation.error
@@ -742,12 +770,21 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
             ) : null}
           </div>
         </div>
-        <div id="data-lab-notebook-status" className="sr-only" role="status" aria-live="polite">
-          {notebookHref
-            ? "Notebook download is ready."
-            : notebookMutation.isPending
-              ? "Preparing notebook export."
-              : "Notebook download is not prepared."}
+        <div id="data-lab-notebook-status" className="list-card static-card notebook-status-card" role="status" aria-live="polite">
+          <div className="list-card-title">
+            <strong>Notebook Export</strong>
+            <span className={notebookHref ? "state-pill success" : notebookMutation.isPending ? "state-pill pending" : "state-pill"}>
+              {notebookExportState}
+            </span>
+          </div>
+          <p>{notebookExportMessage}</p>
+          <div className="inline-metrics">
+            <span>Run: {selectedRunId ? selectedRunId.slice(0, 8) : "none"}</span>
+            <span>Source: {notebookExportSource}</span>
+          </div>
+          {notebookArtifactLabel ? (
+            <p className="muted">Artifact: {notebookArtifactLabel}</p>
+          ) : null}
         </div>
         {sessionQuery.isError ? (
           <InlineErrorState title="Agent session could not load" description={(sessionQuery.error as Error).message} />

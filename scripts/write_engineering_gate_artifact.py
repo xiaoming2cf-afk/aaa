@@ -9,6 +9,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+try:
+    from scripts.spa_dist_manifest import collect_spa_dist_manifest
+except ModuleNotFoundError:  # pragma: no cover - supports `python scripts/<name>.py`
+    from spa_dist_manifest import collect_spa_dist_manifest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT_SCHEMA = "engineering-gate.v1"
@@ -60,43 +65,54 @@ def _failed_check(key: str, label: str, detail: str) -> dict[str, Any]:
     return {"key": key, "label": label, "passed": False, "detail": detail}
 
 
-def _spa_shell_check() -> dict[str, Any]:
-    index_path = REPO_ROOT / "frontend-spa" / "dist" / "index.html"
-    if not index_path.exists():
-        return _failed_check(
-            "spa_built_shell_present",
-            "Built SPA shell is present",
-            f"{index_path} is missing. Run the frontend build before writing the engineering gate artifact.",
-        )
-    text = index_path.read_text(encoding="utf-8", errors="replace")
-    if "/src/main.tsx" in text:
-        return _failed_check(
-            "spa_shell_uses_built_assets",
-            "Built SPA shell does not reference the Vite source entry",
-            f"{index_path} still references /src/main.tsx.",
-        )
-    if "/app/assets/" not in text:
-        return _failed_check(
-            "spa_shell_uses_built_assets",
-            "Built SPA shell references /app/assets/ build outputs",
-            f"{index_path} does not reference /app/assets/ build outputs.",
-        )
-    return _check("spa_shell_uses_built_assets", "Built SPA shell references hashed /app/assets/ outputs")
+def _spa_dist_checks(commit_sha: str) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    manifest, failures = collect_spa_dist_manifest(REPO_ROOT / "frontend-spa" / "dist", commit_sha=commit_sha)
+    if failures:
+        checks = [
+            _failed_check(
+                str(failure.get("key") or "spa_dist_manifest_bound"),
+                "Built SPA dist is complete and bound to the engineering artifact",
+                str(failure.get("detail") or "SPA dist validation failed."),
+            )
+            | {key: value for key, value in failure.items() if key not in {"key", "passed", "detail"}}
+            for failure in failures
+        ]
+        if not any(check["key"] == "spa_dist_manifest_bound" for check in checks):
+            checks.append(
+                _failed_check(
+                    "spa_dist_manifest_bound",
+                    "Built SPA dist manifest is bound to the engineering artifact",
+                    "SPA dist manifest was not written because the built asset set is incomplete or stale.",
+                )
+            )
+        return checks, None
+    asset_count = len(manifest.get("assets", [])) if manifest else 0
+    return [
+        _check("spa_shell_uses_built_assets", "Built SPA shell references hashed /app/assets/ outputs"),
+        _check("spa_dist_referenced_assets_exist", "Built SPA shell and bundles reference existing asset files"),
+        _check("spa_dist_no_stale_assets", "Built SPA dist has no unreachable stale asset files"),
+        _check(
+            "spa_dist_manifest_bound",
+            "Built SPA dist manifest is bound to the engineering artifact",
+            f"{asset_count} asset file(s) hashed",
+        ),
+    ], manifest
 
 
 def build_artifact(*, commit_sha: str, source: str, include_slow_model_upgrade: bool = False) -> dict[str, Any]:
+    spa_checks, spa_manifest = _spa_dist_checks(commit_sha)
     checks = [
         _check("repo_hygiene_clean", "Repository hygiene scan passes"),
         _check("backend_tests_green", "Backend pytest suite passes"),
         _check("frontend_tests_green", "SPA unit test suite passes"),
         _check("frontend_build_green", "SPA build passes"),
-        _spa_shell_check(),
+        *spa_checks,
         _check("agent_quality_gate_green", "Agent quality gate passes"),
         _check("model_engine_comparison_green", "Model engine comparison passes"),
     ]
     if include_slow_model_upgrade:
         checks.append(_check("model_upgrade_slow_gate_green", "Slow model upgrade verification passes"))
-    return {
+    payload = {
         "artifact_schema": ARTIFACT_SCHEMA,
         "commit_sha": commit_sha,
         "passed": all(bool(check.get("passed")) for check in checks),
@@ -104,6 +120,9 @@ def build_artifact(*, commit_sha: str, source: str, include_slow_model_upgrade: 
         "checked_at": _utc_now_iso(),
         "source": source,
     }
+    if spa_manifest is not None:
+        payload["spa_dist"] = spa_manifest
+    return payload
 
 
 def write_artifact(payload: dict[str, Any], output: Path) -> None:
