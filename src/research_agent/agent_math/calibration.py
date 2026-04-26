@@ -155,6 +155,36 @@ def _threshold_failures(metrics: dict[str, Any], thresholds: dict[str, Any]) -> 
     return failures
 
 
+def _stricter_thresholds(
+    defaults: dict[str, dict[str, float]],
+    overrides: Any,
+) -> dict[str, dict[str, float]]:
+    """Merge registry thresholds without allowing a report to weaken code defaults."""
+    effective: dict[str, dict[str, float]] = {
+        family: dict(values)
+        for family, values in (defaults or {}).items()
+        if isinstance(values, dict)
+    }
+    if not isinstance(overrides, dict):
+        return effective
+    for key, values in overrides.items():
+        if not isinstance(values, dict):
+            continue
+        family = effective.setdefault(str(key), {})
+        for metric, raw_value in values.items():
+            metric_key = str(metric)
+            value = _safe_float(raw_value)
+            if value is None:
+                continue
+            if key == "min" and metric_key in family:
+                family[metric_key] = max(float(family[metric_key]), value)
+            elif key == "max" and metric_key in family:
+                family[metric_key] = min(float(family[metric_key]), value)
+            else:
+                family[metric_key] = value
+    return effective
+
+
 def calibration_report_for_subsystem(
     subsystem: str,
     *,
@@ -186,7 +216,7 @@ def calibration_report_for_subsystem(
         **base_metrics,
         **(entry.get("metrics") if isinstance(entry.get("metrics"), dict) else {}),
     }
-    thresholds = entry.get("thresholds") if isinstance(entry.get("thresholds"), dict) else default_thresholds
+    thresholds = _stricter_thresholds(default_thresholds, entry.get("thresholds"))
     failures = _threshold_failures(metrics, thresholds)
     if not requested:
         failures.insert(0, "calibration_not_requested")

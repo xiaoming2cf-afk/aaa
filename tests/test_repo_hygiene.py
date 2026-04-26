@@ -132,6 +132,8 @@ def test_ci_workflow_contains_delivery_gate_slices():
         "Verify agent quality gate",
         "Compare model engines",
         "Write commit-bound engineering gate artifact",
+        "Verify deploy artifact consistency",
+        "deploy-artifacts-${{ github.sha }}",
         "Verify model upgrade slow gate",
         "Trigger Render deploy and smoke check",
         "render-deploy-${{ github.sha }}",

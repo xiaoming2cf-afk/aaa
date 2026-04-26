@@ -23,6 +23,19 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
 
   const arbiterMeta = scorecardQuery.data?.metadata?.arbiter || {};
   const arbiterV2 = arbiterMeta.v2 || {};
+  const scorecard = scorecardQuery.data;
+  const scorecardReady = scorecardQuery.isSuccess && Boolean(scorecard);
+  const scorecardUnavailable = scorecardQuery.isLoading || scorecardQuery.isError;
+  const scoreChipLabel = scorecardQuery.isLoading
+    ? "Loading"
+    : scorecardQuery.isError
+      ? "Unavailable"
+      : `${scorecard?.total_score ?? 0}/500`;
+  const scorecardStatus = scorecardUnavailable
+    ? "UNKNOWN"
+    : scorecard?.deliverable
+      ? "PASS"
+      : "BLOCKED";
 
   return (
     <div className="page-grid">
@@ -33,21 +46,41 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
             <h3>Scorecard</h3>
             <p>Publication is allowed only when the business score reaches 500/500 and the engineering gate is fully green.</p>
           </div>
-          <div className={scorecardQuery.data?.deliverable ? "score-chip success" : "score-chip"}>
-            {scorecardQuery.data?.total_score || 0}/500
+          <div className={scorecard?.deliverable ? "score-chip success" : "score-chip"}>
+            {scoreChipLabel}
           </div>
         </div>
+        {scorecardQuery.isLoading ? (
+          <div className="list-card static-card inline-state" role="status" aria-live="polite">
+            <strong>Checking delivery status</strong>
+            <p>Loading business and engineering gate results for this workspace.</p>
+          </div>
+        ) : null}
+        {scorecardQuery.isError ? (
+          <InlineErrorState
+            title="Delivery status unavailable"
+            description={(scorecardQuery.error as Error).message}
+            action={(
+              <button className="ghost-button" type="button" onClick={() => void scorecardQuery.refetch()}>
+                Retry scorecard
+              </button>
+            )}
+          />
+        ) : null}
         <div className="list-card static-card">
           <div className="list-card-title">
             <strong>Workspace Deliverable</strong>
-            <span>{scorecardQuery.data?.deliverable ? "PASS" : "BLOCKED"}</span>
+            <span>{scorecardStatus}</span>
           </div>
-          <p>Business gate: {scorecardQuery.data?.business_deliverable ? "PASS" : "FAIL"} / Engineering gate: {scorecardQuery.data?.engineering_gate?.passed ? "PASS" : "FAIL"}</p>
-          <p>{(scorecardQuery.data?.blocking_reasons || [])[0] || "No blocking reasons recorded."}</p>
+          {scorecardReady ? (
+            <>
+              <p>Business gate: {scorecard.business_deliverable ? "PASS" : "FAIL"} / Engineering gate: {scorecard.engineering_gate?.passed ? "PASS" : "FAIL"}</p>
+              <p>{(scorecard.blocking_reasons || [])[0] || "No blocking reasons recorded."}</p>
+            </>
+          ) : (
+            <p>Gate state is unknown until the quality API returns a current scorecard.</p>
+          )}
         </div>
-        {scorecardQuery.isError ? (
-          <InlineErrorState title="Scorecard could not load" description={(scorecardQuery.error as Error).message} />
-        ) : null}
         <div className="list-card static-card">
           <div className="list-card-title">
             <strong>ARBITER Delivery Layer</strong>
@@ -58,7 +91,7 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
           <p>Recent v2 choices: {(arbiterV2.recent_choices || []).length ? (arbiterV2.recent_choices as boolean[]).map((item) => (item ? "deliver" : "block")).join(", ") : "none"}</p>
         </div>
         <div className="scorecard-grid">
-          {(scorecardQuery.data?.dimensions || []).map((dimension: any) => (
+          {(scorecard?.dimensions || []).map((dimension: any) => (
             <div key={dimension.key} className="score-card">
               <div className="score-card-head">
                 <strong>{dimension.label}</strong>
@@ -71,21 +104,23 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
               </ul>
             </div>
           ))}
-          {scorecardQuery.isSuccess && !scorecardQuery.data?.dimensions?.length ? (
+          {scorecardQuery.isSuccess && !scorecard?.dimensions?.length ? (
             <InlineEmptyState title="No scorecard dimensions yet" description="Run quality scoring to populate delivery dimensions and checks." />
           ) : null}
         </div>
-        <div className="score-card">
-          <div className="score-card-head">
-            <strong>Engineering Gate</strong>
-            <span>{scorecardQuery.data?.engineering_gate?.passed ? "PASS" : "FAIL"}</span>
+        {scorecardReady ? (
+          <div className="score-card">
+            <div className="score-card-head">
+              <strong>Engineering Gate</strong>
+              <span>{scorecard.engineering_gate?.passed ? "PASS" : "FAIL"}</span>
+            </div>
+            <ul className="plain-list">
+              {(scorecard.engineering_gate?.checks || []).map((check: any) => (
+                <li key={check.key}>{check.passed ? "PASS" : "FAIL"} / {check.label}</li>
+              ))}
+            </ul>
           </div>
-          <ul className="plain-list">
-            {(scorecardQuery.data?.engineering_gate?.checks || []).map((check: any) => (
-              <li key={check.key}>{check.passed ? "PASS" : "FAIL"} / {check.label}</li>
-            ))}
-          </ul>
-        </div>
+        ) : null}
       </section>
 
       <section className="panel panel-span">
@@ -96,8 +131,22 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
           </div>
         </div>
         <div className="list-stack">
+          {runsQuery.isLoading ? (
+            <div className="list-card static-card inline-state" role="status" aria-live="polite">
+              <strong>Loading quality snapshots</strong>
+              <p>Fetching recent persisted run outcomes.</p>
+            </div>
+          ) : null}
           {runsQuery.isError ? (
-            <InlineErrorState title="Quality snapshots could not load" description={(runsQuery.error as Error).message} />
+            <InlineErrorState
+              title="Quality snapshots could not load"
+              description={(runsQuery.error as Error).message}
+              action={(
+                <button className="ghost-button" type="button" onClick={() => void runsQuery.refetch()}>
+                  Retry snapshots
+                </button>
+              )}
+            />
           ) : null}
           {(runsQuery.data?.items || []).map((item) => (
             <div key={item.run_id} className="list-card static-card">

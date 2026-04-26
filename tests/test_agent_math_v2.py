@@ -215,6 +215,80 @@ def test_failing_calibration_registry_keeps_surrogate_blocked(tmp_path):
     assert "baseline_delta_below_min" in report.failure_reasons
 
 
+def test_calibration_registry_cannot_remove_default_thresholds(tmp_path):
+    registry_path = tmp_path / "calibration_registry.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "registry_version": "test.registry.v1",
+                "subsystems": {
+                    "retrieval": {
+                        "version": "retrieval.test.unsafe-empty-thresholds",
+                        "calibrated": True,
+                        "metrics": {
+                            "top_k_recall": 0.1,
+                            "baseline_top_k_recall": 0.9,
+                            "baseline_delta": -0.8,
+                            "golden_query_count": 0,
+                        },
+                        "thresholds": {},
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = calibration_report_for_subsystem("retrieval", registry_path=registry_path)
+
+    assert report.calibrated is False
+    assert report.thresholds["min"]["top_k_recall"] == 0.8
+    assert "top_k_recall_below_min" in report.failure_reasons
+    assert "golden_query_count_below_min" in report.failure_reasons
+
+
+def test_calibration_registry_cannot_weaken_default_thresholds(tmp_path):
+    registry_path = tmp_path / "calibration_registry.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "registry_version": "test.registry.v1",
+                "subsystems": {
+                    "delivery": {
+                        "version": "delivery.test.weakened",
+                        "calibrated": True,
+                        "metrics": {
+                            "brier_score": 0.4,
+                            "expected_calibration_error": 0.2,
+                            "false_publish_rate": 0.1,
+                            "false_block_rate": 0.4,
+                            "calibration_sample_count": 2,
+                        },
+                        "thresholds": {
+                            "max": {
+                                "brier_score": 1.0,
+                                "expected_calibration_error": 1.0,
+                                "false_publish_rate": 1.0,
+                                "false_block_rate": 1.0,
+                            },
+                            "min": {"calibration_sample_count": 1},
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = calibration_report_for_subsystem("delivery", registry_path=registry_path)
+
+    assert report.calibrated is False
+    assert report.thresholds["max"]["false_publish_rate"] == 0.0
+    assert report.thresholds["min"]["calibration_sample_count"] == 30.0
+    assert "false_publish_rate_above_max" in report.failure_reasons
+    assert "calibration_sample_count_below_min" in report.failure_reasons
+
+
 def test_retrieval_admissibility_is_consistent_between_baseline_and_v2():
     candidates = [
         {
@@ -464,6 +538,51 @@ def test_calibrated_delivery_trace_uses_calibrated_posterior_semantics(tmp_path)
     assert trace["math_status"]["calibrated"] is True
     assert trace["posterior_semantics"] == "calibrated_posterior"
     assert trace["v2"]["posterior_semantics"] == "calibrated_posterior"
+
+
+def test_calibrated_active_delivery_can_block_weak_baseline_delivery(tmp_path):
+    registry_path = tmp_path / "calibration_registry.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "registry_version": "test.registry.v1",
+                "subsystems": {
+                    "delivery": {
+                        "version": "delivery.test.pass",
+                        "calibrated": True,
+                        "metrics": {
+                            "brier_score": 0.01,
+                            "expected_calibration_error": 0.01,
+                            "false_publish_rate": 0.0,
+                            "false_block_rate": 0.0,
+                            "calibration_sample_count": 30,
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    trace = build_delivery_posterior_trace(
+        citation_coverage=0.0,
+        unsupported_claim_rate=1.0,
+        review_block_precision=0.0,
+        review_approved=False,
+        artifact_present=False,
+        engineering_gate_passed=True,
+        baseline_deliverable=True,
+        mode="active",
+        threshold=0.9,
+        override_margin=0.01,
+        calibration_registry_path=str(registry_path),
+    )
+
+    assert trace["v2"]["proposed_deliverable"] is False
+    assert trace["deliverable_proxy"] is False
+    assert trace["decision_score_semantics"] == "block_confidence_below_delivery_threshold"
+    assert trace["v2"]["comparison"]["override_applied"] is True
+    assert trace["v2"]["comparison"]["chosen_choice"] == "block"
 
 
 def test_candidate_selection_records_missing_v2_metadata_without_overriding_baseline():

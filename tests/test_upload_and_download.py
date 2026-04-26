@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from research_agent.entities import DataAsset
-from research_agent.asset_storage import store_asset_content
+from research_agent.asset_storage import build_asset_object_key, load_asset_bytes, store_asset_content
 from research_agent.config import Settings
 
 
@@ -99,3 +99,31 @@ def test_download_rejects_local_asset_path_outside_storage_root(client, auth_hea
 
     download = client.get(f"/api/assets/{asset.id}/download")
     assert download.status_code == 404
+
+
+def test_remote_asset_download_requires_configured_bucket(tmp_path: Path):
+    settings = Settings(
+        app_env="test",
+        app_secret="test-secret-with-sufficient-length-1234567890",
+        storage_dir=tmp_path / "storage",
+        supabase_url="https://example.supabase.co",
+        supabase_service_role_key="service-role-key",
+        supabase_storage_bucket="research-assets",
+    )
+
+    try:
+        load_asset_bytes(settings, "supabase://other-bucket/user/workspace/asset/file.csv")
+    except FileNotFoundError:
+        return
+    raise AssertionError("Remote asset references outside the configured bucket should be rejected")
+
+
+def test_remote_asset_object_keys_reject_traversal_segments():
+    unsafe_values = ["..", "user/other", "user\\other", "user\nother"]
+
+    for value in unsafe_values:
+        try:
+            build_asset_object_key(value, "workspace", "asset-id", "sample.csv")
+        except ValueError:
+            continue
+        raise AssertionError(f"Unsafe remote asset object key segment should be rejected: {value!r}")

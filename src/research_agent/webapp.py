@@ -51,9 +51,10 @@ from .data_lab_catalog import (
 )
 from .data_lab_agent import (
     create_agent_session,
-    export_agent_notebook,
+    generate_agent_notebook,
     generate_agent_report,
     get_agent_llm_config,
+    get_agent_notebook_path,
     get_agent_session,
     send_agent_message,
     test_agent_llm_config,
@@ -3283,11 +3284,38 @@ def create_app() -> FastAPI:
         except Exception as exc:
             _raise_http_error(exc)
 
-    @app.get("/api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/notebook")
-    def export_data_lab_agent_session_notebook(
+    @app.post("/api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/notebook")
+    def generate_data_lab_agent_session_notebook(
         workspace_id: str,
         run_id: str,
         raw_request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                result = generate_agent_notebook(settings, db, user=user, workspace=workspace, run_id=run_id)
+                _audit_workspace_action(
+                    db,
+                    request=raw_request,
+                    action="data_lab.agent.notebook.generate",
+                    user=user,
+                    workspace=workspace,
+                    resource_type="data_lab_run",
+                    resource_id=run_id,
+                    summary="Generated a Data Lab Agent notebook artifact.",
+                )
+                return result
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/workspaces/{workspace_id}/data-lab/agent/sessions/{run_id}/notebook")
+    def download_data_lab_agent_session_notebook(
+        workspace_id: str,
+        run_id: str,
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> Response:
@@ -3296,17 +3324,7 @@ def create_app() -> FastAPI:
             with session_scope() as db:
                 user = get_current_user(db, token)
                 workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
-                notebook_path = export_agent_notebook(settings, db, user=user, workspace=workspace, run_id=run_id)
-                _audit_workspace_action(
-                    db,
-                    request=raw_request,
-                    action="data_lab.agent.notebook",
-                    user=user,
-                    workspace=workspace,
-                    resource_type="data_lab_run",
-                    resource_id=run_id,
-                    summary="Exported a Data Lab Agent notebook.",
-                )
+                notebook_path = get_agent_notebook_path(settings, db, user=user, workspace=workspace, run_id=run_id)
                 return FileResponse(
                     notebook_path,
                     media_type="application/x-ipynb+json",

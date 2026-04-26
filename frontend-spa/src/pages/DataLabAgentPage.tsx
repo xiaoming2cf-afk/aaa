@@ -252,6 +252,14 @@ type ReportResponse = {
   };
 };
 
+type NotebookResponse = {
+  session: AgentSession;
+  notebook: {
+    path: string;
+    download_path: string;
+  };
+};
+
 const EMPTY_LLM_FORM: LlmFormState = {
   enabled: false,
   base_url: "",
@@ -461,6 +469,16 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
     },
   });
 
+  const notebookMutation = useMutation({
+    mutationFn: () => apiFetch<NotebookResponse>(`/api/workspaces/${workspaceId}/data-lab/agent/sessions/${selectedRunId}/notebook`, {
+      method: "POST",
+    }),
+    onSuccess: (payload) => {
+      queryClient.setQueryData(["data-lab-agent-session", workspaceId, selectedRunId], { session: payload.session });
+      void queryClient.invalidateQueries({ queryKey: ["data-lab-history", workspaceId] });
+    },
+  });
+
   const currentSession = sessionQuery.data?.session;
   const messages = currentSession?.messages || [];
   const firstProfile = currentSession?.assets?.[0]?.profile;
@@ -468,12 +486,13 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
   const latestAssistantWithCode = [...messages].reverse().find((item) => item.role === "assistant" && item.code);
   const latestUser = [...messages].reverse().find((item) => item.role === "user");
   const needsHuman = currentSession?.run_status === "needs_human_intervention" || humanInterventionRequired(latestAssistantWithCode);
-  const notebookHref = selectedRunId ? `/api/workspaces/${workspaceId}/data-lab/agent/sessions/${selectedRunId}/notebook` : "";
+  const notebookHref = selectedRunId && currentSession?.notebook_path ? `/api/workspaces/${workspaceId}/data-lab/agent/sessions/${selectedRunId}/notebook` : "";
   const permalinkHref = currentSession?.detail_path || (selectedRunId ? `/app/data-lab-agent?run=${selectedRunId}` : "");
   const latestPrompt = latestUser?.content || message;
   const mutationError = createSessionMutation.error
     || sendMessageMutation.error
     || reportMutation.error
+    || notebookMutation.error
     || saveLlmConfigMutation.error
     || testLlmConfigMutation.error;
 
@@ -697,9 +716,17 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
           </div>
           <div className="action-row">
             {selectedRunId ? (
-              <a className="ghost-button" href={notebookHref}>
-                Notebook
-              </a>
+              <button
+                className="ghost-button"
+                type="button"
+                disabled={notebookMutation.isPending}
+                onClick={() => notebookMutation.mutate()}
+              >
+                Prepare Notebook
+              </button>
+            ) : null}
+            {notebookHref ? (
+              <a className="ghost-button" href={notebookHref}>Download Notebook</a>
             ) : null}
             {permalinkHref ? (
               <a className="ghost-button" href={permalinkHref}>

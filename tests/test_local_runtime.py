@@ -339,3 +339,86 @@ def test_engineering_gate_artifact_contains_commit_and_critical_gates(tmp_path, 
         "model_engine_comparison_green",
     ):
         assert expected in keys
+
+
+def test_deploy_artifact_verifier_accepts_matching_green_artifacts(tmp_path):
+    module = _load_script_module("verify_deploy_artifacts_success_test", "scripts/verify_deploy_artifacts.py")
+    commit_sha = "abc123def456"
+    engineering_gate = tmp_path / f"engineering-gate.{commit_sha}.json"
+    engineering_gate.write_text(
+        json.dumps(
+            {
+                "artifact_schema": "engineering-gate.v1",
+                "commit_sha": commit_sha,
+                "passed": True,
+                "checks": [{"key": "backend_tests_green", "passed": True}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    render_deploy = tmp_path / f"render-deploy.{commit_sha}.json"
+    render_deploy.write_text(
+        json.dumps(
+            {
+                "commit_sha": commit_sha,
+                "passed": True,
+                "deploy": {"passed": True, "commit_sha": commit_sha},
+                "smoke": {"passed": True},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = module.verify_artifacts(commit_sha=commit_sha, engineering_gate=engineering_gate, render_deploy=render_deploy)
+
+    assert report["passed"] is True
+    assert report["failures"] == []
+
+
+def test_deploy_artifact_verifier_blocks_commit_mismatch_and_failed_gate(tmp_path):
+    module = _load_script_module("verify_deploy_artifacts_blocked_test", "scripts/verify_deploy_artifacts.py")
+    commit_sha = "abc123def456"
+    engineering_gate = tmp_path / "engineering-gate.wrong.json"
+    engineering_gate.write_text(
+        json.dumps(
+            {
+                "artifact_schema": "engineering-gate.v1",
+                "commit_sha": "wrong",
+                "passed": False,
+                "checks": [{"key": "frontend_build_green", "passed": False, "detail": "failed"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = module.verify_artifacts(commit_sha=commit_sha, engineering_gate=engineering_gate)
+
+    assert report["passed"] is False
+    failure_keys = {failure["key"] for failure in report["failures"]}
+    assert "engineering_gate_commit_match" in failure_keys
+    assert "engineering_gate_filename_commit_match" in failure_keys
+    assert "engineering_gate_passed" in failure_keys
+
+
+def test_model_upgrade_default_shards_cover_known_slow_methods():
+    module = _load_script_module("verify_model_upgrade_shards_test", "scripts/verify_model_upgrade.py")
+
+    shard_methods = ",".join(shard.get("methods", "") for shard in module._DEFAULT_VERIFICATION_SHARDS)
+
+    assert len(module._DEFAULT_VERIFICATION_SHARDS) >= 5
+    assert "country_panel" in {shard.get("groups", "") for shard in module._DEFAULT_VERIFICATION_SHARDS}
+    assert "varmax" in shard_methods
+    assert "discrete_allocation" in shard_methods
+
+
+def test_model_upgrade_shard_json_parser_ignores_progress_lines():
+    module = _load_script_module("verify_model_upgrade_json_parser_test", "scripts/verify_model_upgrade.py")
+
+    report = module._extract_json_report(
+        "[verify_model_upgrade] START varmax\n"
+        "{\"status\": \"passed\", \"model_count\": 1, \"models\": []}\n"
+        "non-json trailer\n"
+    )
+
+    assert report["status"] == "passed"
+    assert report["model_count"] == 1

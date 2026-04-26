@@ -31,6 +31,16 @@ The artifact includes `commit_sha`, `artifact_schema`, `checked_at`, `source`, `
 
 In Render auto-deploy scenarios, the runtime commit is discovered from Render's commit environment when available. If Render does not expose a commit or the matching artifact is not installed in one of the lookup locations, quality and publish gates report `engineering_gate_runtime_commit_missing` or `engineering_gate_artifact_missing` and fail closed.
 
+## Deploy Artifact Consistency
+
+CI verifies the deploy artifacts before a manual Render deploy job can start:
+
+```powershell
+python scripts/verify_deploy_artifacts.py --commit <commit_sha> --engineering-gate output/engineering-gate/engineering-gate.<commit_sha>.json --output output/deploy-artifacts/deploy-artifacts.<commit_sha>.json
+```
+
+The verifier blocks when the engineering gate JSON is unreadable, uses the wrong `artifact_schema`, has `passed: false`, embeds a different `commit_sha`, or has a filename that is not bound to the same commit. It can also validate a Render deploy report with `--render-deploy`; in that mode the deploy report must be green and must match the same commit in both JSON content and filename.
+
 ## Deploy Smoke
 
 The deploy smoke command always checks:

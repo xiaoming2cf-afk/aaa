@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
+import re
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,9 @@ except ImportError:  # pragma: no cover - optional dependency for local-only set
 
 
 SUPABASE_PREFIX = "supabase://"
+_REMOTE_OBJECT_KEY_MAX_BYTES = 1024
+_REMOTE_OBJECT_SEGMENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
+_REMOTE_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 
 
 @dataclass
@@ -52,13 +56,43 @@ def parse_asset_reference(reference: str) -> tuple[str, str]:
     bucket, _, object_key = bucket_and_key.partition("/")
     if not bucket or not object_key:
         raise ValueError("Malformed remote asset reference.")
+    _validate_remote_path_parts(bucket, object_key)
     return bucket, object_key
 
 
 def build_asset_object_key(user_id: str, workspace_id: str, asset_id: str, filename: str) -> str:
+    safe_user_id = _validate_remote_object_segment(user_id, field_name="user_id")
+    safe_workspace_id = _validate_remote_object_segment(workspace_id, field_name="workspace_id")
+    safe_asset_id = _validate_remote_object_segment(asset_id, field_name="asset_id")
     path = Path(filename)
     safe_stem = slugify(path.stem, max_length=48)
-    return f"{user_id}/{workspace_id}/{asset_id}/{safe_stem}{path.suffix}"
+    safe_filename = _validate_remote_filename(f"{safe_stem}{path.suffix}")
+    return f"{safe_user_id}/{safe_workspace_id}/{safe_asset_id}/{safe_filename}"
+
+
+def _validate_remote_object_segment(value: str, *, field_name: str) -> str:
+    segment = str(value or "").strip()
+    if not _REMOTE_OBJECT_SEGMENT.fullmatch(segment) or segment in {".", ".."}:
+        raise ValueError(f"Unsafe remote asset {field_name}.")
+    return segment
+
+
+def _validate_remote_filename(filename: str) -> str:
+    name = str(filename or "").strip()
+    if "/" in name or "\\" in name or _REMOTE_CONTROL_CHARS.search(name) or name in {"", ".", ".."}:
+        raise ValueError("Unsafe remote asset filename.")
+    return name
+
+
+def _validate_remote_path_parts(bucket: str, object_key: str) -> None:
+    _validate_remote_object_segment(bucket, field_name="bucket")
+    if len(object_key.encode("utf-8")) > _REMOTE_OBJECT_KEY_MAX_BYTES:
+        raise ValueError("Remote asset object key is too long.")
+    if "\\" in object_key or _REMOTE_CONTROL_CHARS.search(object_key):
+        raise ValueError("Malformed remote asset reference.")
+    segments = object_key.split("/")
+    if not segments or any(segment in {"", ".", ".."} for segment in segments):
+        raise ValueError("Malformed remote asset reference.")
 
 
 @lru_cache(maxsize=4)
@@ -166,6 +200,8 @@ def load_asset_bytes(settings: Settings, reference: str) -> bytes:
         if not settings.has_supabase_storage_config:
             raise RuntimeError("Supabase asset storage is configured for this asset, but credentials are missing.")
         bucket, object_key = parse_asset_reference(reference)
+        if bucket != settings.supabase_storage_bucket:
+            raise FileNotFoundError("Asset file is missing from storage.")
         client = _get_supabase_client(settings.supabase_url, settings.supabase_service_role_key)
         return client.storage.from_(bucket).download(object_key)
 

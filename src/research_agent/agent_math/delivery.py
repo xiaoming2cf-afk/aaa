@@ -54,11 +54,19 @@ def build_delivery_posterior_trace(
     )
     delivery_posterior = clamp_unit(adequacy * governance)
     proposed_deliverable = delivery_posterior >= float(threshold) and engineering_gate_passed
+    if baseline_deliverable and not proposed_deliverable:
+        baseline_decision_score = 0.0
+        proposed_decision_score = clamp_unit((float(threshold) - delivery_posterior) / max(float(threshold), 1e-9))
+        decision_score_semantics = "block_confidence_below_delivery_threshold"
+    else:
+        baseline_decision_score = 1.0 if baseline_deliverable else 0.0
+        proposed_decision_score = float(delivery_posterior)
+        decision_score_semantics = "delivery_probability_proxy"
     comparison = build_shadow_comparison(
         baseline_choice="deliver" if baseline_deliverable else "block",
         proposed_choice="deliver" if proposed_deliverable else "block",
-        baseline_score=1.0 if baseline_deliverable else 0.0,
-        proposed_score=float(delivery_posterior),
+        baseline_score=baseline_decision_score,
+        proposed_score=proposed_decision_score,
         override_margin=float(override_margin),
         mode=mode,
         feasible=bool(engineering_gate_passed and (baseline_deliverable or not proposed_deliverable)),
@@ -118,6 +126,7 @@ def build_delivery_posterior_trace(
         "threshold": round(float(threshold), 6),
         "deliverable_proxy": chosen_deliverable,
         "surrogate": "zero_safe_weighted_delivery_evidence_proxy",
+        "decision_score_semantics": decision_score_semantics,
         "math_status": status,
         "calibration": status,
         "v2": v2,

@@ -2348,6 +2348,18 @@ def export_agent_notebook(
     workspace: Workspace,
     run_id: str,
 ) -> Path:
+    result = generate_agent_notebook(settings, db, user=user, workspace=workspace, run_id=run_id)
+    return Path(str((result.get("notebook") or {}).get("path") or "")).resolve()
+
+
+def generate_agent_notebook(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    run_id: str,
+) -> dict[str, Any]:
     _require_enabled(settings)
     run = _run_or_raise(db, user=user, workspace=workspace, run_id=run_id)
     session = _session_from_run(run)
@@ -2357,6 +2369,33 @@ def export_agent_notebook(
     session["updated_at"] = _utc_now()
     _assign_session(run, session)
     db.flush()
+    return {
+        "session": public_session_payload(session),
+        "notebook": {
+            "path": str(notebook_path),
+            "download_path": f"/api/workspaces/{workspace.id}/data-lab/agent/sessions/{run_id}/notebook",
+        },
+    }
+
+
+def get_agent_notebook_path(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    run_id: str,
+) -> Path:
+    _require_enabled(settings)
+    run = _run_or_raise(db, user=user, workspace=workspace, run_id=run_id)
+    session = _session_from_run(run)
+    work_dir = _validated_session_work_dir(settings, session)
+    raw_notebook_path = str(session.get("notebook_path") or "").strip()
+    notebook_path = Path(raw_notebook_path).resolve() if raw_notebook_path else (work_dir / "notebook.ipynb").resolve()
+    if notebook_path.suffix.lower() != ".ipynb" or not _path_is_within(notebook_path, work_dir):
+        raise FileNotFoundError("Notebook export is not available.")
+    if not notebook_path.is_file():
+        raise FileNotFoundError("Notebook export is not available.")
     return notebook_path
 
 

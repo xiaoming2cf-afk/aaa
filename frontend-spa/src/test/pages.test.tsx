@@ -358,6 +358,35 @@ describe("SPA delivery gating", () => {
     expect(screen.getByText(/arbiter v2 posterior 0.91/i)).toBeInTheDocument();
   });
 
+  test("QualityPage surfaces unavailable gate state without showing a false blocked score", async () => {
+    apiFetchMock.mockImplementation(async (path: string) => {
+      if (path === "/api/workspaces/ws-1/quality/scorecard") {
+        throw new Error("Scorecard API timed out");
+      }
+      if (path === "/api/workspaces/ws-1/quality/runs") {
+        throw new Error("Quality snapshots API timed out");
+      }
+      return {};
+    });
+
+    const useAppState = () => ({
+      workspaceId: "ws-1",
+    });
+
+    renderWithQuery(<QualityPage useAppState={useAppState} />);
+
+    expect(await screen.findByText(/Delivery status unavailable/i)).toBeInTheDocument();
+    expect(screen.getByText(/Scorecard API timed out/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Unavailable$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^UNKNOWN$/i)).toBeInTheDocument();
+    expect(screen.getByText(/Gate state is unknown until the quality API returns a current scorecard/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Retry scorecard/i })).toBeInTheDocument();
+    expect(await screen.findByText(/Quality snapshots could not load/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Retry snapshots/i })).toBeInTheDocument();
+    expect(screen.queryByText("0/500")).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Engineering Gate$/i)).not.toBeInTheDocument();
+  });
+
   test("DataLabAgentPage hydrates from query run id and surfaces human intervention and report preview", async () => {
     apiFetchMock.mockImplementation(async (path: string, init?: RequestInit) => {
       if (path === "/api/workspaces/ws-1/assets") {
@@ -579,6 +608,20 @@ describe("SPA delivery gating", () => {
           },
         };
       }
+      if (path === "/api/workspaces/ws-1/data-lab/agent/sessions/run-1/notebook") {
+        return {
+          session: {
+            run_id: "run-1",
+            title: "Deep linked session",
+            notebook_path: "/tmp/notebook.ipynb",
+            messages: [],
+          },
+          notebook: {
+            path: "/tmp/notebook.ipynb",
+            download_path: "/api/workspaces/ws-1/data-lab/agent/sessions/run-1/notebook",
+          },
+        };
+      }
       if (path === "/api/workspaces/ws-1/data-lab/agent/sessions/run-1/messages") {
         return {
           session: {
@@ -604,7 +647,8 @@ describe("SPA delivery gating", () => {
     expect(await screen.findByRole("heading", { name: /Deep linked session/i })).toBeInTheDocument();
     expect(await screen.findByDisplayValue("https://gateway.example/v1")).toBeInTheDocument();
     expect(screen.getAllByText(/Human intervention required/i).length).toBeGreaterThan(0);
-    expect(screen.getByRole("link", { name: /Notebook/i })).toHaveAttribute("href", "/api/workspaces/ws-1/data-lab/agent/sessions/run-1/notebook");
+    expect(screen.getByRole("button", { name: /Prepare Notebook/i })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Download Notebook/i })).not.toBeInTheDocument();
     expect(screen.getByText(/mode shadow \/ override margin 0\.05 \/ successful cells 1 \/ safety events 1 \/ run needs_human_intervention/i)).toBeInTheDocument();
     expect(screen.getByText(/retrieval baseline card-1 \/ proposed card-1 \/ chosen card-1 \/ fallback shadow_mode_preserves_baseline/i)).toBeInTheDocument();
     expect(screen.getByText(/repair 1: ask_human \/ syntax \/ fallback shadow_mode_preserves_baseline/i)).toBeInTheDocument();
@@ -620,5 +664,9 @@ describe("SPA delivery gating", () => {
 
     expect(await screen.findByText(/Generated Report/i)).toBeInTheDocument();
     expect(screen.getByText(/Analysis Steps/i)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Prepare Notebook/i }));
+
+    expect(await screen.findByRole("link", { name: /Download Notebook/i })).toHaveAttribute("href", "/api/workspaces/ws-1/data-lab/agent/sessions/run-1/notebook");
   });
 });

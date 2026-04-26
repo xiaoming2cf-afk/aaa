@@ -211,6 +211,20 @@ def test_data_lab_agent_session_repair_manual_code_report_and_notebook(monkeypat
     assert report.status_code == 200, report.text
     assert "Analysis Steps" in report.json()["report"]["markdown"]
 
+    notebook_before_generate = client.get(f"/api/workspaces/{auth['workspace_id']}/data-lab/agent/sessions/{run_id}/notebook")
+    assert notebook_before_generate.status_code == 404
+
+    notebook_without_csrf = client.post(f"/api/workspaces/{auth['workspace_id']}/data-lab/agent/sessions/{run_id}/notebook")
+    assert notebook_without_csrf.status_code == 403
+
+    generated_notebook = client.post(
+        f"/api/workspaces/{auth['workspace_id']}/data-lab/agent/sessions/{run_id}/notebook",
+        headers={"X-CSRF-Token": auth["csrf"]},
+    )
+    assert generated_notebook.status_code == 200, generated_notebook.text
+    assert generated_notebook.json()["notebook"]["download_path"].endswith(f"/data-lab/agent/sessions/{run_id}/notebook")
+    assert generated_notebook.json()["session"]["notebook_path"].endswith("notebook.ipynb")
+
     notebook = client.get(f"/api/workspaces/{auth['workspace_id']}/data-lab/agent/sessions/{run_id}/notebook")
     assert notebook.status_code == 200, notebook.text
     assert notebook.headers["X-Content-Type-Options"] == "nosniff"

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -23,6 +24,27 @@ from session_auth import same_origin_headers, session_token_from_cookies  # noqa
 from verify_data_lab import auth_headers, build_panel_dataset, build_time_series_dataset, configure_test_environment, create_workspace, upload_csv_asset  # noqa: E402
 from verify_data_lab_full import _assert_model_output, _comparison_frame, _save_result_bundle, _write_json  # noqa: E402
 
+_DEFAULT_VERIFICATION_SHARDS: list[dict[str, str]] = [
+    {"groups": "country_panel"},
+    {
+        "methods": (
+            "traded_factor_model,linear_factor_gmm,vecm,markov_switching,"
+            "unobserved_components,exponential_smoothing,egarch,gjr_garch,harx,"
+            "adf_test,kpss_test,pp_test,zivot_andrews,engle_granger,dynamic_ols,"
+            "fm_ols,interrupted_time_series"
+        )
+    },
+    {
+        "methods": (
+            "quant_linear_model,quant_lightgbm,quant_catboost,quant_backtest_report,"
+            "position_analysis,efficient_frontier,semivariance_frontier,cvar_frontier,"
+            "cdar_frontier,black_litterman,hrp"
+        )
+    },
+    {"methods": "varmax"},
+    {"methods": "discrete_allocation"},
+]
+
 
 def _merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
     merged = json.loads(json.dumps(base, ensure_ascii=False))
@@ -32,6 +54,61 @@ def _merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
         else:
             merged[key] = value
     return merged
+
+
+def _extract_json_report(output: str) -> dict[str, Any]:
+    decoder = json.JSONDecoder()
+    starts = [index for index, character in enumerate(output or "") if character == "{"]
+    for start in reversed(starts):
+        try:
+            payload, _ = decoder.raw_decode(output[start:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(payload, dict) and payload.get("status"):
+            return payload
+    raise ValueError("Unable to parse verification shard JSON report.")
+
+
+def _run_default_verification_shards() -> dict[str, Any]:
+    reports: list[dict[str, Any]] = []
+    for index, shard in enumerate(_DEFAULT_VERIFICATION_SHARDS, start=1):
+        command = [sys.executable, str(Path(__file__).resolve())]
+        if shard.get("groups"):
+            command.extend(["--groups", shard["groups"]])
+        if shard.get("methods"):
+            command.extend(["--methods", shard["methods"]])
+        started_at = time.perf_counter()
+        print(f"[verify_model_upgrade] SHARD {index}/{len(_DEFAULT_VERIFICATION_SHARDS)} START {' '.join(command[2:])}", flush=True)
+        completed = subprocess.run(command, capture_output=True, text=True, check=False)
+        if completed.stdout:
+            print(completed.stdout, end="" if completed.stdout.endswith("\n") else "\n")
+        if completed.stderr:
+            print(completed.stderr, end="" if completed.stderr.endswith("\n") else "\n", file=sys.stderr)
+        if completed.returncode != 0:
+            raise SystemExit(completed.returncode)
+        report = _extract_json_report(completed.stdout)
+        if report.get("status") != "passed":
+            raise SystemExit(1)
+        reports.append(report)
+        print(f"[verify_model_upgrade] SHARD {index}/{len(_DEFAULT_VERIFICATION_SHARDS)} PASS ({time.perf_counter() - started_at:.2f}s)", flush=True)
+
+    group_counts: dict[str, int] = {}
+    models: list[dict[str, Any]] = []
+    for report in reports:
+        for group, count in (report.get("group_counts") or {}).items():
+            group_counts[str(group)] = group_counts.get(str(group), 0) + int(count)
+        models.extend(list(report.get("models") or []))
+    return {
+        "status": "passed",
+        "model_count": len(models),
+        "group_counts": group_counts,
+        "groups": [],
+        "methods": [],
+        "slow_bayesian_excluded": True,
+        "execution": "default_sharded",
+        "shard_count": len(_DEFAULT_VERIFICATION_SHARDS),
+        "models": models,
+    }
 
 
 def _run_model(client: TestClient, token: str, workspace_id: str, payload: dict[str, Any], label: str) -> dict[str, Any]:
@@ -253,7 +330,10 @@ def main() -> None:
     groups = [value for value in args.groups.split(",") if value.strip()]
     methods = [value for value in args.methods.split(",") if value.strip()]
     output_dir = Path(args.output_dir) if args.output_dir.strip() else None
-    report = run_verification(output_dir=output_dir, groups=groups, methods=methods, include_slow_bayesian=args.include_slow_bayesian)
+    if not groups and not methods and output_dir is None and not args.include_slow_bayesian:
+        report = _run_default_verification_shards()
+    else:
+        report = run_verification(output_dir=output_dir, groups=groups, methods=methods, include_slow_bayesian=args.include_slow_bayesian)
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
 
