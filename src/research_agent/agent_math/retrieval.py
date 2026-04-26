@@ -11,6 +11,7 @@ from .runtime import (
     CandidateObservation,
     build_shadow_comparison,
     clamp_unit,
+    probability_semantics,
 )
 
 
@@ -339,7 +340,7 @@ def rank_retrieval_candidates(
         arbiter["v2"] = {
             "posterior": round(float(v2_observation.posterior if v2_observation is not None else 0.0), 6),
             "surrogate_probability": round(float(v2_observation.posterior if v2_observation is not None else 0.0), 6),
-            "posterior_semantics": "uncalibrated_surrogate",
+            "posterior_semantics": probability_semantics(status),
             "baseline_probability": round(float(v2_observation.baseline_probability if v2_observation is not None else 0.0), 6),
             "feasible": bool(v2_observation.feasible) if v2_observation is not None else False,
             "semantic_similarity": round(float(v2_observation.semantic_similarity if v2_observation is not None else 0.0), 6),

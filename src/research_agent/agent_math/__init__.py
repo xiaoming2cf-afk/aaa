@@ -24,6 +24,7 @@ from .runtime import (
     build_shadow_comparison,
     normalize_math_mode,
     math_status_metadata,
+    probability_semantics,
     settings_math_mode,
 )
 
@@ -49,6 +50,7 @@ __all__ = [
     "MATH_STATUS_VARIATIONAL",
     "math_status_metadata",
     "normalize_math_mode",
+    "probability_semantics",
     "rank_retrieval_candidates",
     "score_candidate_review",
     "select_candidate_draft",

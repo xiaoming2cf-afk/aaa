@@ -17,7 +17,7 @@ Primary file: [data_lab_agent.py](../../src/research_agent/data_lab_agent.py)
 | `_knowledge_score` at line 616 | token-overlap count | lexical surrogate baseline for the future retrieval surrogate |
 | `AnalystCoder` at line 781 | code proposal from rules or LLM | `generate` action family |
 | `ExecutionReviewer` at line 1061 | diagnose errors and suggest repair | `review` action family |
-| `SandboxExecutor` at line 1116 | bounded execution and artifact capture | `execute` action family |
+| `TrustedPythonExecutor` | trusted local execution with policy checks and artifact capture | `execute` action family |
 | `validate_code_safety` at line 1237 | AST and text safety gate | `G_safe(a)` |
 | `send_agent_message` at line 1576 | full loop across generate, execute, repair, and human code | operational surrogate controller over `A_auto`, `A_intervene`, and `A_terminal` |
 

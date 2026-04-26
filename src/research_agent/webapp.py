@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from contextvars import ContextVar
 import hashlib
@@ -252,6 +252,17 @@ _MODEL_RUN_MAX_LIST_ITEMS = 128
 _MODEL_RUN_MAX_VARIANT_SPEC_KEYS = 64
 _MODEL_RUN_MAX_VARIANT_SPEC_BYTES = 12_000
 _MODEL_RUN_NUMERIC_BOUNDS: dict[str, tuple[float, float]] = {
+    "asset_count": (0, 128),
+    "assets": (0, 128),
+    "max_assets": (0, 128),
+    "max_columns": (1, 10_000),
+    "max_features": (1, 10_000),
+    "max_rows": (1, 1_000_000),
+    "n_rows": (1, 1_000_000),
+    "num_rows": (1, 1_000_000),
+    "resource_limit": (1, 10_000),
+    "row_limit": (1, 1_000_000),
+    "rows": (1, 1_000_000),
     "lead_window": (0, 120),
     "lag_window": (0, 120),
     "rdd_polynomial_order": (0, 5),
@@ -261,6 +272,8 @@ _MODEL_RUN_NUMERIC_BOUNDS: dict[str, tuple[float, float]] = {
     "garch_p": (0, 10),
     "garch_q": (0, 10),
     "forecast_steps": (1, 365),
+    "forecast_horizon": (1, 365),
+    "forecast_periods": (1, 365),
     "var_lags": (1, 24),
     "irf_horizon": (1, 120),
     "bk_short_horizon": (1, 260),
@@ -283,6 +296,7 @@ _MODEL_RUN_NUMERIC_BOUNDS: dict[str, tuple[float, float]] = {
     "draws": (1, 2000),
     "tune": (0, 2000),
     "chains": (1, 8),
+    "workers": (0, 16),
 }
 _MODEL_RUN_LIST_NUMERIC_BOUNDS: dict[str, tuple[float, float]] = {
     "varmax_order": (0, 10),
@@ -531,6 +545,29 @@ def _validate_model_run_numeric_list_bound(field_name: str, value: Any) -> None:
             raise ValueError(f"{field_name} values must be between {minimum:g} and {maximum:g}.")
 
 
+def _validate_model_run_variant_spec_bounds(value: Any, *, path: str = "variant_spec", depth: int = 0) -> None:
+    if depth > 4:
+        raise ValueError("variant_spec is too deeply nested.")
+    if isinstance(value, dict):
+        if len(value) > _MODEL_RUN_MAX_VARIANT_SPEC_KEYS:
+            raise ValueError(f"{path} contains too many keys.")
+        for raw_key, item in value.items():
+            key = str(raw_key)
+            item_path = f"{path}.{key}"
+            _validate_model_run_numeric_bound(key, item)
+            _validate_model_run_numeric_list_bound(key, item)
+            _validate_model_run_variant_spec_bounds(item, path=item_path, depth=depth + 1)
+        return
+    if isinstance(value, list):
+        if len(value) > _MODEL_RUN_MAX_LIST_ITEMS:
+            raise ValueError(f"{path} has too many items.")
+        for index, item in enumerate(value):
+            _validate_model_run_variant_spec_bounds(item, path=f"{path}[{index}]", depth=depth + 1)
+        return
+    if isinstance(value, str) and len(value) > _MODEL_RUN_MAX_STRING_LENGTH:
+        raise ValueError(f"{path} is too long.")
+
+
 class ModelRunRequest(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -593,6 +630,8 @@ class ModelRunRequest(BaseModel):
     garch_p: int = 1
     garch_q: int = 1
     forecast_steps: int = 5
+    forecast_horizon: int | None = None
+    forecast_periods: int | None = None
     var_lags: int = 1
     irf_horizon: int = 12
     impulse_column: str = ""
@@ -655,6 +694,11 @@ class ModelRunRequest(BaseModel):
     draws: int = 150
     tune: int = 150
     chains: int = 2
+    row_limit: int | None = None
+    max_rows: int | None = None
+    max_assets: int | None = None
+    resource_limit: int | None = None
+    workers: int | None = None
 
     @model_validator(mode="after")
     def _validate_payload_bounds(self) -> "ModelRunRequest":
@@ -675,9 +719,7 @@ class ModelRunRequest(BaseModel):
                 encoded = json.dumps(value, ensure_ascii=False, sort_keys=True)
                 if len(encoded) > _MODEL_RUN_MAX_VARIANT_SPEC_BYTES:
                     raise ValueError("variant_spec is too large.")
-                for spec_name, spec_value in value.items():
-                    _validate_model_run_numeric_bound(str(spec_name), spec_value)
-                    _validate_model_run_numeric_list_bound(str(spec_name), spec_value)
+                _validate_model_run_variant_spec_bounds(value)
         return self
 
 
@@ -1675,7 +1717,12 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health")
     def health() -> dict[str, Any]:
-        return {"status": "ok"}
+        return {
+            "status": "ok",
+            "capabilities": {
+                "research_runtime": research_runtime_capability(settings),
+            },
+        }
 
     @app.head("/api/health")
     def health_head() -> Response:
@@ -1686,6 +1733,9 @@ def create_app() -> FastAPI:
         return {
             "app_name": settings.app_name,
             "public_digest_enabled": settings.public_digest_enabled,
+            "capabilities": {
+                "research_runtime": research_runtime_capability(settings),
+            },
         }
 
     @app.get("/api/providers")
@@ -2387,7 +2437,7 @@ def create_app() -> FastAPI:
                             db,
                             item,
                             settings=settings,
-                            auto_refresh_if_missing=True,
+                            auto_refresh_if_missing=False,
                             include_content=include_content,
                         )
                         for item in rows
@@ -2416,7 +2466,7 @@ def create_app() -> FastAPI:
                         db,
                         record,
                         settings=settings,
-                        auto_refresh_if_missing=True,
+                        auto_refresh_if_missing=False,
                     )
                 }
         except Exception as exc:
@@ -2703,7 +2753,7 @@ def create_app() -> FastAPI:
                         db,
                         record,
                         settings=settings,
-                        auto_refresh_if_missing=True,
+                        auto_refresh_if_missing=False,
                     )
                 }
         except Exception as exc:
@@ -2737,7 +2787,7 @@ def create_app() -> FastAPI:
                         db,
                         record,
                         settings=settings,
-                        auto_refresh_if_missing=True,
+                        auto_refresh_if_missing=False,
                     )
                 }
         except Exception as exc:
@@ -2784,7 +2834,7 @@ def create_app() -> FastAPI:
                         db,
                         updated,
                         settings=settings,
-                        auto_refresh_if_missing=True,
+                        auto_refresh_if_missing=False,
                     )
                 }
         except Exception as exc:
@@ -2823,7 +2873,7 @@ def create_app() -> FastAPI:
                         db,
                         archived,
                         settings=settings,
-                        auto_refresh_if_missing=True,
+                        auto_refresh_if_missing=False,
                     )
                 }
         except Exception as exc:
@@ -2861,7 +2911,7 @@ def create_app() -> FastAPI:
                         db,
                         restored,
                         settings=settings,
-                        auto_refresh_if_missing=True,
+                        auto_refresh_if_missing=False,
                     )
                 }
         except Exception as exc:
@@ -4385,7 +4435,7 @@ def create_app() -> FastAPI:
                     user=user,
                     workspace=workspace,
                     settings=settings,
-                    auto_refresh_if_missing=True,
+                    auto_refresh_if_missing=False,
                 )
         except Exception as exc:
             _raise_http_error(exc)
@@ -4409,7 +4459,7 @@ def create_app() -> FastAPI:
                         workspace=workspace,
                         limit=limit,
                         settings=settings,
-                        auto_refresh_if_missing=True,
+                        auto_refresh_if_missing=False,
                     )
                 }
         except Exception as exc:
@@ -4475,7 +4525,7 @@ def create_app() -> FastAPI:
                         db,
                         cloned,
                         settings=settings,
-                        auto_refresh_if_missing=True,
+                        auto_refresh_if_missing=False,
                     )
                 }
         except Exception as exc:
@@ -4508,7 +4558,7 @@ def create_app() -> FastAPI:
                         _serialize_agent_run_payload(
                             item,
                             settings=settings,
-                            auto_refresh_if_missing=True,
+                            auto_refresh_if_missing=False,
                         )
                         for item in rows
                     ]
@@ -4543,7 +4593,7 @@ def create_app() -> FastAPI:
                         _serialize_agent_run_payload(
                             item,
                             settings=settings,
-                            auto_refresh_if_missing=True,
+                            auto_refresh_if_missing=False,
                         )
                         for item in rows
                     ]
@@ -4619,7 +4669,7 @@ def create_app() -> FastAPI:
                     "run": _serialize_agent_run_detail_payload(
                         run,
                         settings=settings,
-                        auto_refresh_if_missing=True,
+                        auto_refresh_if_missing=False,
                     )
                 }
         except Exception as exc:
@@ -4647,7 +4697,7 @@ def create_app() -> FastAPI:
                     "run": _serialize_agent_run_detail_payload(
                         run,
                         settings=settings,
-                        auto_refresh_if_missing=True,
+                        auto_refresh_if_missing=False,
                     ),
                     "eval_candidate": eval_candidate,
                 }
@@ -4749,7 +4799,7 @@ def create_app() -> FastAPI:
                 delivery_review, engineering_gate = review_agent_run_delivery(
                     run,
                     settings=settings,
-                    auto_refresh_if_missing=True,
+                    auto_refresh_if_missing=False,
                 )
                 ensure_delivery_allowed(delivery_review, engineering_gate=engineering_gate, action="publish")
                 record = publish_workspace_source_to_team_library(
@@ -4790,7 +4840,7 @@ def create_app() -> FastAPI:
                     db,
                     record,
                     settings=settings,
-                    auto_refresh_if_missing=True,
+                    auto_refresh_if_missing=False,
                 )
                 ensure_delivery_allowed(delivery_review, engineering_gate=engineering_gate, action="publish")
                 record = publish_workspace_source_to_team_library(

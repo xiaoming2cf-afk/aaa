@@ -238,10 +238,11 @@ describe("SPA delivery gating", () => {
 
     renderWithQuery(<ResearchPage useAppState={useAppState} />);
 
-    await screen.findByText(/no inference runtime is configured/i);
+    await screen.findByText(/Research runtime unavailable/i);
     await userEvent.type(screen.getByLabelText("Topic"), "Inflation persistence");
 
     expect(screen.getByRole("button", { name: /Start Run/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Start Run/i })).toHaveAccessibleDescription(/no inference runtime is configured/i);
   });
 
   test("KnowledgePage disables publish when the knowledge record is not deliverable", async () => {

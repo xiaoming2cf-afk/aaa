@@ -20,7 +20,10 @@ from research_agent.webapp import ModelRunRequest
 def test_health_and_bootstrap_are_minimized(client):
     health = client.get("/api/health")
     assert health.status_code == 200
-    assert health.json() == {"status": "ok"}
+    health_payload = health.json()
+    assert health_payload["status"] == "ok"
+    assert health_payload["capabilities"]["research_runtime"]["code"] == "feature_disabled"
+    assert health_payload["capabilities"]["research_runtime"]["trace"]["queue_created"] is False
 
     health_head = client.head("/api/health")
     assert health_head.status_code == 200
@@ -29,7 +32,8 @@ def test_health_and_bootstrap_are_minimized(client):
     bootstrap = client.get("/api/bootstrap")
     assert bootstrap.status_code == 200
     payload = bootstrap.json()
-    assert set(payload.keys()) == {"app_name", "public_digest_enabled"}
+    assert set(payload.keys()) == {"app_name", "public_digest_enabled", "capabilities"}
+    assert payload["capabilities"]["research_runtime"] == health_payload["capabilities"]["research_runtime"]
 
     providers = client.get("/api/providers")
     assert providers.status_code == 401
@@ -343,6 +347,11 @@ def test_model_run_request_rejects_oversized_numeric_parameters(client, auth_hea
         "iterations": 2001,
         "n_estimators": 2001,
         "forecast_steps": 366,
+        "forecast_horizon": 366,
+        "row_limit": 1_000_001,
+        "max_assets": 129,
+        "resource_limit": 10_001,
+        "workers": 17,
         "irf_horizon": 121,
     }.items():
         try:
@@ -353,11 +362,11 @@ def test_model_run_request_rejects_oversized_numeric_parameters(client, auth_hea
             raise AssertionError(f"{field_name} should be capped")
 
     try:
-        ModelRunRequest(asset_id="asset-oversized", variant_spec={"draws": 2001})
+        ModelRunRequest(asset_id="asset-oversized", variant_spec={"nested": {"draws": 2001}})
     except ValueError:
         pass
     else:
-        raise AssertionError("variant_spec numeric limits should be enforced")
+        raise AssertionError("nested variant_spec numeric limits should be enforced")
 
     response = client.post(
         f"/api/workspaces/{auth_headers['workspace_id']}/analysis/models",

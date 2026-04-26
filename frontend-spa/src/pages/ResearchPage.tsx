@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../api";
+import { InlineEmptyState, InlineErrorState } from "../components/StatusPrimitives";
 
 type UseAppState = () => {
   workspaceId: string;
@@ -140,6 +141,7 @@ export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX
       : runtimeReady
         ? "Research runtime is available."
         : runtime?.message || "Research generation is disabled in this deployment.";
+  const runtimeDisabled = !runtimeQuery.isLoading && !runtimeReady;
 
   return (
     <div className="page-grid">
@@ -185,13 +187,21 @@ export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX
           <button
             className="primary-button"
             type="button"
+            aria-describedby={runtimeDisabled ? "research-runtime-status" : undefined}
             disabled={!workspaceId || !topic || createRunMutation.isPending || !runtimeReady}
             onClick={() => createRunMutation.mutate()}
           >
             Start Run
           </button>
-          <span className="muted">{createRunMutation.isError ? (createRunMutation.error as Error).message : runtimeStatus}</span>
+          <span id="research-runtime-status" className="muted">{createRunMutation.isError ? (createRunMutation.error as Error).message : runtimeStatus}</span>
         </div>
+        {runtimeDisabled ? (
+          <div className="list-card static-card inline-state-error" role="alert">
+            <strong>Research runtime unavailable</strong>
+            <p>{runtimeStatus}</p>
+            {runtime?.code ? <p className="muted">Runtime code: {runtime.code}</p> : null}
+          </div>
+        ) : null}
       </section>
 
       <section className="panel">
@@ -202,6 +212,12 @@ export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX
           </div>
         </div>
         <div className="list-stack">
+          {runsQuery.isError ? (
+            <InlineErrorState title="Recent runs could not load" description={(runsQuery.error as Error).message} />
+          ) : null}
+          {!runsQuery.isError && runsQuery.isSuccess && !runsQuery.data.items.length ? (
+            <InlineEmptyState title="No research runs yet" description="Start a run to populate monitoring, quality review, and publish controls." />
+          ) : null}
           {(runsQuery.data?.items || []).map((item) => (
             <button key={item.id} className={selectedRunId === item.id ? "list-card selected" : "list-card"} type="button" onClick={() => setSelectedRunId(item.id)}>
               <div className="list-card-title">
@@ -227,7 +243,9 @@ export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX
             <span>Review Precision {scoreSummary.review_block_precision ?? "-"}</span>
           </div>
         </div>
-        {selectedRun ? (
+        {selectedRunQuery.isError ? (
+          <InlineErrorState title="Run detail could not load" description={(selectedRunQuery.error as Error).message} />
+        ) : selectedRun ? (
           <div className="detail-grid">
             <div className="detail-column">
               <h4>Evidence</h4>
@@ -282,7 +300,7 @@ export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX
             </div>
           </div>
         ) : (
-          <p className="muted">Select a run to inspect evidence, review, trace, and final report.</p>
+          <InlineEmptyState title="No run selected" description="Select a run to inspect evidence, review, trace, and final report." />
         )}
         {selectedRun && (
           <div className="action-row">

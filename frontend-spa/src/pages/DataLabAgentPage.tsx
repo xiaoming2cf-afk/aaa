@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
 import { apiFetch } from "../api";
+import { InlineEmptyState, InlineErrorState } from "../components/StatusPrimitives";
 
 type UseAppState = () => {
   workspaceId: string;
@@ -519,10 +520,10 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
             <p>Natural language data analysis with LLM planning, trusted local Python execution, repair traces, human intervention, and exportable evidence.</p>
           </div>
         </div>
-        <div className="list-card static-card">
+        <div className="list-card static-card risk-notice" role="note" aria-label="Trusted mode risk notice">
           <strong>Trusted mode notice</strong>
           <p className="muted">
-            Python execution is not a sandbox. Production blocks code execution unless DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED=true is explicitly set for an authorized deployment.
+            Python execution can read files and use network access available to the server process. Keep trusted execution disabled unless the deployment, datasets, and users are approved for local code execution.
           </p>
         </div>
         <div className="form-grid">
@@ -560,6 +561,12 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
             <a className="ghost-button" href={permalinkHref}>Open Session Link</a>
           ) : null}
         </div>
+        {assetsQuery.isError ? (
+          <InlineErrorState title="Datasets could not load" description={(assetsQuery.error as Error).message} />
+        ) : null}
+        {!assetsQuery.isError && assetsQuery.isSuccess && !datasetAssets.length ? (
+          <InlineEmptyState title="No datasets available" description="Upload or register a dataset asset before creating a Data Lab Agent session." />
+        ) : null}
       </section>
 
       <section className="panel">
@@ -628,6 +635,9 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
           </button>
         </div>
         {llmTestResult ? <p className="muted">{llmTestResult}</p> : null}
+        {llmConfigQuery.isError ? (
+          <InlineErrorState title="LLM config could not load" description={(llmConfigQuery.error as Error).message} />
+        ) : null}
       </section>
 
       <section className="panel">
@@ -638,6 +648,12 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
           </div>
         </div>
         <div className="list-stack">
+          {historyQuery.isError ? (
+            <InlineErrorState title="Agent sessions could not load" description={(historyQuery.error as Error).message} />
+          ) : null}
+          {!historyQuery.isError && historyQuery.isSuccess && !historyQuery.data?.agent_sessions?.length ? (
+            <InlineEmptyState title="No agent sessions yet" description="Create a session to begin the analysis loop." />
+          ) : null}
           {(historyQuery.data?.agent_sessions || []).map((item) => {
             const runId = item.run_id || item.id;
             return (
@@ -692,7 +708,9 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
             ) : null}
           </div>
         </div>
-        {currentSession ? (
+        {sessionQuery.isError ? (
+          <InlineErrorState title="Agent session could not load" description={(sessionQuery.error as Error).message} />
+        ) : currentSession ? (
           <div className="detail-grid">
             <div className="detail-column">
               {needsHuman ? (
@@ -931,13 +949,10 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
             </div>
           </div>
         ) : (
-          <p className="muted">Create or select a session to start the Data Lab Agent loop.</p>
+          <InlineEmptyState title="No session selected" description="Create or select a session to start the Data Lab Agent loop." />
         )}
         {mutationError ? (
-          <div className="list-card static-card">
-            <strong>Request failed</strong>
-            <p>{(mutationError as Error).message}</p>
-          </div>
+          <InlineErrorState title="Request failed" description={(mutationError as Error).message} />
         ) : null}
       </section>
     </div>

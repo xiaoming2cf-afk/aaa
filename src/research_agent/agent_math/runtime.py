@@ -50,6 +50,10 @@ def math_status_metadata(
     }
 
 
+def probability_semantics(math_status: dict[str, Any] | None) -> str:
+    return "calibrated_posterior" if bool((math_status or {}).get("calibrated")) else "uncalibrated_surrogate"
+
+
 def _json_ready(value: Any) -> Any:
     if value is None or isinstance(value, (str, bool, int)):
         return value
@@ -240,9 +244,7 @@ class CandidateObservation:
             "baseline_probability": round(self.baseline_probability, 6),
             "posterior": round(self.posterior, 6),
             "surrogate_probability": round(self.posterior, 6),
-            "posterior_semantics": "uncalibrated_surrogate"
-            if not bool((self.math_status or {}).get("calibrated"))
-            else "calibrated_posterior",
+            "posterior_semantics": probability_semantics(self.math_status),
             "math_status": _json_ready(self.math_status),
         }
 
@@ -360,9 +362,7 @@ class DeliveryPosterior:
             "chosen_deliverable": self.chosen_deliverable,
             "decomposition": {key: round(value, 6) for key, value in self.decomposition.items()},
             "comparison": self.comparison.to_dict(),
-            "posterior_semantics": "uncalibrated_surrogate"
-            if not bool((self.math_status or {}).get("calibrated"))
-            else "calibrated_posterior",
+            "posterior_semantics": probability_semantics(self.math_status),
             "math_status": _json_ready(self.math_status),
         }
 

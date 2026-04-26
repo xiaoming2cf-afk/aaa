@@ -237,6 +237,36 @@ def test_runtime_narrative_scan_detects_runtime_wording(tmp_path: Path):
     assert any("render.yaml" in item for item in violations)
 
 
+def test_product_surface_dist_shell_is_required_only_for_production(monkeypatch, tmp_path: Path):
+    repo_root = tmp_path / "repo"
+    pages = repo_root / "frontend-spa" / "src" / "pages"
+    web_dir = repo_root / "src" / "research_agent" / "web"
+    pages.mkdir(parents=True)
+    web_dir.mkdir(parents=True)
+    for name in ("ResearchPage.tsx", "TeamLibraryPage.tsx", "KnowledgePage.tsx", "ProvidersPage.tsx", "QualityPage.tsx"):
+        (pages / name).write_text("export default null;\n", encoding="utf-8")
+    for name in ("workspace.html", "research_agent.html", "provider_center.html", "knowledge_base.html"):
+        (web_dir / name).write_text("<html></html>\n", encoding="utf-8")
+    monkeypatch.setattr(quality_center, "_repo_root", lambda: repo_root)
+    monkeypatch.setattr(quality_center, "_web_dir", lambda: web_dir)
+
+    test_checks = {
+        check.key: check
+        for check in quality_center._product_surface_checks(
+            Settings(app_env="test", app_secret="test-secret-with-sufficient-length-1234567890")
+        )
+    }
+    production_checks = {
+        check.key: check
+        for check in quality_center._product_surface_checks(
+            Settings(app_env="production", app_secret="prod-secret-with-sufficient-length-1234567890")
+        )
+    }
+
+    assert test_checks["spa_dist_shell_uses_built_assets"].passed is True
+    assert production_checks["spa_dist_shell_uses_built_assets"].passed is False
+
+
 def test_production_engineering_gate_reads_commit_artifact_without_refresh(tmp_path: Path, monkeypatch):
     settings = _math_settings(tmp_path, mode="shadow").model_copy(update={"app_env": "production"})
     commit_sha = "abc123def456"
@@ -290,3 +320,9 @@ def test_production_engineering_gate_missing_artifact_fails_closed(tmp_path: Pat
     assert report["passed"] is False
     assert report["source"] == "artifact_missing"
     assert report["checks"][0]["key"] == "engineering_gate_artifact_missing"
+
+
+def test_webapp_quality_paths_do_not_auto_refresh_engineering_gate():
+    webapp_text = Path("D:/智能体/src/research_agent/webapp.py").read_text(encoding="utf-8")
+
+    assert "auto_refresh_if_missing=True" not in webapp_text

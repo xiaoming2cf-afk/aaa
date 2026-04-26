@@ -10,6 +10,7 @@ storage/
 .codex-runtime/
 钂欑壒鍗℃礇/
 _tmp*
+.tmp/
 catboost_info/
 _import/
 蒙特卡洛/

@@ -132,6 +132,7 @@ Notes:
 .\.venv\Scripts\research-agent prune-security-state
 .\.venv\Scripts\research-agent scan-hygiene
 .\.venv\Scripts\research-agent smoke-deploy --base-url https://economic-research-web.onrender.com
+.\.venv\Scripts\python.exe scripts\verify_render_deploy.py --commit <commit_sha> --base-url https://economic-research-web.onrender.com --output output/render-deploy/render-deploy.<commit_sha>.json
 ```
 
 - `prune-security-state` removes expired sessions, used or expired password reset tokens, and stale login-attempt rows.
@@ -187,6 +188,7 @@ For deployed environments, align these pieces together:
 
 - `render.yaml` is the production contract for the single Render web service.
 - The Render build must produce `frontend-spa/dist` before the Python app starts, so `/app` is always served by FastAPI from the built SPA assets.
+- Production quality paths require a commit-bound engineering gate artifact. The app resolves the runtime commit from `RESEARCH_AGENT_ENGINEERING_GATE_COMMIT`, `RENDER_GIT_COMMIT`, `GITHUB_SHA`, `COMMIT_SHA`, or `SOURCE_VERSION`; if no matching artifact is found under `RESEARCH_AGENT_ENGINEERING_GATE_ARTIFACT`, `ENGINEERING_GATE_ARTIFACT_DIR`, or `STORAGE_DIR/quality/gates`, quality delivery gates fail closed.
 - Render production must not define runtime inference variables such as `RESEARCH_AGENT_MODEL` or require `OPENAI_API_KEY`.
 - Render defaults should keep `RESEARCH_RUNTIME_ENABLED=false`, `DATA_LAB_AGENT_ENABLED=false`, `DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED=false`, and `AGENT_MATH_MODE=shadow`, with delivery threshold and override margin configured explicitly in environment variables.
 - Data Lab Agent Python execution is trusted local execution, not a sandbox. Only enable `DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED=true` in an authorized deployment that accepts that risk boundary.
@@ -209,9 +211,10 @@ Set-Location ..
 Release is complete only after:
 
 - the engineering gate is fully green
+- the uploaded engineering gate artifact contains the exact commit SHA and the critical gate checks, including backend pytest, frontend tests, frontend build, SPA shell asset validation, agent quality gate, and model engine comparison
 - one real `AgentRun` passes delivery review and publishes successfully
 - one real `KnowledgeRecord` passes delivery review and publishes successfully
-- the deployed Render URLs return healthy responses for `/api/health`, `/app`, `/app/research`, `/app/quality`, `/app/data-lab-agent`, and `/provider-center`
+- the deployed Render smoke report covers `/api/auth/me`, `/api/health`, `/app`, `/app/quality`, `/app/data-lab-agent`, and `/provider-center`; deep smoke additionally verifies authenticated `/api/auth/me`, workspace creation, upload, and quality scorecard access
 
 ## Testing
 

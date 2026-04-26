@@ -561,15 +561,16 @@ def _run_deploy_smoke(
     checks: list[dict[str, object]] = []
     session = requests.Session()
 
-    def _record(path: str, *, passed: bool, status_code: int, detail: str = "") -> None:
-        checks.append(
-            {
-                "path": path,
-                "passed": passed,
-                "status_code": status_code,
-                "detail": detail,
-            }
-        )
+    def _record(path: str, *, passed: bool, status_code: int, detail: str = "", key: str = "") -> None:
+        item = {
+            "path": path,
+            "passed": passed,
+            "status_code": status_code,
+            "detail": detail,
+        }
+        if key:
+            item["key"] = key
+        checks.append(item)
 
     def _try_request(path: str, *, allow_redirects: bool = False) -> requests.Response | None:
         try:
@@ -604,15 +605,18 @@ def _run_deploy_smoke(
             detail=str(health_payload or health.text[:200]),
         )
 
-    provider_center = _try_request("/provider-center", allow_redirects=True)
+    provider_center = _try_request("/provider-center", allow_redirects=False)
     if provider_center is not None:
         provider_detail = provider_center.text[:200]
+        provider_location = provider_center.headers.get("location", "")
+        provider_disabled = "not part of the current product scope" in provider_center.text.lower()
         _record(
             "/provider-center",
-            passed=provider_center.status_code == 200
-            and "not part of the current product scope" in provider_center.text.lower(),
+            passed=(provider_center.status_code == 200 and provider_disabled)
+            or (provider_center.status_code == 307 and provider_location == "/"),
             status_code=provider_center.status_code,
-            detail=provider_detail,
+            detail="disabled_scope_notice" if provider_disabled else provider_location or provider_detail,
+            key="provider_center_route_available",
         )
 
     for path in ("/app", "/app/research", "/app/knowledge", "/app/quality", "/app/data-lab-agent"):
@@ -635,6 +639,7 @@ def _run_deploy_smoke(
             passed=passed,
             status_code=response.status_code,
             detail=detail,
+            key="spa_route_uses_built_assets" if response.status_code == 200 else "spa_route_requires_auth",
         )
 
     auth_payload: dict[str, object] = {"enabled": bool(deep), "registered": False}
@@ -754,16 +759,28 @@ def _run_deploy_smoke(
                     quality_payload = {}
                 engineering_gate = quality_payload.get("engineering_gate") if isinstance(quality_payload, dict) else {}
                 gate_source = str((engineering_gate or {}).get("source") or "")
+                gate_passed = bool((engineering_gate or {}).get("passed"))
+                artifact_source_available = gate_source.startswith(("artifact:", "snapshot", "fresh"))
+                fail_closed_source = gate_source in {"missing", "artifact_missing", "runtime_commit_missing"}
                 _record(
                     f"/api/workspaces/{workspace_id}/quality/scorecard",
-                    passed=quality_response.status_code == 200 and gate_source.startswith(("artifact:", "snapshot", "fresh")),
+                    passed=quality_response.status_code == 200 and (artifact_source_available or (fail_closed_source and not gate_passed)),
                     status_code=quality_response.status_code,
                     detail=gate_source or quality_response.text[:200],
+                    key="quality_scorecard_accessible",
                 )
 
     return {
         "base_url": normalized_base_url,
         "expect_authenticated": expect_authenticated,
+        "required_paths": [
+            "/api/auth/me",
+            "/api/health",
+            "/app",
+            "/app/quality",
+            "/app/data-lab-agent",
+            "/provider-center",
+        ],
         "deep": auth_payload,
         "passed": all(bool(item["passed"]) for item in checks),
         "checks": checks,

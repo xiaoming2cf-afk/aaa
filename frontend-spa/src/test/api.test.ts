@@ -13,6 +13,7 @@ describe("apiFetch", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.useRealTimers();
+    document.cookie = "erp_csrf_token=; Max-Age=0";
   });
 
   test("returns undefined for 204 and empty responses", async () => {
@@ -91,6 +92,45 @@ describe("apiFetch", () => {
       status: 0,
       message: "Request timed out.",
     });
+  });
+
+  test("adds CSRF token to unsafe methods only", async () => {
+    document.cookie = "erp_csrf_token=csrf-123";
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+
+    await apiFetch("/api/items", { method: "POST", body: JSON.stringify({ name: "A" }) });
+    await apiFetch("/api/items");
+
+    const postHeaders = fetchMock.mock.calls[0][1]?.headers as Headers;
+    const getHeaders = fetchMock.mock.calls[1][1]?.headers as Headers;
+    expect(postHeaders.get("X-CSRF-Token")).toBe("csrf-123");
+    expect(getHeaders.get("X-CSRF-Token")).toBeNull();
+  });
+
+  test("aborts requests when timeoutMs elapses", async () => {
+    vi.useFakeTimers();
+    fetchMock.mockImplementationOnce((_path: string, init?: RequestInit) => new Promise((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => {
+        reject(init.signal?.reason);
+      });
+    }));
+
+    const promise = apiFetch("/api/slow", { timeoutMs: 25 });
+    const assertion = expect(promise).rejects.toMatchObject({
+      name: "ApiError",
+      status: 0,
+      message: "Request timed out.",
+    });
+    await vi.advanceTimersByTimeAsync(25);
+
+    await assertion;
   });
 
   test("keeps thrown HTTP errors as ApiError instances", async () => {

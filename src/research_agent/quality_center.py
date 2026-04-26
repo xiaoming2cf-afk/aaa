@@ -520,10 +520,13 @@ def _artifact_checks(runs: list[AgentRun]) -> list[ScoreCheck]:
     ]
 
 
-def _product_surface_checks() -> list[ScoreCheck]:
+def _product_surface_checks(settings: Any | None = None) -> list[ScoreCheck]:
     repo_root = _repo_root()
     spa_root = repo_root / "frontend-spa"
     web_dir = _web_dir()
+    dist_index = spa_root / "dist" / "index.html"
+    app_env = str(getattr(settings, "app_env", os.getenv("APP_ENV", "")) or "").strip().lower()
+    require_dist_shell = app_env == "production" or dist_index.exists()
     route_sources = [
         spa_root / "src" / "pages" / "ResearchPage.tsx",
         spa_root / "src" / "pages" / "TeamLibraryPage.tsx",
@@ -531,12 +534,29 @@ def _product_surface_checks() -> list[ScoreCheck]:
         spa_root / "src" / "pages" / "ProvidersPage.tsx",
         spa_root / "src" / "pages" / "QualityPage.tsx",
     ]
+    dist_text = dist_index.read_text(encoding="utf-8", errors="replace") if dist_index.exists() else ""
+    dist_uses_built_assets = (
+        not require_dist_shell
+        or (bool(dist_text) and "/app/assets/" in dist_text and "/src/main.tsx" not in dist_text)
+    )
     return [
         ScoreCheck(
             key="spa_source_routes_present",
             label="SPA source routes are present",
             passed=all(path.exists() for path in route_sources),
             detail="frontend-spa source route files",
+        ),
+        ScoreCheck(
+            key="spa_dist_shell_uses_built_assets",
+            label="Built SPA shell uses hashed assets instead of the Vite source entry",
+            passed=dist_uses_built_assets,
+            detail=(
+                "frontend-spa/dist/index.html"
+                if require_dist_shell and dist_uses_built_assets
+                else "not required outside production without a local frontend build"
+                if dist_uses_built_assets
+                else "frontend-spa/dist/index.html missing /app/assets/ or still references /src/main.tsx"
+            ),
         ),
         ScoreCheck(
             key="legacy_pages_preserved",
@@ -1225,7 +1245,7 @@ def build_delivery_scorecard(
         "Publication Readiness",
         _publication_checks(runs),
     )
-    product_surface = _dimension("product_surface", "Product Surface", _product_surface_checks())
+    product_surface = _dimension("product_surface", "Product Surface", _product_surface_checks(settings))
     dimensions = [
         workflow_integrity,
         research_quality,

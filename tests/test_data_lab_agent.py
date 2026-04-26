@@ -100,6 +100,8 @@ def test_data_lab_agent_refuses_code_without_trusted_execution(monkeypatch, app_
     assert created.status_code == 200, created.text
     session = created.json()["session"]
     assert session["executor"]["trusted_execution_enabled"] is False
+    assert session["executor"]["trusted_execution"]["flag"] == "DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED"
+    assert session["executor"]["trusted_execution"]["enabled"] is False
     run_id = session["run_id"]
 
     response = client.post(
@@ -146,6 +148,7 @@ def test_data_lab_agent_session_repair_manual_code_report_and_notebook(monkeypat
     assert repaired_message["repair_trace"]
     assert repaired_message["execution_mode"] == "subprocess_replay"
     assert repaired_message["execution"]["risk_audit"]["trusted_execution_enabled"] is True
+    assert repaired_message["execution"]["risk_audit"]["trusted_execution_flag"] == "DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED"
     assert repaired_message["execution"]["risk_audit"]["artifact_quota"]["max_count"] >= 1
     assert repaired_message["execution"]["risk_audit"]["output_dir_validated"] is True
     assert repaired_message["execution"]["risk_audit"]["sandbox_claim"] == "none"
@@ -160,6 +163,17 @@ def test_data_lab_agent_session_repair_manual_code_report_and_notebook(monkeypat
     assert repaired_message["math_trace"]["repair_decisions"][0]["v2"]["comparison"]["fallback_reason"] == "shadow_mode_preserves_baseline"
     assert repaired_message["math_trace"]["v2_state_summary"]["successful_cell_count"] >= 1
     assert "Available columns" in repaired_message["execution"]["stdout"]
+
+    outside_write = client.post(
+        f"/api/workspaces/{auth['workspace_id']}/data-lab/agent/sessions/{run_id}/messages",
+        headers={"X-CSRF-Token": auth["csrf"]},
+        json={"message": "Attempt outside output write.", "user_code": "np.save('outside-output.npy', df[['y']].to_numpy())"},
+    )
+    assert outside_write.status_code == 200, outside_write.text
+    outside_message = outside_write.json()["message"]
+    assert outside_message["status"] == "needs_human_intervention"
+    assert outside_message["execution"]["error_type"] == "file_write_outside_output"
+    assert outside_message["execution"]["trace"]["error_type"] == "file_write_outside_output"
 
     manual = client.post(
         f"/api/workspaces/{auth['workspace_id']}/data-lab/agent/sessions/{run_id}/messages",

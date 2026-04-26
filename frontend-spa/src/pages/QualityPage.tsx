@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "../api";
+import { InlineEmptyState, InlineErrorState } from "../components/StatusPrimitives";
 
 type UseAppState = () => {
   workspaceId: string;
@@ -44,6 +45,9 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
           <p>Business gate: {scorecardQuery.data?.business_deliverable ? "PASS" : "FAIL"} / Engineering gate: {scorecardQuery.data?.engineering_gate?.passed ? "PASS" : "FAIL"}</p>
           <p>{(scorecardQuery.data?.blocking_reasons || [])[0] || "No blocking reasons recorded."}</p>
         </div>
+        {scorecardQuery.isError ? (
+          <InlineErrorState title="Scorecard could not load" description={(scorecardQuery.error as Error).message} />
+        ) : null}
         <div className="list-card static-card">
           <div className="list-card-title">
             <strong>ARBITER Delivery Layer</strong>
@@ -67,6 +71,9 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
               </ul>
             </div>
           ))}
+          {scorecardQuery.isSuccess && !scorecardQuery.data?.dimensions?.length ? (
+            <InlineEmptyState title="No scorecard dimensions yet" description="Run quality scoring to populate delivery dimensions and checks." />
+          ) : null}
         </div>
         <div className="score-card">
           <div className="score-card-head">
@@ -89,6 +96,9 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
           </div>
         </div>
         <div className="list-stack">
+          {runsQuery.isError ? (
+            <InlineErrorState title="Quality snapshots could not load" description={(runsQuery.error as Error).message} />
+          ) : null}
           {(runsQuery.data?.items || []).map((item) => (
             <div key={item.run_id} className="list-card static-card">
               <div className="list-card-title">
@@ -102,11 +112,8 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
               <p>{item.blocked_reason || "No blocking reason recorded."}</p>
             </div>
           ))}
-          {!runsQuery.data?.items?.length ? (
-            <div className="list-card static-card">
-              <strong>No quality snapshots yet</strong>
-              <p>Run research jobs first. Quality scoring is based on persisted run outcomes.</p>
-            </div>
+          {!runsQuery.isError && runsQuery.isSuccess && !runsQuery.data?.items?.length ? (
+            <InlineEmptyState title="No quality snapshots yet" description="Run research jobs first. Quality scoring is based on persisted run outcomes." />
           ) : null}
         </div>
       </section>

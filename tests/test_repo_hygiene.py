@@ -127,11 +127,13 @@ def test_ci_workflow_contains_delivery_gate_slices():
         "Backend pytest",
         "Frontend tests",
         "Frontend build",
+        "frontend-dist-${{ github.sha }}",
         "Scan repository hygiene",
         "Verify agent quality gate",
         "Compare model engines",
         "Write commit-bound engineering gate artifact",
         "Verify model upgrade slow gate",
         "Trigger Render deploy and smoke check",
+        "render-deploy-${{ github.sha }}",
     ):
         assert expected in text

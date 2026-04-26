@@ -56,6 +56,12 @@ def _current_commit(explicit: str = "") -> str:
 
 
 def _blocking_report(reason: str, *, commit_sha: str = "", detail: Any | None = None) -> dict[str, Any]:
+    present = {
+        "RENDER_DEPLOY_HOOK": bool(os.getenv("RENDER_DEPLOY_HOOK", "").strip()),
+        "RENDER_API_KEY": bool(os.getenv("RENDER_API_KEY", "").strip()),
+        "RENDER_SERVICE_ID": bool(os.getenv("RENDER_SERVICE_ID", "").strip()),
+    }
+    missing_for_api = [name for name in ("RENDER_API_KEY", "RENDER_SERVICE_ID") if not present[name]]
     return {
         "status": "blocked",
         "passed": False,
@@ -63,10 +69,19 @@ def _blocking_report(reason: str, *, commit_sha: str = "", detail: Any | None = 
         "commit_sha": commit_sha,
         "reason": reason,
         "detail": detail or {},
+        "credentials": {
+            "present": present,
+            "missing_for_deploy_hook": [] if present["RENDER_DEPLOY_HOOK"] else ["RENDER_DEPLOY_HOOK"],
+            "missing_for_render_api": missing_for_api,
+        },
         "required": {
             "deploy_hook": ["RENDER_DEPLOY_HOOK"],
             "render_api": ["RENDER_API_KEY", "RENDER_SERVICE_ID"],
         },
+        "remediation": (
+            "Configure either RENDER_DEPLOY_HOOK or both RENDER_API_KEY and RENDER_SERVICE_ID as CI secrets. "
+            "The verifier blocks deploy promotion when no authenticated Render trigger is available."
+        ),
     }
 
 
@@ -175,16 +190,21 @@ def main() -> int:
     parser.add_argument("--register", action="store_true", help="Register a throwaway account for deep smoke checks.")
     parser.add_argument("--auth-email", default="", help="Email for deep smoke login.")
     parser.add_argument("--auth-password", default="", help="Password for deep smoke login.")
+    parser.add_argument("--output", default="", help="Optional JSON report path for CI artifacts.")
     args = parser.parse_args()
 
     commit_sha = _current_commit(args.commit)
     if not commit_sha:
         report = _blocking_report("Unable to resolve a commit SHA for Render deploy verification.")
         print(json.dumps(report, ensure_ascii=False, indent=2))
+        if args.output.strip():
+            output_path = Path(args.output).expanduser().resolve()
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         return 1
 
     trigger_report = trigger_render_deploy(commit_sha=commit_sha, clear_cache=args.clear_cache)
-    report: dict[str, Any] = {"deploy": trigger_report}
+    report: dict[str, Any] = {"commit_sha": commit_sha, "deploy": trigger_report}
     passed = bool(trigger_report.get("passed"))
 
     if passed and args.base_url.strip():
@@ -203,7 +223,12 @@ def main() -> int:
 
     report["status"] = "passed" if passed else "blocked"
     report["passed"] = passed
-    print(json.dumps(report, ensure_ascii=False, indent=2))
+    rendered = json.dumps(report, ensure_ascii=False, indent=2)
+    if args.output.strip():
+        output_path = Path(args.output).expanduser().resolve()
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(rendered, encoding="utf-8")
+    print(rendered)
     return 0 if passed else 1
 
 

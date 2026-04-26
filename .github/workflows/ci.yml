@@ -63,6 +63,10 @@ jobs:
         run: npm run test
       - name: Frontend build
         run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist-${{ github.sha }}
+          path: frontend-spa/dist
 
   scan-hygiene:
     runs-on: ubuntu-latest
@@ -123,9 +127,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-${{ github.sha }}
+          path: frontend-spa/dist
       - name: Write commit-bound engineering gate artifact
         run: python scripts/write_engineering_gate_artifact.py --commit "${GITHUB_SHA}" --output "output/engineering-gate/engineering-gate.${GITHUB_SHA}.json"
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: engineering-gate-${{ github.sha }}
           path: output/engineering-gate/engineering-gate.${{ github.sha }}.json
@@ -167,4 +176,9 @@ jobs:
           RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-        run: python scripts/verify_render_deploy.py --commit "${GITHUB_SHA}" --base-url "${{ inputs.render_base_url }}"
+        run: python scripts/verify_render_deploy.py --commit "${GITHUB_SHA}" --base-url "${{ inputs.render_base_url }}" --output "output/render-deploy/render-deploy.${GITHUB_SHA}.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: render-deploy-${{ github.sha }}
+          path: output/render-deploy/render-deploy.${{ github.sha }}.json

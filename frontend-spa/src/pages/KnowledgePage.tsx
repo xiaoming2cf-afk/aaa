@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../api";
+import { InlineEmptyState, InlineErrorState } from "../components/StatusPrimitives";
 
 type UseAppState = () => {
   workspaceId: string;
@@ -72,6 +73,9 @@ export function KnowledgePage({ useAppState }: { useAppState: UseAppState }): JS
           </button>
           <span className="muted">Knowledge records can be published into the team library after review.</span>
         </div>
+        {createMutation.isError ? (
+          <InlineErrorState title="Knowledge record was not saved" description={(createMutation.error as Error).message} />
+        ) : null}
       </section>
 
       <section className="panel panel-span">
@@ -82,6 +86,12 @@ export function KnowledgePage({ useAppState }: { useAppState: UseAppState }): JS
           </div>
         </div>
         <div className="list-stack">
+          {knowledgeQuery.isError ? (
+            <InlineErrorState title="Knowledge records could not load" description={(knowledgeQuery.error as Error).message} />
+          ) : null}
+          {!knowledgeQuery.isError && knowledgeQuery.isSuccess && !knowledgeQuery.data.items.length ? (
+            <InlineEmptyState title="No knowledge records yet" description="Create a workspace note or publish reviewed research to build the knowledge base." />
+          ) : null}
           {(knowledgeQuery.data?.items || []).map((item) => (
             <div key={item.id} className="list-card static-card">
               <div className="list-card-title">
@@ -112,6 +122,9 @@ export function KnowledgePage({ useAppState }: { useAppState: UseAppState }): JS
               </div>
             </div>
           ))}
+          {publishMutation.isError ? (
+            <InlineErrorState title="Knowledge record was not published" description={(publishMutation.error as Error).message} />
+          ) : null}
         </div>
       </section>
     </div>

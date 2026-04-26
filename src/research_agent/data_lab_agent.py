@@ -1272,6 +1272,7 @@ def _execution_risk_audit(
 ) -> dict[str, Any]:
     return {
         "trusted_execution_enabled": trusted_execution_enabled,
+        "trusted_execution_flag": "DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED",
         "runner": "local_python_subprocess" if trusted_execution_enabled else "not_executed",
         "sandbox_claim": "none",
         "ast_policy": "enforced" if trusted_execution_enabled else "not_reached",
@@ -1371,6 +1372,17 @@ def _validate_execution_paths(settings: Settings, *, work_dir: Path, output_dir:
         raise ValueError("Data Lab Agent execution directory is outside the session work directory.")
 
 
+def _validated_session_work_dir(settings: Settings, session: dict[str, Any]) -> Path:
+    work_dir = Path(str(session.get("work_dir") or "")).resolve()
+    _validate_execution_paths(
+        settings,
+        work_dir=work_dir,
+        output_dir=(work_dir / "outputs").resolve(),
+        execution_dir=(work_dir / "execution").resolve(),
+    )
+    return work_dir
+
+
 def _validate_artifacts(
     settings: Settings,
     *,
@@ -1419,7 +1431,18 @@ def _validate_artifacts(
     return cleaned
 
 
-class SandboxExecutor:
+def _trusted_execution_contract(settings: Settings) -> dict[str, Any]:
+    return {
+        "enabled": _data_lab_trusted_execution_enabled(settings),
+        "flag": "DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED",
+        "runner": "local_python_subprocess" if _data_lab_trusted_execution_enabled(settings) else "not_executed",
+        "sandbox_claim": "none",
+        "artifact_quota": _artifact_quota(settings),
+        "output_scope": "session_outputs_only",
+    }
+
+
+class TrustedPythonExecutor:
     def execute(
         self,
         settings: Settings,
@@ -1924,6 +1947,7 @@ def create_agent_session(
             if not _data_lab_trusted_execution_enabled(settings)
             else "subprocess_replay",
             "trusted_execution_enabled": _data_lab_trusted_execution_enabled(settings),
+            "trusted_execution": _trusted_execution_contract(settings),
             "sandbox_claim": "none",
             "ipython_enabled": bool(getattr(settings, "data_lab_agent_ipython_enabled", False)),
             "timeout_seconds": int(settings.data_lab_agent_timeout_seconds),
@@ -2000,6 +2024,7 @@ def send_agent_message(
     llm_client = AgentLLMClient(llm_config) if llm_config.ready else None
     session["llm"] = llm_config.public_summary()
     session.setdefault("executor", {})["trusted_execution_enabled"] = _data_lab_trusted_execution_enabled(settings)
+    session.setdefault("executor", {})["trusted_execution"] = _trusted_execution_contract(settings)
     session.setdefault("executor", {})["artifact_quota"] = _artifact_quota(settings)
     session.setdefault("executor", {})["sandbox_claim"] = "none"
     if requested_execution_mode:
@@ -2014,7 +2039,7 @@ def send_agent_message(
     session["math"]["v2_state_summary"] = _public_math_state_summary(session_state)
     coder = AnalystCoder(llm_client=llm_client)
     reviewer = ExecutionReviewer(llm_client=llm_client)
-    executor = SandboxExecutor()
+    executor = TrustedPythonExecutor()
     repair_trace: list[dict[str, Any]] = []
     llm_trace_summary: list[dict[str, Any]] = []
     repair_decisions: list[dict[str, Any]] = []
@@ -2299,7 +2324,7 @@ def generate_agent_report(
     llm_config = resolve_agent_llm_config(settings, db, user=user, workspace=workspace)
     llm_client = AgentLLMClient(llm_config) if llm_config.ready else None
     report = ReportWriter().build_report(session, llm_client=llm_client)
-    report_path = Path(str(session["work_dir"])) / "report.md"
+    report_path = _validated_session_work_dir(settings, session) / "report.md"
     report_path.write_text(report, encoding="utf-8")
     session["report_path"] = str(report_path)
     session["summary"] = "Data Lab Agent report generated."
@@ -2326,6 +2351,7 @@ def export_agent_notebook(
     _require_enabled(settings)
     run = _run_or_raise(db, user=user, workspace=workspace, run_id=run_id)
     session = _session_from_run(run)
+    _validated_session_work_dir(settings, session)
     notebook_path = ReportWriter().write_notebook(session)
     session["notebook_path"] = str(notebook_path)
     session["updated_at"] = _utc_now()
@@ -2381,6 +2407,7 @@ payload = json.loads(payload_path.read_text(encoding="utf-8"))
 work_dir = Path(payload["work_dir"]).resolve()
 output_dir = Path(payload["output_dir"]).resolve()
 result_path = Path(payload["result_path"]).resolve()
+execution_dir = result_path.parent.resolve()
 limit = int(payload.get("output_limit") or 12000)
 if output_dir.name != "outputs" or (work_dir not in output_dir.parents and output_dir != work_dir):
     result_path.write_text(
@@ -2452,6 +2479,61 @@ def snapshot() -> dict[str, int]:
     return {str(path.resolve()): path.stat().st_mtime_ns for path in output_dir.rglob("*") if path.is_file()}
 
 
+def is_within(path: Path, parent: Path) -> bool:
+    try:
+        resolved_path = path.resolve()
+        resolved_parent = parent.resolve()
+    except Exception:
+        return False
+    return resolved_path == resolved_parent or resolved_parent in resolved_path.parents
+
+
+def is_lexically_within(path: Path, parent: Path) -> bool:
+    try:
+        path.absolute().relative_to(parent.absolute())
+    except ValueError:
+        return False
+    return True
+
+
+def non_output_snapshot() -> dict[str, dict[str, object]]:
+    files = {}
+    for path in work_dir.rglob("*"):
+        if not path.is_file():
+            continue
+        scan_path = path.absolute()
+        if is_lexically_within(scan_path, output_dir) or is_lexically_within(scan_path, execution_dir):
+            continue
+        try:
+            resolved = path.resolve()
+            mtime_ns = path.lstat().st_mtime_ns
+        except Exception:
+            continue
+        files[str(scan_path)] = {"mtime_ns": mtime_ns, "resolved_path": str(resolved)}
+    return files
+
+
+def changed_non_output_files(before: dict[str, dict[str, object]], after: dict[str, dict[str, object]]) -> list[str]:
+    changed = []
+    for raw_path, metadata in after.items():
+        if raw_path not in before or before[raw_path] != metadata:
+            changed.append(raw_path)
+    return changed
+
+
+def remove_created_non_output_files(before: dict[str, dict[str, object]], changed: list[str]) -> None:
+    for raw_path in changed:
+        if raw_path in before:
+            continue
+        path = Path(raw_path).absolute()
+        if not is_lexically_within(path, work_dir) or is_lexically_within(path, output_dir) or is_lexically_within(path, execution_dir):
+            continue
+        try:
+            path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
 def safe(value):
     try:
         import math
@@ -2495,6 +2577,7 @@ def dataframe_profile_snapshot():
 
 
 before = snapshot()
+non_output_before = non_output_snapshot()
 for index, code in enumerate(payload.get("bootstrap_cells") or []):
     result = run_cell(code, f"<bootstrap-{index}>", capture=False)
     if not result["ok"]:
@@ -2561,6 +2644,21 @@ for raw_path, mtime in after.items():
                 "content_type": "image/png" if path.suffix.lower() == ".png" else "application/octet-stream",
             }
         )
+
+non_output_changes = changed_non_output_files(non_output_before, non_output_snapshot())
+if non_output_changes:
+    remove_created_non_output_files(non_output_before, non_output_changes)
+    payload_out = {
+        "status": "error",
+        "stdout": _truncate(result.get("stdout", ""), limit),
+        "stderr": _truncate((result.get("stderr", "") or "") + (("\n" + figure_error) if figure_error else ""), limit),
+        "error": _truncate("Execution attempted to create or modify files outside OUTPUT_DIR: " + ", ".join(non_output_changes[:5]), limit),
+        "error_type": "file_write_outside_output",
+        "artifacts": [],
+        "profile_snapshot": {},
+    }
+    result_path.write_text(json.dumps(payload_out, ensure_ascii=False), encoding="utf-8")
+    raise SystemExit(0)
 
 payload_out = {
     "status": "success" if result["ok"] else "error",

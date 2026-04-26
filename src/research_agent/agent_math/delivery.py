@@ -7,6 +7,7 @@ from .runtime import (
     DeliveryPosterior,
     build_shadow_comparison,
     clamp_unit,
+    probability_semantics,
 )
 
 
@@ -113,7 +114,7 @@ def build_delivery_posterior_trace(
         "governance_evidence": round(governance, 6),
         "delivery_posterior": round(delivery_posterior, 6),
         "delivery_probability_proxy": round(delivery_posterior, 6),
-        "posterior_semantics": "uncalibrated_surrogate",
+        "posterior_semantics": probability_semantics(status),
         "threshold": round(float(threshold), 6),
         "deliverable_proxy": chosen_deliverable,
         "surrogate": "zero_safe_weighted_delivery_evidence_proxy",

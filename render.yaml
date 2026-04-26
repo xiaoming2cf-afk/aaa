@@ -43,6 +43,8 @@ services:
         value: /tmp/economic-research-storage
       - key: RESEARCH_AGENT_REPORTS_DIR
         value: /tmp/economic-research-storage/reports
+      - key: RESEARCH_AGENT_ENGINEERING_GATE_ARTIFACT
+        sync: false
       - key: SESSION_TTL_HOURS
         value: 72
       - key: SMTP_HOST

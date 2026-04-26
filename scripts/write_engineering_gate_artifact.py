@@ -56,12 +56,41 @@ def _check(key: str, label: str, detail: str = "passed") -> dict[str, Any]:
     return {"key": key, "label": label, "passed": True, "detail": detail}
 
 
+def _failed_check(key: str, label: str, detail: str) -> dict[str, Any]:
+    return {"key": key, "label": label, "passed": False, "detail": detail}
+
+
+def _spa_shell_check() -> dict[str, Any]:
+    index_path = REPO_ROOT / "frontend-spa" / "dist" / "index.html"
+    if not index_path.exists():
+        return _failed_check(
+            "spa_built_shell_present",
+            "Built SPA shell is present",
+            f"{index_path} is missing. Run the frontend build before writing the engineering gate artifact.",
+        )
+    text = index_path.read_text(encoding="utf-8", errors="replace")
+    if "/src/main.tsx" in text:
+        return _failed_check(
+            "spa_shell_uses_built_assets",
+            "Built SPA shell does not reference the Vite source entry",
+            f"{index_path} still references /src/main.tsx.",
+        )
+    if "/app/assets/" not in text:
+        return _failed_check(
+            "spa_shell_uses_built_assets",
+            "Built SPA shell references /app/assets/ build outputs",
+            f"{index_path} does not reference /app/assets/ build outputs.",
+        )
+    return _check("spa_shell_uses_built_assets", "Built SPA shell references hashed /app/assets/ outputs")
+
+
 def build_artifact(*, commit_sha: str, source: str, include_slow_model_upgrade: bool = False) -> dict[str, Any]:
     checks = [
         _check("repo_hygiene_clean", "Repository hygiene scan passes"),
         _check("backend_tests_green", "Backend pytest suite passes"),
         _check("frontend_tests_green", "SPA unit test suite passes"),
         _check("frontend_build_green", "SPA build passes"),
+        _spa_shell_check(),
         _check("agent_quality_gate_green", "Agent quality gate passes"),
         _check("model_engine_comparison_green", "Model engine comparison passes"),
     ]
@@ -70,7 +99,7 @@ def build_artifact(*, commit_sha: str, source: str, include_slow_model_upgrade: 
     return {
         "artifact_schema": ARTIFACT_SCHEMA,
         "commit_sha": commit_sha,
-        "passed": True,
+        "passed": all(bool(check.get("passed")) for check in checks),
         "checks": checks,
         "checked_at": _utc_now_iso(),
         "source": source,
@@ -117,8 +146,20 @@ def main() -> int:
         include_slow_model_upgrade=args.include_slow_model_upgrade,
     )
     write_artifact(payload, output)
-    print(json.dumps({"status": "passed", "output": str(output), "commit_sha": commit_sha}, ensure_ascii=False, indent=2))
-    return 0
+    print(
+        json.dumps(
+            {
+                "status": "passed" if payload["passed"] else "blocked",
+                "passed": payload["passed"],
+                "output": str(output),
+                "commit_sha": commit_sha,
+                "failed_checks": [check for check in payload["checks"] if not bool(check.get("passed"))],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0 if payload["passed"] else 1
 
 
 if __name__ == "__main__":

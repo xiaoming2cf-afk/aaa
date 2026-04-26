@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -11,6 +12,15 @@ from research_agent.config import get_settings
 
 
 runner = CliRunner()
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _load_script_module(name: str, relative_path: str):
+    spec = importlib.util.spec_from_file_location(name, REPO_ROOT / relative_path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_env_defaults_do_not_expose_runtime_model_endpoints(monkeypatch):
@@ -124,6 +134,8 @@ def test_smoke_deploy_checks_expected_routes(monkeypatch, tmp_path):
     assert output_path.exists()
     payload = json.loads(output_path.read_text(encoding="utf-8"))
     assert any(item["path"] == "/app/data-lab-agent" for item in payload["checks"])
+    for expected in ("/api/auth/me", "/app", "/app/quality", "/app/data-lab-agent", "/provider-center"):
+        assert expected in payload["required_paths"]
 
 
 def test_smoke_deploy_rejects_source_entry_shell(monkeypatch, tmp_path):
@@ -176,3 +188,154 @@ def test_smoke_deploy_rejects_source_entry_shell(monkeypatch, tmp_path):
     payload = json.loads(output_path.read_text(encoding="utf-8"))
     failing = next(item for item in payload["checks"] if item["path"] == "/app/data-lab-agent")
     assert failing["passed"] is False
+    assert failing["key"] == "spa_route_uses_built_assets"
+    assert "SPA shell still references /src/main.tsx" in failing["detail"]
+
+
+def test_smoke_deploy_accepts_quality_scorecard_fail_closed(monkeypatch, tmp_path):
+    auth_me_calls = {"count": 0}
+
+    def fake_get(self, url: str, timeout: int = 20, allow_redirects: bool = False):
+        del timeout, allow_redirects
+        if url.endswith("/api/auth/me"):
+            auth_me_calls["count"] += 1
+            if auth_me_calls["count"] == 1:
+                return SimpleNamespace(
+                    status_code=401,
+                    headers={},
+                    text='{"detail":"Not authenticated"}',
+                    json=lambda: {"detail": "Not authenticated"},
+                )
+            return SimpleNamespace(
+                status_code=200,
+                headers={},
+                text='{"user":{"email":"smoke@example.invalid"}}',
+                json=lambda: {"user": {"email": "smoke@example.invalid"}},
+            )
+        if url.endswith("/api/health"):
+            return SimpleNamespace(
+                status_code=200,
+                headers={},
+                text='{"status":"ok"}',
+                json=lambda: {"status": "ok"},
+            )
+        if url.endswith("/provider-center"):
+            return SimpleNamespace(
+                status_code=200,
+                headers={},
+                text="Provider Center is not part of the current product scope.",
+                json=lambda: {},
+            )
+        if url.endswith("/quality/scorecard"):
+            return SimpleNamespace(
+                status_code=200,
+                headers={},
+                text='{"engineering_gate":{"passed":false,"source":"missing"}}',
+                json=lambda: {"engineering_gate": {"passed": False, "source": "missing"}},
+            )
+        return SimpleNamespace(
+            status_code=307,
+            headers={"location": "/"},
+            text="",
+            json=lambda: {},
+        )
+
+    def fake_post(self, url: str, *args, **kwargs):
+        del args, kwargs
+        if url.endswith("/api/auth/register"):
+            self.cookies.set("erp_session_token", "token")
+            return SimpleNamespace(status_code=200, headers={}, text='{}', json=lambda: {})
+        if url.endswith("/api/workspaces"):
+            return SimpleNamespace(
+                status_code=200,
+                headers={},
+                text='{"workspace":{"id":"workspace-1"}}',
+                json=lambda: {"workspace": {"id": "workspace-1"}},
+            )
+        if url.endswith("/assets/upload"):
+            return SimpleNamespace(
+                status_code=200,
+                headers={},
+                text='{"asset":{"id":"asset-1"}}',
+                json=lambda: {"asset": {"id": "asset-1"}},
+            )
+        return SimpleNamespace(status_code=404, headers={}, text="missing", json=lambda: {})
+
+    monkeypatch.setattr("research_agent.cli.requests.Session.get", fake_get)
+    monkeypatch.setattr("research_agent.cli.requests.Session.post", fake_post)
+    output_path = tmp_path / "deploy-smoke-fail-closed.json"
+
+    result = runner.invoke(
+        cli_app,
+        [
+            "smoke-deploy",
+            "--base-url",
+            "https://economic-research-web.onrender.com",
+            "--deep",
+            "--register",
+            "--output",
+            str(output_path),
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    quality = next(item for item in payload["checks"] if item.get("key") == "quality_scorecard_accessible")
+    assert quality["passed"] is True
+    assert quality["detail"] == "missing"
+
+
+def test_render_deploy_missing_credentials_report_is_actionable(monkeypatch):
+    module = _load_script_module("verify_render_deploy_test", "scripts/verify_render_deploy.py")
+    monkeypatch.delenv("RENDER_DEPLOY_HOOK", raising=False)
+    monkeypatch.delenv("RENDER_API_KEY", raising=False)
+    monkeypatch.delenv("RENDER_SERVICE_ID", raising=False)
+
+    report = module.trigger_render_deploy(commit_sha="abc123")
+
+    assert report["passed"] is False
+    assert report["commit_sha"] == "abc123"
+    assert report["credentials"]["missing_for_deploy_hook"] == ["RENDER_DEPLOY_HOOK"]
+    assert report["credentials"]["missing_for_render_api"] == ["RENDER_API_KEY", "RENDER_SERVICE_ID"]
+    assert "Configure either RENDER_DEPLOY_HOOK" in report["remediation"]
+
+
+def test_engineering_gate_artifact_fails_when_dist_shell_uses_source_entry(tmp_path, monkeypatch):
+    module = _load_script_module("write_engineering_gate_artifact_test", "scripts/write_engineering_gate_artifact.py")
+    repo_root = tmp_path / "repo"
+    dist = repo_root / "frontend-spa" / "dist"
+    dist.mkdir(parents=True)
+    (dist / "index.html").write_text('<script type="module" src="/src/main.tsx"></script>', encoding="utf-8")
+    monkeypatch.setattr(module, "REPO_ROOT", repo_root)
+
+    artifact = module.build_artifact(commit_sha="abc123", source="test")
+
+    assert artifact["passed"] is False
+    failing = next(check for check in artifact["checks"] if check["key"] == "spa_shell_uses_built_assets")
+    assert failing["passed"] is False
+    assert "/src/main.tsx" in failing["detail"]
+
+
+def test_engineering_gate_artifact_contains_commit_and_critical_gates(tmp_path, monkeypatch):
+    module = _load_script_module("write_engineering_gate_artifact_success_test", "scripts/write_engineering_gate_artifact.py")
+    repo_root = tmp_path / "repo"
+    dist = repo_root / "frontend-spa" / "dist"
+    dist.mkdir(parents=True)
+    (dist / "index.html").write_text('<script type="module" src="/app/assets/index-abcd.js"></script>', encoding="utf-8")
+    monkeypatch.setattr(module, "REPO_ROOT", repo_root)
+
+    artifact = module.build_artifact(commit_sha="abc123", source="test")
+
+    assert artifact["passed"] is True
+    assert artifact["commit_sha"] == "abc123"
+    keys = {check["key"] for check in artifact["checks"]}
+    for expected in (
+        "repo_hygiene_clean",
+        "backend_tests_green",
+        "frontend_tests_green",
+        "frontend_build_green",
+        "spa_shell_uses_built_assets",
+        "agent_quality_gate_green",
+        "model_engine_comparison_green",
+    ):
+        assert expected in keys

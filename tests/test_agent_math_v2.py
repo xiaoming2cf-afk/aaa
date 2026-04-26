@@ -181,6 +181,7 @@ def test_calibrated_registry_can_open_active_retrieval_gate(tmp_path):
     assert trace["v2"]["comparison"]["override_applied"] is True
     assert trace["math_status"]["calibrated"] is True
     assert trace["math_status"]["calibration_version"] == "retrieval.test.pass"
+    assert ranked[0]["arbiter"]["v2"]["posterior_semantics"] == "calibrated_posterior"
 
 
 def test_failing_calibration_registry_keeps_surrogate_blocked(tmp_path):
@@ -421,6 +422,48 @@ def test_delivery_empty_evidence_proxy_is_zero_when_gate_passes():
     assert trace["delivery_probability_proxy"] == 0.0
     assert trace["deliverable_proxy"] is False
     assert trace["surrogate"] == "zero_safe_weighted_delivery_evidence_proxy"
+
+
+def test_calibrated_delivery_trace_uses_calibrated_posterior_semantics(tmp_path):
+    registry_path = tmp_path / "calibration_registry.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "registry_version": "test.registry.v1",
+                "subsystems": {
+                    "delivery": {
+                        "version": "delivery.test.pass",
+                        "calibrated": True,
+                        "metrics": {
+                            "brier_score": 0.01,
+                            "expected_calibration_error": 0.01,
+                            "false_publish_rate": 0.0,
+                            "false_block_rate": 0.0,
+                            "calibration_sample_count": 30,
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    trace = build_delivery_posterior_trace(
+        citation_coverage=1.0,
+        unsupported_claim_rate=0.0,
+        review_block_precision=1.0,
+        review_approved=True,
+        artifact_present=True,
+        engineering_gate_passed=True,
+        baseline_deliverable=True,
+        mode="active",
+        threshold=0.5,
+        calibration_registry_path=str(registry_path),
+    )
+
+    assert trace["math_status"]["calibrated"] is True
+    assert trace["posterior_semantics"] == "calibrated_posterior"
+    assert trace["v2"]["posterior_semantics"] == "calibrated_posterior"
 
 
 def test_candidate_selection_records_missing_v2_metadata_without_overriding_baseline():
