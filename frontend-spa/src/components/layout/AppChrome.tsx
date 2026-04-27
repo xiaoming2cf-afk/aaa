@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 
 import { AppSidebar } from "./AppSidebar";
 import { CommandBar } from "./CommandBar";
-import { GlobalStatusStrip } from "./GlobalStatusStrip";
 import type { RouteMetadata, Team, Workspace } from "./types";
 
 type AppChromeProps = {
@@ -57,7 +56,6 @@ export function AppChrome({
         />
         <main className="ops-main">
           <div className="ops-main-inner">
-            <GlobalStatusStrip currentWorkspace={currentWorkspace} currentTeam={currentTeam} />
             {children}
           </div>
         </main>

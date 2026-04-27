@@ -83,7 +83,7 @@ export function QualityPage({ useAppState }: { useAppState: UseAppState }): JSX.
   const snapshotItems = runsQuery.data?.items || [];
 
   return (
-    <div className="ops-grid">
+    <div className="terminal-page workbench-quality">
       <QualityRadar
         blockingReasons={blockingReasons}
         businessGate={businessGate}

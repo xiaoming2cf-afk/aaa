@@ -1,0 +1,17 @@
+export const queryKeys = {
+  assets: (workspaceId: string) => ["assets", workspaceId] as const,
+  dataLabHistory: (workspaceId: string) => ["data-lab-history", workspaceId] as const,
+  dataLabLlmConfig: (workspaceId: string) => ["data-lab-agent-llm-config", workspaceId] as const,
+  dataLabSession: (workspaceId: string, runId: string) => ["data-lab-agent-session", workspaceId, runId] as const,
+  knowledge: (workspaceId: string) => ["knowledge", workspaceId] as const,
+  qualityRuns: (workspaceId: string) => ["quality-runs", workspaceId] as const,
+  qualityScorecard: (workspaceId: string) => ["quality-scorecard", workspaceId] as const,
+  researchRunDetail: (workspaceId: string, runId: string) => ["research-run-detail", workspaceId, runId] as const,
+  researchRuns: (workspaceId: string) => ["research-runs", workspaceId] as const,
+  researchRuntime: (workspaceId: string) => ["research-runtime", workspaceId] as const,
+  session: () => ["session"] as const,
+  teamLibrary: (teamId: string) => ["team-library", teamId] as const,
+  teams: () => ["teams"] as const,
+  workbenchOverview: (workspaceId: string) => ["workbench-overview", workspaceId] as const,
+  workspaces: () => ["workspaces"] as const,
+};

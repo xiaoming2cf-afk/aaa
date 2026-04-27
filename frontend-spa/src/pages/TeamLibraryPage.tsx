@@ -58,7 +58,7 @@ export function TeamLibraryPage({ useAppState }: { useAppState: UseAppState }): 
   const libraryItems = libraryQuery.data?.items || [];
 
   return (
-    <div className="ops-grid">
+    <div className="terminal-page workbench-library">
       <TeamSelectorPanel
         createError={createTeamMutation.isError ? createTeamMutation.error as Error : null}
         createPending={createTeamMutation.isPending}

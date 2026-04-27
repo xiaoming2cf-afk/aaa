@@ -8,7 +8,7 @@ export function ProvidersPage({ useAppState }: { useAppState: UseAppState }): JS
   const { workspaceId } = useAppState();
 
   return (
-    <div className="ops-grid">
+    <div className="terminal-page workbench-providers">
       <ProviderBoundaryPanel workspaceId={workspaceId} />
     </div>
   );

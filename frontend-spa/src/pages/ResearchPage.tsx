@@ -144,7 +144,7 @@ export function ResearchPage({ useAppState }: { useAppState: UseAppState }): JSX
   const runItems = runsQuery.data?.items || [];
 
   return (
-    <div className="ops-grid">
+    <div className="terminal-page workbench-research">
       <RunComposer
         createErrorMessage={createRunMutation.isError ? (createRunMutation.error as Error).message : undefined}
         createPending={createRunMutation.isPending}

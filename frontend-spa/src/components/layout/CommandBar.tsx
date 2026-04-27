@@ -1,6 +1,6 @@
 import { RefreshCw } from "lucide-react";
 
-import { Button } from "../ui";
+import { Badge, Button } from "../ui";
 import { ScopePanel } from "./ScopePanel";
 import type { RouteMetadata, Team, Workspace } from "./types";
 
@@ -41,6 +41,10 @@ export function CommandBar({
         </p>
       </div>
       <div className="ops-command-actions">
+        <div className="chrome-status" aria-label="Global operation state">
+          <Badge tone="success">Authenticated</Badge>
+          <Badge tone="info">ARBITER shadow</Badge>
+        </div>
         <ScopePanel
           workspaces={workspaces}
           teams={teams}

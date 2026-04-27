@@ -1,5 +1,7 @@
 export { ComposerPanel } from "./ComposerPanel";
+export { DataLabIdeLayout } from "./DataLabIdeLayout";
 export { DatasetContextPanel } from "./DatasetContextPanel";
+export { InspectorTabsPanel } from "./InspectorTabsPanel";
 export { LlmConfigPanel } from "./LlmConfigPanel";
 export { MessageTimelinePanel } from "./MessageTimelinePanel";
 export { NotebookExportPanel } from "./NotebookExportPanel";

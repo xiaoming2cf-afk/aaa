@@ -4,7 +4,9 @@ import { useLocation } from "react-router-dom";
 import { apiFetch } from "../api";
 import {
   ComposerPanel,
+  DataLabIdeLayout,
   DatasetContextPanel,
+  InspectorTabsPanel,
   LlmConfigPanel,
   MessageTimelinePanel,
   NotebookExportPanel,
@@ -311,96 +313,112 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
   };
 
   return (
-    <div className="ops-grid">
-      <SessionLaunchPanel
-        assetId={assetId}
-        assetsError={assetsQuery.isError ? (assetsQuery.error as Error) : null}
-        assetsSuccess={assetsQuery.isSuccess}
-        createPending={createSessionMutation.isPending}
-        datasetAssets={datasetAssets}
-        datasetSelectRef={datasetSelectRef}
-        onCreateSession={(payload) => createSessionMutation.mutate(payload)}
-        permalinkHref={permalinkHref}
-        setAssetId={setAssetId}
-        setTitle={setTitle}
-        title={title}
-        titleInputRef={titleInputRef}
-        workspaceId={workspaceId}
-      />
-      <LlmConfigPanel
-        environmentLlmStatus={environmentLlmStatus}
-        error={llmConfigQuery.isError ? (llmConfigQuery.error as Error) : null}
-        isError={llmConfigQuery.isError}
-        llmConfig={llmConfigQuery.data}
-        llmForm={llmForm}
-        llmStatus={llmStatus}
-        llmTestResult={llmTestResult}
-        onLoadStored={loadWorkspaceConfig}
-        onSave={() => saveLlmConfigMutation.mutate()}
-        onTest={() => testLlmConfigMutation.mutate()}
-        savePending={saveLlmConfigMutation.isPending}
-        setLlmForm={setLlmForm}
-        testPending={testLlmConfigMutation.isPending}
-        workspaceId={workspaceId}
-        workspaceLlmStatus={workspaceLlmStatus}
-      />
-      <SessionHistoryPanel
-        historyError={historyQuery.isError ? (historyQuery.error as Error) : null}
-        historyItems={historyQuery.data?.agent_sessions || []}
-        historySuccess={historyQuery.isSuccess}
-        selectedRunId={selectedRunId}
-        setSelectedRunId={setSelectedRunId}
-      />
-      <NotebookExportPanel
-        currentSessionReady={Boolean(currentSession)}
-        notebookArtifactLabel={notebookArtifactLabel}
-        notebookExportMessage={notebookExportMessage}
-        notebookExportSource={notebookExportSource}
-        notebookExportState={notebookExportState}
-        notebookHref={notebookHref}
-        notebookPending={notebookMutation.isPending}
-        onPrepareNotebook={() => notebookMutation.mutate()}
-        permalinkHref={permalinkHref}
-        selectedRunId={selectedRunId}
-      />
-      <ComposerPanel
-        executionMode={executionMode}
-        executionModeSelectRef={executionModeSelectRef}
-        interventionNote={interventionNote}
-        interventionNoteInputRef={interventionNoteInputRef}
-        latestAssistantWithCode={latestAssistantWithCode}
-        latestPrompt={latestPrompt}
-        manualCode={manualCode}
-        manualCodeInputRef={manualCodeInputRef}
-        message={message}
-        messageInputRef={messageInputRef}
-        needsHuman={needsHuman}
-        onGenerateReport={() => reportMutation.mutate()}
-        onRetryLatestPrompt={retryLatestPrompt}
-        onRunMessage={runMessage}
-        reportPending={reportMutation.isPending}
-        selectedRunId={selectedRunId}
-        sendPending={sendMessageMutation.isPending}
-        setExecutionMode={setExecutionMode}
-        setInterventionNote={setInterventionNote}
-        setManualCode={setManualCode}
-        setMessage={setMessage}
-      />
-      <DatasetContextPanel firstAsset={firstAsset} firstProfile={firstProfile} previewColumns={previewColumns} />
-      <MessageTimelinePanel
-        currentSession={currentSession}
-        messages={messages}
-        mutationError={mutationError ? (mutationError as Error) : null}
-        sessionError={sessionQuery.isError ? (sessionQuery.error as Error) : null}
-        sessionStatus={sessionStatus}
-      />
-      <TracePanel
-        currentExecutorMode={currentExecutorMode}
-        currentSession={currentSession}
-        latestAssistant={latestAssistant}
-        reportMarkdown={reportMarkdown}
-        sessionStatus={sessionStatus}
-      />
-    </div>
+    <DataLabIdeLayout
+      browser={(
+        <>
+          <SessionLaunchPanel
+            assetId={assetId}
+            assetsError={assetsQuery.isError ? (assetsQuery.error as Error) : null}
+            assetsSuccess={assetsQuery.isSuccess}
+            createPending={createSessionMutation.isPending}
+            datasetAssets={datasetAssets}
+            datasetSelectRef={datasetSelectRef}
+            onCreateSession={(payload) => createSessionMutation.mutate(payload)}
+            permalinkHref={permalinkHref}
+            setAssetId={setAssetId}
+            setTitle={setTitle}
+            title={title}
+            titleInputRef={titleInputRef}
+            workspaceId={workspaceId}
+          />
+          <SessionHistoryPanel
+            historyError={historyQuery.isError ? (historyQuery.error as Error) : null}
+            historyItems={historyQuery.data?.agent_sessions || []}
+            historySuccess={historyQuery.isSuccess}
+            selectedRunId={selectedRunId}
+            setSelectedRunId={setSelectedRunId}
+          />
+          <LlmConfigPanel
+            environmentLlmStatus={environmentLlmStatus}
+            error={llmConfigQuery.isError ? (llmConfigQuery.error as Error) : null}
+            isError={llmConfigQuery.isError}
+            llmConfig={llmConfigQuery.data}
+            llmForm={llmForm}
+            llmStatus={llmStatus}
+            llmTestResult={llmTestResult}
+            onLoadStored={loadWorkspaceConfig}
+            onSave={() => saveLlmConfigMutation.mutate()}
+            onTest={() => testLlmConfigMutation.mutate()}
+            savePending={saveLlmConfigMutation.isPending}
+            setLlmForm={setLlmForm}
+            testPending={testLlmConfigMutation.isPending}
+            workspaceId={workspaceId}
+            workspaceLlmStatus={workspaceLlmStatus}
+          />
+        </>
+      )}
+      workspace={(
+        <>
+          <MessageTimelinePanel
+            currentSession={currentSession}
+            messages={messages}
+            mutationError={mutationError ? (mutationError as Error) : null}
+            sessionError={sessionQuery.isError ? (sessionQuery.error as Error) : null}
+            sessionStatus={sessionStatus}
+          />
+          <ComposerPanel
+            executionMode={executionMode}
+            executionModeSelectRef={executionModeSelectRef}
+            interventionNote={interventionNote}
+            interventionNoteInputRef={interventionNoteInputRef}
+            latestAssistantWithCode={latestAssistantWithCode}
+            latestPrompt={latestPrompt}
+            manualCode={manualCode}
+            manualCodeInputRef={manualCodeInputRef}
+            message={message}
+            messageInputRef={messageInputRef}
+            needsHuman={needsHuman}
+            onGenerateReport={() => reportMutation.mutate()}
+            onRetryLatestPrompt={retryLatestPrompt}
+            onRunMessage={runMessage}
+            reportPending={reportMutation.isPending}
+            selectedRunId={selectedRunId}
+            sendPending={sendMessageMutation.isPending}
+            setExecutionMode={setExecutionMode}
+            setInterventionNote={setInterventionNote}
+            setManualCode={setManualCode}
+            setMessage={setMessage}
+          />
+        </>
+      )}
+      inspector={(
+        <InspectorTabsPanel
+          dataset={<DatasetContextPanel firstAsset={firstAsset} firstProfile={firstProfile} previewColumns={previewColumns} />}
+          notebook={(
+            <NotebookExportPanel
+              currentSessionReady={Boolean(currentSession)}
+              notebookArtifactLabel={notebookArtifactLabel}
+              notebookExportMessage={notebookExportMessage}
+              notebookExportSource={notebookExportSource}
+              notebookExportState={notebookExportState}
+              notebookHref={notebookHref}
+              notebookPending={notebookMutation.isPending}
+              onPrepareNotebook={() => notebookMutation.mutate()}
+              permalinkHref={permalinkHref}
+              selectedRunId={selectedRunId}
+            />
+          )}
+          trace={(
+            <TracePanel
+              currentExecutorMode={currentExecutorMode}
+              currentSession={currentSession}
+              latestAssistant={latestAssistant}
+              reportMarkdown={reportMarkdown}
+              sessionStatus={sessionStatus}
+            />
+          )}
+        />
+      )}
+    />
   );
 }

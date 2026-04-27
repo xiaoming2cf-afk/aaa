@@ -58,7 +58,7 @@ export function KnowledgePage({ useAppState }: { useAppState: UseAppState }): JS
   const currentTeam = useMemo(() => teams.find((team) => team.id === teamId), [teamId, teams]);
 
   return (
-    <div className="ops-grid">
+    <div className="terminal-page workbench-knowledge">
       <KnowledgeCreatePanel
         content={content}
         disabled={!workspaceId || !title || !content}

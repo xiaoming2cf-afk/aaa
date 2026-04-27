@@ -131,6 +131,8 @@ from .platform_core import (
 )
 from .quality_center import (
     DeliveryGateError,
+    build_agent_run_delivery_review,
+    build_knowledge_record_delivery_review,
     build_delivery_scorecard,
     ensure_delivery_allowed,
     load_engineering_gate_report,
@@ -1337,6 +1339,466 @@ def _data_lab_history_payload(db, *, user, workspace, limit: int = 12) -> dict[s
         "optimization": optimization_items[:limit],
         "agent_sessions": agent_session_runs[:limit],
     }
+
+
+def _fail_closed_delivery_review(*, resource_type: str, resource_id: str, reason: str) -> dict[str, Any]:
+    return {
+        "resource_type": resource_type,
+        "resource_id": resource_id,
+        "business_score": 0,
+        "business_deliverable": False,
+        "engineering_gate_passed": False,
+        "deliverable": False,
+        "publish_allowed": False,
+        "allowed_actions": [],
+        "blocked_actions": ["publish"],
+        "blocking_reasons": [reason],
+        "checks": [],
+        "checked_at": "",
+        "metadata": {"fail_closed": True},
+    }
+
+
+def _fail_closed_engineering_gate(reason: str) -> dict[str, Any]:
+    return {
+        "passed": False,
+        "checks": [
+            {
+                "key": "engineering_gate_unavailable",
+                "label": "Engineering gate data is available",
+                "passed": False,
+                "detail": reason,
+            }
+        ],
+        "checked_at": "",
+        "source": "unavailable",
+    }
+
+
+def _load_workbench_engineering_gate(settings) -> dict[str, Any]:
+    try:
+        return load_engineering_gate_report(settings, auto_refresh_if_missing=False)
+    except Exception as exc:
+        logger.warning("Workbench overview quality gate unavailable: %s", exc)
+        return _fail_closed_engineering_gate("Engineering gate data is unavailable.")
+
+
+def _workbench_agent_delivery_review(run, *, settings, engineering_gate: dict[str, Any]) -> dict[str, Any]:
+    try:
+        return build_agent_run_delivery_review(run, settings=settings, engineering_gate=engineering_gate)
+    except Exception as exc:
+        logger.warning("Workbench overview agent delivery review unavailable: %s", exc)
+        return _fail_closed_delivery_review(
+            resource_type="agent_run",
+            resource_id=str(getattr(run, "id", "") or ""),
+            reason="Delivery review data is unavailable.",
+        )
+
+
+def _workbench_knowledge_delivery_review(db, record: KnowledgeRecord, *, settings, engineering_gate: dict[str, Any]) -> dict[str, Any]:
+    try:
+        return build_knowledge_record_delivery_review(db, record, settings=settings, engineering_gate=engineering_gate)
+    except Exception as exc:
+        logger.warning("Workbench overview knowledge delivery review unavailable: %s", exc)
+        return _fail_closed_delivery_review(
+            resource_type="knowledge_record",
+            resource_id=record.id,
+            reason="Delivery review data is unavailable.",
+        )
+
+
+def _serialize_workbench_agent_run(run, *, settings, engineering_gate: dict[str, Any]) -> dict[str, Any]:
+    return serialize_agent_run(
+        run,
+        delivery_review=_workbench_agent_delivery_review(run, settings=settings, engineering_gate=engineering_gate),
+    )
+
+
+def _is_active_workbench_run(run) -> bool:
+    status = str(getattr(run, "status", "") or "").strip().lower()
+    stage = str(getattr(run, "current_stage", "") or "").strip().lower()
+    queue_status = str(getattr(run, "queue_status", "") or "").strip().lower()
+    return (
+        queue_status in {"queued", "claimed"}
+        or status in {"pending", "queued", "running"}
+        or stage in {"queued", "planned", "researching", "drafting", "reviewing"}
+    )
+
+
+def _fail_closed_scorecard(workspace_id: str, engineering_gate: dict[str, Any], reason: str) -> dict[str, Any]:
+    return {
+        "workspace_id": workspace_id,
+        "active_bundle_id": "",
+        "active_bundle_version": "",
+        "active_bundle": None,
+        "dimensions": [],
+        "total_score": 0,
+        "business_deliverable": False,
+        "engineering_gate": engineering_gate,
+        "allowed_actions": [],
+        "blocked_actions": ["publish_research_run", "publish_knowledge_record", "mark_deliverable"],
+        "blocking_reasons": [reason],
+        "deliverable": False,
+        "generated_at": "",
+        "metadata": {"fail_closed": True},
+        "recent_runs": [],
+        "metrics": {},
+    }
+
+
+def _workbench_scorecard(db, *, user, workspace, settings, engineering_gate: dict[str, Any]) -> dict[str, Any]:
+    try:
+        return build_delivery_scorecard(
+            db,
+            user=user,
+            workspace=workspace,
+            settings=settings,
+            engineering_gate=engineering_gate,
+            auto_refresh_if_missing=False,
+        )
+    except Exception as exc:
+        logger.warning("Workbench overview scorecard unavailable: %s", exc)
+        return _fail_closed_scorecard(workspace.id, engineering_gate, "Quality scorecard data is unavailable.")
+
+
+def _workbench_quality_blockers(scorecard: dict[str, Any], run_payloads: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    if not bool(scorecard.get("deliverable")):
+        items.append(
+            {
+                "resource_type": "workspace",
+                "resource_id": str(scorecard.get("workspace_id") or ""),
+                "title": "Workspace delivery gate",
+                "severity": "high",
+                "publish_allowed": False,
+                "blocked_actions": list(scorecard.get("blocked_actions") or []),
+                "blocking_reasons": list(scorecard.get("blocking_reasons") or ["Quality gate has not passed."]),
+                "detail_path": "/app/quality",
+                "source": "quality_scorecard",
+            }
+        )
+    for snapshot in list(scorecard.get("recent_runs") or []):
+        if bool(snapshot.get("publish_allowed")):
+            continue
+        run_id = str(snapshot.get("run_id") or "").strip()
+        run_payload = run_payloads.get(run_id, {})
+        items.append(
+            {
+                "resource_type": "agent_run",
+                "resource_id": run_id,
+                "title": str(run_payload.get("topic") or run_id or "Research run"),
+                "severity": "medium",
+                "publish_allowed": False,
+                "blocked_actions": list((snapshot.get("delivery_review") or {}).get("blocked_actions") or ["publish"]),
+                "blocking_reasons": list(snapshot.get("blocking_reasons") or ["Run delivery review has not passed."]),
+                "detail_path": f"/app/research?run={run_id}" if run_id else "/app/research",
+                "source": "run_quality_snapshot",
+            }
+        )
+    return items[:12]
+
+
+def _workbench_team_library_rows(db, *, user, workspace) -> tuple[list[Any], list[str]]:
+    team_id = str(getattr(workspace, "team_id", "") or "").strip()
+    if not team_id:
+        return [], ["Workspace is not attached to a team."]
+    try:
+        return list_team_library_records(db, user=user, team_id=team_id), []
+    except Exception as exc:
+        logger.warning("Workbench overview team library unavailable: %s", exc)
+        return [], ["Team library data is unavailable."]
+
+
+def _published_source_refs(team_rows: list[Any], workspace_id: str) -> set[tuple[str, str]]:
+    refs: set[tuple[str, str]] = set()
+    for row in team_rows:
+        if str(getattr(row, "source_workspace_id", "") or "") != workspace_id:
+            continue
+        source_type = str(getattr(row, "source_type", "") or "").strip()
+        source_ref_id = str(getattr(row, "source_ref_id", "") or "").strip()
+        if source_type and source_ref_id:
+            refs.add((source_type, source_ref_id))
+    return refs
+
+
+def _workbench_publish_item(
+    *,
+    resource_type: str,
+    resource_id: str,
+    title: str,
+    summary: str,
+    detail_path: str,
+    delivery_review: dict[str, Any],
+    team_blockers: list[str],
+    updated_at: str,
+) -> dict[str, Any]:
+    blocking_reasons = list(delivery_review.get("blocking_reasons") or [])
+    blocking_reasons.extend(team_blockers)
+    publish_allowed = bool(delivery_review.get("publish_allowed")) and not team_blockers
+    return {
+        "resource_type": resource_type,
+        "resource_id": resource_id,
+        "title": title,
+        "summary": summary,
+        "detail_path": detail_path,
+        "publish_allowed": publish_allowed,
+        "blocked_actions": [] if publish_allowed else ["publish"],
+        "blocking_reasons": blocking_reasons if blocking_reasons else ([] if publish_allowed else ["Publish prerequisites are unavailable."]),
+        "delivery_review": delivery_review,
+        "updated_at": updated_at,
+    }
+
+
+def _workbench_publish_queue(
+    db,
+    *,
+    user,
+    workspace,
+    settings,
+    engineering_gate: dict[str, Any],
+    run_rows: list[Any],
+    team_rows: list[Any],
+    team_blockers: list[str],
+    limit: int = 10,
+) -> list[dict[str, Any]]:
+    published_refs = _published_source_refs(team_rows, workspace.id)
+    items: list[dict[str, Any]] = []
+    for run in run_rows:
+        if len(items) >= limit:
+            break
+        if str(run.status or "").strip().lower() != "saved":
+            continue
+        if str(run.publish_status or "unpublished").strip().lower() == "published":
+            continue
+        if ("agent_run", run.id) in published_refs:
+            continue
+        payload = _serialize_workbench_agent_run(run, settings=settings, engineering_gate=engineering_gate)
+        items.append(
+            _workbench_publish_item(
+                resource_type="agent_run",
+                resource_id=run.id,
+                title=str(payload.get("topic") or "Research report"),
+                summary=str(payload.get("review_summary") or payload.get("question") or "").strip(),
+                detail_path=f"/app/research?run={run.id}",
+                delivery_review=dict(payload.get("delivery_review") or {}),
+                team_blockers=team_blockers,
+                updated_at=str(payload.get("updated_at") or payload.get("finished_at") or ""),
+            )
+        )
+
+    for record in list_knowledge_records(db, user=user, workspace=workspace):
+        if len(items) >= limit:
+            break
+        if ("knowledge_record", record.id) in published_refs:
+            continue
+        delivery_review = _workbench_knowledge_delivery_review(db, record, settings=settings, engineering_gate=engineering_gate)
+        payload = serialize_knowledge_record(record, include_content=False)
+        items.append(
+            _workbench_publish_item(
+                resource_type="knowledge_record",
+                resource_id=record.id,
+                title=str(payload.get("title") or "Knowledge record"),
+                summary=str(payload.get("content_excerpt") or "").strip(),
+                detail_path=str(payload.get("detail_path") or "/app/knowledge"),
+                delivery_review=delivery_review,
+                team_blockers=team_blockers,
+                updated_at=str(payload.get("updated_at") or ""),
+            )
+        )
+    items.sort(key=lambda item: str(item.get("updated_at") or ""), reverse=True)
+    return items[:limit]
+
+
+def _activity_item(
+    *,
+    activity_type: str,
+    resource_id: str,
+    title: str,
+    summary: str = "",
+    status: str = "",
+    detail_path: str = "",
+    occurred_at: str = "",
+) -> dict[str, Any]:
+    return {
+        "activity_type": activity_type,
+        "resource_id": resource_id,
+        "title": title,
+        "summary": summary,
+        "status": status,
+        "detail_path": detail_path,
+        "occurred_at": occurred_at,
+    }
+
+
+def _workbench_recent_activity(
+    *,
+    run_payloads: list[dict[str, Any]],
+    data_lab_sessions: list[dict[str, Any]],
+    knowledge_records: list[KnowledgeRecord],
+    team_rows: list[Any],
+    limit: int = 12,
+) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for payload in run_payloads[:8]:
+        run_id = str(payload.get("id") or "")
+        items.append(
+            _activity_item(
+                activity_type="research_run",
+                resource_id=run_id,
+                title=str(payload.get("topic") or run_id or "Research run"),
+                summary=str(payload.get("review_summary") or payload.get("question") or "").strip(),
+                status=str(payload.get("status") or ""),
+                detail_path=f"/app/research?run={run_id}" if run_id else "/app/research",
+                occurred_at=str(payload.get("updated_at") or payload.get("finished_at") or payload.get("started_at") or ""),
+            )
+        )
+    for payload in data_lab_sessions[:6]:
+        run_id = str(payload.get("run_id") or payload.get("id") or "")
+        items.append(
+            _activity_item(
+                activity_type="data_lab_session",
+                resource_id=run_id,
+                title=str(payload.get("title") or "Data Lab session"),
+                summary=str(payload.get("summary") or payload.get("reason") or "").strip(),
+                status=str(payload.get("status") or ""),
+                detail_path=str(payload.get("detail_path") or "/app/data-lab-agent"),
+                occurred_at=str(payload.get("updated_at") or payload.get("created_at") or ""),
+            )
+        )
+    for record in knowledge_records[:6]:
+        payload = serialize_knowledge_record(record, include_content=False)
+        items.append(
+            _activity_item(
+                activity_type="knowledge_record",
+                resource_id=record.id,
+                title=str(payload.get("title") or "Knowledge record"),
+                summary=str(payload.get("content_excerpt") or "").strip(),
+                status=str(payload.get("status") or "ready"),
+                detail_path=str(payload.get("detail_path") or "/app/knowledge"),
+                occurred_at=str(payload.get("updated_at") or ""),
+            )
+        )
+    for row in team_rows[:6]:
+        payload = serialize_team_library_record(row)
+        items.append(
+            _activity_item(
+                activity_type="team_library_record",
+                resource_id=str(payload.get("id") or ""),
+                title=str(payload.get("title") or "Team library record"),
+                summary=str(payload.get("summary") or payload.get("content_excerpt") or "").strip(),
+                status="published",
+                detail_path="/app/team-library",
+                occurred_at=str(payload.get("updated_at") or payload.get("created_at") or ""),
+            )
+        )
+    items.sort(key=lambda item: str(item.get("occurred_at") or ""), reverse=True)
+    return items[:limit]
+
+
+def _workbench_runtime_summary(
+    *,
+    workspace,
+    scorecard: dict[str, Any],
+    active_runs: list[dict[str, Any]],
+    data_lab_sessions: list[dict[str, Any]],
+    publish_queue: list[dict[str, Any]],
+    quality_blockers: list[dict[str, Any]],
+    team_rows: list[Any],
+    team_blockers: list[str],
+    settings,
+) -> dict[str, Any]:
+    return {
+        "research_runtime": research_runtime_capability(settings),
+        "quality": {
+            "deliverable": bool(scorecard.get("deliverable")),
+            "total_score": int(scorecard.get("total_score") or 0),
+            "blocked_count": len(quality_blockers),
+            "engineering_gate_passed": bool((scorecard.get("engineering_gate") or {}).get("passed")),
+        },
+        "team": {
+            "team_id": str(getattr(workspace, "team_id", "") or ""),
+            "attached": bool(str(getattr(workspace, "team_id", "") or "").strip()),
+            "library_count": len(team_rows),
+            "blocking_reasons": team_blockers,
+        },
+        "counts": {
+            "active_runs": len(active_runs),
+            "data_lab_sessions": len(data_lab_sessions),
+            "publish_queue": len(publish_queue),
+        },
+        "data_lab_agent": {
+            "enabled": bool(getattr(settings, "data_lab_agent_enabled", False)),
+            "trusted_execution_enabled": bool(getattr(settings, "data_lab_agent_trusted_execution_enabled", False)),
+        },
+    }
+
+
+def _build_workbench_overview_payload(db, *, user, workspace, settings, limit: int = 12) -> dict[str, Any]:
+    capped_limit = max(3, min(limit, 30))
+    engineering_gate = _load_workbench_engineering_gate(settings)
+    run_rows = list_agent_runs(db, user=user, workspace=workspace, limit=max(40, capped_limit * 4))
+    run_payloads = [
+        _serialize_workbench_agent_run(run, settings=settings, engineering_gate=engineering_gate)
+        for run in run_rows
+    ]
+    run_payload_by_id = {str(item.get("id") or ""): item for item in run_payloads}
+    active_runs = [
+        run_payload_by_id.get(run.id, {})
+        for run in run_rows
+        if _is_active_workbench_run(run) and run_payload_by_id.get(run.id)
+    ][: min(8, capped_limit)]
+    data_lab_rows = list_data_lab_runs(db, user=user, workspace=workspace, workflow_type="agent_session", limit=capped_limit)
+    data_lab_sessions = [serialize_data_lab_run(db, user=user, run=row) for row in data_lab_rows]
+    team_rows, team_blockers = _workbench_team_library_rows(db, user=user, workspace=workspace)
+    scorecard = _workbench_scorecard(
+        db,
+        user=user,
+        workspace=workspace,
+        settings=settings,
+        engineering_gate=engineering_gate,
+    )
+    quality_blockers = _workbench_quality_blockers(scorecard, run_payload_by_id)
+    publish_queue = _workbench_publish_queue(
+        db,
+        user=user,
+        workspace=workspace,
+        settings=settings,
+        engineering_gate=engineering_gate,
+        run_rows=run_rows,
+        team_rows=team_rows,
+        team_blockers=team_blockers,
+        limit=min(10, capped_limit),
+    )
+    knowledge_records = list_knowledge_records(db, user=user, workspace=workspace)[:capped_limit]
+    recent_activity = _workbench_recent_activity(
+        run_payloads=run_payloads,
+        data_lab_sessions=data_lab_sessions,
+        knowledge_records=knowledge_records,
+        team_rows=team_rows,
+        limit=capped_limit,
+    )
+    return {
+        "active_runs": active_runs,
+        "data_lab_sessions": data_lab_sessions,
+        "quality_blockers": quality_blockers,
+        "publish_queue": publish_queue,
+        "recent_activity": recent_activity,
+        "runtime_summary": _workbench_runtime_summary(
+            workspace=workspace,
+            scorecard=scorecard,
+            active_runs=active_runs,
+            data_lab_sessions=data_lab_sessions,
+            publish_queue=publish_queue,
+            quality_blockers=quality_blockers,
+            team_rows=team_rows,
+            team_blockers=team_blockers,
+            settings=settings,
+        ),
+    }
+
+
+def _workbench_overview_payload(db, *, user, workspace, settings, limit: int = 12) -> dict[str, Any]:
+    return _build_workbench_overview_payload(db, user=user, workspace=workspace, settings=settings, limit=limit)
 
 
 async def _read_upload_payload(file: UploadFile, *, max_bytes: int) -> bytes:
@@ -4631,6 +5093,28 @@ def create_app() -> FastAPI:
                 user = get_current_user(db, token)
                 get_workspace_for_user(db, user=user, workspace_id=workspace_id)
                 return {"research_runtime": research_runtime_capability(settings)}
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.get("/api/workspaces/{workspace_id}/workbench/overview")
+    def workspace_workbench_overview(
+        workspace_id: str,
+        limit: int = 12,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                return _workbench_overview_payload(
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    settings=settings,
+                    limit=max(3, min(limit, 30)),
+                )
         except Exception as exc:
             _raise_http_error(exc)
 

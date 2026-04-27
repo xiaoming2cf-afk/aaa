@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { apiFetch } from "../api";
+import { OverviewPage } from "../features/workbench/OverviewPage";
 import { AppShell } from "../main";
 import { DataLabAgentPage } from "../pages/DataLabAgentPage";
 import { KnowledgePage } from "../pages/KnowledgePage";
@@ -85,6 +86,96 @@ describe("SPA delivery gating", () => {
     });
     expect(localStorage.getItem("spa-workspace-id")).toBe("ws-live");
     expect(localStorage.getItem("spa-team-id")).toBe("team-live");
+  });
+
+  test("OverviewPage renders workbench BFF sections without treating blocked publish items as ready", async () => {
+    apiFetchMock.mockImplementation(async (path: string) => {
+      if (path === "/api/workspaces/ws-1/workbench/overview") {
+        return {
+          active_runs: [
+            {
+              id: "run-1",
+              topic: "Inflation pass-through",
+              question: "Measure current pass-through risk.",
+              status: "queued",
+              queue_status: "queued",
+              started_at: "2026-04-27T10:00:00Z",
+            },
+          ],
+          data_lab_sessions: [
+            {
+              run_id: "lab-1",
+              title: "CSV diagnostics",
+              status: "needs_human_intervention",
+              summary: "Manual review required.",
+              detail_path: "/data-lab-agent?run=lab-1",
+            },
+          ],
+          quality_blockers: [
+            {
+              resource_type: "workspace",
+              resource_id: "ws-1",
+              title: "Workspace delivery gate",
+              source: "quality_scorecard",
+              severity: "high",
+              blocking_reasons: ["Engineering gate has not passed."],
+              publish_allowed: false,
+            },
+          ],
+          publish_queue: [
+            {
+              resource_type: "agent_run",
+              resource_id: "run-2",
+              title: "Ready-looking run",
+              summary: "Team gate still missing.",
+              publish_allowed: false,
+              blocking_reasons: ["Workspace is not attached to a team."],
+              detail_path: "/research?run=run-2",
+            },
+          ],
+          recent_activity: [
+            {
+              activity_type: "research_run",
+              resource_id: "run-1",
+              title: "Inflation pass-through",
+              summary: "Queued for drafting.",
+              detail_path: "/research?run=run-1",
+              occurred_at: "2026-04-27T10:00:00Z",
+            },
+          ],
+          runtime_summary: {
+            research_runtime: {
+              enabled: false,
+              code: "feature_disabled",
+              message: "No inference runtime is configured.",
+            },
+            team: {
+              attached: false,
+              blocking_reasons: ["Workspace is not attached to a team."],
+            },
+          },
+        };
+      }
+      return {};
+    });
+
+    const useAppState = () => ({
+      workspaceId: "ws-1",
+    });
+
+    renderWithQuery(
+      <MemoryRouter>
+        <OverviewPage useAppState={useAppState} />
+      </MemoryRouter>,
+    );
+
+    expect((await screen.findAllByText(/Inflation pass-through/i)).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Research and Analysis Queue/i)).toBeInTheDocument();
+    expect(screen.getByText(/CSV diagnostics/i)).toBeInTheDocument();
+    expect(screen.getByText(/Engineering gate has not passed/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ready-looking run/i)).toBeInTheDocument();
+    expect(screen.getByText(/^blocked$/i)).toBeInTheDocument();
+    expect(screen.getByText(/feature_disabled/i)).toBeInTheDocument();
   });
 
   test("ResearchPage disables publish when delivery review blocks the run", async () => {

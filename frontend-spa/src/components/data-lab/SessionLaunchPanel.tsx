@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import { ExternalLink, Play } from "lucide-react";
 import { InlineEmptyState, InlineErrorState } from "../StatusPrimitives";
-import { ActionLink, Badge, Button, Field, Surface } from "../ui";
+import { ActionLink, Badge, Button, Field, RecordRow, Surface } from "../ui";
 import type { AssetSummary } from "./types";
 
 export function SessionLaunchPanel({
@@ -73,6 +73,22 @@ export function SessionLaunchPanel({
           </select>
         </Field>
       </div>
+      {datasetAssets.length ? (
+        <div className="record-list data-lab-dataset-list" aria-label="Dataset browser">
+          {datasetAssets.map((asset) => (
+            <RecordRow
+              key={asset.id}
+              meta={asset.kind}
+              selected={asset.id === assetId}
+              status={<Badge tone={asset.id === assetId ? "success" : "neutral"}>{asset.id === assetId ? "SELECTED" : "DATASET"}</Badge>}
+              title={asset.title}
+              onClick={() => setAssetId(asset.id)}
+            >
+              Asset {asset.id}
+            </RecordRow>
+          ))}
+        </div>
+      ) : null}
       <div className="action-row">
         <Button
           icon={<Play size={16} aria-hidden="true" />}

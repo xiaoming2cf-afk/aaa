@@ -1,7 +1,7 @@
 import React, { Suspense, createContext, lazy, useContext, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, Brain, Database, Gauge, Library, Server } from "lucide-react";
+import { BookOpen, Brain, Database, Gauge, LayoutDashboard, Library, Server } from "lucide-react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { apiFetch } from "./api";
 import { ErrorState, LoadingState } from "./components/StatusPrimitives";
@@ -12,6 +12,7 @@ import { ProvidersPage } from "./pages/ProvidersPage";
 import { QualityPage } from "./pages/QualityPage";
 import { ResearchPage } from "./pages/ResearchPage";
 import { TeamLibraryPage } from "./pages/TeamLibraryPage";
+import { OverviewPage } from "./features/workbench/OverviewPage";
 import "./styles.css";
 
 type AppState = {
@@ -34,6 +35,7 @@ const DataLabAgentPage = lazy(() => import("./pages/DataLabAgentPage").then((mod
 })));
 
 const ROUTE_METADATA: RouteMetadata[] = [
+  { path: "/overview", navLabel: "Overview", title: "Workbench Overview", eyebrow: "Institutional Terminal", icon: LayoutDashboard },
   { path: "/research", navLabel: "Research", title: "Research Runs", eyebrow: "Command Queue", icon: Brain },
   { path: "/data-lab-agent", navLabel: "Data Lab Agent", title: "Data Lab Agent", eyebrow: "Analysis Runtime", icon: Database },
   { path: "/team-library", navLabel: "Team Library", title: "Team Library", eyebrow: "Published Artifacts", icon: Library },
@@ -46,7 +48,7 @@ const queryClient = new QueryClient();
 const AppStateContext = createContext<AppState | null>(null);
 
 function metadataForPath(pathname: string): RouteMetadata {
-  const normalizedPath = pathname === "/" ? "/research" : pathname;
+  const normalizedPath = pathname === "/" ? "/overview" : pathname;
   return ROUTE_METADATA.find((route) => route.path === normalizedPath) || ROUTE_METADATA[0];
 }
 
@@ -185,7 +187,8 @@ export function App(): JSX.Element {
       <BrowserRouter basename="/app">
         <Routes>
           <Route element={<AppShell />}>
-            <Route index element={<Navigate to="/research" replace />} />
+            <Route index element={<Navigate to="/overview" replace />} />
+            <Route path="/overview" element={<OverviewPage useAppState={useSpaState} />} />
             <Route path="/research" element={<ResearchPage useAppState={useSpaState} />} />
             <Route
               path="/data-lab-agent"

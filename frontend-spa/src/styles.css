@@ -2195,3 +2195,440 @@ pre,
     display: none;
   }
 }
+
+/* Institutional research terminal v2. */
+:root {
+  --terminal-bg: #f3f6f4;
+  --terminal-panel: rgba(255, 255, 255, 0.9);
+  --terminal-panel-strong: #ffffff;
+  --terminal-line: #c9d7d1;
+  --terminal-line-soft: #e2ebe7;
+  --terminal-ink: #0f1815;
+  --terminal-muted: #586761;
+  --terminal-accent: #08786f;
+  --terminal-accent-soft: #e4f3ef;
+}
+
+body {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.82), rgba(243,246,244,.98)),
+    var(--terminal-bg);
+}
+
+.ops-layout {
+  grid-template-columns: 228px minmax(0, 1fr);
+}
+
+.ops-sidebar {
+  color: var(--terminal-ink);
+  background: #fbfdfc;
+}
+
+.ops-nav-link {
+  min-height: 36px;
+}
+
+.ops-workbench {
+  min-height: 100vh;
+  background:
+    linear-gradient(90deg, rgba(8, 120, 111, 0.05), transparent 30%),
+    var(--terminal-bg);
+}
+
+.ops-command-bar {
+  grid-template-columns: minmax(260px, 1fr) minmax(560px, auto);
+  min-height: 64px;
+  background: rgba(247, 250, 248, 0.94);
+}
+
+.ops-command-title h2 {
+  font-size: clamp(1.18rem, 1.5vw, 1.5rem);
+}
+
+.ops-command-actions {
+  grid-template-columns: auto minmax(340px, 1fr) auto;
+}
+
+.chrome-status {
+  display: flex;
+  align-items: end;
+  gap: 6px;
+  padding-bottom: 1px;
+}
+
+.ops-main {
+  padding: 16px 20px 28px;
+}
+
+.ops-main-inner {
+  width: min(1560px, 100%);
+}
+
+.terminal-page {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.overview-terminal {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.38fr);
+}
+
+.workbench-research {
+  grid-template-columns: minmax(300px, 0.72fr) minmax(420px, 1.08fr) minmax(380px, 0.9fr);
+  align-items: start;
+}
+
+.workbench-quality {
+  grid-template-columns: minmax(460px, 0.95fr) minmax(320px, 0.7fr) minmax(360px, 0.85fr);
+  align-items: start;
+}
+
+.workbench-knowledge,
+.workbench-library {
+  grid-template-columns: minmax(300px, 0.55fr) minmax(580px, 1fr) minmax(300px, 0.45fr);
+  align-items: start;
+}
+
+.workbench-providers {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.terminal-page > .ops-surface,
+.terminal-page > .ops-surface-span {
+  grid-column: auto;
+}
+
+.terminal-page .ops-surface {
+  min-height: 0;
+  border-color: var(--terminal-line);
+  background: var(--terminal-panel);
+  box-shadow: none;
+}
+
+.terminal-page .ops-surface-header {
+  min-height: 48px;
+}
+
+.terminal-page .ops-surface-header h3 {
+  font-size: .98rem;
+}
+
+.terminal-page .ops-surface-header p {
+  font-size: .82rem;
+}
+
+.decision-strip {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--terminal-line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.terminal-panel {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--terminal-line);
+  border-radius: var(--radius);
+  background: var(--terminal-panel);
+}
+
+.terminal-panel-main {
+  grid-column: 1;
+}
+
+.terminal-inspector {
+  grid-column: 2;
+  grid-row: span 2;
+}
+
+.terminal-panel-span {
+  grid-column: 1 / -1;
+}
+
+.terminal-panel-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--terminal-line-soft);
+}
+
+.terminal-panel-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.terminal-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--terminal-accent);
+  font-size: .86rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.terminal-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.terminal-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.terminal-table th,
+.terminal-table td {
+  padding: 10px 11px;
+  border-bottom: 1px solid var(--terminal-line-soft);
+  text-align: left;
+  vertical-align: top;
+}
+
+.terminal-table th {
+  color: var(--terminal-muted);
+  font-size: .72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.terminal-table td > strong,
+.terminal-table td > span {
+  display: block;
+}
+
+.terminal-table td > span {
+  color: var(--terminal-muted);
+  font-size: .86rem;
+}
+
+.terminal-record-list {
+  display: grid;
+  gap: 8px;
+}
+
+.terminal-record {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--terminal-line-soft);
+  border-radius: 7px;
+  background: var(--terminal-panel-strong);
+}
+
+.terminal-record > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.terminal-record span {
+  color: var(--terminal-muted);
+  font-size: .84rem;
+}
+
+.terminal-record-warning {
+  border-color: rgba(183, 114, 5, 0.26);
+  background: #fffaf0;
+}
+
+.terminal-timeline {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.terminal-timeline-item {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--terminal-line-soft);
+  border-radius: 7px;
+  background: var(--terminal-panel-strong);
+}
+
+.terminal-timeline-item span {
+  display: block;
+  color: var(--terminal-muted);
+  font-size: .82rem;
+}
+
+.workbench-research > .ops-surface:nth-child(3) {
+  max-height: calc(100vh - 110px);
+  overflow: auto;
+}
+
+.workbench-quality > .ops-surface:nth-child(4),
+.workbench-knowledge > .ops-surface:nth-child(2),
+.workbench-library > .ops-surface:nth-child(2) {
+  grid-column: span 2;
+}
+
+.workbench-providers > .ops-surface {
+  width: min(980px, 100%);
+}
+
+@media (max-width: 1320px) {
+  .ops-command-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-command-actions {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .workbench-research,
+  .workbench-quality,
+  .workbench-knowledge,
+  .workbench-library,
+  .overview-terminal {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .terminal-inspector,
+  .terminal-panel-main,
+  .workbench-quality > .ops-surface:nth-child(4),
+  .workbench-knowledge > .ops-surface:nth-child(2),
+  .workbench-library > .ops-surface:nth-child(2) {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .terminal-timeline {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .ops-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-command-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .chrome-status {
+    align-items: center;
+  }
+
+  .decision-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .decision-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .terminal-panel,
+  .terminal-page .ops-surface {
+    padding: 11px;
+  }
+}
+
+@media (max-width: 760px) {
+  html,
+  body,
+  #root,
+  .ops-layout,
+  .ops-workbench,
+  .ops-main,
+  .ops-main-inner,
+  .ops-command-bar,
+  .ops-command-actions,
+  .terminal-page {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .ops-sidebar {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .ops-brand {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .ops-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .ops-nav-link {
+    grid-template-columns: 20px minmax(0, 1fr);
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .ops-nav-link span,
+  .ops-brand strong,
+  .ops-brand span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ops-command-actions .ops-scope-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .terminal-panel-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .terminal-table-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .terminal-table {
+    min-width: 560px;
+  }
+
+  .terminal-record {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .terminal-record > a,
+  .terminal-record > .ops-badge {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 420px) {
+  .ops-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .terminal-table {
+    min-width: 520px;
+  }
+}
