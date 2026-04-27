@@ -172,7 +172,7 @@ describe("SPA delivery gating", () => {
     expect((await screen.findAllByText(/Inflation pass-through/i)).length).toBeGreaterThan(0);
     expect(screen.getByText(/Research and Analysis Queue/i)).toBeInTheDocument();
     expect(screen.getByText(/CSV diagnostics/i)).toBeInTheDocument();
-    expect(screen.getByText(/Engineering gate has not passed/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Engineering gate has not passed/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Ready-looking run/i)).toBeInTheDocument();
     expect(screen.getByText(/^blocked$/i)).toBeInTheDocument();
     expect(screen.getByText(/feature_disabled/i)).toBeInTheDocument();
