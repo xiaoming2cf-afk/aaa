@@ -155,8 +155,8 @@
                   Open the workspace cockpit to switch workspaces and continue private research.
                 </p>
                 <div class="actions compact-actions">
-                  <a href="/workspace" class="button-link">Open workspace cockpit</a>
-                  <a href="/data-lab" class="button-link secondary-link">Open Data Lab</a>
+                  <a href="/app/overview" class="button-link">Open new workbench</a>
+                  <a href="/app/data-lab-agent" class="button-link secondary-link">Open Data Lab Agent</a>
                   <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
                 </div>
               </div>
@@ -237,7 +237,7 @@
                 <h3>Workspace</h3>
                 <p>Current state, recent activity, and next action.</p>
                 <span class="module-availability">Available after sign-in</span>
-                <button type="button" class="secondary" data-private-link="/workspace">Sign in to open</button>
+                <button type="button" class="secondary" data-private-link="/app/overview">Sign in to open</button>
               </article>
 
               <article class="private-module-card is-locked" data-private-card>
@@ -245,7 +245,7 @@
                 <h3>Provider Center</h3>
                 <p>Connections for models and data sources.</p>
                 <span class="module-availability">Available after sign-in</span>
-                <button type="button" class="secondary" data-private-link="/provider-center">Sign in to open</button>
+                <button type="button" class="secondary" data-private-link="/app/providers">Sign in to open</button>
               </article>
 
               <article class="private-module-card is-locked" data-private-card>
@@ -253,7 +253,7 @@
                 <h3>Paper Library</h3>
                 <p>Search, import, and route literature.</p>
                 <span class="module-availability">Available after sign-in</span>
-                <button type="button" class="secondary" data-private-link="/paper-library">Sign in to open</button>
+                <button type="button" class="secondary" data-private-link="/app/knowledge">Sign in to open</button>
               </article>
 
               <article class="private-module-card is-locked" data-private-card>
@@ -261,7 +261,7 @@
                 <h3>Knowledge Base</h3>
                 <p>Notes, cases, and reusable summaries.</p>
                 <span class="module-availability">Available after sign-in</span>
-                <button type="button" class="secondary" data-private-link="/knowledge-base">Sign in to open</button>
+                <button type="button" class="secondary" data-private-link="/app/knowledge">Sign in to open</button>
               </article>
 
               <article class="private-module-card is-locked" data-private-card>
@@ -269,7 +269,7 @@
                 <h3>Data Lab</h3>
                 <p>Preparation, estimation, optimization, and result detail.</p>
                 <span class="module-availability">Available after sign-in</span>
-                <button type="button" class="secondary" data-private-link="/data-lab">Sign in to open</button>
+                <button type="button" class="secondary" data-private-link="/app/data-lab-agent">Sign in to open</button>
               </article>
 
               <article class="private-module-card is-locked" data-private-card>
@@ -309,6 +309,6 @@
     </main>
 
     <div id="toast" class="toast hidden"></div>
-    <script src="/assets/app.js" defer></script>
+    <script src="/assets/app.js?v=spa-workbench-20260427" defer></script>
   </body>
 </html>

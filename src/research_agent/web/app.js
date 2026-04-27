@@ -8336,7 +8336,7 @@ async function handleRegister(event) {
   resetAuthForms();
   showToast("Account created.");
   if (detectPageMode() === "home") {
-    window.location.replace("/workspace");
+    window.location.replace("/app/overview");
   }
 }
 
@@ -8358,7 +8358,7 @@ async function handleLogin(event) {
   resetAuthForms();
   showToast("Signed in.");
   if (detectPageMode() === "home") {
-    window.location.replace("/workspace");
+    window.location.replace("/app/overview");
   }
 }
 
