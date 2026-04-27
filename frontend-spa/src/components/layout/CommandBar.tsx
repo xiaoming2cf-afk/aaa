@@ -1,12 +1,19 @@
-import { RefreshCw, Users, Wifi } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 import { Button } from "../ui";
+import { ScopePanel } from "./ScopePanel";
 import type { RouteMetadata, Team, Workspace } from "./types";
 
 type CommandBarProps = {
   currentRoute: RouteMetadata;
   currentWorkspace?: Workspace;
   currentTeam?: Team;
+  workspaces: Workspace[];
+  teams: Team[];
+  workspaceId: string;
+  onWorkspaceChange: (value: string) => void;
+  teamId: string;
+  onTeamChange: (value: string) => void;
   onRefreshAll: () => void;
 };
 
@@ -14,6 +21,12 @@ export function CommandBar({
   currentRoute,
   currentWorkspace,
   currentTeam,
+  workspaces,
+  teams,
+  workspaceId,
+  onWorkspaceChange,
+  teamId,
+  onTeamChange,
   onRefreshAll,
 }: CommandBarProps): JSX.Element {
   const CurrentIcon = currentRoute.icon;
@@ -23,16 +36,19 @@ export function CommandBar({
       <div className="ops-command-title">
         <p className="eyebrow">{currentRoute.eyebrow}</p>
         <h2><CurrentIcon aria-hidden="true" size={24} /> {currentRoute.title}</h2>
+        <p className="ops-command-scope">
+          {currentWorkspace?.name || "Workspace pending"} / {currentTeam?.name || "No team selected"}
+        </p>
       </div>
       <div className="ops-command-actions">
-        <div className="ops-global-state" aria-label="Current workspace">
-          <Wifi aria-hidden="true" size={16} />
-          <span>{currentWorkspace?.name || "Workspace pending"}</span>
-        </div>
-        <div className="ops-global-state" aria-label="Current team">
-          <Users aria-hidden="true" size={16} />
-          <span>{currentTeam?.name || "No team"}</span>
-        </div>
+        <ScopePanel
+          workspaces={workspaces}
+          teams={teams}
+          workspaceId={workspaceId}
+          onWorkspaceChange={onWorkspaceChange}
+          teamId={teamId}
+          onTeamChange={onTeamChange}
+        />
         <Button
           type="button"
           variant="ghost"

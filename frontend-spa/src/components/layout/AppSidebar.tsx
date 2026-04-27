@@ -1,29 +1,16 @@
 import { Activity } from "lucide-react";
 
 import { RouteNav } from "./RouteNav";
-import { ScopePanel } from "./ScopePanel";
-import type { RouteMetadata, Team, Workspace } from "./types";
+import type { RouteMetadata } from "./types";
 
 type AppSidebarProps = {
   routes: RouteMetadata[];
   sessionUser?: string;
-  workspaces: Workspace[];
-  teams: Team[];
-  workspaceId: string;
-  onWorkspaceChange: (value: string) => void;
-  teamId: string;
-  onTeamChange: (value: string) => void;
 };
 
 export function AppSidebar({
   routes,
   sessionUser,
-  workspaces,
-  teams,
-  workspaceId,
-  onWorkspaceChange,
-  teamId,
-  onTeamChange,
 }: AppSidebarProps): JSX.Element {
   return (
     <aside className="ops-sidebar" aria-label="Research operations navigation">
@@ -34,24 +21,17 @@ export function AppSidebar({
         <div>
           <p className="eyebrow">Research Operations</p>
           <h1>Research Agent</h1>
-          <p>{sessionUser}</p>
+          {sessionUser ? <p>{sessionUser}</p> : null}
         </div>
       </div>
-      <ScopePanel
-        workspaces={workspaces}
-        teams={teams}
-        workspaceId={workspaceId}
-        onWorkspaceChange={onWorkspaceChange}
-        teamId={teamId}
-        onTeamChange={onTeamChange}
-      />
       <RouteNav routes={routes} />
-      <div className="ops-legacy" aria-label="Legacy tools">
+      <details className="ops-legacy" aria-label="Legacy tools">
+        <summary>Legacy tools</summary>
         <a href="/workspace">Legacy Workspace</a>
         <a href="/research-agent">Legacy Research</a>
         <a href="/provider-center">Legacy Providers</a>
         <a href="/knowledge-base">Legacy Knowledge</a>
-      </div>
+      </details>
     </aside>
   );
 }

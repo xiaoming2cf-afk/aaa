@@ -41,23 +41,27 @@ export function AppChrome({
       <AppSidebar
         routes={routes}
         sessionUser={sessionUser}
-        workspaces={workspaces}
-        teams={teams}
-        workspaceId={workspaceId}
-        onWorkspaceChange={onWorkspaceChange}
-        teamId={teamId}
-        onTeamChange={onTeamChange}
       />
-      <main className="ops-main">
+      <div className="ops-workbench">
         <CommandBar
           currentRoute={currentRoute}
           currentWorkspace={currentWorkspace}
           currentTeam={currentTeam}
+          workspaces={workspaces}
+          teams={teams}
+          workspaceId={workspaceId}
+          onWorkspaceChange={onWorkspaceChange}
+          teamId={teamId}
+          onTeamChange={onTeamChange}
           onRefreshAll={onRefreshAll}
         />
-        <GlobalStatusStrip currentWorkspace={currentWorkspace} currentTeam={currentTeam} />
-        {children}
-      </main>
+        <main className="ops-main">
+          <div className="ops-main-inner">
+            <GlobalStatusStrip currentWorkspace={currentWorkspace} currentTeam={currentTeam} />
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
