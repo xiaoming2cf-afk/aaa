@@ -1,24 +1,18 @@
 import React, { Suspense, createContext, lazy, useContext, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BrowserRouter, NavLink, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { BookOpen, Brain, Database, Gauge, Library, Server } from "lucide-react";
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { apiFetch } from "./api";
 import { ErrorState, LoadingState } from "./components/StatusPrimitives";
+import { AppChrome } from "./components/layout";
+import type { RouteMetadata, Team, Workspace } from "./components/layout";
 import { KnowledgePage } from "./pages/KnowledgePage";
 import { ProvidersPage } from "./pages/ProvidersPage";
 import { QualityPage } from "./pages/QualityPage";
 import { ResearchPage } from "./pages/ResearchPage";
 import { TeamLibraryPage } from "./pages/TeamLibraryPage";
 import "./styles.css";
-
-type Workspace = { id: string; name: string; description: string };
-type Team = { id: string; name: string; role: string };
-type RouteMetadata = {
-  path: string;
-  navLabel: string;
-  title: string;
-  eyebrow: string;
-};
 
 type AppState = {
   workspaces: Workspace[];
@@ -40,12 +34,12 @@ const DataLabAgentPage = lazy(() => import("./pages/DataLabAgentPage").then((mod
 })));
 
 const ROUTE_METADATA: RouteMetadata[] = [
-  { path: "/research", navLabel: "Research", title: "Research Runs", eyebrow: "Command Queue" },
-  { path: "/data-lab-agent", navLabel: "Data Lab Agent", title: "Data Lab Agent", eyebrow: "Analysis Runtime" },
-  { path: "/team-library", navLabel: "Team Library", title: "Team Library", eyebrow: "Published Artifacts" },
-  { path: "/knowledge", navLabel: "Knowledge", title: "Knowledge Base", eyebrow: "Workspace Memory" },
-  { path: "/providers", navLabel: "Providers", title: "Runtime Providers", eyebrow: "Operations Scope" },
-  { path: "/quality", navLabel: "Quality", title: "Quality Gates", eyebrow: "Delivery Control" },
+  { path: "/research", navLabel: "Research", title: "Research Runs", eyebrow: "Command Queue", icon: Brain },
+  { path: "/data-lab-agent", navLabel: "Data Lab Agent", title: "Data Lab Agent", eyebrow: "Analysis Runtime", icon: Database },
+  { path: "/team-library", navLabel: "Team Library", title: "Team Library", eyebrow: "Published Artifacts", icon: Library },
+  { path: "/knowledge", navLabel: "Knowledge", title: "Knowledge Base", eyebrow: "Workspace Memory", icon: BookOpen },
+  { path: "/providers", navLabel: "Providers", title: "Runtime Providers", eyebrow: "Operations Scope", icon: Server },
+  { path: "/quality", navLabel: "Quality", title: "Quality Gates", eyebrow: "Delivery Control", icon: Gauge },
 ];
 
 const queryClient = new QueryClient();
@@ -135,6 +129,8 @@ export function AppShell(): JSX.Element {
       void queryClientInstance.invalidateQueries({ queryKey: ["teams"] });
     },
   }), [queryClientInstance, teamId, teams, workspaceId, workspaces]);
+  const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId);
+  const currentTeam = teams.find((team) => team.id === teamId);
 
   if (sessionQuery.isLoading) {
     return (
@@ -157,63 +153,24 @@ export function AppShell(): JSX.Element {
 
   return (
     <AppStateContext.Provider value={state}>
-      <div className="shell">
-        <aside className="sidebar">
-          <div className="brand-block">
-            <p className="eyebrow">Research Operations</p>
-            <h1>Research Agent</h1>
-            <p className="muted">{sessionQuery.data?.user?.full_name || sessionQuery.data?.user?.email}</p>
-          </div>
-          <label className="field">
-            <span>Workspace</span>
-            <select value={workspaceId} onChange={(event) => setWorkspaceId(event.target.value)}>
-              {state.workspaces.map((workspace) => (
-                <option key={workspace.id} value={workspace.id}>{workspace.name}</option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Team</span>
-            <select value={teamId} onChange={(event) => setTeamId(event.target.value)}>
-              <option value="">No team</option>
-              {state.teams.map((team) => (
-                <option key={team.id} value={team.id}>{team.name}</option>
-              ))}
-            </select>
-          </label>
-          <nav className="nav">
-            {ROUTE_METADATA.map((route) => (
-              <NavLink key={route.path} to={route.path} className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-                {route.navLabel}
-              </NavLink>
-            ))}
-          </nav>
-          <div className="legacy-links">
-            <a href="/workspace">Legacy Workspace</a>
-            <a href="/research-agent">Legacy Research</a>
-            <a href="/provider-center">Legacy Providers</a>
-            <a href="/knowledge-base">Legacy Knowledge</a>
-          </div>
-        </aside>
-        <main className="main">
-          <header className="main-header">
-            <div>
-              <p className="eyebrow">{currentRoute.eyebrow}</p>
-              <h2>{currentRoute.title}</h2>
-            </div>
-            <button
-              type="button"
-              className="ghost-button"
-              onClick={() => {
-                void queryClientInstance.invalidateQueries();
-              }}
-            >
-              Refresh All
-            </button>
-          </header>
-          <Outlet />
-        </main>
-      </div>
+      <AppChrome
+        routes={ROUTE_METADATA}
+        currentRoute={currentRoute}
+        sessionUser={sessionQuery.data?.user?.full_name || sessionQuery.data?.user?.email}
+        workspaces={state.workspaces}
+        teams={state.teams}
+        workspaceId={workspaceId}
+        onWorkspaceChange={setWorkspaceId}
+        teamId={teamId}
+        onTeamChange={setTeamId}
+        currentWorkspace={currentWorkspace}
+        currentTeam={currentTeam}
+        onRefreshAll={() => {
+          void queryClientInstance.invalidateQueries();
+        }}
+      >
+        <Outlet />
+      </AppChrome>
     </AppStateContext.Provider>
   );
 }

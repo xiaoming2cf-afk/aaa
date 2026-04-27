@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../api";
+import {
+  LibraryBoundaryPanel,
+  TeamArtifactsPanel,
+  TeamSelectorPanel,
+  type TeamLibraryRecord,
+} from "../components/team-library";
 
 type UseAppState = () => {
   workspaceId: string;
@@ -19,7 +25,7 @@ export function TeamLibraryPage({ useAppState }: { useAppState: UseAppState }): 
   const libraryQuery = useQuery({
     queryKey: ["team-library", teamId],
     enabled: Boolean(teamId),
-    queryFn: () => apiFetch<{ items: any[] }>(`/api/teams/${teamId}/library`),
+    queryFn: () => apiFetch<{ items: TeamLibraryRecord[] }>(`/api/teams/${teamId}/library`),
   });
 
   const createTeamMutation = useMutation({
@@ -48,71 +54,38 @@ export function TeamLibraryPage({ useAppState }: { useAppState: UseAppState }): 
     },
   });
 
-  return (
-    <div className="page-grid">
-      <section className="panel panel-emphasis">
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">Team Model</p>
-            <h3>Create or Select Team</h3>
-          </div>
-        </div>
-        <div className="form-grid">
-          <label className="field">
-            <span>Current Team</span>
-            <select value={teamId} onChange={(event) => setTeamId(event.target.value)}>
-              <option value="">No team</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>{team.name}</option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>New Team Name</span>
-            <input value={teamName} onChange={(event) => setTeamName(event.target.value)} />
-          </label>
-          <label className="field field-span">
-            <span>Description</span>
-            <textarea value={teamDescription} onChange={(event) => setTeamDescription(event.target.value)} rows={3} />
-          </label>
-        </div>
-        <div className="action-row">
-          <button className="primary-button" type="button" disabled={!teamName || createTeamMutation.isPending} onClick={() => createTeamMutation.mutate()}>
-            Create Team
-          </button>
-          <span className="muted">Publishing remains manual. Team library stays read-only until cloned back to a workspace.</span>
-        </div>
-      </section>
+  const currentTeam = useMemo(() => teams.find((team) => team.id === teamId), [teamId, teams]);
+  const libraryItems = libraryQuery.data?.items || [];
 
-      <section className="panel panel-span">
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">Published Artifacts</p>
-            <h3>Team Library</h3>
-          </div>
-        </div>
-        {!teamId ? (
-          <p className="muted">Choose or create a team to browse published records.</p>
-        ) : (
-          <div className="list-stack">
-            {(libraryQuery.data?.items || []).map((item) => (
-              <div key={item.id} className="list-card static-card">
-                <div className="list-card-title">
-                  <strong>{item.title}</strong>
-                  <span>{item.source_type}</span>
-                </div>
-                <p>{item.summary}</p>
-                <pre>{JSON.stringify(item.metadata || {}, null, 2)}</pre>
-                <div className="action-row">
-                  <button className="ghost-button" type="button" disabled={!workspaceId || cloneMutation.isPending} onClick={() => cloneMutation.mutate(item.id)}>
-                    Clone to Workspace
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+  return (
+    <div className="ops-grid">
+      <TeamSelectorPanel
+        createError={createTeamMutation.isError ? createTeamMutation.error as Error : null}
+        createPending={createTeamMutation.isPending}
+        onCreateTeam={() => createTeamMutation.mutate()}
+        onDescriptionChange={setTeamDescription}
+        onTeamChange={setTeamId}
+        onTeamNameChange={setTeamName}
+        teamDescription={teamDescription}
+        teamId={teamId}
+        teamName={teamName}
+        teams={teams}
+      />
+      <TeamArtifactsPanel
+        cloneError={cloneMutation.isError ? cloneMutation.error as Error : null}
+        clonePending={cloneMutation.isPending}
+        currentTeamName={currentTeam?.name}
+        isError={libraryQuery.isError}
+        isLoading={libraryQuery.isLoading}
+        isSuccess={libraryQuery.isSuccess}
+        items={libraryItems}
+        onClone={(recordId) => cloneMutation.mutate(recordId)}
+        onRetry={() => void libraryQuery.refetch()}
+        teamId={teamId}
+        teamsCount={teams.length}
+        workspaceId={workspaceId}
+      />
+      <LibraryBoundaryPanel currentTeamName={currentTeam?.name} teamId={teamId} workspaceId={workspaceId} />
     </div>
   );
 }
