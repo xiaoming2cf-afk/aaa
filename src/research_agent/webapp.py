@@ -4295,6 +4295,21 @@ def create_app() -> FastAPI:
                     request.rdd_polynomial_order,
                     1,
                 )
+                preflight_payload = {
+                    name: payload[name]
+                    for name in _RUN_MODEL_ANALYSIS_PARAMETER_NAMES
+                    if name in payload
+                }
+                preflight = preflight_model_analysis(
+                    settings,
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    **preflight_payload,
+                )
+                if preflight.get("status") == "blocked":
+                    reasons = preflight.get("blocking_reasons") or ["Model preflight is blocked."]
+                    raise ValueError("Model preflight blocked: " + "; ".join(str(reason) for reason in reasons))
                 model_kwargs = {
                     name: payload[name]
                     for name in _RUN_MODEL_ANALYSIS_PARAMETER_NAMES

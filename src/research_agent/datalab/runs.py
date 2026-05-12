@@ -156,6 +156,7 @@ def serialize_run(
         "source_asset_id": run.source_asset_id or "",
         "result_asset_id": run.result_asset_id or "",
         "result_record_id": run.result_record_id or "",
+        "request_json": dict(run.request_json or {}) if isinstance(run.request_json, dict) else {},
         "ref_id": "",
         "download_path": "",
         "created_at": (ensure_utc(run.started_at) or datetime.now(timezone.utc)).isoformat(),

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from research_agent.datalab.lineage import build_pipeline_chains
 from research_agent.entities import DataLabRun
 
 
@@ -50,7 +51,43 @@ def test_data_lab_history_returns_best_effort_pipeline_chains(client, auth_heade
     chains = payload.get("pipeline_chains") or []
     assert chains
     chain = next(item for item in chains if item.get("source_asset_id") == asset_id)
+    assert chain["confidence"] == "high"
+    assert chain["best_effort"] is True
+    assert chain["lineage_quality"] == "high"
+    assert chain["latest_at"]
+    assert chain["latest_status"] == "ready"
     assert chain["stages"]["processing_count"] >= 1
     assert chain["stages"]["model_count"] >= 1
     assert chain["processing"]
     assert chain["models"]
+
+
+def test_pipeline_chains_mark_request_fallback_medium_and_unlinked_low():
+    chains = build_pipeline_chains(
+        processing=[],
+        models=[
+            {
+                "id": "model-run",
+                "request_json": {"asset_id": "asset-from-request"},
+                "title": "Request model",
+                "status": "ready",
+                "updated_at": "2026-01-02T00:00:00+00:00",
+            },
+            {
+                "id": "orphan-model",
+                "title": "Orphan model",
+                "status": "ready",
+                "updated_at": "2026-01-03T00:00:00+00:00",
+            },
+        ],
+        optimization=[],
+        agent_sessions=[],
+    )
+
+    medium = next(item for item in chains if item["source_asset_id"] == "asset-from-request")
+    low = next(item for item in chains if item["id"].startswith("unlinked:models:orphan-model"))
+    assert medium["confidence"] == "medium"
+    assert medium["best_effort"] is True
+    assert low["confidence"] == "low"
+    assert low["source_asset_id"] == ""
+    assert low["best_effort"] is True

@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from sqlalchemy import select
+
+from research_agent.entities import DataLabRun
+
 
 def _upload_csv(client, auth_headers, filename: str, content: str) -> str:
     workspace_id = auth_headers["workspace_id"]
@@ -160,3 +164,44 @@ def test_model_preflight_arima_blocks_too_short_series(client, auth_headers):
 
     assert preflight["status"] == "blocked"
     assert _has_check(preflight, "time_series_length", "blocked")
+
+
+def test_model_run_rejects_blocked_preflight_without_ready_record(client, auth_headers, db_session):
+    workspace_id = auth_headers["workspace_id"]
+    rows = ["y,post,x"]
+    rows.extend(f"{index},{index % 2},{index / 10}" for index in range(1, 25))
+    asset_id = _upload_csv(client, auth_headers, "blocked-run.csv", "\n".join(rows) + "\n")
+
+    before = list(
+        db_session.scalars(
+            select(DataLabRun).where(
+                DataLabRun.workspace_id == workspace_id,
+                DataLabRun.workflow_type == "model",
+                DataLabRun.status == "ready",
+            )
+        )
+    )
+    response = client.post(
+        f"/api/workspaces/{workspace_id}/analysis/models",
+        headers={"X-CSRF-Token": auth_headers["csrf"]},
+        json={
+            "asset_id": asset_id,
+            "model_type": "did",
+            "dependent": "y",
+            "treatment_column": "treated",
+            "post_column": "post",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "preflight blocked" in response.text.lower()
+    after = list(
+        db_session.scalars(
+            select(DataLabRun).where(
+                DataLabRun.workspace_id == workspace_id,
+                DataLabRun.workflow_type == "model",
+                DataLabRun.status == "ready",
+            )
+        )
+    )
+    assert len(after) == len(before)
