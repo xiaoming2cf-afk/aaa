@@ -180,6 +180,18 @@ def _finite_or_default(value: Any, default: float) -> float:
     return float(numeric)
 
 
+def _numeric_tree_is_finite(value: Any) -> bool:
+    if value is None or isinstance(value, (str, bytes, bool)):
+        return True
+    if isinstance(value, (np.floating, np.integer, int, float)):
+        return math.isfinite(float(value))
+    if isinstance(value, dict):
+        return all(_numeric_tree_is_finite(item) for item in value.values())
+    if isinstance(value, (list, tuple, set)):
+        return all(_numeric_tree_is_finite(item) for item in value)
+    return True
+
+
 def _coerce_bounded_int(field_name: str, value: Any, *, minimum: int, maximum: int) -> int:
     if isinstance(value, bool):
         raise ValueError(f"{field_name} must be an integer.")
@@ -600,15 +612,24 @@ def _run_single_optimization_task(task: dict[str, Any]) -> dict[str, Any]:
         result = optimizer.solve(problem, mode="single")
         history_values = getattr(optimizer.history, "list_global_best_fit", [])
         history = [_finite_or_default(value, INVALID_OBJECTIVE_PENALTY) for value in history_values]
-        best_vector = np.asarray(result.solution, dtype=float).tolist() if getattr(result, "solution", None) is not None else []
-        best_fitness = _finite_or_default(getattr(getattr(result, "target", None), "fitness", float("nan")), float("nan"))
-        if math.isnan(best_fitness):
-            best_fitness = _finite_or_default(
-                getattr(getattr(getattr(optimizer, "g_best", None), "target", None), "fitness", float("nan")),
-                float("nan"),
+        if not _numeric_tree_is_finite(history):
+            raise ValueError("Optimizer returned a non-finite convergence curve.")
+        best_vector = []
+        if getattr(result, "solution", None) is not None:
+            best_vector_array = np.asarray(result.solution, dtype=float)
+            if not np.all(np.isfinite(best_vector_array)):
+                raise ValueError("Optimizer returned a non-finite best solution.")
+            best_vector = best_vector_array.tolist()
+        best_fitness = _safe_float(getattr(getattr(result, "target", None), "fitness", float("nan")))
+        if not math.isfinite(best_fitness):
+            best_fitness = _safe_float(
+                getattr(getattr(getattr(optimizer, "g_best", None), "target", None), "fitness", float("nan"))
             )
-        if math.isnan(best_fitness):
-            best_fitness = min(history) if history else INVALID_OBJECTIVE_PENALTY
+        if not math.isfinite(best_fitness):
+            finite_history = [float(value) for value in history if math.isfinite(float(value))]
+            best_fitness = min(finite_history) if finite_history else float("nan")
+        if not math.isfinite(best_fitness):
+            raise ValueError("Optimizer returned a non-finite best fitness.")
         return {
             "optimizer_name": optimizer_name,
             "function_name": function_name,
@@ -661,6 +682,8 @@ def _rank_table(score_frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]
         )
     except Exception as exc:
         raise ValueError(f"Friedman test failed: {exc}") from exc
+    friedman_stat = _finite_or_default(friedman_stat, 0.0)
+    friedman_pvalue = _finite_or_default(friedman_pvalue, 1.0)
     ranking_rows = [
         {"optimizer_name": name, "average_rank": float(rank), "rank_order": index + 1}
         for index, (name, rank) in enumerate(average_ranks.items())
@@ -668,8 +691,8 @@ def _rank_table(score_frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]
     ranking_frame = pd.DataFrame(ranking_rows)
     return ranking_frame, {
         "available": True,
-        "statistic": _safe_float(friedman_stat),
-        "pvalue": _safe_float(friedman_pvalue),
+        "statistic": friedman_stat,
+        "pvalue": friedman_pvalue,
         "rankings": ranking_rows,
         "algorithm_count": int(rank_frame.shape[1]),
         "function_count": int(rank_frame.shape[0]),
@@ -694,21 +717,21 @@ def _pairwise_tests(score_frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFra
             if len(non_zero) >= 1:
                 try:
                     wilcoxon = stats.wilcoxon(non_zero)
-                    wilcoxon_pvalue = _safe_float(wilcoxon.pvalue)
-                    wilcoxon_statistic = _safe_float(wilcoxon.statistic)
+                    wilcoxon_pvalue = _finite_or_default(wilcoxon.pvalue, 1.0)
+                    wilcoxon_statistic = _finite_or_default(wilcoxon.statistic, 0.0)
                 except Exception:
-                    wilcoxon_pvalue = float("nan")
-                    wilcoxon_statistic = float("nan")
+                    wilcoxon_pvalue = 1.0
+                    wilcoxon_statistic = 0.0
                 positives = int((non_zero > 0).sum())
                 negatives = int((non_zero < 0).sum())
                 sign = stats.binomtest(min(positives, negatives), n=positives + negatives, p=0.5)
-                sign_pvalue = _safe_float(sign.pvalue)
+                sign_pvalue = _finite_or_default(sign.pvalue, 1.0)
             else:
-                wilcoxon_statistic = float("nan")
-                wilcoxon_pvalue = float("nan")
+                wilcoxon_statistic = 0.0
+                wilcoxon_pvalue = 1.0
                 positives = 0
                 negatives = 0
-                sign_pvalue = float("nan")
+                sign_pvalue = 1.0
             wilcoxon_rows.append(
                 {
                     "algorithm_a": left_name,
@@ -1028,7 +1051,22 @@ def run_optimization_suite(
         runs=runs_value,
     )
     total_tasks = len(selected_optimizers) * len(selected_functions) * runs_value
-    estimated_evaluations = total_tasks * epoch_value * pop_size_value
+    effective_epochs = {name: _effective_epoch(name, epoch_value) for name in selected_optimizers}
+    effective_pop_sizes = {name: _effective_pop_size(name, pop_size_value) for name in selected_optimizers}
+    max_effective_epoch = max(effective_epochs.values(), default=epoch_value)
+    max_effective_pop_size = max(effective_pop_sizes.values(), default=pop_size_value)
+    if max_effective_epoch > MAX_OPTIMIZATION_EPOCH:
+        raise ValueError(
+            f"Effective epoch cap would be {max_effective_epoch}, above the safety cap of {MAX_OPTIMIZATION_EPOCH}."
+        )
+    if max_effective_pop_size > MAX_OPTIMIZATION_POP_SIZE:
+        raise ValueError(
+            f"Effective pop_size cap would be {max_effective_pop_size}, above the safety cap of {MAX_OPTIMIZATION_POP_SIZE}."
+        )
+    estimated_evaluations = sum(
+        effective_epochs[optimizer_name] * effective_pop_sizes[optimizer_name] * len(selected_functions) * runs_value
+        for optimizer_name in selected_optimizers
+    )
     if total_tasks > MAX_PARALLEL_TASKS:
         raise ValueError(f"Requested suite creates {total_tasks} tasks. Reduce the selection below {MAX_PARALLEL_TASKS}.")
     if estimated_evaluations > MAX_ESTIMATED_EVALUATIONS:
@@ -1074,9 +1112,34 @@ def run_optimization_suite(
                 task_results.append(future.result())
     task_results.sort(key=lambda item: (item["function_name"], item["optimizer_name"], item["run_index"]))
 
-    success_rows = [item for item in task_results if item["status"] == "ok"]
-    if not success_rows:
-        raise ValueError("Every optimization task failed. Inspect the failure table and reduce the selection.")
+    failed_rows = [item for item in task_results if item.get("status") != "ok"]
+    nonfinite_rows = [
+        item
+        for item in task_results
+        if item.get("status") == "ok"
+        and not _numeric_tree_is_finite(
+            {
+                "best_fitness": item.get("best_fitness"),
+                "best_solution": item.get("best_solution", []),
+                "curve": item.get("curve", []),
+                "resolved_dimension": item.get("resolved_dimension"),
+            }
+        )
+    ]
+    if len(task_results) != len(task_payloads) or failed_rows or nonfinite_rows:
+        issue_rows = [*failed_rows, *nonfinite_rows]
+        examples = "; ".join(
+            (
+                f"{item.get('optimizer_name')} on {item.get('function_name')} run {item.get('run_index')}: "
+                f"{item.get('error') or 'non-finite output'}"
+            )
+            for item in issue_rows[:5]
+        )
+        raise ValueError(
+            "Optimization suite requires every algorithm-function-run task to finish with finite outputs; "
+            f"{len(issue_rows)} of {len(task_payloads)} tasks failed. {examples}"
+        )
+    success_rows = task_results
     result_frame = pd.DataFrame(
         [
             {
@@ -1265,6 +1328,8 @@ def run_optimization_suite(
         "worker_count": worker_count,
         "parallel_backend": parallel_backend,
         "estimated_evaluations": estimated_evaluations,
+        "max_effective_epoch": max_effective_epoch,
+        "max_effective_pop_size": max_effective_pop_size,
         "success_count": len(success_rows),
         "failure_count": len(task_results) - len(success_rows),
         "friedman": friedman_summary,
@@ -1299,6 +1364,8 @@ def run_optimization_suite(
             "dimension": dimension_value,
             "epoch": epoch_value,
             "pop_size": pop_size_value,
+            "effective_epochs": effective_epochs,
+            "effective_pop_sizes": effective_pop_sizes,
             "runs": runs_value,
             "worker_count": worker_count,
             "seed_base": seed_base_value,

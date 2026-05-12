@@ -28,7 +28,7 @@
 ## Correctness Testing Scope
 
 - Model tests use deterministic synthetic data to verify coefficient direction, rough magnitude, finite outputs, sample sizes, forecast lengths, constraints, and warning/block behavior.
-- Optimization tests verify bounded resources, disabled/unknown selection rejection, finite statistical outputs, ranking previews, raw rows, and artifact metadata.
+- Optimization tests verify effective bounded resources, disabled/unknown selection rejection, all-or-fail benchmark matrices, finite statistical outputs, ranking previews, raw rows, and artifact metadata.
 - Tests do not replace domain expert review for publication-grade econometric or statistical claims.
 
 ## Simplified Model Boundaries
