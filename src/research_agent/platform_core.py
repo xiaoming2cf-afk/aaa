@@ -36,7 +36,17 @@ from .auth_support import (
     record_login_failure,
 )
 from .config import Settings
+from .datalab import datasets as datalab_datasets
 from .datalab.manifest import sanitize_manifest_value
+from .datalab import preparation as datalab_preparation
+from .datalab.preparation_preview import summarize_preparation_preview
+from .datalab.registry import (
+    is_supported_model_type,
+    normalize_model_type,
+    normalize_processing_group,
+    normalize_workflow_type,
+)
+from .datalab import runs as datalab_runs
 from .entities import (
     DataAsset,
     DataLabRun,
@@ -478,141 +488,31 @@ def _safe_float(value: Any) -> float | None:
 
 
 def _serialize_preview_value(value: Any) -> Any:
-    if value is None or pd.isna(value):
-        return None
-    if isinstance(value, pd.Timestamp):
-        return value.isoformat()
-    if isinstance(value, np.generic):
-        return value.item()
-    return value
+    return datalab_datasets.serialize_preview_value(value)
 
 
 def _normalize_scalar(value: Any) -> Any:
-    if value is None or pd.isna(value):
-        return pd.NA
-    if isinstance(value, str):
-        cleaned = value.strip()
-        if cleaned.lower() in {"", "nan", "none", "nat", "null"}:
-            return pd.NA
-        return cleaned
-    return value
+    return datalab_datasets.normalize_scalar(value)
 
 
 def _unique_clean_columns(columns: list[Any]) -> tuple[list[str], dict[str, str]]:
-    seen: dict[str, int] = {}
-    cleaned_columns: list[str] = []
-    source_map: dict[str, str] = {}
-    for raw_column in columns:
-        raw_text = str(raw_column).strip()
-        base = slugify(raw_text or "column", max_length=48).replace("-", "_").strip("_") or "column"
-        count = seen.get(base, 0)
-        seen[base] = count + 1
-        candidate = base if count == 0 else f"{base}_{count + 1}"
-        cleaned_columns.append(candidate)
-        source_map[candidate] = raw_text or candidate
-    return cleaned_columns, source_map
+    return datalab_datasets.unique_clean_columns(columns)
 
 
 def normalize_dataset_frame(frame: pd.DataFrame, *, drop_duplicates: bool = True) -> tuple[pd.DataFrame, dict[str, Any]]:
-    prepared = frame.copy()
-    cleaned_columns, source_map = _unique_clean_columns(list(prepared.columns))
-    prepared.columns = cleaned_columns
-    duplicate_rows = int(prepared.duplicated().sum())
-    if drop_duplicates:
-        prepared = prepared.drop_duplicates().copy()
-
-    for column in prepared.columns:
-        prepared[column] = prepared[column].map(_normalize_scalar)
-
-    summary = {
-        "source_columns": source_map,
-        "duplicate_rows_detected": duplicate_rows,
-        "rows_after_standardization": int(len(prepared)),
-        "columns_after_standardization": list(prepared.columns),
-    }
-    return prepared, summary
+    return datalab_datasets.normalize_dataset_frame(frame, drop_duplicates=drop_duplicates)
 
 
 def infer_column_role(series: pd.Series) -> str:
-    if is_datetime64_any_dtype(series):
-        return "date"
-    non_null = series.dropna()
-    if non_null.empty:
-        return "empty"
-    if is_numeric_dtype(non_null):
-        unique_count = int(non_null.nunique(dropna=True))
-        if unique_count <= 2:
-            return "binary"
-        return "numeric"
-
-    numeric_candidate = pd.to_numeric(non_null, errors="coerce")
-    numeric_share = float(numeric_candidate.notna().mean()) if len(non_null) else 0.0
-    if numeric_share >= 0.9:
-        unique_count = int(numeric_candidate.dropna().nunique())
-        if unique_count <= 2:
-            return "binary"
-        return "numeric"
-
-    text_values = non_null.astype(str).str.strip()
-    lowered = text_values.str.lower()
-    binary_tokens = {"0", "1", "true", "false", "yes", "no", "y", "n", "treated", "control", "pre", "post"}
-    if text_values.nunique() <= 2 or set(lowered.unique()).issubset(binary_tokens):
-        return "binary"
-
-    date_candidate = pd.to_datetime(text_values, errors="coerce", format="mixed")
-    date_share = float(date_candidate.notna().mean()) if len(text_values) else 0.0
-    if date_share >= 0.8:
-        return "date"
-
-    unique_count = int(text_values.nunique())
-    if unique_count <= min(20, max(3, len(text_values) // 2)):
-        return "categorical"
-    return "text"
+    return datalab_datasets.infer_column_role(series)
 
 
 def _column_profile(frame: pd.DataFrame, source_map: dict[str, str], column: str) -> dict[str, Any]:
-    series = frame[column]
-    role = infer_column_role(series)
-    non_null = series.dropna()
-    profile = {
-        "name": column,
-        "source_name": source_map.get(column, column),
-        "role": role,
-        "dtype": str(series.dtype),
-        "missing_count": int(series.isna().sum()),
-        "non_null_count": int(non_null.shape[0]),
-        "unique_count": int(non_null.nunique(dropna=True)),
-        "sample_values": [_serialize_preview_value(value) for value in non_null.head(4).tolist()],
-    }
-
-    numeric_series = pd.to_numeric(series, errors="coerce")
-    if role in {"numeric", "binary"} and numeric_series.notna().any():
-        clean_numeric = numeric_series.dropna()
-        profile.update(
-            {
-                "mean": _safe_float(clean_numeric.mean()),
-                "std": _safe_float(clean_numeric.std()),
-                "min": _safe_float(clean_numeric.min()),
-                "max": _safe_float(clean_numeric.max()),
-            }
-        )
-    elif role == "date":
-        date_series = pd.to_datetime(series, errors="coerce").dropna()
-        if not date_series.empty:
-            profile.update(
-                {
-                    "min": date_series.min().isoformat(),
-                    "max": date_series.max().isoformat(),
-                }
-            )
-    return profile
+    return datalab_datasets.column_profile(frame, source_map, column)
 
 
 def _frame_preview_rows(frame: pd.DataFrame, *, limit: int = 8) -> list[dict[str, Any]]:
-    return [
-        {column: _serialize_preview_value(value) for column, value in row.items()}
-        for row in frame.head(limit).to_dict(orient="records")
-    ]
+    return datalab_datasets.frame_preview_rows(frame, limit=limit)
 
 
 def validate_email(value: str) -> str:
@@ -1159,26 +1059,22 @@ def create_data_lab_run(
     source_asset_id: str = "",
     request_payload: dict[str, Any] | None = None,
 ) -> DataLabRun:
-    run = DataLabRun(
-        workspace_id=workspace.id,
-        owner_user_id=user.id,
-        workflow_type=str(workflow_type or "processing").strip() or "processing",
-        family=str(family or "").strip(),
-        method=str(method or "").strip(),
-        title=truncate_text(str(title or "").strip(), 240),
-        source_asset_id=str(source_asset_id or "").strip() or None,
-        request_json=_json_safe_value(dict(request_payload or {}) if isinstance(request_payload, dict) else {}),
+    return datalab_runs.create_run(
+        db,
+        user=user,
+        workspace=workspace,
+        workflow_type=workflow_type,
+        family=family,
+        method=method,
+        title=title,
+        source_asset_id=source_asset_id,
+        request_payload=request_payload,
+        json_safe=_json_safe_value,
     )
-    db.add(run)
-    db.flush()
-    return run
 
 
 def get_owned_data_lab_run(db: Session, *, user: User, run_id: str) -> DataLabRun:
-    run = db.get(DataLabRun, run_id)
-    if not run or run.owner_user_id != user.id:
-        raise FileNotFoundError("Data Lab run not found.")
-    return run
+    return datalab_runs.get_owned_run(db, user=user, run_id=run_id)
 
 
 def finalize_data_lab_run_success(
@@ -1193,20 +1089,18 @@ def finalize_data_lab_run_success(
     result_record_id: str = "",
     output_payload: dict[str, Any] | None = None,
 ) -> DataLabRun:
-    run = get_owned_data_lab_run(db, user=user, run_id=run_id)
-    run.status = "ready"
-    if title.strip():
-        run.title = truncate_text(title.strip(), 240)
-    run.summary = truncate_text(str(summary or "").strip(), 600)
-    run.detail_path = str(detail_path or "").strip()
-    run.result_asset_id = str(result_asset_id or "").strip() or None
-    run.result_record_id = str(result_record_id or "").strip() or None
-    run.error_summary = ""
-    run.output_json = _json_safe_value(dict(output_payload or {}) if isinstance(output_payload, dict) else {})
-    run.finished_at = datetime.now(timezone.utc)
-    run.updated_at = run.finished_at
-    db.flush()
-    return run
+    return datalab_runs.finalize_run_success(
+        db,
+        user=user,
+        run_id=run_id,
+        title=title,
+        summary=summary,
+        detail_path=detail_path,
+        result_asset_id=result_asset_id,
+        result_record_id=result_record_id,
+        output_payload=output_payload,
+        json_safe=_json_safe_value,
+    )
 
 
 def finalize_data_lab_run_failure(
@@ -1218,16 +1112,15 @@ def finalize_data_lab_run_failure(
     title: str = "",
     output_payload: dict[str, Any] | None = None,
 ) -> DataLabRun:
-    run = get_owned_data_lab_run(db, user=user, run_id=run_id)
-    run.status = "failed"
-    if title.strip():
-        run.title = truncate_text(title.strip(), 240)
-    run.error_summary = truncate_text(str(error or "Data Lab run failed.").strip(), 600) or "Data Lab run failed."
-    run.output_json = _json_safe_value(dict(output_payload or {}) if isinstance(output_payload, dict) else {})
-    run.finished_at = datetime.now(timezone.utc)
-    run.updated_at = run.finished_at
-    db.flush()
-    return run
+    return datalab_runs.finalize_run_failure(
+        db,
+        user=user,
+        run_id=run_id,
+        error=error,
+        title=title,
+        output_payload=output_payload,
+        json_safe=_json_safe_value,
+    )
 
 
 def list_data_lab_runs(
@@ -1238,115 +1131,18 @@ def list_data_lab_runs(
     workflow_type: str = "",
     limit: int = 24,
 ) -> list[DataLabRun]:
-    stmt = (
-        select(DataLabRun)
-        .where(
-            and_(
-                DataLabRun.owner_user_id == user.id,
-                DataLabRun.workspace_id == workspace.id,
-            )
-        )
-        .order_by(DataLabRun.updated_at.desc(), DataLabRun.started_at.desc(), DataLabRun.created_at.desc())
-        .limit(max(1, min(limit, 120)))
-    )
-    rows = list(db.scalars(stmt))
-    if workflow_type:
-        rows = [row for row in rows if row.workflow_type == workflow_type]
-    return rows
+    return datalab_runs.list_runs(db, user=user, workspace=workspace, workflow_type=workflow_type, limit=limit)
 
 
 def serialize_data_lab_run(db: Session, *, user: User, run: DataLabRun) -> dict[str, Any]:
-    output = dict(run.output_json or {}) if isinstance(run.output_json, dict) else {}
-    updated_at = _ensure_utc(run.finished_at) or _ensure_utc(run.updated_at) or _ensure_utc(run.started_at)
-    base = {
-        "id": run.id,
-        "run_id": run.id,
-        "workflow_type": run.workflow_type,
-        "status": run.status,
-        "family": run.family,
-        "method": run.method,
-        "title": run.title or output.get("title") or "Data Lab run",
-        "summary": str(output.get("summary") or run.summary or "").strip(),
-        "detail_path": run.detail_path or str(output.get("detail_path") or output.get("result_detail_path") or "").strip(),
-        "result_detail_path": run.detail_path or str(output.get("result_detail_path") or output.get("detail_path") or "").strip(),
-        "source_asset_id": run.source_asset_id or "",
-        "result_asset_id": run.result_asset_id or "",
-        "result_record_id": run.result_record_id or "",
-        "ref_id": "",
-        "download_path": "",
-        "created_at": (_ensure_utc(run.started_at) or datetime.now(timezone.utc)).isoformat(),
-        "updated_at": (updated_at or datetime.now(timezone.utc)).isoformat(),
-        "metadata": {},
-    }
-    if run.status == "failed":
-        reason = run.error_summary or "The latest run failed."
-        if run.workflow_type == "model":
-            base["metadata"] = {
-                "workflow_type": "model",
-                "model_family": run.family,
-                "model_type": run.method,
-                "model_label": run.title or run.method or "Model run",
-            }
-        elif run.workflow_type == "optimization":
-            base["suite_label"] = run.title or "Optimization Suite"
-        else:
-            base["processing_family"] = run.family or "data_processing"
-        return {
-            **base,
-            "reason": reason,
-            "next_action": "review_failure",
-        }
-
-    if run.workflow_type == "agent_session":
-        session = output.get("agent_session") if isinstance(output.get("agent_session"), dict) else {}
-        return {
-            **base,
-            "summary": str(session.get("summary") or run.summary or "").strip(),
-            "reason": str(session.get("summary") or run.summary or "Data Lab Agent session is ready.").strip(),
-            "next_action": "open_detail",
-            "message_count": len(session.get("messages") or []),
-            "cell_count": len(session.get("cells") or []),
-            "artifact_count": len(session.get("artifacts") or []),
-            "metadata": {
-                "workflow_type": "agent_session",
-                "agent_family": run.family,
-                "agent_method": run.method,
-            },
-        }
-
-    if run.result_asset_id:
-        asset = db.get(DataAsset, run.result_asset_id)
-        if asset and asset.owner_user_id == user.id and asset.workspace_id == run.workspace_id:
-            payload = serialize_asset(asset)
-            payload["run_id"] = run.id
-            payload["ref_id"] = asset.id
-            payload["created_at"] = base["created_at"]
-            payload["updated_at"] = base["updated_at"]
-            payload["status"] = run.status
-            if base["detail_path"]:
-                payload["detail_path"] = base["detail_path"]
-                payload["result_detail_path"] = base["detail_path"]
-            return payload
-
-    if run.result_record_id:
-        record = db.get(KnowledgeRecord, run.result_record_id)
-        if record and record.owner_user_id == user.id and record.workspace_id == run.workspace_id:
-            payload = serialize_knowledge_record(record, include_content=False)
-            payload["run_id"] = run.id
-            payload["ref_id"] = record.id
-            payload["created_at"] = base["created_at"]
-            payload["updated_at"] = base["updated_at"]
-            payload["status"] = run.status
-            if base["detail_path"]:
-                payload["detail_path"] = base["detail_path"]
-                payload["result_detail_path"] = base["detail_path"]
-            return payload
-
-    return {
-        **base,
-        "reason": run.summary or "Run completed.",
-        "next_action": "open_detail" if base["detail_path"] else "review_history",
-    }
+    return datalab_runs.serialize_run(
+        db,
+        user=user,
+        run=run,
+        ensure_utc=_ensure_utc,
+        serialize_asset=serialize_asset,
+        serialize_record=lambda record: serialize_knowledge_record(record, include_content=False),
+    )
 
 
 def create_integration(
@@ -1623,6 +1419,7 @@ def list_lab_templates(
     family: str = "",
     method: str = "",
 ) -> list[LabTemplate]:
+    normalized_workflow = normalize_workflow_type(workflow_type) if workflow_type else ""
     stmt = (
         select(LabTemplate)
         .where(
@@ -1635,8 +1432,8 @@ def list_lab_templates(
         .order_by(LabTemplate.is_default.desc(), LabTemplate.updated_at.desc(), LabTemplate.created_at.desc())
     )
     rows = list(db.scalars(stmt))
-    if workflow_type:
-        rows = [row for row in rows if row.workflow_type == workflow_type]
+    if normalized_workflow:
+        rows = [row for row in rows if row.workflow_type == normalized_workflow]
     if family:
         rows = [row for row in rows if row.family == family]
     if method:
@@ -1667,7 +1464,7 @@ def create_lab_template(
     is_default: bool = False,
 ) -> LabTemplate:
     normalized_scope = template_scope.strip()
-    normalized_workflow = workflow_type.strip()
+    normalized_workflow = normalize_workflow_type(workflow_type)
     normalized_family = family.strip()
     normalized_method = method.strip()
     normalized_name = name.strip()
@@ -2750,20 +2547,33 @@ def _manifest_scrub(value: Any) -> Any:
     return _json_safe_value(value)
 
 
-def _manifest_source_asset(db: Session, *, user: User, source_asset_id: str, fallback: dict[str, Any] | None = None) -> dict[str, str]:
+def _manifest_source_asset(
+    db: Session,
+    *,
+    user: User,
+    workspace_id: str,
+    source_asset_id: str,
+    fallback: dict[str, Any] | None = None,
+) -> dict[str, str]:
     asset_payload = fallback if isinstance(fallback, dict) else {}
     if source_asset_id:
         asset = db.get(DataAsset, source_asset_id)
-        if asset and asset.owner_user_id == user.id:
+        if asset and asset.owner_user_id == user.id and asset.workspace_id == workspace_id:
+            return {"id": asset.id, "title": asset.title or "", "kind": asset.kind or ""}
+        return {"id": "", "title": "", "kind": ""}
+    fallback_id = str(asset_payload.get("id") or "").strip()
+    if fallback_id:
+        asset = db.get(DataAsset, fallback_id)
+        if asset and asset.owner_user_id == user.id and asset.workspace_id == workspace_id:
             return {"id": asset.id, "title": asset.title or "", "kind": asset.kind or ""}
     return {
-        "id": str(asset_payload.get("id") or source_asset_id or ""),
-        "title": str(asset_payload.get("title") or ""),
-        "kind": str(asset_payload.get("kind") or ""),
+        "id": "",
+        "title": "",
+        "kind": "",
     }
 
 
-def _manifest_generated_asset_ids(detail: dict[str, Any], asset_id: str = "") -> list[str]:
+def _manifest_generated_asset_ids(db: Session, *, user: User, workspace_id: str, detail: dict[str, Any], asset_id: str = "") -> list[str]:
     generated = [asset_id] if asset_id else []
     audit = detail.get("audit_trail") if isinstance(detail.get("audit_trail"), dict) else {}
     for key in ("prepared_asset_id", "generated_asset_id", "plot_asset_id"):
@@ -2775,7 +2585,12 @@ def _manifest_generated_asset_ids(detail: dict[str, Any], asset_id: str = "") ->
     for item in detail.get("artifacts") or []:
         if isinstance(item, dict) and item.get("asset_id"):
             generated.append(str(item["asset_id"]))
-    return list(dict.fromkeys(value for value in generated if value))
+    owned: list[str] = []
+    for value in dict.fromkeys(value for value in generated if value):
+        asset = db.get(DataAsset, value)
+        if asset and asset.owner_user_id == user.id and asset.workspace_id == workspace_id:
+            owned.append(value)
+    return owned
 
 
 def _manifest_variable_roles(detail: dict[str, Any]) -> dict[str, Any]:
@@ -2813,7 +2628,7 @@ def _build_reproducibility_manifest(
     audit = detail.get("audit_trail") if isinstance(detail.get("audit_trail"), dict) else {}
     asset_payload = detail.get("asset") if isinstance(detail.get("asset"), dict) else {}
     source_asset_id = str(audit.get("source_asset_id") or detail.get("source_asset_id") or asset_payload.get("id") or "")
-    source_asset = _manifest_source_asset(db, user=user, source_asset_id=source_asset_id, fallback=asset_payload)
+    source_asset = _manifest_source_asset(db, user=user, workspace_id=workspace_id, source_asset_id=source_asset_id, fallback=asset_payload)
     specification = detail.get("specification") if isinstance(detail.get("specification"), dict) else {}
     if not specification and isinstance(detail.get("summary"), dict):
         specification = {"summary": detail["summary"], "audit_trail": audit}
@@ -2835,7 +2650,13 @@ def _build_reproducibility_manifest(
         "variable_roles": variable_roles,
         "specification": specification,
         "created_at": created_at or str(asset_payload.get("created_at") or ""),
-        "generated_asset_ids": _manifest_generated_asset_ids(detail, str(asset_payload.get("id") or "")),
+        "generated_asset_ids": _manifest_generated_asset_ids(
+            db,
+            user=user,
+            workspace_id=workspace_id,
+            detail=detail,
+            asset_id=str(asset_payload.get("id") or ""),
+        ),
         "warnings": warnings,
     }
     return sanitize_manifest_value(_manifest_scrub(manifest))
@@ -3055,24 +2876,11 @@ def search_assets(db: Session, *, user: User, workspace: Workspace, query: str) 
 
 
 def load_dataset_frame(settings: Settings, asset: DataAsset) -> pd.DataFrame:
-    raw_bytes = load_asset_bytes(settings, asset.file_path)
-    if asset.kind == "dataset_csv":
-        return pd.read_csv(BytesIO(raw_bytes))
-    if asset.kind == "dataset_excel":
-        return pd.read_excel(BytesIO(raw_bytes))
-    if asset.kind == "dataset_json":
-        raw = json.loads(raw_bytes.decode("utf-8"))
-        return pd.DataFrame(raw)
-    raise ValueError("This asset is not a structured dataset.")
+    return datalab_datasets.load_dataset_frame(settings, asset)
 
 
 def _analysis_asset_or_raise(db: Session, *, user: User, workspace: Workspace, asset_id: str) -> DataAsset:
-    asset = db.get(DataAsset, asset_id)
-    if not asset or asset.owner_user_id != user.id or asset.workspace_id != workspace.id:
-        raise FileNotFoundError("Dataset asset not found.")
-    if asset.kind not in DATASET_KINDS:
-        raise ValueError("This asset is not a structured dataset.")
-    return asset
+    return datalab_datasets.analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
 
 
 def _load_analysis_frame(
@@ -3081,8 +2889,7 @@ def _load_analysis_frame(
     *,
     drop_duplicates: bool = False,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
-    raw_frame = load_dataset_frame(settings, asset)
-    return normalize_dataset_frame(raw_frame, drop_duplicates=drop_duplicates)
+    return datalab_datasets.load_analysis_frame(settings, asset, drop_duplicates=drop_duplicates)
 
 
 def _coerce_binary_series(series: pd.Series) -> pd.Series:
@@ -3504,45 +3311,14 @@ def profile_dataset_asset(
     workspace: Workspace,
     asset_id: str,
 ) -> dict[str, Any]:
-    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
-    frame, meta = _load_analysis_frame(settings, asset, drop_duplicates=False)
-    column_profiles = [_column_profile(frame, meta["source_columns"], column) for column in frame.columns]
-    role_map: dict[str, list[str]] = {
-        "numeric": [],
-        "binary": [],
-        "date": [],
-        "categorical": [],
-        "text": [],
-        "empty": [],
-    }
-    for item in column_profiles:
-        role_map.setdefault(item["role"], []).append(item["name"])
-
-    suggested_models = ["ols"]
-    if role_map["binary"] and role_map["numeric"]:
-        suggested_models.extend(["logit", "probit"])
-    if role_map["numeric"]:
-        suggested_models.extend(["ppml", "rdd", "historical_var", "parametric_var", "ewma_volatility", "capm", "mean_variance", "minimum_variance", "risk_parity"])
-    if role_map["numeric"] and len(role_map["binary"]) >= 2:
-        suggested_models.extend(["did", "event_study"])
-    if len(role_map["numeric"]) >= 3 and (role_map["categorical"] or role_map["text"] or role_map["date"]):
-        suggested_models.extend(["fixed_effects", "arima", "var", "taylor_rule"])
-    if len(role_map["numeric"]) >= 4:
-        suggested_models.extend(["gravity", "iv_2sls", "panel_iv", "fama_french_3", "black_scholes", "binomial_option", "altman_z", "dupont"])
-    suggested_models.append("rbc_dsge")
-    suggested_models = list(dict.fromkeys(suggested_models))
-
-    return {
-        "asset": serialize_asset(asset),
-        "rows": int(len(frame)),
-        "columns": int(len(frame.columns)),
-        "duplicate_rows_detected": int(meta["duplicate_rows_detected"]),
-        "column_profiles": column_profiles,
-        "column_roles": role_map,
-        "preview_rows": _frame_preview_rows(frame),
-        "suggested_models": suggested_models,
-        "source_columns": meta["source_columns"],
-    }
+    return datalab_datasets.profile_dataset_asset(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        asset_id=asset_id,
+        serialize_asset=serialize_asset,
+    )
 
 
 def _analysis_text_tokens(text: str) -> list[str]:
@@ -4152,7 +3928,7 @@ _PREPARATION_DEFAULTS: dict[str, Any] = {
 
 
 def _normalize_preparation_options(values: dict[str, Any]) -> dict[str, Any]:
-    return {key: values.get(key, default) for key, default in _PREPARATION_DEFAULTS.items()}
+    return datalab_preparation.normalize_preparation_options(values)
 
 
 def _prepare_dataset_frame(
@@ -4164,23 +3940,19 @@ def _prepare_dataset_frame(
     asset_id: str,
     **options: Any,
 ) -> tuple[DataAsset, pd.DataFrame, pd.DataFrame, dict[str, Any]]:
-    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
-    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
-    prepared_frame, summary = _prepare_selected_sample(frame, **_normalize_preparation_options(options))
-    return asset, frame, prepared_frame, summary
+    return datalab_preparation.prepare_dataset_frame(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        asset_id=asset_id,
+        prepare_sample=_prepare_selected_sample,
+        **options,
+    )
 
 
 def _preparation_transformed_columns(summary: dict[str, Any]) -> list[str]:
-    transformed: set[str] = set()
-    for key in ("numeric_columns", "binary_columns", "date_columns", "outlier_columns"):
-        transformed.update(str(column) for column in summary.get(key) or [] if column)
-    transformed.update(str(column) for column in (summary.get("imputed_columns") or {}).keys())
-    transformed.update(str(column) for column in (summary.get("winsorized_columns") or {}).keys())
-    transform_groups = summary.get("transformed_columns") or {}
-    if isinstance(transform_groups, dict):
-        for values in transform_groups.values():
-            transformed.update(str(column) for column in values or [] if column)
-    return sorted(transformed)
+    return datalab_preparation.preparation_transformed_columns(summary)
 
 
 def preview_dataset_preparation(
@@ -4198,6 +3970,7 @@ def preview_dataset_preparation(
     effective_specification: dict[str, Any] | None = None,
     **options: Any,
 ) -> dict[str, Any]:
+    workflow_group = normalize_processing_group(workflow_group)
     asset, frame, prepared_frame, summary = _prepare_dataset_frame(
         settings,
         db,
@@ -4210,34 +3983,31 @@ def preview_dataset_preparation(
     output_columns = [str(column) for column in prepared_frame.columns]
     missing_before = {str(column): int(value) for column, value in frame.isna().sum().to_dict().items()}
     missing_after = {str(column): int(value) for column, value in prepared_frame.isna().sum().to_dict().items()}
-    input_set = set(input_columns)
-    output_set = set(output_columns)
     dropped_rows = max(0, int(len(frame)) - int(len(prepared_frame)))
     warnings: list[str] = []
     if dropped_rows:
         warnings.append(f"{dropped_rows} row(s) would be removed by the selected preparation steps.")
     if summary.get("outliers_removed"):
         warnings.append(f"{summary['outliers_removed']} row(s) would be removed by the outlier filter.")
-    return {
-        "source_asset_id": asset.id,
-        "workflow_group": workflow_group or "sample_preparation",
-        "input_rows": int(len(frame)),
-        "output_rows": int(len(prepared_frame)),
-        "dropped_rows": dropped_rows,
-        "input_columns": input_columns,
-        "output_columns": output_columns,
-        "added_columns": sorted(output_set - input_set),
-        "removed_columns": sorted(input_set - output_set),
-        "transformed_columns": _preparation_transformed_columns(summary),
-        "missing_before_by_column": missing_before,
-        "missing_after_by_column": missing_after,
-        "warnings": warnings,
-        "preview_rows": _frame_preview_rows(prepared_frame, limit=8),
-        "specification_summary": _json_safe_value(
+    if prepared_frame.empty:
+        warnings.append("The selected preparation steps would produce an empty output sample.")
+    return summarize_preparation_preview(
+        source_asset_id=asset.id,
+        workflow_group=workflow_group,
+        input_rows=int(len(frame)),
+        output_rows=int(len(prepared_frame)),
+        input_columns=input_columns,
+        output_columns=output_columns,
+        missing_before_by_column=missing_before,
+        missing_after_by_column=missing_after,
+        warnings=warnings,
+        preview_rows=_frame_preview_rows(prepared_frame, limit=8),
+        transformed_columns=_preparation_transformed_columns(summary),
+        specification_summary=_json_safe_value(
             {
                 "source_asset_title": asset.title,
                 "source_asset_kind": asset.kind,
-                "workflow_group": workflow_group or "sample_preparation",
+                "workflow_group": workflow_group,
                 "template_id": template_id,
                 "template_name": template_name,
                 "variant_label": variant_label,
@@ -4247,7 +4017,7 @@ def preview_dataset_preparation(
                 "request": _normalize_preparation_options(options),
             }
         ),
-    }
+    )
 
 
 def prepare_dataset_asset(
@@ -4294,87 +4064,53 @@ def prepare_dataset_asset(
     variant_spec: dict[str, Any] | None = None,
     effective_specification: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    asset, _, prepared_frame, summary = _prepare_dataset_frame(
+    workflow_group = normalize_processing_group(workflow_group)
+    return datalab_preparation.prepare_dataset_asset(
         settings,
         db,
         user=user,
         workspace=workspace,
         asset_id=asset_id,
-        **_normalize_preparation_options(locals()),
+        workflow_group=workflow_group,
+        template_id=template_id,
+        template_name=template_name,
+        variant_label=variant_label,
+        variant_spec=variant_spec,
+        effective_specification=effective_specification,
+        prepare_sample=_prepare_selected_sample,
+        save_asset=save_upload_asset,
+        serialize_asset=serialize_asset,
+        include_columns=include_columns,
+        required_columns=required_columns,
+        numeric_columns=numeric_columns,
+        binary_columns=binary_columns,
+        date_columns=date_columns,
+        impute_columns=impute_columns,
+        impute_method=impute_method,
+        winsorize_columns=winsorize_columns,
+        winsor_lower_quantile=winsor_lower_quantile,
+        winsor_upper_quantile=winsor_upper_quantile,
+        log_transform_columns=log_transform_columns,
+        standardize_columns=standardize_columns,
+        minmax_scale_columns=minmax_scale_columns,
+        outlier_columns=outlier_columns,
+        outlier_method=outlier_method,
+        outlier_threshold=outlier_threshold,
+        sort_column=sort_column,
+        time_group_column=time_group_column,
+        difference_columns=difference_columns,
+        return_columns=return_columns,
+        return_method=return_method,
+        lag_columns=lag_columns,
+        lag_periods=lag_periods,
+        lead_columns=lead_columns,
+        lead_periods=lead_periods,
+        rolling_mean_columns=rolling_mean_columns,
+        rolling_volatility_columns=rolling_volatility_columns,
+        rolling_window=rolling_window,
+        drop_duplicates=drop_duplicates,
+        drop_missing_required=drop_missing_required,
     )
-    csv_bytes = prepared_frame.to_csv(index=False).encode("utf-8")
-    prepared_asset = save_upload_asset(
-        settings,
-        db,
-        user=user,
-        workspace=workspace,
-        filename=f"{Path(asset.title).stem}-prepared.csv",
-        content=csv_bytes,
-        content_type="text/csv",
-        description=f"Prepared analysis sample derived from {asset.title}",
-    )
-    preview_rows = _frame_preview_rows(prepared_frame)
-    audit_trail = {
-        "source_asset_id": asset.id,
-        "source_asset_title": asset.title,
-        "prepared_asset_id": prepared_asset.id,
-        "prepared_download_url": f"/api/assets/{prepared_asset.id}/download",
-        "template_id": template_id,
-        "template_name": template_name,
-        "variant_label": variant_label,
-        "variant_spec": dict(variant_spec or {}) if isinstance(variant_spec, dict) else {},
-        "effective_specification": dict(effective_specification or {}) if isinstance(effective_specification, dict) else {},
-        "manual_checklist": [
-            "Download the prepared asset and compare row/column counts with rows_after_prepare and columns.",
-            "Reapply each cleaning step in order: imputation, winsorization, transforms, outlier filter, and missing-value filtering.",
-            "Verify the preview_rows against the downloaded prepared sample.",
-        ],
-        "operations": {
-            "required_columns": summary["required_columns"],
-            "numeric_columns": summary["numeric_columns"],
-            "binary_columns": summary["binary_columns"],
-            "date_columns": summary["date_columns"],
-            "imputed_columns": summary["imputed_columns"],
-            "winsorized_columns": summary["winsorized_columns"],
-            "transformed_columns": summary["transformed_columns"],
-            "time_series_features": summary["time_series_features"],
-            "derived_columns": summary["derived_columns"],
-            "outlier_columns": summary["outlier_columns"],
-            "outlier_method": summary["outlier_method"],
-            "outlier_threshold": summary["outlier_threshold"],
-            "drop_duplicates": drop_duplicates,
-            "drop_missing_required": drop_missing_required,
-            "workflow_group": workflow_group or "sample_preparation",
-        },
-    }
-    processing_result = {
-        "workflow_type": "data_processing",
-        "processing_family": workflow_group or "sample_preparation",
-        "template_id": template_id,
-        "template_name": template_name,
-        "variant_label": variant_label,
-        "variant_spec": dict(variant_spec or {}) if isinstance(variant_spec, dict) else {},
-        "effective_specification": dict(effective_specification or {}) if isinstance(effective_specification, dict) else {},
-        "asset": serialize_asset(prepared_asset),
-        "summary": summary,
-        "preview_rows": preview_rows,
-        "audit_trail": audit_trail,
-        "result_detail_path": f"/data-lab/results/processing/{prepared_asset.id}",
-        "detail_path": f"/data-lab/results/processing/{prepared_asset.id}",
-        "status": "ready",
-        "reason": "Processing result is ready for review.",
-        "next_action": "open_detail",
-        "template_source": template_name or template_id,
-        "variant_source": variant_label or ("custom" if isinstance(variant_spec, dict) and variant_spec else ""),
-    }
-    prepared_asset.metadata_json = {
-        **prepared_asset.metadata_json,
-        "preparation_summary": summary,
-        "source_asset_id": asset.id,
-        "processing_result": processing_result,
-    }
-    db.flush()
-    return processing_result
 
 
 _PREFLIGHT_STATUS_RANK = {"ok": 0, "warning": 1, "blocked": 2}
@@ -4430,6 +4166,40 @@ def _preflight_numeric_sample(frame: pd.DataFrame, columns: list[str]) -> pd.Dat
     for column in sample.columns:
         sample[column] = pd.to_numeric(sample[column], errors="coerce")
     return sample.dropna().copy()
+
+
+def _preflight_complete_case_columns(model: str, selected_columns: list[str], **roles: Any) -> list[str]:
+    if model in {"ols", "ppml", "logit", "probit", "fixed_effects", "taylor_rule"}:
+        return _preflight_columns(roles.get("dependent"), roles.get("independents") or [], roles.get("controls") or [])
+    if model == "did":
+        return _preflight_columns(roles.get("dependent"), roles.get("treatment_column"), roles.get("post_column"), roles.get("controls") or [])
+    if model == "event_study":
+        return _preflight_columns(roles.get("dependent"), roles.get("treatment_column"), roles.get("event_time_column"), roles.get("controls") or [])
+    if model == "rdd":
+        return _preflight_columns(roles.get("dependent"), roles.get("running_column"), roles.get("controls") or [])
+    if model in {"iv_2sls", "panel_iv"}:
+        return _preflight_columns(
+            roles.get("dependent"),
+            roles.get("independents") or [],
+            roles.get("controls") or [],
+            roles.get("endogenous_column"),
+            roles.get("instrument_columns") or [],
+        )
+    if model in {"arima", "arch", "garch", "virf", "historical_var", "parametric_var", "ewma_volatility"}:
+        return _preflight_columns(roles.get("dependent") or ((roles.get("series_columns") or [""])[0]))
+    if model in {"var", "svar_irf", "dy_connectedness", "bk_connectedness", "mean_variance", "minimum_variance", "risk_parity"}:
+        return _preflight_columns(roles.get("series_columns") or [])
+    if model in {"capm", "fama_french_3"}:
+        return _preflight_columns(roles.get("dependent"), roles.get("market_column"), roles.get("smb_column"), roles.get("hml_column"))
+    if model in {"black_scholes", "binomial_option"}:
+        return _preflight_columns(
+            roles.get("spot_column"),
+            roles.get("strike_column"),
+            roles.get("maturity_column"),
+            roles.get("rate_column"),
+            roles.get("volatility_column"),
+        )
+    return selected_columns
 
 
 def _preflight_status(checks: list[dict[str, str]]) -> str:
@@ -4492,6 +4262,10 @@ def preflight_model_analysis(
     blocking_reasons: list[str] = []
 
     _preflight_add(checks, "asset_scope", "Asset scope", "ok", "info", "Asset exists and belongs to the current user/workspace.")
+    if is_supported_model_type(model):
+        _preflight_add(checks, "model_supported", "Model supported", "ok", "info", f"{model} is supported.")
+    else:
+        _preflight_add(checks, "model_supported", "Model supported", "blocked", "error", f"Unsupported model type: {model}.")
     row_count = int(len(frame))
     column_count = int(len(frame.columns))
     if row_count < 5:
@@ -4561,6 +4335,42 @@ def preflight_model_analysis(
         _preflight_add(checks, "column_variance", "Selected column variance", "warning", "warning", f"No variation detected in {', '.join(invariant)}.")
     else:
         _preflight_add(checks, "column_variance", "Selected column variance", "ok", "info", "Selected columns have variation where checked.")
+
+    complete_case_columns = [
+        column
+        for column in _preflight_complete_case_columns(
+            model,
+            selected_columns,
+            dependent=dependent,
+            independents=independents or [],
+            controls=controls or [],
+            series_columns=series_columns or [],
+            treatment_column=treatment_column,
+            post_column=post_column,
+            event_time_column=event_time_column,
+            running_column=running_column,
+            endogenous_column=endogenous_column,
+            instrument_columns=instrument_columns or [],
+            market_column=market_column,
+            smb_column=smb_column,
+            hml_column=hml_column,
+            spot_column=spot_column,
+            strike_column=strike_column,
+            maturity_column=maturity_column,
+            rate_column=rate_column,
+            volatility_column=volatility_column,
+        )
+        if column in frame.columns
+    ]
+    complete_case_rows = int(frame[complete_case_columns].dropna().shape[0]) if complete_case_columns else row_count
+    if complete_case_columns and complete_case_rows == 0:
+        _preflight_add(checks, "complete_case_rows", "Complete-case rows", "blocked", "error", "No complete observations are available for the selected model inputs.")
+    elif complete_case_columns and complete_case_rows < max(5, len(complete_case_columns) + 2):
+        _preflight_add(checks, "complete_case_rows", "Complete-case rows", "blocked", "error", f"Only {complete_case_rows} complete observations are available for the selected model inputs.")
+    elif complete_case_columns and complete_case_rows < 20:
+        _preflight_add(checks, "complete_case_rows", "Complete-case rows", "warning", "warning", f"Only {complete_case_rows} complete observations are available for the selected model inputs.")
+    elif complete_case_columns:
+        _preflight_add(checks, "complete_case_rows", "Complete-case rows", "ok", "info", f"{complete_case_rows} complete observations are available for the selected model inputs.")
 
     def require_column(column: str, key: str, label: str) -> bool:
         if not column:
@@ -4707,6 +4517,8 @@ def preflight_model_analysis(
             "row_count": row_count,
             "column_count": column_count,
             "missing_required_columns": missing_columns,
+            "complete_case_rows": complete_case_rows,
+            "complete_case_columns": complete_case_columns,
         },
         "warnings": warnings,
         "blocking_reasons": blocking_reasons,
@@ -6481,7 +6293,7 @@ def run_arch_garch_analysis(
     q: int = 1,
     forecast_steps: int = 5,
 ) -> dict[str, Any]:
-    normalized_model = model_type.strip().lower()
+    normalized_model = normalize_model_type(model_type)
     if normalized_model not in {"arch", "garch"}:
         raise ValueError("Unsupported conditional volatility model.")
     asset, sample = _prepare_time_series_sample(
@@ -8219,7 +8031,7 @@ def run_model_analysis(
     variant_spec: dict[str, Any] | None = None,
     effective_specification: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    normalized_model = model_type.strip().lower()
+    normalized_model = normalize_model_type(model_type)
     runtime_options = {
         "asset_id": asset_id,
         "dependent": dependent,
