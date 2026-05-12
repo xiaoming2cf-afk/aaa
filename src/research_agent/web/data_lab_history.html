@@ -51,6 +51,13 @@
           <a href="/data-lab/results" data-lab-shell-link="results">Results</a>
           <a href="/data-lab/history" data-lab-shell-link="history">History</a>
         </nav>
+        <div class="lab-flow-strip" id="lab-flow-strip" aria-label="Data Lab flow">
+          <span data-lab-flow-step="dataset">Dataset</span>
+          <span data-lab-flow-step="preparation">Preparation</span>
+          <span data-lab-flow-step="model">Model</span>
+          <span data-lab-flow-step="results">Results</span>
+          <span data-lab-flow-step="history">History</span>
+        </div>
         <div class="lab-rail__footer">
           <a href="/data-lab/optimization" class="button-link secondary-link">Open optimization suite</a>
           <a id="data-lab-run-link" href="#analysis-asset-select" class="button-link">Inspect dataset</a>
@@ -73,6 +80,23 @@
               <h3>Recent Lab History</h3>
               <span class="muted">Recent processing and model results.</span>
             </div>
+          </div>
+          <div id="data-lab-history-summary" class="history-kpi-grid">
+            <article class="history-kpi-card">
+              <span>Prepared outputs</span>
+              <strong>0</strong>
+              <p>Processing history loads after workspace refresh.</p>
+            </article>
+            <article class="history-kpi-card">
+              <span>Model outputs</span>
+              <strong>0</strong>
+              <p>Model history loads after workspace refresh.</p>
+            </article>
+            <article class="history-kpi-card">
+              <span>Latest activity</span>
+              <strong>None</strong>
+              <p>Open history entries to inspect lineage and manifests.</p>
+            </article>
           </div>
           <div class="summary-page-grid">
             <section class="result-output-card">

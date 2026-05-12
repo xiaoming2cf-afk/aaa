@@ -51,6 +51,13 @@
           <a href="/data-lab/results" data-lab-shell-link="results">Results</a>
           <a href="/data-lab/history" data-lab-shell-link="history">History</a>
         </nav>
+        <div class="lab-flow-strip" id="lab-flow-strip" aria-label="Data Lab flow">
+          <span data-lab-flow-step="dataset">Dataset</span>
+          <span data-lab-flow-step="preparation">Preparation</span>
+          <span data-lab-flow-step="model">Model</span>
+          <span data-lab-flow-step="results">Results</span>
+          <span data-lab-flow-step="history">History</span>
+        </div>
         <div class="lab-rail__footer">
           <a href="/data-lab/optimization" class="button-link secondary-link">Open optimization suite</a>
           <a id="data-lab-run-link" href="#analysis-asset-select" class="button-link">Inspect dataset</a>
@@ -111,6 +118,21 @@
               </div>
             </div>
             <div class="lab-stage-stack">
+              <section class="result-output-card lab-preflight-panel" id="lab-preflight-panel">
+                <div class="panel-head panel-head-wrap">
+                  <div>
+                    <h3>Model Preflight</h3>
+                    <span class="muted" id="lab-preflight-meta">Load a dataset profile to evaluate readiness.</span>
+                  </div>
+                </div>
+                <div id="lab-preflight-list" class="preflight-grid">
+                  <article class="preflight-check is-blocked">
+                    <span>Needs input</span>
+                    <strong>Dataset</strong>
+                    <p>Select a dataset, load its profile, and choose required model variables.</p>
+                  </article>
+                </div>
+              </section>
               <form id="model-form" class="stack hidden">
                 <div class="lab-template-builder">
                   <div class="panel-head panel-head-wrap">

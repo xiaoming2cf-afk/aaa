@@ -4284,6 +4284,49 @@ body.hide-private-session-chrome.page-optimization [data-auth-panel] {
   border-color: rgba(11, 95, 69, 0.16);
 }
 
+.page-data-lab-shell .lab-flow-strip {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(31, 30, 26, 0.08);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.page-data-lab-shell .lab-flow-strip span {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.42rem 0.6rem 0.42rem 1.65rem;
+  border-radius: 0.8rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.page-data-lab-shell .lab-flow-strip span::before {
+  content: "";
+  position: absolute;
+  left: 0.62rem;
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 999px;
+  border: 1px solid rgba(11, 95, 69, 0.28);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.page-data-lab-shell .lab-flow-strip span.is-complete,
+.page-data-lab-shell .lab-flow-strip span.is-active {
+  color: var(--accent);
+  background: rgba(215, 239, 231, 0.62);
+}
+
+.page-data-lab-shell .lab-flow-strip span.is-complete::before,
+.page-data-lab-shell .lab-flow-strip span.is-active::before {
+  background: var(--accent);
+}
+
 .page-data-lab-shell .lab-main,
 .page-data-lab-shell .lab-stage-content,
 .page-data-lab-shell .lab-stage-stack {
@@ -4369,6 +4412,94 @@ body.hide-private-session-chrome.page-optimization [data-auth-panel] {
   border: 1px solid rgba(11, 95, 69, 0.16);
   background: transparent;
   color: var(--accent);
+}
+
+.preflight-grid,
+.history-kpi-grid,
+.lineage-steps {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.preflight-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.preflight-check,
+.history-kpi-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.preflight-check span,
+.history-kpi-card span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.preflight-check strong,
+.history-kpi-card strong {
+  color: var(--ink);
+}
+
+.preflight-check p,
+.history-kpi-card p,
+.lineage-card p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.preflight-check.is-ready {
+  border-color: rgba(11, 95, 69, 0.24);
+  background: rgba(215, 239, 231, 0.42);
+}
+
+.preflight-check.is-blocked {
+  border-color: rgba(127, 29, 29, 0.14);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.history-kpi-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 1rem 0;
+}
+
+.history-kpi-card strong {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.lineage-steps {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.lineage-steps span {
+  min-width: 0;
+  padding: 0.45rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(11, 95, 69, 0.14);
+  background: rgba(215, 239, 231, 0.48);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .preflight-grid,
+  .history-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lineage-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .page-optimization .optimization-shell--editorial {

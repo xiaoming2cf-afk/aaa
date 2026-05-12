@@ -51,6 +51,13 @@
           <a href="/data-lab/results" data-lab-shell-link="results">Results</a>
           <a href="/data-lab/history" data-lab-shell-link="history">History</a>
         </nav>
+        <div class="lab-flow-strip" id="lab-flow-strip" aria-label="Data Lab flow">
+          <span data-lab-flow-step="dataset">Dataset</span>
+          <span data-lab-flow-step="preparation">Preparation</span>
+          <span data-lab-flow-step="model">Model</span>
+          <span data-lab-flow-step="results">Results</span>
+          <span data-lab-flow-step="history">History</span>
+        </div>
         <div class="lab-rail__footer">
           <a href="/data-lab/optimization" class="button-link secondary-link">Open optimization suite</a>
           <a id="data-lab-run-link" href="#analysis-asset-select" class="button-link">Inspect dataset</a>
@@ -98,6 +105,9 @@
                 <div id="prepare-result-manifest" class="card-list">
                   <div class="card"><p>Reproducibility manifest appears after a processing result is loaded.</p></div>
                 </div>
+                <div id="prepare-result-lineage" class="card-list">
+                  <div class="card"><p>Lineage appears after a processing result is loaded.</p></div>
+                </div>
                 <details class="result-json-toggle">
                   <summary>Raw processing JSON</summary>
                   <pre id="prepare-output" class="console-box">Waiting for sample preparation.</pre>
@@ -118,6 +128,9 @@
                 </div>
                 <div id="analysis-result-manifest" class="card-list">
                   <div class="card"><p>Reproducibility manifest appears after a model result is loaded.</p></div>
+                </div>
+                <div id="analysis-result-lineage" class="card-list">
+                  <div class="card"><p>Lineage appears after a model result is loaded.</p></div>
                 </div>
                 <details class="result-json-toggle">
                   <summary>Raw model JSON</summary>

@@ -382,6 +382,10 @@ const dom = {
   analysisColumnGrid: document.getElementById("analysis-column-grid"),
   analysisPreviewTable: document.getElementById("analysis-preview-table"),
   dataLabCurrentStepPill: document.getElementById("data-lab-current-step-pill"),
+  labFlowStrip: document.getElementById("lab-flow-strip"),
+  labPreflightPanel: document.getElementById("lab-preflight-panel"),
+  labPreflightMeta: document.getElementById("lab-preflight-meta"),
+  labPreflightList: document.getElementById("lab-preflight-list"),
   dataLabAppTitle: document.getElementById("data-lab-app-title"),
   dataLabAppCopy: document.getElementById("data-lab-app-copy"),
   dataLabAppWorkspace: document.getElementById("data-lab-app-workspace"),
@@ -422,6 +426,7 @@ const dom = {
   labRecentProcessingList: document.getElementById("lab-recent-processing-list"),
   labRecentModelList: document.getElementById("lab-recent-model-list"),
   labRecentOptimizationList: document.getElementById("lab-recent-optimization-list"),
+  dataLabHistorySummary: document.getElementById("data-lab-history-summary"),
   variableGuideForm: document.getElementById("variable-guide-form"),
   variableGuidePrompt: document.getElementById("variable-guide-prompt"),
   variableGuideMeta: document.getElementById("variable-guide-meta"),
@@ -583,11 +588,13 @@ const dom = {
   prepareResultMeta: document.getElementById("prepare-result-meta"),
   prepareResultSummary: document.getElementById("prepare-result-summary"),
   prepareResultManifest: document.getElementById("prepare-result-manifest"),
+  prepareResultLineage: document.getElementById("prepare-result-lineage"),
   prepareResultLink: document.getElementById("prepare-result-link"),
   analysisOutput: document.getElementById("analysis-output"),
   analysisResultMeta: document.getElementById("analysis-result-meta"),
   analysisResultSummary: document.getElementById("analysis-result-summary"),
   analysisResultManifest: document.getElementById("analysis-result-manifest"),
+  analysisResultLineage: document.getElementById("analysis-result-lineage"),
   analysisResultLink: document.getElementById("analysis-result-link"),
   labDetailEyebrow: document.getElementById("lab-detail-eyebrow"),
   labDetailTitle: document.getElementById("lab-detail-title"),
@@ -2136,12 +2143,41 @@ function renderReproducibilityManifest(target, manifest) {
   `;
 }
 
+function renderResultLineage(target, payload) {
+  if (!target) {
+    return;
+  }
+  const manifest = payload?.reproducibility_manifest || {};
+  const sourceTitle = manifest.source_asset_title || payload?.asset?.title || "Unknown source";
+  const sourceKind = manifest.source_asset_kind || payload?.asset?.kind || "dataset";
+  const generatedAssets = Array.isArray(manifest.generated_asset_ids) ? manifest.generated_asset_ids : [];
+  const warnings = Array.isArray(manifest.warnings) ? manifest.warnings : [];
+  const resultId = manifest.result_id || payload?.result_record_id || payload?.asset?.id || "";
+  target.innerHTML = `
+    <article class="card lineage-card">
+      <h4>Lineage</h4>
+      <div class="lineage-steps" aria-label="Data Lab lineage">
+        <span>Dataset</span>
+        <span>Preparation</span>
+        <span>Model</span>
+        <span>Results</span>
+        <span>History</span>
+      </div>
+      <p><strong>Source:</strong> ${escapeHtml(sourceTitle)} | ${escapeHtml(sourceKind)}</p>
+      <p><strong>Result:</strong> ${escapeHtml(resultId || "Pending result id")}</p>
+      <p><strong>Generated assets:</strong> ${generatedAssets.length ? escapeHtml(generatedAssets.join(", ")) : "None recorded."}</p>
+      <p><strong>Preflight warnings:</strong> ${warnings.length ? escapeHtml(warnings.join(" | ")) : "None recorded."}</p>
+    </article>
+  `;
+}
+
 function renderProcessingResultSummary(payload) {
   if (dom.prepareResultMeta) {
     dom.prepareResultMeta.textContent = `${payload.processing_family || "data_processing"} | asset ${payload.asset?.title || "prepared sample"}`;
   }
   renderResultSummaryCard(dom.prepareResultSummary, payload, { type: "processing" });
   renderReproducibilityManifest(dom.prepareResultManifest, payload.reproducibility_manifest);
+  renderResultLineage(dom.prepareResultLineage, payload);
   if (dom.prepareResultLink) {
     const href = payload.result_detail_path || "";
     const resolved = applySafeHref(dom.prepareResultLink, href);
@@ -2155,6 +2191,7 @@ function renderModelResultSummary(payload) {
   }
   renderResultSummaryCard(dom.analysisResultSummary, payload, { type: "model" });
   renderReproducibilityManifest(dom.analysisResultManifest, payload.reproducibility_manifest);
+  renderResultLineage(dom.analysisResultLineage, payload);
   if (dom.analysisResultLink) {
     const href = payload.result_detail_path || "";
     const resolved = applySafeHref(dom.analysisResultLink, href);
@@ -4463,6 +4500,21 @@ function setWorkflowStep(card, textNode, stateName, copy) {
   textNode.textContent = copy;
 }
 
+function renderDataLabFlowStrip() {
+  if (!dom.labFlowStrip) {
+    return;
+  }
+  const step = currentDataLabShellStep();
+  const steps = ["dataset", "preparation", "model", "results", "history"];
+  const currentIndex = Math.max(0, steps.indexOf(step));
+  dom.labFlowStrip.querySelectorAll("[data-lab-flow-step]").forEach((item) => {
+    const itemStep = item.getAttribute("data-lab-flow-step") || "";
+    const itemIndex = steps.indexOf(itemStep);
+    item.classList.toggle("is-active", itemStep === step);
+    item.classList.toggle("is-complete", itemIndex >= 0 && itemIndex < currentIndex);
+  });
+}
+
 function renderWorkflowGuide() {
   const hasAccess = Boolean(state.user && state.selectedWorkspaceId);
   const hasDataset = Boolean(selectedDatasetAsset());
@@ -4506,6 +4558,61 @@ function renderWorkflowGuide() {
       ? `Latest ${currentWorkflowType() === "model" ? "model" : "processing"} result available.`
       : "No result yet.",
   );
+}
+
+function preflightItem(label, ready, detail) {
+  return { label, ready, detail };
+}
+
+function renderLabPreflightPanel() {
+  if (!dom.labPreflightPanel || !dom.labPreflightList) {
+    return;
+  }
+  const step = currentDataLabShellStep();
+  const profile = currentAssetProfile();
+  const dataset = selectedDatasetAsset();
+  const modelType = dom.modelType?.value || "";
+  const modelConfig = MODEL_CONFIG[modelType] || {};
+  const checks = [
+    preflightItem("Workspace", Boolean(state.user && state.selectedWorkspaceId), state.selectedWorkspaceId ? "Workspace selected." : "Sign in and choose a workspace."),
+    preflightItem("Dataset", Boolean(dataset), dataset ? `${dataset.title} is selected.` : "Select or upload a modelable dataset."),
+    preflightItem("Profile", Boolean(profile), profile ? `${profile.rows} rows and ${profile.columns} columns profiled.` : "Load the dataset profile before running."),
+  ];
+  if (step === "preparation") {
+    const family = currentProcessingFamily();
+    const hasColumnIntent =
+      family !== "sample_preparation"
+      || selectedValues(dom.prepareKeepColumns).length
+      || selectedValues(dom.prepareRequiredColumns).length
+      || selectedValues(dom.prepareNumericColumns).length
+      || selectedValues(dom.prepareBinaryColumns).length;
+    checks.push(
+      preflightItem("Preparation family", Boolean(family), currentFamilyDetail()?.title || family || "Choose a preparation family."),
+      preflightItem("Preparation inputs", Boolean(profile && hasColumnIntent), hasColumnIntent ? "Column rules are ready to submit." : "Choose columns or confirm the template before treating output as reliable."),
+    );
+  } else if (step === "model") {
+    const needsDependent = Boolean(modelConfig.dependentKind);
+    const hasDependent = !needsDependent || Boolean(dom.modelDependent?.value);
+    const needsSeries = Boolean(modelConfig.series || modelConfig.portfolio);
+    const hasSeries = !needsSeries || selectedValues(dom.modelSeriesColumns).length >= 2;
+    checks.push(
+      preflightItem("Model family", Boolean(dom.modelFamily?.value), currentFamilyDetail()?.title || dom.modelFamily?.value || "Choose a model family."),
+      preflightItem("Model specification", Boolean(profile && modelType && hasDependent && hasSeries), hasDependent && hasSeries ? `${currentModelLabel()} specification has required variables.` : "Select the required outcome or series variables."),
+    );
+  }
+  const readyCount = checks.filter((item) => item.ready).length;
+  if (dom.labPreflightMeta) {
+    dom.labPreflightMeta.textContent = `${readyCount}/${checks.length} checks ready. Preflight is required before treating output as reliable.`;
+  }
+  dom.labPreflightList.innerHTML = checks
+    .map((item) => `
+      <article class="preflight-check ${item.ready ? "is-ready" : "is-blocked"}">
+        <span>${item.ready ? "Ready" : "Needs input"}</span>
+        <strong>${escapeHtml(item.label)}</strong>
+        <p>${escapeHtml(item.detail)}</p>
+      </article>
+    `)
+    .join("");
 }
 
 function renderActiveFamilySummary() {
@@ -4649,12 +4756,48 @@ function renderLabContext() {
   if (dom.dataLabAppCopy && currentDataLabShellStep() === "results" && dataset) {
     dom.dataLabAppCopy.textContent = `Latest outputs for ${datasetSummary}.`;
   }
+  renderDataLabFlowStrip();
+  renderLabPreflightPanel();
   renderWorkflowGuide();
   renderActiveFamilySummary();
   renderLabRunDesign();
 }
 
+function renderDataLabHistorySummary() {
+  if (!dom.dataLabHistorySummary) {
+    return;
+  }
+  const processing = processingHistoryItems();
+  const models = modelHistoryItems();
+  const optimization = optimizationHistoryItems();
+  const readyProcessing = processing.filter(isReadyHistoryItem).length;
+  const readyModels = models.filter(isReadyHistoryItem).length;
+  const latestUpdatedAt = [...processing, ...models, ...optimization]
+    .map((item) => item.updated_at || item.created_at)
+    .filter(Boolean)
+    .sort()
+    .pop();
+  dom.dataLabHistorySummary.innerHTML = `
+    <article class="history-kpi-card">
+      <span>Prepared outputs</span>
+      <strong>${escapeHtml(readyProcessing)}</strong>
+      <p>${escapeHtml(processing.length)} processing or chart entries in this workspace.</p>
+    </article>
+    <article class="history-kpi-card">
+      <span>Model outputs</span>
+      <strong>${escapeHtml(readyModels)}</strong>
+      <p>${escapeHtml(models.length)} model records linked to result pages.</p>
+    </article>
+    <article class="history-kpi-card">
+      <span>Latest activity</span>
+      <strong>${escapeHtml(latestUpdatedAt ? prettyDate(latestUpdatedAt) : "None")}</strong>
+      <p>Use history to reopen lineage, manifest, exports, and case links.</p>
+    </article>
+  `;
+}
+
 function renderProcessingHistory(items = processingHistoryItems()) {
+  renderDataLabHistorySummary();
   if (!dom.labRecentProcessingList) {
     return;
   }
@@ -4686,7 +4829,8 @@ function renderProcessingHistory(items = processingHistoryItems()) {
     return `
       <article class="card">
         <h4>${escapeHtml(item.title)}</h4>
-        <p>${escapeHtml(family)} | ${escapeHtml(prettyDate(item.updated_at || item.created_at))}</p>
+        <p><strong>Stage:</strong> Preparation | <strong>Family:</strong> ${escapeHtml(family)}</p>
+        <p><strong>Updated:</strong> ${escapeHtml(prettyDate(item.updated_at || item.created_at))}</p>
         <p class="compact-note muted">${escapeHtml(statusLabel)}${item.reason ? ` | ${escapeHtml(item.reason)}` : ""}</p>
         <p>${escapeHtml(truncateText(summary))}</p>
         <div class="actions">
@@ -4701,6 +4845,7 @@ function renderProcessingHistory(items = processingHistoryItems()) {
 }
 
 function renderModelHistory(items = modelHistoryItems()) {
+  renderDataLabHistorySummary();
   if (!dom.labRecentModelList) {
     return;
   }
@@ -4723,7 +4868,8 @@ function renderModelHistory(items = modelHistoryItems()) {
     return `
       <article class="card">
         <h4>${escapeHtml(metadata.model_label || item.title)}</h4>
-        <p>${escapeHtml(metadata.model_type || "model")} | ${escapeHtml(prettyDate(item.updated_at || item.created_at))}</p>
+        <p><strong>Stage:</strong> Model | <strong>Type:</strong> ${escapeHtml(metadata.model_type || "model")}</p>
+        <p><strong>Updated:</strong> ${escapeHtml(prettyDate(item.updated_at || item.created_at))}</p>
         <p class="compact-note muted">${escapeHtml(item.status || "ready")}${item.reason ? ` | ${escapeHtml(item.reason)}` : ""}</p>
         <p>${escapeHtml(truncateText(summary))}</p>
         <div class="actions">
@@ -4736,6 +4882,7 @@ function renderModelHistory(items = modelHistoryItems()) {
 }
 
 function renderOptimizationHistory(items = optimizationHistoryItems()) {
+  renderDataLabHistorySummary();
   if (!dom.labRecentOptimizationList) {
     return;
   }
@@ -4756,7 +4903,7 @@ function renderOptimizationHistory(items = optimizationHistoryItems()) {
     return `
       <article class="card">
         <h4>${escapeHtml(item.suite_label || item.title)}</h4>
-        <p>${escapeHtml(prettyDate(item.updated_at || item.created_at))}</p>
+        <p><strong>Stage:</strong> Optimization | <strong>Updated:</strong> ${escapeHtml(prettyDate(item.updated_at || item.created_at))}</p>
         <p class="compact-note muted">${escapeHtml(item.status || "ready")}${item.reason ? ` | ${escapeHtml(item.reason)}` : ""}</p>
         <p>${escapeHtml(truncateText(summary))}</p>
         <div class="actions">
@@ -4929,6 +5076,8 @@ function applyDataLabShellStep() {
         history: "Open history",
       }[step] || "Run current step";
   }
+  renderDataLabFlowStrip();
+  renderLabPreflightPanel();
 }
 
 function updateLabUploadLabel() {
@@ -5066,6 +5215,8 @@ function renderDataLabPlaceholders() {
   dom.analysisResultSummary && (dom.analysisResultSummary.innerHTML = emptyCard("No model has been run in this session yet."));
   dom.prepareResultManifest && (dom.prepareResultManifest.innerHTML = emptyCard("Reproducibility manifest appears after a processing result is loaded."));
   dom.analysisResultManifest && (dom.analysisResultManifest.innerHTML = emptyCard("Reproducibility manifest appears after a model result is loaded."));
+  dom.prepareResultLineage && (dom.prepareResultLineage.innerHTML = emptyCard("Lineage appears after a processing result is loaded."));
+  dom.analysisResultLineage && (dom.analysisResultLineage.innerHTML = emptyCard("Lineage appears after a model result is loaded."));
   dom.prepareResultLink?.classList.add("hidden");
   dom.analysisResultLink?.classList.add("hidden");
   if (dom.plotPreviewPanel) {
