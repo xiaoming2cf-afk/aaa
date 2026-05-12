@@ -2918,6 +2918,8 @@ def sniff_asset_kind(content: bytes, *, filename: str) -> str:
         return "chart_png"
     if prefix.startswith(b"\xff\xd8\xff"):
         return "image_jpeg"
+    if extension in {".pdf", ".png", ".jpg", ".jpeg"}:
+        return "binary_file"
     if extension == ".svg":
         return "binary_file"
     if extension == ".json":

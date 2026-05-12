@@ -107,3 +107,31 @@ def test_trusted_execution_disabled_blocks_user_code_and_notebook_requires_csrf(
     unauthenticated = TestClient(client.app)
     download = unauthenticated.get(f"/api/workspaces/{auth['workspace_id']}/data-lab/agent/sessions/{run_id}/notebook")
     assert download.status_code in {401, 404}
+
+
+def test_trusted_execution_enabled_still_makes_no_sandbox_claim_or_path_leak(monkeypatch, app_env):
+    client = _client_with_agent(monkeypatch, trusted_execution=True)
+    auth = _register_workspace(client)
+    asset_id = _upload_csv(client, auth)
+
+    config = client.get(f"/api/workspaces/{auth['workspace_id']}/data-lab/agent/llm-config")
+    assert config.status_code == 200, config.text
+    risk = config.json()["risk_summary"]
+    assert risk["trusted_execution_enabled"] is True
+    assert risk["sandbox_claim"] == "none"
+    assert "not sandboxed" in risk["warning_message"].lower()
+    assert ":\\" not in config.text
+    assert ":/" not in config.text
+
+    created = client.post(
+        f"/api/workspaces/{auth['workspace_id']}/data-lab/agent/sessions",
+        headers={"X-CSRF-Token": auth["csrf"]},
+        json={"asset_ids": [asset_id], "title": "Trusted Boundary", "language": "Chinese"},
+    )
+    assert created.status_code == 200, created.text
+    session = created.json()["session"]
+    assert session["risk_summary"]["trusted_execution_enabled"] is True
+    assert session["risk_summary"]["sandbox_claim"] == "none"
+    assert "work_dir" not in session
+    assert ":\\" not in created.text
+    assert ":/" not in created.text

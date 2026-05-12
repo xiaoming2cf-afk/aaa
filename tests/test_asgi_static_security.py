@@ -191,3 +191,29 @@ def test_missing_public_asset_returns_404(monkeypatch, tmp_path):
     _assert_static_security_headers(headers)
     assert headers["content-type"].startswith("text/plain")
     assert b"Not Found" in body
+
+
+def test_static_asset_traversal_attempts_return_404(monkeypatch, tmp_path):
+    web_dir = tmp_path / "web"
+    dist_dir = tmp_path / "frontend-spa" / "dist"
+    outside = tmp_path / "AGENTS.md"
+    web_dir.mkdir(parents=True, exist_ok=True)
+    dist_dir.mkdir(parents=True, exist_ok=True)
+    outside.write_text("do not leak", encoding="utf-8")
+    _write_index(dist_dir / "index.html", "<!doctype html><title>Built SPA</title>")
+    monkeypatch.setattr(asgi, "WEB_DIR", web_dir)
+    monkeypatch.setattr(asgi, "SPA_DIST_DIR", dist_dir)
+    monkeypatch.setattr(asgi, "SPA_ROOT_DIR", tmp_path / "frontend-spa")
+
+    for path in [
+        "/assets/../AGENTS.md",
+        "/assets/%2e%2e/AGENTS.md",
+        "/app/assets/../index.html",
+        "/app/assets/%2e%2e/index.html",
+    ]:
+        status, headers, body = _request(path)
+
+        assert status == 404
+        _assert_static_security_headers(headers)
+        assert b"do not leak" not in body
+        assert b"Built SPA" not in body

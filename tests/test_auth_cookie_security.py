@@ -59,3 +59,44 @@ def test_auth_cookies_are_secure_for_https_public_base_url(monkeypatch, app_env)
             assert "secure" in lowered
             assert "samesite=lax" in lowered
     _reset_app_caches()
+
+
+def test_cookie_session_write_requests_require_valid_csrf_token(client, auth_headers):
+    workspace_id = auth_headers["workspace_id"]
+    valid_csrf = auth_headers["csrf"]
+
+    missing = client.post(
+        "/api/workspaces",
+        json={"name": "Missing CSRF", "description": "should fail"},
+    )
+    assert missing.status_code == 403
+
+    wrong = client.post(
+        "/api/workspaces",
+        headers={"X-CSRF-Token": "wrong-token"},
+        json={"name": "Wrong CSRF", "description": "should fail"},
+    )
+    assert wrong.status_code == 403
+
+    cross_site = client.post(
+        f"/api/workspaces/{workspace_id}/assets/upload",
+        headers={"X-CSRF-Token": valid_csrf, "Origin": "https://evil.example"},
+        data={"description": "cross-site upload"},
+        files={"file": ("data.csv", b"a,b\n1,2\n", "text/csv")},
+    )
+    assert cross_site.status_code == 403
+
+
+def test_auth_post_requires_same_origin_metadata(client):
+    missing_origin = client.post(
+        "/api/auth/register",
+        json={"email": "missing-origin@example.com", "password": "StrongPass!2026", "full_name": "Missing Origin"},
+    )
+    assert missing_origin.status_code == 403
+
+    cross_site = client.post(
+        "/api/auth/register",
+        headers={"Origin": "https://evil.example"},
+        json={"email": "cross-site@example.com", "password": "StrongPass!2026", "full_name": "Cross Site"},
+    )
+    assert cross_site.status_code == 403

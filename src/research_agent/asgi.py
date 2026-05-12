@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import threading
 from typing import Any
+from urllib.parse import unquote
 
 
 Receive = Callable[[], Awaitable[dict[str, Any]]]
@@ -150,11 +151,22 @@ def _file_response(path: Path, method: str, *, media_type: str | None = None) ->
 
 def _safe_file_response(root: Path, relative_path: str, method: str) -> tuple[int, list[tuple[bytes, bytes]], bytes]:
     root_resolved = root.resolve()
-    candidate = (root / relative_path).resolve()
+    decoded_path = unquote(relative_path)
+    if _contains_unsafe_path_segment(decoded_path):
+        body = b"Not Found" if method != "HEAD" else b""
+        return 404, _headers("text/plain; charset=utf-8", len(body)), body
+    candidate = (root / decoded_path).resolve()
     if candidate != root_resolved and root_resolved in candidate.parents:
         return _file_response(candidate, method)
     body = b"Not Found" if method != "HEAD" else b""
     return 404, _headers("text/plain; charset=utf-8", len(body)), body
+
+
+def _contains_unsafe_path_segment(relative_path: str) -> bool:
+    normalized = relative_path.replace("\\", "/")
+    if "\x00" in normalized or normalized.startswith("/"):
+        return True
+    return any(part == ".." for part in normalized.split("/"))
 
 
 def _spa_response(path: str, method: str) -> tuple[int, list[tuple[bytes, bytes]], bytes]:
