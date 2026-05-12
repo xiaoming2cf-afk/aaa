@@ -18,6 +18,23 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
 Frontend shell files are not hot-reloaded by the default `serve` command. After changing `src/research_agent/web/*.html`, `src/research_agent/web/app.js`, `src/research_agent/web/locale_*.js`, or `src/research_agent/web/styles.css`, restart `research-agent serve` or launch with `--reload`.
 
+### Workbench Entrypoints
+
+- `/app/overview`: SPA command center and default `/app` destination.
+- `/app/data-lab`: SPA Data Lab hub for counts, recent history, legacy workbench links, and agent boundary messaging.
+- `/app/data-lab-agent`: SPA agentic analysis runtime.
+- `/data-lab`: legacy full Data Lab workbench for dataset intake, preparation, model, results, and history.
+- `/data-lab/optimization`: legacy Optimization Lab workbench.
+
+For local source SPA fallback, set both:
+
+```powershell
+$env:APP_ENV = "development"
+$env:RESEARCH_AGENT_ALLOW_SOURCE_SPA_FALLBACK = "true"
+```
+
+Production must serve built assets from `frontend-spa/dist`; it must not serve `/src/main.tsx`.
+
 ### Backend And Worker
 
 Research runs are queued through the API and processed asynchronously by the worker:
@@ -148,6 +165,7 @@ Notes:
 - Knowledge, literature, case, processing, model, and optimization payloads expose a shared status contract: `status`, `reason`, `next_action`, and `detail_path`.
 - Data Lab history is now a unified workspace feed across preparation, model, optimization, and Data Lab Agent outputs. `/data-lab/history` and the workspace shell read from the same source.
 - Data Lab Agent is disabled by default. When `DATA_LAB_AGENT_ENABLED=true`, it runs clean-room natural-language analysis through bounded Python execution with safety checks, profile snapshots, knowledge cards, repair traces, human intervention, and report/notebook export. Scoped model configuration lives under the Data Lab Agent APIs and does not reopen the general provider center.
+- Data Lab Agent trusted Python execution is not a sandbox and remains disabled by default.
 - The internal ARBITER math kernel is gated by `AGENT_MATH_MODE=off|shadow|active`. `shadow` computes retrieval / control / delivery traces without changing the public workflow, while `active` lets those surrogates influence candidate ranking, intervention, and delivery gating.
 - `AGENT_MATH_OVERRIDE_MARGIN` sets the minimum v2 advantage required before `active` overrides a baseline choice.
 

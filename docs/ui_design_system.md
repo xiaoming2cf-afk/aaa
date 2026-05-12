@@ -33,8 +33,11 @@
 - Inspector: contextual details, traces, manifests, artifact links, and safety state.
 - Command Bar: primary page actions and mode switches.
 - Stepper: workflow stage display for Dataset, Preparation, Model, Results, History, Agent, and Optimization.
+- Sidebar: Overview first, Research and Data Lab adjacent, Data Lab Agent distinct from the Data Lab hub, and legacy links grouped rather than scattered.
+- Surface primitives: use shared `surface`, `metric-card`, `action-card`, `inspector-panel`, and `command-bar` classes before creating page-specific card styles.
 
 ## Legacy Compatibility
 
 - Legacy Data Lab pages may receive light CSS convergence, but IDs, forms, and verification markers must remain stable.
 - Public pages can be visually simplified without changing auth, public briefing, or workspace entry dependencies.
+- Legacy flow strips and panels should make preview, preflight, manifest, and best-effort lineage visible without changing endpoint contracts.

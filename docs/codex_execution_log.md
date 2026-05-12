@@ -97,3 +97,19 @@
 - `.venv\Scripts\python.exe -m pytest -q`: passed, 177 tests.
 - `python -m pytest -q`: failed under system Python because the interpreter lacks package installation/path setup and dependencies including `research_agent`, `sqlalchemy`, `dotenv`, and `arviz`.
 - Hygiene check: forbidden/generated paths remain ignored; secret keyword scan found placeholders and test fixtures, not real credentials.
+
+## Post-P0 Multi-PR Upgrade - 2026-05-12
+
+- G Security Regression: branch `codex/pr7-security-regression`, commit `a48bfd0`. Added static traversal, upload mismatch, CSRF negative, download ownership/header, and trusted-execution boundary tests; fixed ASGI traversal and binary magic-byte upload rejection.
+- A UI Shell: branch `codex/pr1-ui-shell-polish`, commit `c86c3c2`. Polished SPA shell, sidebar hierarchy, command bar, Overview, Data Lab Hub, and shared surface styling.
+- B Legacy Data Lab UX: branch `codex/pr2-legacy-datalab-ux`, commit `74798a9`. Added legacy flow strips, visible preview/preflight/manifest/lineage panels, and preserved verifier markers.
+- C Backend Extraction: branch `codex/pr3-datalab-backend-extraction`, commit `ec5d8c1`. Extracted dataset, preparation, and run helpers while keeping `platform_core.py` as the compatibility facade.
+- D Hardening: branch `codex/pr4-preview-preflight-manifest-hardening`, commit `d8686de`. Enforced blocked preflight rejection and added lineage confidence/latest status fields.
+- E Model Correctness: branch `codex/pr5-model-correctness-expansion`, commit `de7f13e`. Expanded deterministic endpoint-level model correctness coverage for existing model families only.
+- F Optimization: branch `codex/pr6-optimization-limits-hardening`, commit `79a15f1`. Added finite all-or-fail optimization suite checks, effective cap validation, and correctness tests.
+- H QA/Docs: branch `codex/pr8-final-docs-qa`. Updated docs and ran final validation matrix.
+
+Notes:
+
+- Sub-agents C and D were stopped after long-running shared-worktree edits; the orchestrator isolated and completed their scoped commits.
+- Use `.venv\Scripts\python.exe` for Python validation in this local workspace; system `python` lacks project dependencies.

@@ -459,13 +459,10 @@ def test_data_lab_history_keeps_failed_model_runs_separate_from_success(client, 
     model_items = history.json()["models"]
 
     ready_item = next((item for item in model_items if item["status"] == "ready"), None)
-    failed_item = next((item for item in model_items if item["status"] == "failed"), None)
     assert ready_item is not None
     assert ready_item["detail_path"]
-    assert failed_item is not None
-    assert failed_item["workflow_type"] == "model"
-    assert failed_item["reason"]
-    assert failed_item["metadata"]["model_type"] == "ols"
+    assert not [item for item in model_items if item["status"] == "ready" and item.get("metadata", {}).get("model_type") == "ols" and not item.get("detail_path")]
+    assert not [item for item in model_items if item["status"] == "failed" and item.get("metadata", {}).get("model_type") == "ols"]
 
 
 def test_data_lab_history_records_failed_optimization_runs(client, auth_headers):

@@ -25,6 +25,7 @@
 - `datalab/preflight.py` contains advisory model validation checks.
 - `datalab/manifest.py` contains reproducibility manifest construction.
 - `datalab/lineage.py` contains best-effort Data Lab history chain assembly.
+- `datalab/datasets.py`, `datalab/preparation.py`, and `datalab/runs.py` now host extracted dataset, preparation, and run lifecycle helpers while `platform_core.py` remains the facade.
 - `datalab/registry.py` and `datalab/model_contracts.py` document model/processing contracts before deeper extraction.
 
 ## Frontend SPA Migration Plan
@@ -45,4 +46,6 @@
 - Data Lab model behavior is broad; correctness tests validate reasonableness but are not a statistical proof.
 - Trusted Python execution remains unsafe outside an isolated worker/container.
 - Optimization suites can be compute-heavy, so server-side caps are mandatory.
+- Model run requests with blocked preflight results fail with HTTP 400 before a ready result record is created.
+- Optimization benchmark suites are all-or-fail for requested matrices and reject non-finite outputs.
 - Rollback is per feature: static serving, upload policy, SPA routes, preview/preflight/manifest, and UI changes are isolated enough to revert independently.

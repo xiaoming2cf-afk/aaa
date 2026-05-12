@@ -22,6 +22,11 @@
 - Session and CSRF cookie flags are covered for HTTP test mode and HTTPS production base URLs.
 - Data Lab Agent public risk summaries state `sandbox_claim=none` and omit local session paths from public session payloads.
 - Data Lab model preflight and reproducibility manifest work reduce workflow ambiguity before outputs are treated as reliable.
+- Static asset traversal attempts are rejected before file resolution and keep the static security headers.
+- Upload validation rejects mismatched binary extensions/MIME types that do not match PDF/PNG/JPEG magic bytes.
+- Cookie-session write requests require valid CSRF tokens and same-origin metadata.
+- Model runs with blocked preflight results return HTTP 400 and do not create ready model records.
+- Data Lab history chains now expose confidence, lineage quality, latest status, and explicit best-effort markers.
 
 ## Open Review Items
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -43,10 +43,13 @@ def _lineage_time(row: dict[str, Any]) -> datetime:
         if not value:
             continue
         try:
-            return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                return parsed.replace(tzinfo=timezone.utc)
+            return parsed.astimezone(timezone.utc)
         except ValueError:
             continue
-    return datetime.min
+    return datetime.min.replace(tzinfo=timezone.utc)
 
 
 def build_pipeline_chains(
