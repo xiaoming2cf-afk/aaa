@@ -69,6 +69,10 @@ window.erpLocale?.syncDocumentLocale?.(state.locale);
 
 localStorage.removeItem(storageKeys.token);
 
+const MODELABLE_DATASET_KINDS = new Set(["dataset_csv", "dataset_excel", "dataset_json"]);
+const NON_MODELABLE_UPLOAD_MESSAGE =
+  "This asset was stored, but it is not a modelable dataset. Use Knowledge/Paper workflows or upload CSV/XLSX/JSON for Data Lab modeling.";
+
 function readCookie(name) {
   const target = `${String(name || "").trim()}=`;
   return document.cookie
@@ -578,10 +582,12 @@ const dom = {
   downloadPlotButton: document.getElementById("download-plot"),
   prepareResultMeta: document.getElementById("prepare-result-meta"),
   prepareResultSummary: document.getElementById("prepare-result-summary"),
+  prepareResultManifest: document.getElementById("prepare-result-manifest"),
   prepareResultLink: document.getElementById("prepare-result-link"),
   analysisOutput: document.getElementById("analysis-output"),
   analysisResultMeta: document.getElementById("analysis-result-meta"),
   analysisResultSummary: document.getElementById("analysis-result-summary"),
+  analysisResultManifest: document.getElementById("analysis-result-manifest"),
   analysisResultLink: document.getElementById("analysis-result-link"),
   labDetailEyebrow: document.getElementById("lab-detail-eyebrow"),
   labDetailTitle: document.getElementById("lab-detail-title"),
@@ -635,6 +641,7 @@ const dom = {
   labResultSpecification: document.getElementById("lab-result-specification"),
   labResultTables: document.getElementById("lab-result-tables"),
   labResultAudit: document.getElementById("lab-result-audit"),
+  labResultManifest: document.getElementById("lab-result-manifest"),
   labResultPreview: document.getElementById("lab-result-preview"),
   labResultGallery: document.getElementById("lab-result-gallery"),
   labResultRaw: document.getElementById("lab-result-raw"),
@@ -2094,11 +2101,47 @@ function renderResultSummaryCard(target, payload, { type }) {
   `;
 }
 
+function renderReproducibilityManifest(target, manifest) {
+  if (!target) {
+    return;
+  }
+  if (!manifest || typeof manifest !== "object") {
+    target.innerHTML = emptyCard("No reproducibility manifest is attached to this result.");
+    return;
+  }
+  const roles = manifest.variable_roles && typeof manifest.variable_roles === "object" ? manifest.variable_roles : {};
+  const roleRows = Object.entries(roles).map(([key, value]) => ({
+    key,
+    value: Array.isArray(value) ? value.join(", ") : String(value ?? ""),
+  })).filter((row) => row.value);
+  const warnings = Array.isArray(manifest.warnings) ? manifest.warnings : [];
+  const artifacts = Array.isArray(manifest.generated_asset_ids) ? manifest.generated_asset_ids : [];
+  target.innerHTML = `
+    <article class="card">
+      <h4>Reproducibility Manifest</h4>
+      <p><strong>Source dataset:</strong> ${escapeHtml(manifest.source_asset_title || "Unknown source")} ${manifest.source_asset_kind ? `| ${escapeHtml(manifest.source_asset_kind)}` : ""}</p>
+      <p><strong>Workflow/model:</strong> ${escapeHtml(manifest.workflow_group || manifest.workflow_type || "Data Lab")} ${manifest.model_type ? `| ${escapeHtml(manifest.model_type)}` : ""}</p>
+      <p><strong>Manifest:</strong> ${escapeHtml(manifest.version || "datalab-manifest-v1")} | result ${escapeHtml(manifest.result_id || "")}</p>
+      ${roleRows.length ? `
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Variable role</th><th>Columns</th></tr></thead>
+            <tbody>${roleRows.map((row) => `<tr><td>${escapeHtml(row.key)}</td><td>${escapeHtml(row.value)}</td></tr>`).join("")}</tbody>
+          </table>
+        </div>
+      ` : `<p class="muted">No variable roles were recorded.</p>`}
+      <p><strong>Warnings:</strong> ${warnings.length ? escapeHtml(warnings.join(" | ")) : "None recorded."}</p>
+      <p><strong>Artifacts:</strong> ${artifacts.length ? escapeHtml(artifacts.join(", ")) : "None recorded."}</p>
+    </article>
+  `;
+}
+
 function renderProcessingResultSummary(payload) {
   if (dom.prepareResultMeta) {
     dom.prepareResultMeta.textContent = `${payload.processing_family || "data_processing"} | asset ${payload.asset?.title || "prepared sample"}`;
   }
   renderResultSummaryCard(dom.prepareResultSummary, payload, { type: "processing" });
+  renderReproducibilityManifest(dom.prepareResultManifest, payload.reproducibility_manifest);
   if (dom.prepareResultLink) {
     const href = payload.result_detail_path || "";
     const resolved = applySafeHref(dom.prepareResultLink, href);
@@ -2111,6 +2154,7 @@ function renderModelResultSummary(payload) {
     dom.analysisResultMeta.textContent = `${payload.model_label || payload.model_type || "model"} | ${payload.asset?.title || "dataset"}`;
   }
   renderResultSummaryCard(dom.analysisResultSummary, payload, { type: "model" });
+  renderReproducibilityManifest(dom.analysisResultManifest, payload.reproducibility_manifest);
   if (dom.analysisResultLink) {
     const href = payload.result_detail_path || "";
     const resolved = applySafeHref(dom.analysisResultLink, href);
@@ -3985,7 +4029,7 @@ function renderWorkspaceCockpit() {
 
   const latestBriefing = state.privateBriefings[0] || null;
   const latestPaper = state.literatureEntries[0] || null;
-  const latestDataset = state.workspaceAssets.find((item) => String(item.kind || "").startsWith("dataset")) || null;
+  const latestDataset = state.workspaceAssets.find((item) => isModelableDatasetAsset(item)) || null;
   const latestModelNote = modelHistoryItems().find((item) => (item.status || "ready") === "ready" && (item.ref_id || item.id)) || null;
   const activeCase = currentKnowledgeCase();
   const flowCards = [
@@ -4630,7 +4674,7 @@ function renderProcessingHistory(items = processingHistoryItems()) {
     const refId = item.ref_id || item.id || "";
     const ready = isReadyHistoryItem(item);
     const canUseAsset = ready && refId && Boolean(item.download_path || item.kind);
-    const useButton = canUseAsset && item.kind?.startsWith("dataset")
+    const useButton = canUseAsset && isModelableDatasetAsset(item)
       ? `<button type="button" class="secondary" data-select-asset="${escapeHtml(refId)}">Use in lab</button>`
       : "";
     const caseButton = canUseAsset && state.selectedKnowledgeCaseId
@@ -4894,11 +4938,12 @@ function updateLabUploadLabel() {
   const file = dom.uploadFileInput?.files?.[0] || null;
   if (!file) {
     dom.labUploadFileName.textContent = "Choose a file for this workspace";
-    dom.labUploadFileMeta.textContent = "CSV, XLSX, XLS, JSON, PDF, TXT, MD. Drag here or click to browse.";
+    dom.labUploadFileMeta.textContent =
+      "Modelable datasets: CSV, XLSX, XLS, JSON. Documents such as PDF, TXT, and MD are stored as assets and should be used through Knowledge/Paper workflows, not direct modeling. Drag here or click to browse.";
     return;
   }
   dom.labUploadFileName.textContent = file.name;
-  dom.labUploadFileMeta.textContent = `${Math.max(1, Math.round(file.size / 1024))} KB selected. Submit to upload into the workspace dataset list.`;
+  dom.labUploadFileMeta.textContent = `${Math.max(1, Math.round(file.size / 1024))} KB selected. Submit to upload into the workspace asset list.`;
 }
 
 function bindLabDropzone() {
@@ -4970,8 +5015,12 @@ function setMultiSelectValues(select, values = []) {
   });
 }
 
+function isModelableDatasetAsset(item) {
+  return MODELABLE_DATASET_KINDS.has(item?.kind || "");
+}
+
 function datasetAssets(items) {
-  return (items || []).filter((item) => (item.kind || "").startsWith("dataset"));
+  return (items || []).filter(isModelableDatasetAsset);
 }
 
 function currentAssetProfile() {
@@ -5015,6 +5064,8 @@ function renderDataLabPlaceholders() {
   dom.analysisResultMeta && (dom.analysisResultMeta.textContent = "Waiting for model output.");
   dom.prepareResultSummary && (dom.prepareResultSummary.innerHTML = emptyCard("No prepared sample has been created in this session yet."));
   dom.analysisResultSummary && (dom.analysisResultSummary.innerHTML = emptyCard("No model has been run in this session yet."));
+  dom.prepareResultManifest && (dom.prepareResultManifest.innerHTML = emptyCard("Reproducibility manifest appears after a processing result is loaded."));
+  dom.analysisResultManifest && (dom.analysisResultManifest.innerHTML = emptyCard("Reproducibility manifest appears after a model result is loaded."));
   dom.prepareResultLink?.classList.add("hidden");
   dom.analysisResultLink?.classList.add("hidden");
   if (dom.plotPreviewPanel) {
@@ -6268,8 +6319,8 @@ function renderAssets(items) {
           <p>${escapeHtml(item.kind)} | ${escapeHtml(item.content_type || "unknown content type")}</p>
           <div class="actions">
             <button type="button" class="secondary" data-download-asset="${escapeHtml(item.id)}">Download</button>
-            ${item.kind.startsWith("dataset") ? `<button type="button" class="secondary" data-select-asset="${escapeHtml(item.id)}">Use in lab</button>` : ""}
-            ${item.kind.startsWith("dataset") ? `<button type="button" class="secondary" data-clean-asset="${escapeHtml(item.id)}">Clean</button>` : ""}
+            ${isModelableDatasetAsset(item) ? `<button type="button" class="secondary" data-select-asset="${escapeHtml(item.id)}">Use in lab</button>` : ""}
+            ${isModelableDatasetAsset(item) ? `<button type="button" class="secondary" data-clean-asset="${escapeHtml(item.id)}">Clean</button>` : ""}
             ${state.selectedKnowledgeCaseId ? `<button type="button" class="secondary" data-add-case-item="${escapeHtml(item.id)}" data-case-item-type="data_asset">Add to case</button>` : ""}
           </div>
         </div>
@@ -7978,6 +8029,7 @@ async function loadResultDetailPage() {
   renderResultSpecification(dom.labResultSpecification, result);
   renderResultTables(dom.labResultTables, result);
   renderResultAudit(dom.labResultAudit, result);
+  renderReproducibilityManifest(dom.labResultManifest, result.reproducibility_manifest);
   await renderResultPreview(dom.labResultPreview, dom.labResultGallery, result);
   if (dom.labResultRaw) {
     dom.labResultRaw.textContent = JSON.stringify(payload, null, 2);
@@ -8336,7 +8388,7 @@ async function handleRegister(event) {
   resetAuthForms();
   showToast("Account created.");
   if (detectPageMode() === "home") {
-    window.location.replace("/app/overview");
+    window.location.replace("/workspace");
   }
 }
 
@@ -8358,7 +8410,7 @@ async function handleLogin(event) {
   resetAuthForms();
   showToast("Signed in.");
   if (detectPageMode() === "home") {
-    window.location.replace("/app/overview");
+    window.location.replace("/workspace");
   }
 }
 
@@ -8533,14 +8585,15 @@ async function handleUpload(event) {
   ensureWorkspace();
   const form = event.currentTarget;
   const formData = new FormData(form);
-  await api(`/api/workspaces/${state.selectedWorkspaceId}/assets/upload`, {
+  const response = await api(`/api/workspaces/${state.selectedWorkspaceId}/assets/upload`, {
     method: "POST",
     body: formData,
   });
   state.assetProfiles = {};
   await refreshWorkspaceData();
   form?.reset();
-  showToast("File uploaded.");
+  updateLabUploadLabel();
+  showToast(isModelableDatasetAsset(response.asset) ? "File uploaded." : NON_MODELABLE_UPLOAD_MESSAGE);
 }
 
 async function handleKnowledge(event) {

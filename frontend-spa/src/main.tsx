@@ -1,18 +1,20 @@
 import React, { Suspense, createContext, lazy, useContext, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, Brain, Database, Gauge, LayoutDashboard, Library, Server } from "lucide-react";
+import { BookOpen, Brain, Database, Gauge, LayoutDashboard, Library, LogIn, Server } from "lucide-react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { apiFetch } from "./api";
 import { ErrorState, LoadingState } from "./components/StatusPrimitives";
 import { AppChrome } from "./components/layout";
 import type { RouteMetadata, Team, Workspace } from "./components/layout";
+import { ActionLink } from "./components/ui";
+import { DataLabHubPage } from "./pages/DataLabHubPage";
 import { KnowledgePage } from "./pages/KnowledgePage";
+import { OverviewPage } from "./pages/OverviewPage";
 import { ProvidersPage } from "./pages/ProvidersPage";
 import { QualityPage } from "./pages/QualityPage";
 import { ResearchPage } from "./pages/ResearchPage";
 import { TeamLibraryPage } from "./pages/TeamLibraryPage";
-import { OverviewPage } from "./features/workbench/OverviewPage";
 import "./styles.css";
 
 type AppState = {
@@ -35,8 +37,9 @@ const DataLabAgentPage = lazy(() => import("./pages/DataLabAgentPage").then((mod
 })));
 
 const ROUTE_METADATA: RouteMetadata[] = [
-  { path: "/overview", navLabel: "Overview", title: "Workbench Overview", eyebrow: "Institutional Terminal", icon: LayoutDashboard },
+  { path: "/overview", navLabel: "Overview", title: "Overview", eyebrow: "Workspace Command Center", icon: LayoutDashboard },
   { path: "/research", navLabel: "Research", title: "Research Runs", eyebrow: "Command Queue", icon: Brain },
+  { path: "/data-lab", navLabel: "Data Lab", title: "Data Lab", eyebrow: "Workspace Data Lab", icon: Database },
   { path: "/data-lab-agent", navLabel: "Data Lab Agent", title: "Data Lab Agent", eyebrow: "Analysis Runtime", icon: Database },
   { path: "/team-library", navLabel: "Team Library", title: "Team Library", eyebrow: "Published Artifacts", icon: Library },
   { path: "/knowledge", navLabel: "Knowledge", title: "Knowledge Base", eyebrow: "Workspace Memory", icon: BookOpen },
@@ -48,7 +51,12 @@ const queryClient = new QueryClient();
 const AppStateContext = createContext<AppState | null>(null);
 
 function metadataForPath(pathname: string): RouteMetadata {
-  const normalizedPath = pathname === "/" ? "/overview" : pathname;
+  const pathWithoutBase = pathname === "/app"
+    ? "/"
+    : pathname.startsWith("/app/")
+      ? pathname.slice(4)
+      : pathname;
+  const normalizedPath = pathWithoutBase === "/" ? "/overview" : pathWithoutBase;
   return ROUTE_METADATA.find((route) => route.path === normalizedPath) || ROUTE_METADATA[0];
 }
 
@@ -148,6 +156,7 @@ export function AppShell(): JSX.Element {
         <ErrorState
           title="Session expired"
           description="Open the legacy login page and sign in again."
+          action={<ActionLink href="/#auth-panel" icon={<LogIn size={16} />} variant="primary">Return to login</ActionLink>}
         />
       </div>
     );
@@ -190,6 +199,7 @@ export function App(): JSX.Element {
             <Route index element={<Navigate to="/overview" replace />} />
             <Route path="/overview" element={<OverviewPage useAppState={useSpaState} />} />
             <Route path="/research" element={<ResearchPage useAppState={useSpaState} />} />
+            <Route path="/data-lab" element={<DataLabHubPage useAppState={useSpaState} />} />
             <Route
               path="/data-lab-agent"
               element={(
@@ -202,6 +212,7 @@ export function App(): JSX.Element {
             <Route path="/knowledge" element={<KnowledgePage useAppState={useSpaState} />} />
             <Route path="/providers" element={<ProvidersPage useAppState={useSpaState} />} />
             <Route path="/quality" element={<QualityPage useAppState={useSpaState} />} />
+            <Route path="*" element={<Navigate to="/overview" replace />} />
           </Route>
         </Routes>
       </BrowserRouter>

@@ -57,6 +57,38 @@ def test_upload_rejects_html_disguised_as_text_formats(client, auth_headers):
         assert response.status_code == 400, response.text
 
 
+def test_upload_rejects_svg_and_preserves_allowed_image_and_dataset_uploads(client, auth_headers):
+    workspace_id = auth_headers["workspace_id"]
+    csrf_token = auth_headers["csrf"]
+
+    svg = client.post(
+        f"/api/workspaces/{workspace_id}/assets/upload",
+        headers={"X-CSRF-Token": csrf_token},
+        data={"description": "reject svg"},
+        files={"file": ("malicious.svg", b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', "image/svg+xml")},
+    )
+    assert svg.status_code == 400
+    assert "svg" in svg.text.lower()
+
+    csv = client.post(
+        f"/api/workspaces/{workspace_id}/assets/upload",
+        headers={"X-CSRF-Token": csrf_token},
+        data={"description": "valid csv"},
+        files={"file": ("modelable.csv", b"col_a,col_b\n1,2\n", "text/csv")},
+    )
+    assert csv.status_code == 200, csv.text
+    assert csv.json()["asset"]["kind"] == "dataset_csv"
+
+    png = client.post(
+        f"/api/workspaces/{workspace_id}/assets/upload",
+        headers={"X-CSRF-Token": csrf_token},
+        data={"description": "valid png"},
+        files={"file": ("chart.png", b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR", "image/png")},
+    )
+    assert png.status_code == 200, png.text
+    assert png.json()["asset"]["kind"] == "chart_png"
+
+
 def test_local_asset_storage_rejects_resolved_path_escape(tmp_path: Path):
     settings = Settings(
         app_env="test",

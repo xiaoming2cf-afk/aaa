@@ -1,14 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Navigate, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { apiFetch } from "../api";
-import { OverviewPage } from "../features/workbench/OverviewPage";
-import { AppShell } from "../main";
+import { App, AppShell } from "../main";
 import { DataLabAgentPage } from "../pages/DataLabAgentPage";
+import { DataLabHubPage } from "../pages/DataLabHubPage";
 import { KnowledgePage } from "../pages/KnowledgePage";
+import { OverviewPage } from "../pages/OverviewPage";
 import { QualityPage } from "../pages/QualityPage";
 import { ResearchPage } from "../pages/ResearchPage";
 
@@ -36,6 +37,105 @@ describe("SPA delivery gating", () => {
   beforeEach(() => {
     apiFetchMock.mockReset();
     localStorage.clear();
+  });
+
+  test("AppShell session errors include a login action", async () => {
+    apiFetchMock.mockImplementation(async (path: string) => {
+      if (path === "/api/auth/me") {
+        throw new Error("Not authenticated");
+      }
+      return { items: [] };
+    });
+
+    renderWithQuery(
+      <MemoryRouter initialEntries={["/research"]}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/research" element={<div>Research route ready</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole("heading", { name: "Session expired" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Return to login" })).toHaveAttribute("href", "/#auth-panel");
+  });
+
+  test("AppShell default route enters overview", async () => {
+    apiFetchMock.mockImplementation(async (path: string) => {
+      if (path === "/api/auth/me") {
+        return {
+          user: {
+            full_name: "Ada Lovelace",
+            email: "ada@example.test",
+          },
+        };
+      }
+      if (path === "/api/workspaces") {
+        return {
+          items: [{ id: "ws-live", name: "Live Workspace", description: "Active scope" }],
+        };
+      }
+      if (path === "/api/teams") {
+        return {
+          items: [{ id: "team-live", name: "Live Team", role: "owner" }],
+        };
+      }
+      return {};
+    });
+
+    renderWithQuery(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route index element={<Navigate to="/overview" replace />} />
+            <Route path="/overview" element={<div>Overview route ready</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Overview route ready")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Overview/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
+  });
+
+  test("AppShell wildcard route falls back to overview", async () => {
+    apiFetchMock.mockImplementation(async (path: string) => {
+      if (path === "/api/auth/me") {
+        return {
+          user: {
+            full_name: "Ada Lovelace",
+            email: "ada@example.test",
+          },
+        };
+      }
+      if (path === "/api/workspaces") {
+        return {
+          items: [{ id: "ws-live", name: "Live Workspace", description: "Active scope" }],
+        };
+      }
+      if (path === "/api/teams") {
+        return {
+          items: [{ id: "team-live", name: "Live Team", role: "owner" }],
+        };
+      }
+      return {};
+    });
+
+    renderWithQuery(
+      <MemoryRouter initialEntries={["/does-not-exist"]}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/overview" element={<div>Overview route ready</div>} />
+            <Route path="*" element={<Navigate to="/overview" replace />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Overview route ready")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
   });
 
   test("AppShell falls back when stored workspace and team ids are stale", async () => {
@@ -88,72 +188,73 @@ describe("SPA delivery gating", () => {
     expect(localStorage.getItem("spa-team-id")).toBe("team-live");
   });
 
-  test("OverviewPage renders workbench BFF sections without treating blocked publish items as ready", async () => {
+  test("OverviewPage renders workspace counts and quick entry cards", async () => {
+    const useAppState = () => ({
+      workspaces: [{ id: "ws-1", name: "Macro Workspace" }],
+      teams: [{ id: "team-1", name: "Research Team" }],
+      workspaceId: "ws-1",
+      teamId: "team-1",
+    });
+
+    renderWithQuery(
+      <MemoryRouter>
+        <OverviewPage useAppState={useAppState} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Current workspace: Macro Workspace/i)).toBeInTheDocument();
+    expect(screen.getByText(/Team context: Research Team/i)).toBeInTheDocument();
+    expect(screen.getByText(/Workspace count/i)).toBeInTheDocument();
+    expect(screen.getByText(/Team count/i)).toBeInTheDocument();
+    const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
+    expect(hrefs).toContain("/research");
+    expect(hrefs).toContain("/data-lab");
+    expect(hrefs).toContain("/data-lab-agent");
+    expect(hrefs).toContain("/knowledge");
+    expect(hrefs).toContain("/quality");
+    expect(screen.getByRole("link", { name: /Legacy Workspace/i })).toHaveAttribute("href", "/workspace");
+  });
+
+  test("DataLabHubPage renders route cards and workspace history", async () => {
     apiFetchMock.mockImplementation(async (path: string) => {
-      if (path === "/api/workspaces/ws-1/workbench/overview") {
+      if (path === "/api/workspaces/ws-1/data-lab/history") {
         return {
-          active_runs: [
+          processing: [
             {
-              id: "run-1",
-              topic: "Inflation pass-through",
-              question: "Measure current pass-through risk.",
-              status: "queued",
-              queue_status: "queued",
-              started_at: "2026-04-27T10:00:00Z",
+              id: "processing-1",
+              title: "Prepared sample",
+              status: "completed",
+              summary: "Rows filtered and columns normalized.",
+              updated_at: "2026-01-03T00:00:00Z",
             },
           ],
-          data_lab_sessions: [
+          models: [
             {
-              run_id: "lab-1",
-              title: "CSV diagnostics",
-              status: "needs_human_intervention",
-              summary: "Manual review required.",
-              detail_path: "/data-lab-agent?run=lab-1",
+              id: "model-1",
+              title: "Regression run",
+              status: "completed",
+              summary: "OLS model finished.",
+              updated_at: "2026-01-04T00:00:00Z",
             },
           ],
-          quality_blockers: [
+          optimization: [
             {
-              resource_type: "workspace",
-              resource_id: "ws-1",
-              title: "Workspace delivery gate",
-              source: "quality_scorecard",
-              severity: "high",
-              blocking_reasons: ["Engineering gate has not passed."],
-              publish_allowed: false,
+              id: "optimization-1",
+              title: "Optimization suite",
+              status: "completed",
+              summary: "Benchmark comparison finished.",
+              updated_at: "2026-01-02T00:00:00Z",
             },
           ],
-          publish_queue: [
+          agent_sessions: [
             {
-              resource_type: "agent_run",
-              resource_id: "run-2",
-              title: "Ready-looking run",
-              summary: "Team gate still missing.",
-              publish_allowed: false,
-              blocking_reasons: ["Workspace is not attached to a team."],
-              detail_path: "/research?run=run-2",
+              run_id: "agent-1",
+              title: "Agent analysis",
+              status: "completed",
+              summary: "Notebook prepared.",
+              updated_at: "2026-01-01T00:00:00Z",
             },
           ],
-          recent_activity: [
-            {
-              activity_type: "research_run",
-              resource_id: "run-1",
-              title: "Inflation pass-through",
-              summary: "Queued for drafting.",
-              detail_path: "/research?run=run-1",
-              occurred_at: "2026-04-27T10:00:00Z",
-            },
-          ],
-          runtime_summary: {
-            research_runtime: {
-              enabled: false,
-              code: "feature_disabled",
-              message: "No inference runtime is configured.",
-            },
-            team: {
-              attached: false,
-              blocking_reasons: ["Workspace is not attached to a team."],
-            },
-          },
         };
       }
       return {};
@@ -165,17 +266,102 @@ describe("SPA delivery gating", () => {
 
     renderWithQuery(
       <MemoryRouter>
-        <OverviewPage useAppState={useAppState} />
+        <DataLabHubPage useAppState={useAppState} />
       </MemoryRouter>,
     );
 
-    expect((await screen.findAllByText(/Inflation pass-through/i)).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Research and Analysis Queue/i)).toBeInTheDocument();
-    expect(screen.getByText(/CSV diagnostics/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Engineering gate has not passed/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Ready-looking run/i)).toBeInTheDocument();
-    expect(screen.getByText(/^blocked$/i)).toBeInTheDocument();
-    expect(screen.getByText(/feature_disabled/i)).toBeInTheDocument();
+    const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
+    expect(hrefs).toContain("/data-lab");
+    expect(hrefs).toContain("/data-lab/preparation");
+    expect(hrefs).toContain("/data-lab/model");
+    expect(hrefs).toContain("/data-lab/results");
+    expect(hrefs).toContain("/data-lab/history");
+    expect(hrefs).toContain("/data-lab/optimization");
+    expect(hrefs).toContain("/app/data-lab-agent");
+    expect(screen.getByText(/Legacy Data Lab is the current full workbench/i)).toBeInTheDocument();
+    expect(await screen.findByText("Regression run")).toBeInTheDocument();
+    expect(screen.getByText("Prepared sample")).toBeInTheDocument();
+    expect(screen.getByText("Optimization suite")).toBeInTheDocument();
+    expect(screen.queryByText("Agent analysis")).not.toBeInTheDocument();
+  });
+
+  test("App renders /app/overview without white-screening", async () => {
+    apiFetchMock.mockImplementation(async (path: string) => {
+      if (path === "/api/auth/me") {
+        return {
+          user: {
+            full_name: "Ada Lovelace",
+            email: "ada@example.test",
+          },
+        };
+      }
+      if (path === "/api/workspaces") {
+        return {
+          items: [{ id: "ws-live", name: "Live Workspace", description: "Active scope" }],
+        };
+      }
+      if (path === "/api/teams") {
+        return {
+          items: [{ id: "team-live", name: "Live Team", role: "owner" }],
+        };
+      }
+      return {};
+    });
+
+    window.history.pushState({}, "", "/app/overview");
+    render(<App />);
+
+    expect(await screen.findByText(/Current workspace: Live Workspace/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Overview" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /^Data Lab$/i }).length).toBeGreaterThan(0);
+  });
+
+  test("App renders /app/data-lab without white-screening", async () => {
+    apiFetchMock.mockImplementation(async (path: string) => {
+      if (path === "/api/auth/me") {
+        return {
+          user: {
+            full_name: "Ada Lovelace",
+            email: "ada@example.test",
+          },
+        };
+      }
+      if (path === "/api/workspaces") {
+        return {
+          items: [{ id: "ws-live", name: "Live Workspace", description: "Active scope" }],
+        };
+      }
+      if (path === "/api/teams") {
+        return {
+          items: [{ id: "team-live", name: "Live Team", role: "owner" }],
+        };
+      }
+      if (path === "/api/workspaces/ws-live/data-lab/history") {
+        return {
+          processing: [
+            { id: "processing-1", title: "Prepared sample", status: "completed", updated_at: "2026-01-03T00:00:00Z" },
+          ],
+          models: [
+            { id: "model-1", title: "Regression run", status: "completed", updated_at: "2026-01-04T00:00:00Z" },
+          ],
+          optimization: [
+            { id: "optimization-1", title: "Optimization suite", status: "completed", updated_at: "2026-01-02T00:00:00Z" },
+          ],
+        };
+      }
+      return {};
+    });
+
+    window.history.pushState({}, "", "/app/data-lab");
+    render(<App />);
+
+    await screen.findByRole("heading", { level: 1, name: "Data Lab" });
+    expect(await screen.findByText("Prepared sample")).toBeInTheDocument();
+    const historyCounts = screen.getByLabelText("Data Lab history counts");
+    expect(within(historyCounts).getAllByText(/^Processing$/i).length).toBeGreaterThan(0);
+    expect(within(historyCounts).getAllByText(/^Models$/i).length).toBeGreaterThan(0);
+    expect(within(historyCounts).getAllByText(/^Optimization$/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: /Dataset Intake/i })).toHaveAttribute("href", "/data-lab");
   });
 
   test("ResearchPage disables publish when delivery review blocks the run", async () => {

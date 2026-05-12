@@ -17,6 +17,7 @@ from urllib.parse import quote, unquote
 import requests
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -60,6 +61,7 @@ from .data_lab_agent import (
     test_agent_llm_config,
     update_agent_llm_config,
 )
+from .datalab.lineage import build_pipeline_chains
 from .db import init_database, session_scope
 from .entities import DataAsset, KnowledgeRecord, User
 from .notifications import send_password_reset_email
@@ -103,6 +105,8 @@ from .platform_core import (
     list_workspaces,
     login_user,
     prepare_dataset_asset,
+    preview_dataset_preparation,
+    preflight_model_analysis,
     profile_dataset_asset,
     register_user,
     remove_item_from_knowledge_case,
@@ -1338,6 +1342,24 @@ def _data_lab_history_payload(db, *, user, workspace, limit: int = 12) -> dict[s
         "models": model_items[:limit],
         "optimization": optimization_items[:limit],
         "agent_sessions": agent_session_runs[:limit],
+        "pipeline_chains": build_pipeline_chains(
+            processing=processing_items[:limit],
+            models=model_items[:limit],
+            optimization=optimization_items[:limit],
+            agent_sessions=agent_session_runs[:limit],
+        )[:limit],
+    }
+
+
+def _data_lab_agent_risk_summary(settings) -> dict[str, Any]:
+    trusted_execution = bool(getattr(settings, "data_lab_agent_trusted_execution_enabled", False))
+    return {
+        "agent_enabled": bool(getattr(settings, "data_lab_agent_enabled", False)),
+        "trusted_execution_enabled": trusted_execution,
+        "execution_mode": str(getattr(settings, "data_lab_agent_execution_mode", "") or "subprocess_replay"),
+        "sandbox_claim": "none",
+        "warning_message": "Python execution is not sandboxed.",
+        "production_guidance": "Keep DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED disabled unless running inside an isolated worker or container.",
     }
 
 
@@ -1729,6 +1751,7 @@ def _workbench_runtime_summary(
         "data_lab_agent": {
             "enabled": bool(getattr(settings, "data_lab_agent_enabled", False)),
             "trusted_execution_enabled": bool(getattr(settings, "data_lab_agent_trusted_execution_enabled", False)),
+            "risk_summary": _data_lab_agent_risk_summary(settings),
         },
     }
 
@@ -1815,6 +1838,24 @@ async def _read_upload_payload(file: UploadFile, *, max_bytes: int) -> bytes:
     return b"".join(chunks)
 
 
+def _json_safe_validation_value(value: Any) -> Any:
+    if isinstance(value, float):
+        if math.isnan(value):
+            return "NaN"
+        if math.isinf(value):
+            return "Infinity" if value > 0 else "-Infinity"
+        return value
+    if isinstance(value, dict):
+        return {str(key): _json_safe_validation_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe_validation_value(item) for item in value]
+    if isinstance(value, tuple):
+        return [_json_safe_validation_value(item) for item in value]
+    if isinstance(value, (str, int, bool)) or value is None:
+        return value
+    return str(value)
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     init_database()
@@ -1828,6 +1869,11 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if docs_enabled else None,
         openapi_url="/openapi.json" if docs_enabled else None,
     )
+
+    @app.exception_handler(RequestValidationError)
+    async def request_validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+        return JSONResponse(status_code=422, content={"detail": _json_safe_validation_value(exc.errors())})
+
     app.mount("/assets", StaticFiles(directory=str(WEB_DIR)), name="assets")
     app.add_middleware(
         CORSMiddleware,
@@ -3551,7 +3597,9 @@ def create_app() -> FastAPI:
             with session_scope() as db:
                 user = get_current_user(db, token)
                 workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
-                return get_agent_llm_config(settings, db, user=user, workspace=workspace)
+                result = get_agent_llm_config(settings, db, user=user, workspace=workspace)
+                result["risk_summary"] = _data_lab_agent_risk_summary(settings)
+                return result
         except Exception as exc:
             _raise_http_error(exc)
 
@@ -3877,6 +3925,75 @@ def create_app() -> FastAPI:
         except Exception as exc:
             _raise_http_error(exc)
 
+    @app.post("/api/workspaces/{workspace_id}/analysis/prepare/preview")
+    def preview_analysis_sample(
+        workspace_id: str,
+        request: DatasetPrepareRequest,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                resolved = _resolve_template_execution(
+                    request,
+                    db=db,
+                    user=user,
+                    workspace=workspace,
+                    template_scope="workspace",
+                    workflow_type="data_processing",
+                    family=request.workflow_group or "sample_preparation",
+                )
+                payload = resolved["payload"]
+                preview = preview_dataset_preparation(
+                    settings,
+                    db,
+                    user=user,
+                    workspace=workspace,
+                    asset_id=payload.get("asset_id", request.asset_id),
+                    workflow_group=payload.get("workflow_group", request.workflow_group),
+                    include_columns=payload.get("include_columns", request.include_columns),
+                    required_columns=payload.get("required_columns", request.required_columns),
+                    numeric_columns=payload.get("numeric_columns", request.numeric_columns),
+                    binary_columns=payload.get("binary_columns", request.binary_columns),
+                    date_columns=payload.get("date_columns", request.date_columns),
+                    impute_columns=payload.get("impute_columns", request.impute_columns),
+                    impute_method=payload.get("impute_method", request.impute_method),
+                    winsorize_columns=payload.get("winsorize_columns", request.winsorize_columns),
+                    winsor_lower_quantile=payload.get("winsor_lower_quantile", request.winsor_lower_quantile),
+                    winsor_upper_quantile=payload.get("winsor_upper_quantile", request.winsor_upper_quantile),
+                    log_transform_columns=payload.get("log_transform_columns", request.log_transform_columns),
+                    standardize_columns=payload.get("standardize_columns", request.standardize_columns),
+                    minmax_scale_columns=payload.get("minmax_scale_columns", request.minmax_scale_columns),
+                    outlier_columns=payload.get("outlier_columns", request.outlier_columns),
+                    outlier_method=payload.get("outlier_method", request.outlier_method),
+                    outlier_threshold=payload.get("outlier_threshold", request.outlier_threshold),
+                    sort_column=payload.get("sort_column", request.sort_column),
+                    time_group_column=payload.get("time_group_column", request.time_group_column),
+                    difference_columns=payload.get("difference_columns", request.difference_columns),
+                    return_columns=payload.get("return_columns", request.return_columns),
+                    return_method=payload.get("return_method", request.return_method),
+                    lag_columns=payload.get("lag_columns", request.lag_columns),
+                    lag_periods=payload.get("lag_periods", request.lag_periods),
+                    lead_columns=payload.get("lead_columns", request.lead_columns),
+                    lead_periods=payload.get("lead_periods", request.lead_periods),
+                    rolling_mean_columns=payload.get("rolling_mean_columns", request.rolling_mean_columns),
+                    rolling_volatility_columns=payload.get("rolling_volatility_columns", request.rolling_volatility_columns),
+                    rolling_window=payload.get("rolling_window", request.rolling_window),
+                    drop_duplicates=payload.get("drop_duplicates", request.drop_duplicates),
+                    drop_missing_required=payload.get("drop_missing_required", request.drop_missing_required),
+                    template_id=resolved["template_id"],
+                    template_name=resolved["template_name"],
+                    variant_label=resolved["variant_label"],
+                    variant_spec=resolved["variant_spec"],
+                    effective_specification=resolved["effective_specification"],
+                )
+                return {"preview": preview}
+        except Exception as exc:
+            _raise_http_error(exc)
+
     @app.post("/api/workspaces/{workspace_id}/analysis/prepare")
     def prepare_analysis_sample(
         workspace_id: str,
@@ -4041,6 +4158,67 @@ def create_app() -> FastAPI:
                     asset_id=request.asset_id,
                     prompt_text=request.prompt,
                 )
+        except Exception as exc:
+            _raise_http_error(exc)
+
+    @app.post("/api/workspaces/{workspace_id}/analysis/models/preflight")
+    def model_preflight(
+        workspace_id: str,
+        request: ModelRunRequest,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> dict[str, Any]:
+        try:
+            token = _token_from_headers(authorization, x_session_token)
+            with session_scope() as db:
+                user = get_current_user(db, token)
+                workspace = get_workspace_for_user(db, user=user, workspace_id=workspace_id)
+                resolved = _resolve_template_execution(
+                    request,
+                    db=db,
+                    user=user,
+                    workspace=workspace,
+                    template_scope="workspace",
+                    workflow_type="model",
+                    family=request.model_family or "",
+                    method=request.model_type or "",
+                )
+                payload = {**request.model_dump(), **resolved["payload"]}
+
+                def _pick_defined(*values: Any) -> Any:
+                    for value in values:
+                        if value is None:
+                            continue
+                        if isinstance(value, str) and not value.strip():
+                            continue
+                        return value
+                    return None
+
+                payload["cutoff"] = _pick_defined(
+                    resolved["payload"].get("kink_point"),
+                    resolved["payload"].get("cutoff"),
+                    resolved["payload"].get("rdd_cutoff"),
+                    payload.get("kink_point") if payload.get("kink_point") not in {0, 0.0} else None,
+                    payload.get("cutoff") if payload.get("cutoff") not in {0, 0.0} else None,
+                    payload.get("rdd_cutoff") if payload.get("rdd_cutoff") not in {0, 0.0} else None,
+                    0.0,
+                )
+                payload["bandwidth"] = _pick_defined(
+                    resolved["payload"].get("bandwidth"),
+                    resolved["payload"].get("rdd_bandwidth"),
+                    payload.get("bandwidth") if payload.get("bandwidth") not in {0, 0.0} else None,
+                    payload.get("rdd_bandwidth") if payload.get("rdd_bandwidth") not in {0, 0.0} else None,
+                    0.0,
+                )
+                return {
+                    "preflight": preflight_model_analysis(
+                        settings,
+                        db,
+                        user=user,
+                        workspace=workspace,
+                        **payload,
+                    )
+                }
         except Exception as exc:
             _raise_http_error(exc)
 

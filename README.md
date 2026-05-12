@@ -252,6 +252,9 @@ Live verification scripts:
 ## Main Routes
 
 - `/` public entry and authentication
+- `/app/overview` SPA workspace command center
+- `/app/data-lab` SPA Data Lab hub for legacy workbench routes, agent runtime, and recent activity
+- `/app/data-lab-agent` SPA Data Lab Agent workspace
 - `/workspace` private cockpit
 - `/schedules` schedule list and recent execution state
 - `/provider-center` disabled placeholder explaining that runtime provider management is out of scope
@@ -263,5 +266,5 @@ Live verification scripts:
 - `/data-lab/model` model and chart execution
 - `/data-lab/results` latest result reading and export
 - `/data-lab/history` run history
-- `/app/data-lab-agent` clean-room Data Lab Agent workspace
+- `/data-lab` legacy full Data Lab workbench
 - `/data-lab/optimization` optimization suite

@@ -2477,6 +2477,19 @@ def get_agent_notebook_path(
 
 def public_session_payload(session: dict[str, Any]) -> dict[str, Any]:
     public = dict(session)
+    public.pop("work_dir", None)
+    for key in ("notebook_path", "report_path"):
+        raw_path = str(public.get(key) or "").strip()
+        if raw_path:
+            public[key] = Path(raw_path).name
+    executor = dict(public.get("executor") or {})
+    public["risk_summary"] = {
+        "agent_enabled": True,
+        "trusted_execution_enabled": bool(executor.get("trusted_execution_enabled")),
+        "execution_mode": str(executor.get("active_mode") or executor.get("requested_mode") or "not_executed"),
+        "sandbox_claim": "none",
+        "warning_message": "Python execution is not sandboxed.",
+    }
     math_payload = dict(public.get("math") or {})
     if math_payload:
         math_payload.pop("internal_v2_state", None)
@@ -2489,11 +2502,18 @@ def public_session_payload(session: dict[str, Any]) -> dict[str, Any]:
             "title": item.get("title"),
             "kind": item.get("kind"),
             "asset": item.get("asset"),
-            "profile": item.get("profile"),
+            "profile": _public_profile_payload(item.get("profile")),
         }
         for item in session.get("assets") or []
     ]
     return _json_safe(public)
+
+
+def _public_profile_payload(profile: Any) -> dict[str, Any]:
+    payload = dict(profile or {}) if isinstance(profile, dict) else {}
+    for key in ("local_path", "file_path", "path"):
+        payload.pop(key, None)
+    return payload
 
 
 _RUNNER_SCRIPT = r'''

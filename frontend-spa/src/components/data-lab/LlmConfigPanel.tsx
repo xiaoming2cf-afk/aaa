@@ -82,6 +82,21 @@ export function LlmConfigPanel({
         <MetricPill label="Environment" value={displayLlmStatus(environmentLlmStatus)} tone={statusTone(environmentLlmStatus)} />
         <MetricPill label="Resolved" value={displayLlmStatus(llmStatus)} tone={statusTone(llmStatus)} />
       </div>
+      <div className="list-card static-card">
+        <div className="list-card-title">
+          <strong>Trusted execution boundary</strong>
+          <Badge tone={llmConfig?.risk_summary?.trusted_execution_enabled ? "danger" : "warning"}>
+            {llmConfig?.risk_summary?.trusted_execution_enabled ? "ENABLED" : "DISABLED"}
+          </Badge>
+        </div>
+        <p className="muted">
+          DATA_LAB_AGENT_ENABLED allows session creation. DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED controls Python code execution.
+          Current sandbox claim: {llmConfig?.risk_summary?.sandbox_claim || "none"}.
+        </p>
+        <p className="muted">
+          {llmConfig?.risk_summary?.warning_message || "Python execution is not sandboxed."} {llmConfig?.risk_summary?.production_guidance || "Keep trusted execution disabled unless an isolated worker or container is authorized."}
+        </p>
+      </div>
       <div className="form-grid">
         <Field label="Enable scoped LLM">
           <select

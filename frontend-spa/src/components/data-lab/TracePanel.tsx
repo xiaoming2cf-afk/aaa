@@ -38,6 +38,12 @@ export function TracePanel({
           Mode: {currentExecutorMode}. Strategy: {currentSession?.executor?.strategy || "unknown"}. IPython: {currentSession?.executor?.ipython_enabled ? "enabled" : "disabled or unknown"}.
         </p>
         <p className="muted">
+          Trusted execution: {currentSession?.risk_summary?.trusted_execution_enabled ? "enabled" : "disabled or unknown"}. Sandbox claim: {currentSession?.risk_summary?.sandbox_claim || "none"}.
+        </p>
+        <p className="muted">
+          {currentSession?.risk_summary?.warning_message || "Python execution is not sandboxed."}
+        </p>
+        <p className="muted">
           LLM: {currentSession?.llm?.ready ? `${currentSession.llm.source} ${currentSession.llm.coder_model}` : "rules fallback or unknown"}.
         </p>
         <p className="muted">

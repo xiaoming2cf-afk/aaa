@@ -111,6 +111,12 @@ MAX_ESTIMATED_EVALUATIONS = 5_000_000
 MIN_STANDARD_ALGORITHMS = 3
 MIN_STANDARD_FUNCTIONS = 3
 MIN_STANDARD_RUNS = 3
+MAX_OPTIMIZATION_DIMENSION = 100
+MAX_OPTIMIZATION_EPOCH = 1_000
+MAX_OPTIMIZATION_POP_SIZE = 500
+MAX_OPTIMIZATION_RUNS = 50
+MAX_OPTIMIZATION_WORKERS = 16
+MAX_OPTIMIZATION_SEED_BASE = 2_147_483_647
 INVALID_OBJECTIVE_PENALTY = 1.0e30
 _PYPLOT: Any | None = None
 
@@ -172,6 +178,35 @@ def _finite_or_default(value: Any, default: float) -> float:
     if not math.isfinite(numeric):
         return float(default)
     return float(numeric)
+
+
+def _coerce_bounded_int(field_name: str, value: Any, *, minimum: int, maximum: int) -> int:
+    if isinstance(value, bool):
+        raise ValueError(f"{field_name} must be an integer.")
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be an integer.") from exc
+    if not math.isfinite(numeric):
+        raise ValueError(f"{field_name} must be finite.")
+    if not numeric.is_integer():
+        raise ValueError(f"{field_name} must be an integer.")
+    integer = int(numeric)
+    if integer < minimum or integer > maximum:
+        raise ValueError(f"{field_name} must be between {minimum} and {maximum}.")
+    return integer
+
+
+def _unique_nonempty_strings(values: list[str] | None) -> list[str]:
+    selected: list[str] = []
+    seen: set[str] = set()
+    for value in values or []:
+        name = str(value or "").strip()
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        selected.append(name)
+    return selected
 
 
 def _ensure_array(value: Any, *, fallback: float, size: int) -> np.ndarray:
@@ -902,10 +937,87 @@ def run_optimization_suite(
     effective_specification: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     catalog = get_optimization_catalog()
-    available_optimizers = {item["name"]: item for item in catalog["optimizers"] if item["availability"]["status"] == "available"}
-    available_functions = {item["name"]: item for item in catalog["functions"] if item["availability"]["status"] == "available"}
-    selected_optimizers = [name for name in (optimizer_names or catalog["defaults"]["optimizers"]) if name in available_optimizers]
-    selected_functions = [name for name in (function_names or catalog["defaults"]["functions"]) if name in available_functions]
+    dimension_value = _coerce_bounded_int(
+        "dimension",
+        dimension,
+        minimum=1,
+        maximum=MAX_OPTIMIZATION_DIMENSION,
+    )
+    epoch_value = _coerce_bounded_int(
+        "epoch",
+        epoch,
+        minimum=1,
+        maximum=MAX_OPTIMIZATION_EPOCH,
+    )
+    pop_size_value = _coerce_bounded_int(
+        "pop_size",
+        pop_size,
+        minimum=2,
+        maximum=MAX_OPTIMIZATION_POP_SIZE,
+    )
+    runs_value = _coerce_bounded_int(
+        "runs",
+        runs,
+        minimum=1,
+        maximum=MAX_OPTIMIZATION_RUNS,
+    )
+    workers_value = _coerce_bounded_int(
+        "workers",
+        workers,
+        minimum=0,
+        maximum=MAX_OPTIMIZATION_WORKERS,
+    )
+    seed_base_value = _coerce_bounded_int(
+        "seed_base",
+        seed_base,
+        minimum=0,
+        maximum=MAX_OPTIMIZATION_SEED_BASE,
+    )
+    optimizer_catalog = {item["name"]: item for item in catalog["optimizers"]}
+    function_catalog = {item["name"]: item for item in catalog["functions"]}
+    available_optimizers = {
+        name: item
+        for name, item in optimizer_catalog.items()
+        if item.get("availability", {}).get("status") == "available"
+    }
+    available_functions = {
+        name: item
+        for name, item in function_catalog.items()
+        if item.get("availability", {}).get("status") == "available"
+    }
+    requested_optimizers = _unique_nonempty_strings(optimizer_names) or list(catalog["defaults"]["optimizers"])
+    requested_functions = _unique_nonempty_strings(function_names) or list(catalog["defaults"]["functions"])
+    unknown_optimizers = [name for name in requested_optimizers if name not in optimizer_catalog]
+    if unknown_optimizers:
+        raise ValueError(f"Unknown optimization algorithms: {', '.join(unknown_optimizers)}.")
+    unavailable_optimizers = [name for name in requested_optimizers if name not in available_optimizers]
+    if unavailable_optimizers:
+        reason_parts = []
+        for name in unavailable_optimizers:
+            availability = optimizer_catalog.get(name, {}).get("availability", {})
+            status = "disabled" if name in MEALPY_DISABLED_OPTIMIZERS else str(availability.get("status") or "unavailable")
+            reason = str(
+                availability.get("reason")
+                or availability.get("detail")
+                or MEALPY_DISABLED_OPTIMIZERS.get(name)
+                or ""
+            ).strip()
+            reason_parts.append(f"{name} ({status}{': ' + reason if reason else ''})")
+        raise ValueError(f"Unavailable optimization algorithms selected: {'; '.join(reason_parts)}.")
+    unknown_functions = [name for name in requested_functions if name not in function_catalog]
+    if unknown_functions:
+        raise ValueError(f"Unknown benchmark functions: {', '.join(unknown_functions)}.")
+    unavailable_functions = [name for name in requested_functions if name not in available_functions]
+    if unavailable_functions:
+        reason_parts = []
+        for name in unavailable_functions:
+            availability = function_catalog.get(name, {}).get("availability", {})
+            status = str(availability.get("status") or "unavailable")
+            reason = str(availability.get("reason") or availability.get("detail") or "").strip()
+            reason_parts.append(f"{name} ({status}{': ' + reason if reason else ''})")
+        raise ValueError(f"Unavailable benchmark functions selected: {'; '.join(reason_parts)}.")
+    selected_optimizers = requested_optimizers
+    selected_functions = requested_functions
     if not selected_optimizers:
         raise ValueError("No available optimization algorithms were selected.")
     if not selected_functions:
@@ -913,10 +1025,10 @@ def run_optimization_suite(
     _validate_suite_requirements(
         optimizer_count=len(selected_optimizers),
         function_count=len(selected_functions),
-        runs=max(1, int(runs)),
+        runs=runs_value,
     )
-    total_tasks = len(selected_optimizers) * len(selected_functions) * max(1, int(runs))
-    estimated_evaluations = total_tasks * max(1, int(epoch)) * max(2, int(pop_size))
+    total_tasks = len(selected_optimizers) * len(selected_functions) * runs_value
+    estimated_evaluations = total_tasks * epoch_value * pop_size_value
     if total_tasks > MAX_PARALLEL_TASKS:
         raise ValueError(f"Requested suite creates {total_tasks} tasks. Reduce the selection below {MAX_PARALLEL_TASKS}.")
     if estimated_evaluations > MAX_ESTIMATED_EVALUATIONS:
@@ -925,25 +1037,25 @@ def run_optimization_suite(
         )
 
     task_payloads: list[dict[str, Any]] = []
-    seed_counter = int(seed_base)
+    seed_counter = seed_base_value
     for optimizer_name in selected_optimizers:
         for function_name in selected_functions:
-            for run_index in range(max(1, int(runs))):
+            for run_index in range(runs_value):
                 task_payloads.append(
                     {
                         "optimizer_name": optimizer_name,
                         "function_name": function_name,
                         "run_index": run_index + 1,
                         "seed": seed_counter,
-                        "epoch": int(epoch),
-                        "pop_size": int(pop_size),
-                        "dimension": int(dimension),
+                        "epoch": epoch_value,
+                        "pop_size": pop_size_value,
+                        "dimension": dimension_value,
                     }
                 )
                 seed_counter += 1
 
     cpu_count = os.cpu_count() or 1
-    worker_count = min(max(1, int(workers or cpu_count)), cpu_count, len(task_payloads))
+    worker_count = min(max(1, int(workers_value or cpu_count)), cpu_count, len(task_payloads))
     task_results: list[dict[str, Any]] = []
     parallel_backend = "serial"
     if worker_count == 1:
@@ -1148,7 +1260,7 @@ def run_optimization_suite(
         "suite_label": suite_label,
         "algorithm_count": len(selected_optimizers),
         "function_count": len(selected_functions),
-        "run_count": int(runs),
+        "run_count": runs_value,
         "task_count": len(task_payloads),
         "worker_count": worker_count,
         "parallel_backend": parallel_backend,
@@ -1169,7 +1281,7 @@ def run_optimization_suite(
             "",
             f"- Algorithms: {len(selected_optimizers)}",
             f"- Benchmarks: {len(selected_functions)}",
-            f"- Runs per pair: {runs}",
+            f"- Runs per pair: {runs_value}",
             f"- Parallel workers: {worker_count}",
             f"- Successful tasks: {len(success_rows)} / {len(task_payloads)}",
             "",
@@ -1184,12 +1296,12 @@ def run_optimization_suite(
         "config": {
             "optimizer_names": selected_optimizers,
             "function_names": selected_functions,
-            "dimension": int(dimension),
-            "epoch": int(epoch),
-            "pop_size": int(pop_size),
-            "runs": int(runs),
+            "dimension": dimension_value,
+            "epoch": epoch_value,
+            "pop_size": pop_size_value,
+            "runs": runs_value,
             "worker_count": worker_count,
-            "seed_base": int(seed_base),
+            "seed_base": seed_base_value,
         },
         "template_id": template_id,
         "template_name": template_name,

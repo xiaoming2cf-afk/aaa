@@ -36,6 +36,7 @@ from .auth_support import (
     record_login_failure,
 )
 from .config import Settings
+from .datalab.manifest import sanitize_manifest_value
 from .entities import (
     DataAsset,
     DataLabRun,
@@ -86,7 +87,6 @@ ALLOWED_UPLOAD_KINDS = {
     "note_text",
     "chart_png",
     "image_jpeg",
-    "image_svg",
 }
 _KIND_EXTENSIONS = {
     "dataset_csv": {".csv"},
@@ -97,7 +97,6 @@ _KIND_EXTENSIONS = {
     "note_text": {".txt"},
     "chart_png": {".png"},
     "image_jpeg": {".jpg", ".jpeg"},
-    "image_svg": {".svg"},
 }
 _KIND_CONTENT_TYPES = {
     "dataset_csv": {"text/csv", "application/csv", "text/plain"},
@@ -112,7 +111,6 @@ _KIND_CONTENT_TYPES = {
     "note_text": {"text/plain"},
     "chart_png": {"image/png"},
     "image_jpeg": {"image/jpeg"},
-    "image_svg": {"image/svg+xml", "text/plain"},
 }
 
 _PYPLOT: Any | None = None
@@ -2726,6 +2724,123 @@ def create_workspace_digest_record(
     )
 
 
+_MANIFEST_SECRET_KEYS = ("api_key", "secret", "token", "password", "cookie", "database_url", "service_role", "credential")
+_MANIFEST_PATH_KEYS = ("file_path", "path", "download_path", "detail_path", "result_detail_path", "notebook_path", "report_path", "object_key")
+
+
+def _manifest_scrub(value: Any) -> Any:
+    if isinstance(value, dict):
+        cleaned: dict[str, Any] = {}
+        for raw_key, item in value.items():
+            key = str(raw_key)
+            lowered = key.lower()
+            if any(marker in lowered for marker in _MANIFEST_SECRET_KEYS):
+                continue
+            if lowered in _MANIFEST_PATH_KEYS or lowered.endswith("_path"):
+                continue
+            cleaned[key] = _manifest_scrub(item)
+        return cleaned
+    if isinstance(value, list):
+        return [_manifest_scrub(item) for item in value]
+    if isinstance(value, str):
+        stripped = value.strip()
+        if re.match(r"^[A-Za-z]:[\\/]", stripped) or stripped.startswith(("/tmp", "/var/tmp")):
+            return ""
+        return value
+    return _json_safe_value(value)
+
+
+def _manifest_source_asset(db: Session, *, user: User, source_asset_id: str, fallback: dict[str, Any] | None = None) -> dict[str, str]:
+    asset_payload = fallback if isinstance(fallback, dict) else {}
+    if source_asset_id:
+        asset = db.get(DataAsset, source_asset_id)
+        if asset and asset.owner_user_id == user.id:
+            return {"id": asset.id, "title": asset.title or "", "kind": asset.kind or ""}
+    return {
+        "id": str(asset_payload.get("id") or source_asset_id or ""),
+        "title": str(asset_payload.get("title") or ""),
+        "kind": str(asset_payload.get("kind") or ""),
+    }
+
+
+def _manifest_generated_asset_ids(detail: dict[str, Any], asset_id: str = "") -> list[str]:
+    generated = [asset_id] if asset_id else []
+    audit = detail.get("audit_trail") if isinstance(detail.get("audit_trail"), dict) else {}
+    for key in ("prepared_asset_id", "generated_asset_id", "plot_asset_id"):
+        if audit.get(key):
+            generated.append(str(audit[key]))
+    for item in detail.get("figures") or []:
+        if isinstance(item, dict) and item.get("asset_id"):
+            generated.append(str(item["asset_id"]))
+    for item in detail.get("artifacts") or []:
+        if isinstance(item, dict) and item.get("asset_id"):
+            generated.append(str(item["asset_id"]))
+    return list(dict.fromkeys(value for value in generated if value))
+
+
+def _manifest_variable_roles(detail: dict[str, Any]) -> dict[str, Any]:
+    specification = detail.get("specification") if isinstance(detail.get("specification"), dict) else {}
+    summary = detail.get("summary") if isinstance(detail.get("summary"), dict) else {}
+    roles = {
+        "dependent": detail.get("dependent") or specification.get("dependent") or specification.get("return_column"),
+        "independents": detail.get("independents") or specification.get("independents") or specification.get("regressors") or [],
+        "controls": detail.get("controls") or specification.get("controls") or [],
+        "series_columns": detail.get("series_columns") or specification.get("series_columns") or [],
+        "selected_columns": detail.get("selected_columns") or specification.get("selected_columns") or summary.get("columns") or [],
+        "required_columns": summary.get("required_columns") or [],
+        "numeric_columns": summary.get("numeric_columns") or [],
+        "binary_columns": summary.get("binary_columns") or [],
+        "date_columns": summary.get("date_columns") or [],
+        "treatment_column": detail.get("treatment_column") or specification.get("treatment_column"),
+        "post_column": detail.get("post_column") or specification.get("post_column"),
+        "running_column": detail.get("running_column") or specification.get("running_column"),
+        "entity_column": detail.get("entity_column") or specification.get("entity_column"),
+        "time_column": detail.get("time_column") or specification.get("time_column"),
+    }
+    return {key: value for key, value in roles.items() if value is not None and value != "" and value != []}
+
+
+def _build_reproducibility_manifest(
+    db: Session,
+    *,
+    user: User,
+    result_type: str,
+    result_id: str,
+    workspace_id: str,
+    detail: dict[str, Any],
+    created_at: str = "",
+) -> dict[str, Any]:
+    audit = detail.get("audit_trail") if isinstance(detail.get("audit_trail"), dict) else {}
+    asset_payload = detail.get("asset") if isinstance(detail.get("asset"), dict) else {}
+    source_asset_id = str(audit.get("source_asset_id") or detail.get("source_asset_id") or asset_payload.get("id") or "")
+    source_asset = _manifest_source_asset(db, user=user, source_asset_id=source_asset_id, fallback=asset_payload)
+    specification = detail.get("specification") if isinstance(detail.get("specification"), dict) else {}
+    if not specification and isinstance(detail.get("summary"), dict):
+        specification = {"summary": detail["summary"], "audit_trail": audit}
+    variable_roles = _manifest_variable_roles(detail)
+    warnings = detail.get("warnings") if isinstance(detail.get("warnings"), list) else []
+    selected_columns = variable_roles.get("selected_columns") or variable_roles.get("series_columns") or []
+    manifest = {
+        "version": "datalab-manifest-v1",
+        "result_type": result_type,
+        "result_id": result_id,
+        "workspace_id": workspace_id or "",
+        "source_asset_id": source_asset["id"],
+        "source_asset_title": source_asset["title"],
+        "source_asset_kind": source_asset["kind"],
+        "workflow_type": detail.get("workflow_type") or ("model" if result_type == "model" else "data_processing"),
+        "workflow_group": detail.get("processing_family") or detail.get("workflow_group") or detail.get("model_family") or "",
+        "model_type": detail.get("model_type") or "",
+        "selected_columns": selected_columns,
+        "variable_roles": variable_roles,
+        "specification": specification,
+        "created_at": created_at or str(asset_payload.get("created_at") or ""),
+        "generated_asset_ids": _manifest_generated_asset_ids(detail, str(asset_payload.get("id") or "")),
+        "warnings": warnings,
+    }
+    return sanitize_manifest_value(_manifest_scrub(manifest))
+
+
 def build_model_result_detail(db: Session, *, user: User, record_id: str) -> dict[str, Any]:
     record = get_owned_knowledge_record(db, user=user, record_id=record_id)
     metadata = dict(record.metadata_json or {})
@@ -2742,8 +2857,18 @@ def build_model_result_detail(db: Session, *, user: User, record_id: str) -> dic
     metadata["template_source"] = _template_source_value(metadata)
     metadata["variant_source"] = _variant_source_value(metadata)
     metadata["interpretation"] = _build_model_result_interpretation(metadata)
+    record_payload = serialize_knowledge_record(record)
+    metadata["reproducibility_manifest"] = _build_reproducibility_manifest(
+        db,
+        user=user,
+        result_type="model",
+        result_id=record.id,
+        workspace_id=record.workspace_id,
+        detail=metadata,
+        created_at=str(record_payload.get("created_at") or ""),
+    )
     return {
-        "record": serialize_knowledge_record(record),
+        "record": record_payload,
         "result": metadata,
         "workspace_id": record.workspace_id,
     }
@@ -2752,6 +2877,8 @@ def build_model_result_detail(db: Session, *, user: User, record_id: str) -> dic
 def classify_asset_kind(filename: str, content_type: str) -> str:
     lowered_name = filename.lower()
     lowered_type = (content_type or "").lower()
+    if lowered_name.endswith(".svg"):
+        return "binary_file"
     if lowered_name.endswith(".csv") or lowered_type in {"text/csv", "application/csv"}:
         return "dataset_csv"
     if lowered_name.endswith(".xlsx") or lowered_name.endswith(".xls") or lowered_type in {
@@ -2768,14 +2895,12 @@ def classify_asset_kind(filename: str, content_type: str) -> str:
         return "document_pdf"
     if lowered_name.endswith(".md") or lowered_type == "text/markdown":
         return "note_markdown"
-    if lowered_name.endswith(".txt") or lowered_type == "text/plain":
+    if lowered_name.endswith(".txt") or (lowered_type == "text/plain" and not lowered_name.endswith(".svg")):
         return "note_text"
     if lowered_name.endswith(".png") or lowered_type == "image/png":
         return "chart_png"
     if lowered_name.endswith(".jpg") or lowered_name.endswith(".jpeg") or lowered_type == "image/jpeg":
         return "image_jpeg"
-    if lowered_name.endswith(".svg") or lowered_type == "image/svg+xml":
-        return "image_svg"
     return "binary_file"
 
 
@@ -2794,17 +2919,6 @@ def sniff_asset_kind(content: bytes, *, filename: str) -> str:
     if prefix.startswith(b"\xff\xd8\xff"):
         return "image_jpeg"
     if extension == ".svg":
-        sample = _decode_text_sample(stripped[:4096])
-        lowered = sample.lstrip().lower()
-        if "<html" in lowered or "<script" in lowered:
-            return "binary_file"
-        if lowered.startswith("<?xml"):
-            svg_index = lowered.find("<svg")
-            if svg_index == -1:
-                return "binary_file"
-            lowered = lowered[svg_index:]
-        if lowered.startswith("<svg"):
-            return "image_svg"
         return "binary_file"
     if extension == ".json":
         try:
@@ -2857,12 +2971,14 @@ def save_upload_asset(
     description: str = "",
     source_url: str = "",
 ) -> DataAsset:
+    normalized_content_type = content_type.strip().lower()
+    if Path(filename).suffix.lower() == ".svg" or normalized_content_type.split(";", 1)[0] == "image/svg+xml":
+        raise ValueError("SVG uploads are not allowed.")
     declared_kind = classify_asset_kind(filename, content_type)
     sniffed_kind = sniff_asset_kind(content, filename=filename)
     asset_kind = declared_kind if declared_kind == sniffed_kind else "binary_file"
     if asset_kind not in ALLOWED_UPLOAD_KINDS:
-        raise ValueError("Unsupported upload type. Allowed types: csv, xlsx, xls, json, pdf, txt, md, png, jpg, jpeg, and svg.")
-    normalized_content_type = content_type.strip().lower()
+        raise ValueError("Unsupported upload type. Allowed types: csv, xlsx, xls, json, pdf, txt, md, png, jpg, jpeg.")
     if normalized_content_type and normalized_content_type not in _KIND_CONTENT_TYPES.get(asset_kind, set()):
         raise ValueError("Upload content type does not match the selected file type.")
     normalized_source_url = validate_optional_source_url(source_url, field_name="Source URL")
@@ -3987,7 +4103,149 @@ def build_processing_result_detail(
     detail.setdefault("preview_rows", profile.get("preview_rows", []))
     detail["interpretation"] = _build_processing_result_interpretation(detail)
     detail["workspace_id"] = workspace.id
+    detail["reproducibility_manifest"] = _build_reproducibility_manifest(
+        db,
+        user=user,
+        result_type="processing",
+        result_id=asset.id,
+        workspace_id=workspace.id,
+        detail=detail,
+        created_at=str(asset_payload.get("created_at") or ""),
+    )
     return detail
+
+
+_PREPARATION_DEFAULTS: dict[str, Any] = {
+    "include_columns": None,
+    "required_columns": None,
+    "numeric_columns": None,
+    "binary_columns": None,
+    "date_columns": None,
+    "impute_columns": None,
+    "impute_method": "none",
+    "winsorize_columns": None,
+    "winsor_lower_quantile": 0.01,
+    "winsor_upper_quantile": 0.99,
+    "log_transform_columns": None,
+    "standardize_columns": None,
+    "minmax_scale_columns": None,
+    "outlier_columns": None,
+    "outlier_method": "none",
+    "outlier_threshold": 1.5,
+    "sort_column": "",
+    "time_group_column": "",
+    "difference_columns": None,
+    "return_columns": None,
+    "return_method": "simple",
+    "lag_columns": None,
+    "lag_periods": 1,
+    "lead_columns": None,
+    "lead_periods": 1,
+    "rolling_mean_columns": None,
+    "rolling_volatility_columns": None,
+    "rolling_window": 5,
+    "drop_duplicates": True,
+    "drop_missing_required": True,
+}
+
+
+def _normalize_preparation_options(values: dict[str, Any]) -> dict[str, Any]:
+    return {key: values.get(key, default) for key, default in _PREPARATION_DEFAULTS.items()}
+
+
+def _prepare_dataset_frame(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    **options: Any,
+) -> tuple[DataAsset, pd.DataFrame, pd.DataFrame, dict[str, Any]]:
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    prepared_frame, summary = _prepare_selected_sample(frame, **_normalize_preparation_options(options))
+    return asset, frame, prepared_frame, summary
+
+
+def _preparation_transformed_columns(summary: dict[str, Any]) -> list[str]:
+    transformed: set[str] = set()
+    for key in ("numeric_columns", "binary_columns", "date_columns", "outlier_columns"):
+        transformed.update(str(column) for column in summary.get(key) or [] if column)
+    transformed.update(str(column) for column in (summary.get("imputed_columns") or {}).keys())
+    transformed.update(str(column) for column in (summary.get("winsorized_columns") or {}).keys())
+    transform_groups = summary.get("transformed_columns") or {}
+    if isinstance(transform_groups, dict):
+        for values in transform_groups.values():
+            transformed.update(str(column) for column in values or [] if column)
+    return sorted(transformed)
+
+
+def preview_dataset_preparation(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    workflow_group: str = "sample_preparation",
+    template_id: str = "",
+    template_name: str = "",
+    variant_label: str = "",
+    variant_spec: dict[str, Any] | None = None,
+    effective_specification: dict[str, Any] | None = None,
+    **options: Any,
+) -> dict[str, Any]:
+    asset, frame, prepared_frame, summary = _prepare_dataset_frame(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        asset_id=asset_id,
+        **options,
+    )
+    input_columns = [str(column) for column in frame.columns]
+    output_columns = [str(column) for column in prepared_frame.columns]
+    missing_before = {str(column): int(value) for column, value in frame.isna().sum().to_dict().items()}
+    missing_after = {str(column): int(value) for column, value in prepared_frame.isna().sum().to_dict().items()}
+    input_set = set(input_columns)
+    output_set = set(output_columns)
+    dropped_rows = max(0, int(len(frame)) - int(len(prepared_frame)))
+    warnings: list[str] = []
+    if dropped_rows:
+        warnings.append(f"{dropped_rows} row(s) would be removed by the selected preparation steps.")
+    if summary.get("outliers_removed"):
+        warnings.append(f"{summary['outliers_removed']} row(s) would be removed by the outlier filter.")
+    return {
+        "source_asset_id": asset.id,
+        "workflow_group": workflow_group or "sample_preparation",
+        "input_rows": int(len(frame)),
+        "output_rows": int(len(prepared_frame)),
+        "dropped_rows": dropped_rows,
+        "input_columns": input_columns,
+        "output_columns": output_columns,
+        "added_columns": sorted(output_set - input_set),
+        "removed_columns": sorted(input_set - output_set),
+        "transformed_columns": _preparation_transformed_columns(summary),
+        "missing_before_by_column": missing_before,
+        "missing_after_by_column": missing_after,
+        "warnings": warnings,
+        "preview_rows": _frame_preview_rows(prepared_frame, limit=8),
+        "specification_summary": _json_safe_value(
+            {
+                "source_asset_title": asset.title,
+                "source_asset_kind": asset.kind,
+                "workflow_group": workflow_group or "sample_preparation",
+                "template_id": template_id,
+                "template_name": template_name,
+                "variant_label": variant_label,
+                "variant_spec": dict(variant_spec or {}) if isinstance(variant_spec, dict) else {},
+                "effective_specification": dict(effective_specification or {}) if isinstance(effective_specification, dict) else {},
+                "operations": summary,
+                "request": _normalize_preparation_options(options),
+            }
+        ),
+    }
 
 
 def prepare_dataset_asset(
@@ -4034,40 +4292,13 @@ def prepare_dataset_asset(
     variant_spec: dict[str, Any] | None = None,
     effective_specification: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
-    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
-    prepared_frame, summary = _prepare_selected_sample(
-        frame,
-        include_columns=include_columns,
-        required_columns=required_columns,
-        numeric_columns=numeric_columns,
-        binary_columns=binary_columns,
-        date_columns=date_columns,
-        impute_columns=impute_columns,
-        impute_method=impute_method,
-        winsorize_columns=winsorize_columns,
-        winsor_lower_quantile=winsor_lower_quantile,
-        winsor_upper_quantile=winsor_upper_quantile,
-        log_transform_columns=log_transform_columns,
-        standardize_columns=standardize_columns,
-        minmax_scale_columns=minmax_scale_columns,
-        outlier_columns=outlier_columns,
-        outlier_method=outlier_method,
-        outlier_threshold=outlier_threshold,
-        sort_column=sort_column,
-        time_group_column=time_group_column,
-        difference_columns=difference_columns,
-        return_columns=return_columns,
-        return_method=return_method,
-        lag_columns=lag_columns,
-        lag_periods=lag_periods,
-        lead_columns=lead_columns,
-        lead_periods=lead_periods,
-        rolling_mean_columns=rolling_mean_columns,
-        rolling_volatility_columns=rolling_volatility_columns,
-        rolling_window=rolling_window,
-        drop_duplicates=drop_duplicates,
-        drop_missing_required=drop_missing_required,
+    asset, _, prepared_frame, summary = _prepare_dataset_frame(
+        settings,
+        db,
+        user=user,
+        workspace=workspace,
+        asset_id=asset_id,
+        **_normalize_preparation_options(locals()),
     )
     csv_bytes = prepared_frame.to_csv(index=False).encode("utf-8")
     prepared_asset = save_upload_asset(
@@ -4142,6 +4373,342 @@ def prepare_dataset_asset(
     }
     db.flush()
     return processing_result
+
+
+_PREFLIGHT_STATUS_RANK = {"ok": 0, "warning": 1, "blocked": 2}
+
+
+def _preflight_add(
+    checks: list[dict[str, str]],
+    key: str,
+    label: str,
+    status: str,
+    severity: str,
+    detail: str,
+) -> None:
+    checks.append({"key": key, "label": label, "status": status, "severity": severity, "detail": detail})
+
+
+def _preflight_columns(*values: Any) -> list[str]:
+    columns: list[str] = []
+    for value in values:
+        if isinstance(value, str):
+            if value.strip():
+                columns.append(value.strip())
+        elif isinstance(value, list):
+            columns.extend(str(item).strip() for item in value if str(item or "").strip())
+    return list(dict.fromkeys(columns))
+
+
+def _preflight_is_numeric(frame: pd.DataFrame, column: str) -> bool:
+    if column not in frame.columns:
+        return False
+    return pd.to_numeric(frame[column], errors="coerce").notna().any()
+
+
+def _preflight_is_binary(frame: pd.DataFrame, column: str) -> bool:
+    if column not in frame.columns:
+        return False
+    series = frame[column].dropna()
+    if series.empty:
+        return False
+    normalized = {_serialize_preview_value(value) for value in series.unique().tolist()}
+    normalized_text = {str(value).strip().lower() for value in normalized}
+    return normalized_text.issubset({"0", "1", "0.0", "1.0", "false", "true", "no", "yes"})
+
+
+def _preflight_has_variance(frame: pd.DataFrame, column: str) -> bool:
+    if column not in frame.columns:
+        return False
+    return int(frame[column].nunique(dropna=True)) > 1
+
+
+def _preflight_numeric_sample(frame: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    sample = frame[[column for column in columns if column in frame.columns]].copy()
+    for column in sample.columns:
+        sample[column] = pd.to_numeric(sample[column], errors="coerce")
+    return sample.dropna().copy()
+
+
+def _preflight_status(checks: list[dict[str, str]]) -> str:
+    if not checks:
+        return "ok"
+    return max((check["status"] for check in checks), key=lambda value: _PREFLIGHT_STATUS_RANK.get(value, 0))
+
+
+def preflight_model_analysis(
+    settings: Settings,
+    db: Session,
+    *,
+    user: User,
+    workspace: Workspace,
+    asset_id: str,
+    model_type: str = "ols",
+    dependent: str = "",
+    independents: list[str] | None = None,
+    controls: list[str] | None = None,
+    series_columns: list[str] | None = None,
+    treatment_column: str = "",
+    post_column: str = "",
+    event_time_column: str = "",
+    lead_window: int = 4,
+    lag_window: int = 4,
+    omitted_period: int = -1,
+    running_column: str = "",
+    rdd_cutoff: float = 0.0,
+    cutoff: float = 0.0,
+    rdd_bandwidth: float = 0.0,
+    bandwidth: float = 0.0,
+    entity_column: str = "",
+    time_column: str = "",
+    endogenous_column: str = "",
+    instrument_columns: list[str] | None = None,
+    market_column: str = "",
+    risk_free_column: str = "",
+    smb_column: str = "",
+    hml_column: str = "",
+    spot_column: str = "",
+    strike_column: str = "",
+    maturity_column: str = "",
+    rate_column: str = "",
+    volatility_column: str = "",
+    arima_p: int = 1,
+    arima_d: int = 0,
+    arima_q: int = 0,
+    garch_p: int = 1,
+    garch_q: int = 1,
+    forecast_steps: int = 5,
+    var_lags: int = 1,
+    option_steps: int = 50,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    asset = _analysis_asset_or_raise(db, user=user, workspace=workspace, asset_id=asset_id)
+    frame, _ = _load_analysis_frame(settings, asset, drop_duplicates=False)
+    model = (model_type or "ols").strip().lower()
+    checks: list[dict[str, str]] = []
+    warnings: list[str] = []
+    blocking_reasons: list[str] = []
+
+    _preflight_add(checks, "asset_scope", "Asset scope", "ok", "info", "Asset exists and belongs to the current user/workspace.")
+    row_count = int(len(frame))
+    column_count = int(len(frame.columns))
+    if row_count < 5:
+        _preflight_add(checks, "row_count", "Row count", "blocked", "error", f"Only {row_count} rows are available.")
+    elif row_count < 20:
+        _preflight_add(checks, "row_count", "Row count", "warning", "warning", f"Only {row_count} rows are available; inference may be unstable.")
+    else:
+        _preflight_add(checks, "row_count", "Row count", "ok", "info", f"{row_count} rows are available.")
+
+    selected_columns = _preflight_columns(
+        dependent,
+        independents or [],
+        controls or [],
+        series_columns or [],
+        treatment_column,
+        post_column,
+        event_time_column,
+        running_column,
+        entity_column,
+        time_column,
+        endogenous_column,
+        instrument_columns or [],
+        market_column,
+        risk_free_column,
+        smb_column,
+        hml_column,
+        spot_column,
+        strike_column,
+        maturity_column,
+        rate_column,
+        volatility_column,
+        kwargs.get("origin_mass_column", ""),
+        kwargs.get("destination_mass_column", ""),
+        kwargs.get("distance_column", ""),
+        kwargs.get("working_capital_column", ""),
+        kwargs.get("retained_earnings_column", ""),
+        kwargs.get("ebit_column", ""),
+        kwargs.get("market_equity_column", ""),
+        kwargs.get("sales_column", ""),
+        kwargs.get("total_assets_column", ""),
+        kwargs.get("total_liabilities_column", ""),
+        kwargs.get("net_income_column", ""),
+        kwargs.get("revenue_column", ""),
+        kwargs.get("equity_column", ""),
+        kwargs.get("inflation_gap_column", ""),
+        kwargs.get("output_gap_column", ""),
+    )
+    missing_columns = [column for column in selected_columns if column not in frame.columns]
+    if missing_columns:
+        _preflight_add(checks, "selected_columns_exist", "Selected columns exist", "blocked", "error", f"Missing columns: {', '.join(missing_columns)}.")
+    else:
+        _preflight_add(checks, "selected_columns_exist", "Selected columns exist", "ok", "info", "All selected columns exist.")
+
+    key_columns = [column for column in selected_columns if column in frame.columns]
+    high_missing = []
+    for column in key_columns:
+        rate = float(frame[column].isna().mean()) if row_count else 1.0
+        if rate > 0.3:
+            high_missing.append(f"{column} ({rate:.0%})")
+    if high_missing:
+        _preflight_add(checks, "key_missingness", "Key variable missingness", "warning", "warning", f"High missingness in {', '.join(high_missing)}.")
+    else:
+        _preflight_add(checks, "key_missingness", "Key variable missingness", "ok", "info", "No selected key variable has high missingness.")
+
+    invariant = [column for column in key_columns if not _preflight_has_variance(frame, column)]
+    if invariant:
+        _preflight_add(checks, "column_variance", "Selected column variance", "warning", "warning", f"No variation detected in {', '.join(invariant)}.")
+    else:
+        _preflight_add(checks, "column_variance", "Selected column variance", "ok", "info", "Selected columns have variation where checked.")
+
+    def require_column(column: str, key: str, label: str) -> bool:
+        if not column:
+            _preflight_add(checks, key, label, "blocked", "error", f"{label} is required.")
+            return False
+        if column not in frame.columns:
+            _preflight_add(checks, key, label, "blocked", "error", f"{column} is missing.")
+            return False
+        _preflight_add(checks, key, label, "ok", "info", f"{column} is present.")
+        return True
+
+    def require_numeric(column: str, key: str, label: str) -> bool:
+        if require_column(column, key, label) and _preflight_is_numeric(frame, column):
+            _preflight_add(checks, f"{key}_numeric", f"{label} numeric", "ok", "info", f"{column} has numeric values.")
+            return True
+        _preflight_add(checks, f"{key}_numeric", f"{label} numeric", "blocked", "error", f"{column or label} must be numeric.")
+        return False
+
+    if model in {"ols", "ppml", "fixed_effects", "iv_2sls", "panel_iv", "gravity", "taylor_rule", "logit", "probit", "did", "event_study", "rdd", "capm", "fama_french_3"}:
+        require_column(dependent, "dependent_exists", "Dependent variable")
+    if model in {"ols", "ppml"}:
+        require_numeric(dependent, "dependent", "Dependent variable")
+        regressors = [column for column in [*(independents or []), *(controls or [])] if column]
+        if not regressors:
+            _preflight_add(checks, "independents_non_empty", "Independent variables", "blocked", "error", "At least one independent variable is required.")
+    if model in {"logit", "probit"}:
+        if require_column(dependent, "binary_dependent", "Binary dependent variable") and _preflight_is_binary(frame, dependent):
+            _preflight_add(checks, "dependent_binary", "Dependent binary", "ok", "info", f"{dependent} is binary or near-binary.")
+        else:
+            _preflight_add(checks, "dependent_binary", "Dependent binary", "blocked", "error", f"{dependent or 'Dependent variable'} must be binary.")
+    if model == "did":
+        treatment_ok = require_column(treatment_column, "treatment_column", "Treatment column") and _preflight_is_binary(frame, treatment_column)
+        post_ok = require_column(post_column, "post_column", "Post column") and _preflight_is_binary(frame, post_column)
+        if not treatment_ok:
+            _preflight_add(checks, "treatment_binary", "Treatment binary", "blocked", "error", "Treatment column must be binary.")
+        if not post_ok:
+            _preflight_add(checks, "post_binary", "Post binary", "blocked", "error", "Post column must be binary.")
+        if treatment_ok and post_ok:
+            interaction = pd.to_numeric(frame[treatment_column], errors="coerce") * pd.to_numeric(frame[post_column], errors="coerce")
+            if interaction.nunique(dropna=True) < 2:
+                _preflight_add(checks, "did_interaction_variation", "Treatment x post variation", "blocked", "error", "Treatment x post has no variation.")
+            else:
+                _preflight_add(checks, "did_interaction_variation", "Treatment x post variation", "ok", "info", "Treatment x post varies.")
+    if model == "event_study":
+        require_column(event_time_column, "event_time_column", "Event-time column")
+        if event_time_column in frame.columns:
+            event_time = pd.to_numeric(frame[event_time_column], errors="coerce")
+            in_window = event_time.between(-abs(int(lead_window)), abs(int(lag_window))).sum()
+            if in_window <= 0:
+                _preflight_add(checks, "event_window_observations", "Lead/lag window observations", "blocked", "error", "No observations fall in the requested event window.")
+            else:
+                _preflight_add(checks, "event_window_observations", "Lead/lag window observations", "ok", "info", f"{int(in_window)} observations fall in the requested event window.")
+            if not (event_time == int(omitted_period)).any():
+                _preflight_add(checks, "event_omitted_period", "Omitted period", "warning", "warning", "The omitted period is not present in the sample.")
+    if model == "rdd":
+        if require_numeric(running_column, "running_column", "Running column"):
+            running = pd.to_numeric(frame[running_column], errors="coerce").dropna()
+            cutoff_value = float(rdd_cutoff if rdd_cutoff not in {0, 0.0} else cutoff)
+            left = int((running < cutoff_value).sum())
+            right = int((running >= cutoff_value).sum())
+            if left == 0 or right == 0:
+                _preflight_add(checks, "rdd_cutoff_sides", "Cutoff support", "blocked", "error", "Running variable must have observations on both sides of the cutoff.")
+            else:
+                _preflight_add(checks, "rdd_cutoff_sides", "Cutoff support", "ok", "info", f"{left} rows below and {right} rows at/above cutoff.")
+            bandwidth_value = float(rdd_bandwidth if rdd_bandwidth not in {0, 0.0} else bandwidth)
+            if bandwidth_value > 0:
+                inside = int((running - cutoff_value).abs().le(bandwidth_value).sum())
+                status = "ok" if inside >= 10 else "warning"
+                severity = "info" if status == "ok" else "warning"
+                _preflight_add(checks, "rdd_bandwidth_rows", "Bandwidth support", status, severity, f"{inside} rows fall inside the requested bandwidth.")
+    if model in {"iv_2sls", "panel_iv"}:
+        require_column(endogenous_column, "endogenous_column", "Endogenous column")
+        instruments = [column for column in instrument_columns or [] if column]
+        if not instruments:
+            _preflight_add(checks, "instrument_columns", "Instrument columns", "blocked", "error", "At least one instrument column is required.")
+        else:
+            for column in instruments:
+                require_column(column, f"instrument_{column}", f"Instrument {column}")
+                if column in frame.columns and not _preflight_has_variance(frame, column):
+                    _preflight_add(checks, f"instrument_{column}_variance", f"Instrument {column} variance", "warning", "warning", "Instrument has no variation.")
+            if endogenous_column in frame.columns:
+                numeric = _preflight_numeric_sample(frame, [endogenous_column, *instruments])
+                if not numeric.empty:
+                    weak = []
+                    for column in instruments:
+                        if column in numeric.columns and numeric[column].nunique(dropna=True) > 1:
+                            corr = numeric[endogenous_column].corr(numeric[column])
+                            if pd.isna(corr) or abs(float(corr)) < 0.05:
+                                weak.append(column)
+                    if weak:
+                        _preflight_add(checks, "first_stage_proxy", "First-stage proxy", "warning", "warning", f"Weak simple correlation proxy for {', '.join(weak)}.")
+    if model in {"fixed_effects", "panel_iv"}:
+        require_column(entity_column, "entity_column", "Entity column")
+        if time_column and time_column in frame.columns and frame[time_column].nunique(dropna=True) < 2:
+            _preflight_add(checks, "time_periods", "Time periods", "warning", "warning", "Time column has fewer than two periods.")
+    if model in {"arima", "arch", "garch", "virf", "historical_var", "parametric_var", "ewma_volatility"}:
+        target = dependent or (series_columns or [""])[0]
+        require_numeric(target, "series_numeric", "Selected series")
+        required_length = max(12, int(arima_p) + int(arima_d) + int(arima_q) + int(garch_p) + int(garch_q) + int(forecast_steps) + 3)
+        if row_count < required_length:
+            _preflight_add(checks, "time_series_length", "Time-series length", "blocked", "error", f"Need at least {required_length} rows for the selected orders/horizon.")
+        if time_column and time_column not in frame.columns:
+            _preflight_add(checks, "time_column", "Time column", "blocked", "error", f"{time_column} is missing.")
+    if model in {"var", "svar_irf", "dy_connectedness", "bk_connectedness"}:
+        if len(series_columns or []) < 2:
+            _preflight_add(checks, "series_count", "Series count", "blocked", "error", "At least two series columns are required.")
+        for column in series_columns or []:
+            require_numeric(column, f"series_{column}", f"Series {column}")
+        required_length = max(12, int(var_lags) + int(forecast_steps) + 5)
+        if row_count < required_length:
+            _preflight_add(checks, "var_length", "VAR sample length", "blocked", "error", f"Need at least {required_length} rows for the selected lag/horizon.")
+    if model in {"capm", "fama_french_3"}:
+        require_numeric(market_column, "market_column", "Market/factor column")
+        if model == "fama_french_3":
+            require_numeric(smb_column, "smb_column", "SMB column")
+            require_numeric(hml_column, "hml_column", "HML column")
+        if not risk_free_column:
+            _preflight_add(checks, "risk_free_column", "Risk-free column", "warning", "warning", "Risk-free column is missing; excess returns cannot be adjusted.")
+    if model in {"mean_variance", "minimum_variance", "risk_parity"}:
+        if len(series_columns or []) < 2:
+            _preflight_add(checks, "portfolio_series_count", "Portfolio series count", "blocked", "error", "At least two return series columns are required.")
+        for column in series_columns or []:
+            require_numeric(column, f"portfolio_series_{column}", f"Portfolio series {column}")
+    if model in {"black_scholes", "binomial_option"}:
+        pricing_columns = [spot_column, strike_column, maturity_column, rate_column, volatility_column]
+        for column, label in zip(pricing_columns, ["Spot", "Strike", "Maturity", "Rate", "Volatility"], strict=True):
+            require_numeric(column, f"pricing_{label.lower()}", f"{label} column")
+        if all(column in frame.columns for column in [spot_column, strike_column, maturity_column, volatility_column]):
+            sample = _preflight_numeric_sample(frame, [spot_column, strike_column, maturity_column, volatility_column])
+            for column, label in [(spot_column, "spot"), (strike_column, "strike"), (maturity_column, "maturity"), (volatility_column, "volatility")]:
+                if not sample.empty and (sample[column] <= 0).any():
+                    _preflight_add(checks, f"{label}_positive", f"{label.title()} positive", "blocked", "error", f"{column} must be positive.")
+        if model == "binomial_option" and int(option_steps) < 1:
+            _preflight_add(checks, "option_steps", "Option steps", "blocked", "error", "Binomial option steps must be positive.")
+
+    status = _preflight_status(checks)
+    warnings = [check["detail"] for check in checks if check["status"] == "warning"]
+    blocking_reasons = [check["detail"] for check in checks if check["status"] == "blocked"]
+    return {
+        "status": status,
+        "model_type": model,
+        "checks": checks,
+        "sample": {
+            "row_count": row_count,
+            "column_count": column_count,
+            "missing_required_columns": missing_columns,
+        },
+        "warnings": warnings,
+        "blocking_reasons": blocking_reasons,
+    }
 
 
 def _serialize_model_frame(frame: pd.DataFrame, columns: list[str]) -> pd.DataFrame:

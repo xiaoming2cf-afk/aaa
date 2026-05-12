@@ -176,6 +176,16 @@ export type AgentSession = {
       run_status?: string;
     };
   };
+  risk_summary?: RiskSummary;
+};
+
+export type RiskSummary = {
+  agent_enabled?: boolean;
+  trusted_execution_enabled?: boolean;
+  execution_mode?: string;
+  sandbox_claim?: string;
+  warning_message?: string;
+  production_guidance?: string;
 };
 
 export type DatasetAsset = NonNullable<AgentSession["assets"]>[number];
@@ -209,6 +219,7 @@ export type LlmConfig = {
     reviewer_model: string;
     report_model: string;
   };
+  risk_summary?: RiskSummary;
 };
 
 export type HistoryItem = {

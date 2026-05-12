@@ -16,6 +16,24 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 WEB_DIR = PACKAGE_DIR / "web"
 SPA_ROOT_DIR = PACKAGE_DIR.parents[1] / "frontend-spa"
 SPA_DIST_DIR = SPA_ROOT_DIR / "dist"
+_DEFAULT_CSP = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self'; "
+    "img-src 'self' data: blob:; "
+    "object-src 'none'; "
+    "frame-ancestors 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'"
+)
+_SOURCE_SPA_FALLBACK_ENVS = {"development", "dev", "test", "testing"}
+_SECURITY_HEADERS: tuple[tuple[bytes, bytes], ...] = (
+    (b"x-frame-options", b"DENY"),
+    (b"x-content-type-options", b"nosniff"),
+    (b"referrer-policy", b"strict-origin-when-cross-origin"),
+    (b"permissions-policy", b"camera=(), microphone=(), geolocation=()"),
+    (b"content-security-policy", _DEFAULT_CSP.encode("ascii")),
+)
 
 
 class LazyApplication:
@@ -78,10 +96,7 @@ class LazyApplication:
         method = str(scope.get("method", "")).upper()
         path = str(scope.get("path", ""))
         body = b'{"status":"ok"}' if path == "/api/health" and method == "GET" else b""
-        headers = [
-            (b"content-type", b"application/json" if path == "/api/health" else b"text/plain; charset=utf-8"),
-            (b"content-length", str(len(body)).encode("ascii")),
-        ]
+        headers = _headers("application/json" if path == "/api/health" else "text/plain; charset=utf-8", len(body))
         await LazyApplication._send_response(send, 200, headers, body)
 
     @staticmethod
@@ -120,7 +135,7 @@ def _headers(media_type: str, content_length: int) -> list[tuple[bytes, bytes]]:
     return [
         (b"content-type", media_type.encode("ascii", errors="ignore")),
         (b"content-length", str(content_length).encode("ascii")),
-        (b"x-content-type-options", b"nosniff"),
+        *_SECURITY_HEADERS,
     ]
 
 
@@ -148,13 +163,21 @@ def _spa_response(path: str, method: str) -> tuple[int, list[tuple[bytes, bytes]
         asset_response = _safe_file_response(SPA_DIST_DIR, normalized, method)
         if asset_response[0] == 200:
             return asset_response
+        if normalized.startswith("assets/"):
+            return asset_response
     index_path = SPA_DIST_DIR / "index.html"
     if not index_path.exists() and _allow_source_spa_fallback():
         index_path = SPA_ROOT_DIR / "index.html"
+    if not index_path.exists():
+        body = b"" if method == "HEAD" else b"SPA build is unavailable. Run the frontend build before serving /app."
+        return 503, _headers("text/plain; charset=utf-8", len(body)), body
     return _file_response(index_path, method, media_type="text/html; charset=utf-8")
 
 
 def _allow_source_spa_fallback() -> bool:
+    app_env = os.getenv("APP_ENV", "").strip().lower()
+    if app_env not in _SOURCE_SPA_FALLBACK_ENVS:
+        return False
     return os.getenv("RESEARCH_AGENT_ALLOW_SOURCE_SPA_FALLBACK", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
@@ -165,20 +188,11 @@ def _provider_center_response(method: str) -> tuple[int, list[tuple[bytes, bytes
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Provider Center Unavailable</title>
-    <style>
-      body { font-family: system-ui, sans-serif; margin: 0; background: #f6f3ee; color: #1c1a17; }
-      main { max-width: 760px; margin: 6rem auto; padding: 2rem; }
-      .card { background: #fffdf8; border: 1px solid #d7cbb7; border-radius: 18px; padding: 2rem; box-shadow: 0 20px 60px rgba(40, 26, 10, 0.08); }
-      .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.8rem; color: #7a5c32; margin: 0 0 0.75rem; }
-      h1 { margin: 0 0 1rem; font-size: 2rem; }
-      p { line-height: 1.7; margin: 0 0 1rem; }
-      a { color: #7a3d00; }
-    </style>
   </head>
   <body>
     <main>
-      <section class="card">
-        <p class="eyebrow">Disabled Surface</p>
+      <section>
+        <p>Disabled Surface</p>
         <h1>Provider Center is not part of the current product scope</h1>
         <p>This build keeps research runs, review gates, publishing, knowledge capture, and team library workflows, but it does not expose runtime model provider management.</p>
         <p>Return to the <a href="/">home page</a> or the <a href="/app/quality">quality dashboard</a>.</p>

@@ -217,7 +217,7 @@ def build_run_attachments(
                     "filename": metadata.get("original_filename") or asset.title,
                     "file_data": base64.b64encode(raw_bytes).decode("ascii"),
                 }
-        elif asset.kind in {"chart_png", "image_jpeg", "image_svg"} and raw_bytes and asset.content_type:
+        elif asset.kind in {"chart_png", "image_jpeg"} and raw_bytes and asset.content_type:
             if supports_multimodal:
                 input_content = {
                     "type": "input_image",
