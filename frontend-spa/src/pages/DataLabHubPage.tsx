@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "../api";
 import { InlineEmptyState, InlineErrorState, LoadingState } from "../components/StatusPrimitives";
+import { Card, MetricCard, PageHeader, Surface } from "../components/ui";
 
 type UseAppState = () => {
   workspaceId: string;
@@ -128,39 +129,38 @@ export function DataLabHubPage({ useAppState }: { useAppState: UseAppState }): J
 
   return (
     <div className="data-lab-hub-page" aria-label="Data Lab hub">
-      <section className="ops-surface ops-surface-emphasis">
-        <div className="ops-surface-header">
-          <div>
-            <p className="eyebrow">Workspace Data Lab</p>
-            <h1>Data Lab</h1>
-            <p className="muted">
-              Legacy Data Lab is the current full workbench. SPA Data Lab Agent is the agentic analysis runtime.
-              Trusted execution is separate and should remain disabled unless authorized.
-            </p>
-          </div>
-          <FlaskConical aria-hidden="true" />
-        </div>
-      </section>
+      <Surface
+        tone="emphasis"
+        title={(
+          <PageHeader
+            eyebrow="Workspace Data Lab"
+            title="Data Lab"
+            description="Legacy Data Lab is the current full workbench. SPA Data Lab Agent is the agentic analysis runtime. Trusted execution is separate and should remain disabled unless authorized."
+            actions={<FlaskConical aria-hidden="true" />}
+          />
+        )}
+      >
+        <span className="sr-only">Data Lab hub routes and recent workspace history.</span>
+      </Surface>
 
       <section className="data-lab-route-grid" aria-label="Data Lab routes">
         {routeCards.map((card) => (
           <a key={card.title} className="data-lab-route-card" href={card.href}>
-            <span className="data-lab-route-icon">{card.icon}</span>
-            <span className="overview-card-label">{card.label}</span>
-            <strong>{card.title}</strong>
-            <span>{card.description}</span>
+            <Card className="data-lab-route-card__body">
+              <span className="data-lab-route-icon">{card.icon}</span>
+              <span className="overview-card-label">{card.label}</span>
+              <strong>{card.title}</strong>
+              <span>{card.description}</span>
+            </Card>
           </a>
         ))}
       </section>
 
-      <section className="ops-surface">
-        <div className="ops-surface-header">
-          <div>
-            <p className="eyebrow">Workspace History</p>
-            <h2>Recent Data Lab activity</h2>
-          </div>
-          <Clock3 aria-hidden="true" />
-        </div>
+      <Surface
+        eyebrow="Workspace History"
+        title="Recent Data Lab activity"
+        actions={<Clock3 aria-hidden="true" />}
+      >
         <HistorySummary
           agentSessions={agentSessions.length}
           error={historyQuery.error}
@@ -172,7 +172,7 @@ export function DataLabHubPage({ useAppState }: { useAppState: UseAppState }): J
           recentItems={recentItems}
           workspaceId={workspaceId}
         />
-      </section>
+      </Surface>
     </div>
   );
 }
@@ -223,10 +223,10 @@ function HistorySummary({
   return (
     <div className="data-lab-history-summary">
       <div className="data-lab-count-grid" aria-label="Data Lab history counts">
-        <HistoryCount label="Processing" value={processing} />
-        <HistoryCount label="Models" value={models} />
-        <HistoryCount label="Optimization" value={optimization} />
-        <HistoryCount label="Agent Sessions" value={agentSessions} />
+        <MetricCard label="Processing" value={processing} />
+        <MetricCard label="Models" value={models} />
+        <MetricCard label="Optimization" value={optimization} />
+        <MetricCard label="Agent Sessions" value={agentSessions} />
       </div>
       {recentItems.length ? (
         <div className="data-lab-recent-list" aria-label="Recent Data Lab items">
@@ -242,15 +242,6 @@ function HistorySummary({
       ) : (
         <InlineEmptyState title="No Data Lab history yet" description="Run a legacy Data Lab workflow or Data Lab Agent session to populate this summary." />
       )}
-    </div>
-  );
-}
-
-function HistoryCount({ label, value }: { label: string; value: number }): JSX.Element {
-  return (
-    <div className="overview-stat">
-      <strong>{value}</strong>
-      <span>{label}</span>
     </div>
   );
 }

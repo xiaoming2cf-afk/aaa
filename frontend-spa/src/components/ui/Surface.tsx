@@ -27,7 +27,9 @@ export function Surface({
         <div className="ops-surface-header">
           <div>
             {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
-            {title ? <h3>{title}</h3> : null}
+            {title ? (
+              typeof title === "string" ? <h3>{title}</h3> : <div className="ops-surface-title">{title}</div>
+            ) : null}
             {description ? <p>{description}</p> : null}
           </div>
           {actions ? <div className="ops-surface-actions">{actions}</div> : null}

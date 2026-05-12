@@ -2,6 +2,7 @@ import { BarChart3, BookOpen, Bot, FlaskConical, Library, Search, ShieldCheck } 
 import { Link } from "react-router-dom";
 
 import { InlineEmptyState } from "../components/StatusPrimitives";
+import { Card, MetricCard, PageHeader, Surface } from "../components/ui";
 
 type UseAppState = () => {
   workspaces: Array<{ id: string; name: string }>;
@@ -89,20 +90,23 @@ export function OverviewPage({ useAppState }: { useAppState: UseAppState }): JSX
 
   return (
     <div className="overview-page" aria-label="Workspace overview">
-      <section className="ops-surface ops-surface-emphasis overview-summary">
-        <div>
-          <p className="eyebrow">Workspace Command Center</p>
-          <h1>Overview</h1>
-          <p className="muted">
-            Current workspace: {workspaceName}. Team context: {teamName}.
-          </p>
-        </div>
+      <Surface
+        className="overview-summary"
+        tone="emphasis"
+        title={(
+          <PageHeader
+            eyebrow="Workspace Command Center"
+            title="Overview"
+            description={`Current workspace: ${workspaceName}. Team context: ${teamName}.`}
+          />
+        )}
+      >
         <div className="overview-stat-grid" aria-label="Workspace counts">
-          <OverviewStat label="Workspace count" value={workspaces.length} />
-          <OverviewStat label="Team count" value={teams.length} />
-          <OverviewStat label="Current workspace" value={workspaceId ? 1 : 0} />
+          <MetricCard label="Workspace count" value={workspaces.length} />
+          <MetricCard label="Team count" value={teams.length} />
+          <MetricCard label="Current workspace" value={workspaceId ? 1 : 0} />
         </div>
-      </section>
+      </Surface>
 
       <section className="overview-card-grid" aria-label="Quick entries">
         {quickEntries.map((entry) => (
@@ -110,40 +114,28 @@ export function OverviewPage({ useAppState }: { useAppState: UseAppState }): JSX
         ))}
       </section>
 
-      <section className="ops-surface">
-        <div className="ops-surface-header">
-          <div>
-            <p className="eyebrow">Data Lab Boundary</p>
-            <h2>Structured data stays separate from agent execution.</h2>
-          </div>
-          <BarChart3 aria-hidden="true" />
-        </div>
+      <Surface
+        eyebrow="Data Lab Boundary"
+        title="Structured data stays separate from agent execution."
+        actions={<BarChart3 aria-hidden="true" />}
+      >
         <p className="muted">
           Data Lab is for dataset intake, preparation, modeling, results, and history. Data Lab Agent is the
           agentic analysis runtime, and trusted Python execution remains a separate gated capability.
         </p>
-      </section>
-    </div>
-  );
-}
-
-function OverviewStat({ label, value }: { label: string; value: number }): JSX.Element {
-  return (
-    <div className="overview-stat">
-      <strong>{value}</strong>
-      <span>{label}</span>
+      </Surface>
     </div>
   );
 }
 
 function OverviewCard({ entry }: { entry: QuickEntry }): JSX.Element {
   const content = (
-    <>
+    <Card className="overview-card__body">
       <span className="overview-card-icon">{entry.icon}</span>
       <span className="overview-card-label">{entry.label}</span>
       <strong>{entry.title}</strong>
       <span>{entry.description}</span>
-    </>
+    </Card>
   );
 
   if (entry.href) {
