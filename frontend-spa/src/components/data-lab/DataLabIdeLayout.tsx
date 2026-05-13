@@ -58,15 +58,15 @@ const DATA_LAB_IDE_STYLES = `
 
 .data-lab-tab:hover,
 .data-lab-tab:focus-visible {
-  border-color: rgba(14, 124, 111, 0.28);
+  border-color: var(--border-strong);
   color: var(--ink);
-  background: var(--surface-teal);
+  background: var(--surface-muted);
   outline: none;
 }
 
 .data-lab-tab-active {
-  border-color: rgba(14, 124, 111, 0.38);
-  color: var(--teal);
+  border-color: var(--border-strong);
+  color: var(--text);
   background: #ffffff;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
 }

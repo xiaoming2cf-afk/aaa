@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "../api";
 import { InlineEmptyState, InlineErrorState, LoadingState } from "../components/StatusPrimitives";
-import { Card, MetricCard, PageHeader, Surface } from "../components/ui";
+import { ActionLink, Badge, Card, MetricCard, PageHeader, Surface } from "../components/ui";
 
 type UseAppState = () => {
   workspaceId: string;
@@ -28,10 +28,10 @@ type DataLabHistoryResponse = {
   agent_sessions?: HistoryItem[];
 };
 
-type RouteCard = {
+type WorkflowStep = {
   description: string;
   href: string;
-  label: string;
+  label: "Legacy workbench" | "SPA runtime";
   title: string;
   icon: JSX.Element;
 };
@@ -40,55 +40,48 @@ type RecentItem = HistoryItem & {
   bucket: string;
 };
 
-const routeCards: RouteCard[] = [
+const workflowSteps: WorkflowStep[] = [
   {
-    description: "Legacy full workbench for dataset upload and inspection.",
+    description: "Upload and inspect structured CSV, XLSX, XLS, or JSON datasets.",
     href: "/data-lab",
     icon: <Database aria-hidden="true" />,
-    label: "Legacy",
-    title: "Dataset Intake",
+    label: "Legacy workbench",
+    title: "Dataset",
   },
   {
-    description: "Legacy preparation workflow for cleaning and feature work.",
+    description: "Preview cleaning, transformations, and feature work before committing.",
     href: "/data-lab/preparation",
     icon: <Settings2 aria-hidden="true" />,
-    label: "Legacy",
+    label: "Legacy workbench",
     title: "Preparation",
   },
   {
-    description: "Legacy model setup and execution surface.",
+    description: "Run preflight checks and execute existing statistical model workflows.",
     href: "/data-lab/model",
     icon: <FlaskConical aria-hidden="true" />,
-    label: "Legacy",
-    title: "Model Lab",
+    label: "Legacy workbench",
+    title: "Model",
   },
   {
-    description: "Legacy output review and export surface.",
+    description: "Review manifests, artifacts, warnings, and model output details.",
     href: "/data-lab/results",
     icon: <Table2 aria-hidden="true" />,
-    label: "Legacy",
+    label: "Legacy workbench",
     title: "Results",
   },
   {
-    description: "Legacy processing, model, and optimization run history.",
+    description: "Trace processing, model, optimization, and agent activity.",
     href: "/data-lab/history",
     icon: <History aria-hidden="true" />,
-    label: "Legacy",
+    label: "Legacy workbench",
     title: "History",
   },
   {
-    description: "Legacy optimization benchmark and comparison suite.",
-    href: "/data-lab/optimization",
-    icon: <PlaySquare aria-hidden="true" />,
-    label: "Legacy",
-    title: "Optimization",
-  },
-  {
-    description: "SPA agentic analysis runtime for dataset conversations.",
+    description: "Continue from structured data into the agent-assisted analysis runtime.",
     href: "/app/data-lab-agent",
     icon: <Bot aria-hidden="true" />,
-    label: "SPA",
-    title: "Data Lab Agent",
+    label: "SPA runtime",
+    title: "Agent",
   },
 ];
 
@@ -128,51 +121,79 @@ export function DataLabHubPage({ useAppState }: { useAppState: UseAppState }): J
   ].sort((left, right) => timestampOf(right) - timestampOf(left)).slice(0, 3), [agentSessions, models, optimization, processing]);
 
   return (
-    <div className="data-lab-hub-page" aria-label="Data Lab hub">
+    <div className="data-lab-hub-page data-lab-hub-redesign" aria-label="Data Lab hub">
       <Surface
-        tone="emphasis"
+        className="data-lab-hub-hero"
         title={(
           <PageHeader
-            eyebrow="Workspace Data Lab"
             title="Data Lab"
-            description="Legacy Data Lab is the current full workbench. SPA Data Lab Agent is the agentic analysis runtime. Trusted execution is separate and should remain disabled unless authorized."
-            actions={<FlaskConical aria-hidden="true" />}
+            description="Prepare structured datasets, run model checks, review results, and continue with the agent runtime."
           />
         )}
+        actions={(
+          <ActionLink href="/data-lab/optimization" icon={<PlaySquare size={16} aria-hidden="true" />} variant="ghost">
+            Optimization
+          </ActionLink>
+        )}
       >
-        <span className="sr-only">Data Lab hub routes and recent workspace history.</span>
+        <p className="muted data-lab-hub-compat-note">
+          Legacy Data Lab is the current full workbench. SPA Data Lab Agent is the agentic analysis runtime.
+        </p>
+        <div className="data-lab-workflow-strip" aria-label="Data Lab workflow">
+          {workflowSteps.map((step, index) => (
+            <a className="data-lab-workflow-step" href={step.href} key={step.title}>
+              <span>{index + 1}</span>
+              <strong>{step.title}</strong>
+            </a>
+          ))}
+        </div>
       </Surface>
 
-      <section className="data-lab-route-grid" aria-label="Data Lab routes">
-        {routeCards.map((card) => (
-          <a key={card.title} className="data-lab-route-card" href={card.href}>
-            <Card className="data-lab-route-card__body">
-              <span className="data-lab-route-icon">{card.icon}</span>
-              <span className="overview-card-label">{card.label}</span>
-              <strong>{card.title}</strong>
-              <span>{card.description}</span>
-            </Card>
-          </a>
-        ))}
-      </section>
+      <div className="data-lab-workbench-layout">
+        <section className="data-lab-workflow-grid" aria-label="Data Lab workflow routes">
+          {workflowSteps.map((step) => (
+            <a
+              key={step.title}
+              aria-label={`${step.title === "Dataset" ? "Dataset Intake" : step.title} - ${step.label}`}
+              className="data-lab-route-card data-lab-route-card-redesign"
+              href={step.href}
+            >
+              <Card className="data-lab-route-card__body">
+                <span className="data-lab-route-icon">{step.icon}</span>
+                <Badge tone="neutral">{step.label}</Badge>
+                <strong>{step.title}</strong>
+                <span>{step.description}</span>
+              </Card>
+            </a>
+          ))}
+        </section>
 
-      <Surface
-        eyebrow="Workspace History"
-        title="Recent Data Lab activity"
-        actions={<Clock3 aria-hidden="true" />}
-      >
-        <HistorySummary
-          agentSessions={agentSessions.length}
-          error={historyQuery.error}
-          isError={historyQuery.isError}
-          isLoading={historyQuery.isLoading}
-          models={models.length}
-          optimization={optimization.length}
-          processing={processing.length}
-          recentItems={recentItems}
-          workspaceId={workspaceId}
-        />
-      </Surface>
+        <aside className="data-lab-status-inspector" aria-label="Workspace history and safety">
+          <Surface
+            eyebrow="Workspace history"
+            title="Recent activity"
+            actions={<Clock3 aria-hidden="true" />}
+          >
+            <HistorySummary
+              agentSessions={agentSessions.length}
+              error={historyQuery.error}
+              isError={historyQuery.isError}
+              isLoading={historyQuery.isLoading}
+              models={models.length}
+              optimization={optimization.length}
+              processing={processing.length}
+              recentItems={recentItems}
+              workspaceId={workspaceId}
+            />
+          </Surface>
+
+          <Surface tone="warning" title="Execution boundary">
+            <p className="muted">
+              Trusted Python execution is separate and should remain disabled unless authorized.
+            </p>
+          </Surface>
+        </aside>
+      </div>
     </div>
   );
 }

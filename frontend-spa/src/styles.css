@@ -5,6 +5,7 @@
   --surface: #ffffff;
   --surface-elevated: #ffffff;
   --surface-muted: #f1f1ef;
+  /* Deprecated compatibility alias: use --accent-soft for new UI. */
   --surface-teal: #eeeeea;
   --surface-amber: #fff8eb;
   --surface-violet: #f2f2f0;
@@ -15,6 +16,7 @@
   --border: var(--line);
   --border-strong: #d4d4ce;
   --line-strong: #d4d4ce;
+  /* Deprecated compatibility alias: use --accent for new UI. */
   --teal: #111111;
   --accent: var(--teal);
   --accent-soft: var(--surface-teal);
@@ -1668,31 +1670,33 @@ summary {
 
 /* Workbench visual refactor: compact navigation, denser surfaces, calmer page rhythm. */
 :root {
-  --bg: #f5f7f4;
-  --bg-strong: #e6ece8;
+  --bg: #f7f7f5;
+  --bg-strong: #eeeeea;
   --surface: #ffffff;
-  --surface-muted: #f7faf8;
-  --surface-teal: #e9f5f2;
-  --surface-amber: #fff3d6;
-  --surface-violet: #f1f0ff;
-  --ink: #101815;
+  --surface-muted: #f1f1ef;
+  /* Deprecated compatibility alias: use --accent-soft for new UI. */
+  --surface-teal: #eeeeea;
+  --surface-amber: #fff8eb;
+  --surface-violet: #f2f2f0;
+  --ink: #111111;
   --text: var(--ink);
-  --muted: #5e6b66;
-  --line: #dbe4df;
+  --muted: #6f6f6a;
+  --line: #e4e4df;
   --border: var(--line);
-  --line-strong: #afc0b9;
-  --teal: #0a766e;
+  --line-strong: #d4d4ce;
+  /* Deprecated compatibility alias: use --accent for new UI. */
+  --teal: #111111;
   --accent: var(--teal);
-  --teal-strong: #075f58;
-  --violet: #5652c8;
-  --amber: #b77205;
-  --amber-strong: #7b4f08;
+  --teal-strong: #000000;
+  --violet: #4b5563;
+  --amber: #9a6700;
+  --amber-strong: #704b00;
   --danger: #b42318;
   --success: #1f7a55;
   --warning: var(--amber);
   --radius: 8px;
-  --shadow: 0 18px 44px rgba(16, 24, 21, 0.08);
-  --shadow-soft: 0 1px 2px rgba(16, 24, 21, 0.05);
+  --shadow: 0 16px 36px rgba(17, 17, 17, 0.06);
+  --shadow-soft: 0 4px 12px rgba(17, 17, 17, 0.035);
 }
 
 body {
@@ -2403,21 +2407,19 @@ pre,
 
 /* Institutional research terminal v2. */
 :root {
-  --terminal-bg: #f3f6f4;
-  --terminal-panel: rgba(255, 255, 255, 0.9);
+  --terminal-bg: #f7f7f5;
+  --terminal-panel: #ffffff;
   --terminal-panel-strong: #ffffff;
-  --terminal-line: #c9d7d1;
-  --terminal-line-soft: #e2ebe7;
-  --terminal-ink: #0f1815;
-  --terminal-muted: #586761;
-  --terminal-accent: #08786f;
-  --terminal-accent-soft: #e4f3ef;
+  --terminal-line: #e4e4df;
+  --terminal-line-soft: #eeeeea;
+  --terminal-ink: #111111;
+  --terminal-muted: #6f6f6a;
+  --terminal-accent: #111111;
+  --terminal-accent-soft: #eeeeea;
 }
 
 body {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.82), rgba(243,246,244,.98)),
-    var(--terminal-bg);
+  background: var(--terminal-bg);
 }
 
 .ops-layout {
@@ -4650,5 +4652,225 @@ button.list-card:hover,
 
   .ops-command-bar {
     background: var(--bg);
+  }
+}
+
+/* Structural workspace redesign for neutral public/SPA continuity. */
+.overview-page-redesign,
+.data-lab-hub-redesign {
+  display: grid;
+  gap: 16px;
+}
+
+.workspace-home-hero,
+.data-lab-hub-hero {
+  padding: clamp(18px, 3vw, 28px);
+}
+
+.workspace-home-hero .ui-page-header h1,
+.data-lab-hub-hero .ui-page-header h1 {
+  max-width: 14ch;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1.02;
+}
+
+.workspace-home-hero .ui-page-header p,
+.data-lab-hub-hero .ui-page-header p {
+  max-width: 68ch;
+  font-size: 1rem;
+}
+
+.workspace-primary-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.workspace-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.workspace-context-strip {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--muted);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.workspace-context-strip span {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.workspace-section-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.workspace-section-card {
+  display: grid;
+  gap: 12px;
+  min-height: 190px;
+  align-content: start;
+}
+
+.workspace-section-card h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.workspace-section-card p {
+  margin: 0;
+}
+
+.workspace-section-link {
+  align-self: end;
+  color: var(--text);
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.workspace-section-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.workspace-boundary-note,
+.workspace-legacy-note {
+  background: var(--surface);
+}
+
+.data-lab-workflow-strip {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.data-lab-workflow-step {
+  display: grid;
+  gap: 7px;
+  min-height: 76px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  background: var(--surface);
+  text-decoration: none;
+}
+
+.data-lab-workflow-step span {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.data-lab-workflow-step strong {
+  font-size: 0.92rem;
+}
+
+.data-lab-workflow-step:hover {
+  border-color: var(--border-strong);
+  background: #fbfbfa;
+}
+
+.data-lab-workbench-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: 14px;
+  align-items: start;
+}
+
+.data-lab-workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.data-lab-route-card-redesign .data-lab-route-card__body {
+  min-height: 210px;
+}
+
+.data-lab-status-inspector {
+  display: grid;
+  gap: 12px;
+  position: sticky;
+  top: calc(var(--command-bar-height) + 16px);
+}
+
+.data-lab-status-inspector .data-lab-count-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.data-lab-agent-risk-summary {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.data-lab-agent-risk-summary .metric-strip {
+  margin-bottom: 10px;
+}
+
+.data-lab-tab-list {
+  border-color: var(--border);
+  background: var(--surface-muted);
+}
+
+.data-lab-tab:hover,
+.data-lab-tab:focus-visible {
+  border-color: var(--border-strong);
+  color: var(--text);
+  background: var(--surface);
+}
+
+.data-lab-tab-active {
+  border-color: var(--border-strong);
+  color: var(--text);
+  background: var(--surface);
+}
+
+@media (max-width: 1180px) {
+  .workspace-section-grid,
+  .data-lab-workflow-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .data-lab-workbench-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .data-lab-status-inspector {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .workspace-metric-grid,
+  .workspace-section-grid,
+  .data-lab-workflow-strip,
+  .data-lab-workflow-grid,
+  .data-lab-status-inspector .data-lab-count-grid {
+    grid-template-columns: 1fr;
   }
 }

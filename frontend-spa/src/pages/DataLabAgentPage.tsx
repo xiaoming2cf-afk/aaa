@@ -21,6 +21,7 @@ import {
   llmResolvedStatus,
   workspaceFormState,
 } from "../components/data-lab/helpers";
+import { Badge, MetricPill, Surface } from "../components/ui";
 import type {
   AgentSession,
   AssetSummary,
@@ -259,6 +260,9 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
   const notebookArtifactLabel = artifactLabelFromPath(currentSession?.notebook_path);
   const permalinkHref = currentSession?.detail_path || (selectedRunId ? `/app/data-lab-agent?run=${selectedRunId}` : "");
   const latestPrompt = latestUser?.content || message;
+  const sandboxClaim = currentSession?.risk_summary?.sandbox_claim || "none";
+  const trustedExecutionEnabled = Boolean(currentSession?.risk_summary?.trusted_execution_enabled);
+  const riskWarning = currentSession?.risk_summary?.warning_message || "Trusted Python execution is separate from the normal workspace and is not a sandbox.";
   const mutationError = createSessionMutation.error
     || sendMessageMutation.error
     || reportMutation.error
@@ -392,32 +396,47 @@ export function DataLabAgentPage({ useAppState }: { useAppState: UseAppState }):
         </>
       )}
       inspector={(
-        <InspectorTabsPanel
-          dataset={<DatasetContextPanel firstAsset={firstAsset} firstProfile={firstProfile} previewColumns={previewColumns} />}
-          notebook={(
-            <NotebookExportPanel
-              currentSessionReady={Boolean(currentSession)}
-              notebookArtifactLabel={notebookArtifactLabel}
-              notebookExportMessage={notebookExportMessage}
-              notebookExportSource={notebookExportSource}
-              notebookExportState={notebookExportState}
-              notebookHref={notebookHref}
-              notebookPending={notebookMutation.isPending}
-              onPrepareNotebook={() => notebookMutation.mutate()}
-              permalinkHref={permalinkHref}
-              selectedRunId={selectedRunId}
-            />
-          )}
-          trace={(
-            <TracePanel
-              currentExecutorMode={currentExecutorMode}
-              currentSession={currentSession}
-              latestAssistant={latestAssistant}
-              reportMarkdown={reportMarkdown}
-              sessionStatus={sessionStatus}
-            />
-          )}
-        />
+        <>
+          <Surface
+            className="data-lab-agent-risk-summary"
+            tone={trustedExecutionEnabled ? "warning" : "default"}
+            title="Runtime boundary"
+            actions={<Badge tone={trustedExecutionEnabled ? "warning" : "neutral"}>{trustedExecutionEnabled ? "Trusted execution enabled" : "Trusted execution disabled"}</Badge>}
+          >
+            <div className="metric-strip" aria-label="Data Lab Agent risk summary">
+              <MetricPill label="sandbox_claim" value={sandboxClaim} tone={sandboxClaim === "none" ? "neutral" : "warning"} />
+              <MetricPill label="trusted_execution" value={trustedExecutionEnabled ? "enabled" : "disabled"} tone={trustedExecutionEnabled ? "warning" : "neutral"} />
+              <MetricPill label="production guidance" value="keep disabled" tone="warning" />
+            </div>
+            <p className="muted">{riskWarning}</p>
+          </Surface>
+          <InspectorTabsPanel
+            dataset={<DatasetContextPanel firstAsset={firstAsset} firstProfile={firstProfile} previewColumns={previewColumns} />}
+            notebook={(
+              <NotebookExportPanel
+                currentSessionReady={Boolean(currentSession)}
+                notebookArtifactLabel={notebookArtifactLabel}
+                notebookExportMessage={notebookExportMessage}
+                notebookExportSource={notebookExportSource}
+                notebookExportState={notebookExportState}
+                notebookHref={notebookHref}
+                notebookPending={notebookMutation.isPending}
+                onPrepareNotebook={() => notebookMutation.mutate()}
+                permalinkHref={permalinkHref}
+                selectedRunId={selectedRunId}
+              />
+            )}
+            trace={(
+              <TracePanel
+                currentExecutorMode={currentExecutorMode}
+                currentSession={currentSession}
+                latestAssistant={latestAssistant}
+                reportMarkdown={reportMarkdown}
+                sessionStatus={sessionStatus}
+              />
+            )}
+          />
+        </>
       )}
     />
   );

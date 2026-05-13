@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Read the daily macro edition in public, then continue in a workspace that keeps providers, papers, Data Lab outputs, notes, and schedules aligned."
-      data-i18n-content="Read the daily macro edition in public, then continue in a workspace that keeps providers, papers, Data Lab outputs, notes, and schedules aligned."
+      content="Read the public macro briefing, then move into a private workspace for datasets, models, notes, and agent-assisted analysis."
+      data-i18n-content="Read the public macro briefing, then move into a private workspace for datasets, models, notes, and agent-assisted analysis."
     />
     <title data-i18n="Economic Research Platform">Economic Research Platform</title>
     <link rel="icon" href="/favicon.ico" />
@@ -14,171 +14,79 @@
     <script src="/assets/locale_runtime.js"></script>
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
-  <body class="page-home">
-    <div class="page-bg"></div>
+  <body class="page-home home-page">
+    <div class="page-bg" aria-hidden="true"></div>
 
-    <header class="home-nav">
-      <div class="home-nav__inner">
-        <a class="home-nav__brand" href="/">
-          <span class="home-nav__mark">ERP</span>
-          <span class="home-nav__label">Economic Research Platform</span>
+    <header class="landing-nav">
+      <div class="landing-nav__inner">
+        <a class="landing-nav__brand" href="/" aria-label="Economic Research Platform home">
+          <span class="landing-nav__wordmark">Economic Research Platform</span>
         </a>
-        <nav class="home-nav__links" aria-label="Primary">
+        <nav class="landing-nav__links" aria-label="Primary">
           <a href="#public-report-panel">Public briefing</a>
-          <a href="#auth-panel">Private workspace</a>
+          <a href="#auth-panel">Workspace</a>
+          <a href="/app/data-lab">Data Lab</a>
+          <a href="#auth-panel">Sign in</a>
         </nav>
       </div>
     </header>
 
-    <main class="home-shell">
-      <section class="home-hero" aria-label="Homepage hero">
-        <div class="home-hero__grid">
-          <div class="home-hero__content">
-            <p class="eyebrow">Research Terminal</p>
-            <h1>Public briefing first. Private workspace after sign-in.</h1>
-            <p class="home-hero__copy">
-              Read the daily macro edition in public, then continue in a workspace that keeps providers, papers, Data Lab outputs, notes, and schedules aligned.
-            </p>
+    <main class="landing-shell">
+      <section class="landing-hero" aria-label="Public landing">
+        <div class="landing-hero__content">
+          <p class="eyebrow">Economic research workspace</p>
+          <h1>An AI workspace for economic research.</h1>
+          <p class="landing-hero__copy">
+            Read the public macro briefing, then move into a private workspace for datasets, models, notes,
+            and agent-assisted analysis.
+          </p>
+          <div class="landing-hero__actions" aria-label="Primary actions">
+            <a class="button-link" href="#public-report-panel">Read briefing</a>
+            <a class="button-link secondary-link" href="#auth-panel">Open workspace</a>
+            <a class="button-link secondary-link" href="/app/overview">New workbench</a>
+          </div>
+        </div>
 
-            <div class="edition-bar" aria-label="Edition status">
-              <div class="edition-bar__item">
-                <span>Edition</span>
-                <strong id="edition-date">Loading latest edition</strong>
-              </div>
-              <div class="edition-bar__item">
-                <span>Platform</span>
-                <strong id="health-status">Loading latest edition</strong>
-              </div>
-              <div class="edition-bar__item">
-                <span>Digest</span>
-                <strong id="public-status">Loading latest edition</strong>
-              </div>
-              <div class="edition-bar__item">
-                <span>Access</span>
-                <strong>Public + Private</strong>
-              </div>
+        <aside class="landing-preview-card" aria-label="Workspace preview">
+          <div class="landing-preview-card__header">
+            <span class="status-pill status-pill--ready">Public + private</span>
+            <span id="edition-date">Loading latest edition</span>
+          </div>
+          <div class="landing-preview-list">
+            <div class="landing-preview-item">
+              <span>Today’s briefing</span>
+              <strong id="public-status">Loading latest edition</strong>
             </div>
-
-            <div class="signal-card-grid" aria-label="Signal summary">
-              <article class="signal-card">
-                <span>Macro pulse</span>
-                <strong id="signal-macro-value">Tracking</strong>
-                <div class="sparkline sparkline-up" aria-hidden="true">
-                  <span></span><span></span><span></span><span></span><span></span><span></span>
-                </div>
-              </article>
-              <article class="signal-card">
-                <span>Rates regime</span>
-                <strong id="signal-rates-value">Scanning</strong>
-                <div class="sparkline sparkline-flat" aria-hidden="true">
-                  <span></span><span></span><span></span><span></span><span></span><span></span>
-                </div>
-              </article>
-              <article class="signal-card">
-                <span>Risk tone</span>
-                <strong id="signal-risk-value">Neutral</strong>
-                <div class="sparkline sparkline-soft" aria-hidden="true">
-                  <span></span><span></span><span></span><span></span><span></span><span></span>
-                </div>
-              </article>
+            <div class="landing-preview-item">
+              <span>Workspace</span>
+              <strong id="health-status">Private context</strong>
             </div>
-
-            <div class="home-hero__actions">
-              <a class="button-link" href="#public-report-panel">Read current briefing</a>
-              <a class="button-link secondary-link" href="#auth-panel">Open private workspace</a>
+            <div class="landing-preview-item">
+              <span>Data Lab</span>
+              <strong>Datasets and checks</strong>
             </div>
-
-            <div class="flow-lane" aria-label="Research flow">
-              <span class="flow-pill flow-pill--active">Public briefing</span>
-              <span class="flow-separator">&rarr;</span>
-              <span class="flow-pill">Workspace</span>
-              <span class="flow-separator">&rarr;</span>
-              <span class="flow-pill">Providers</span>
-              <span class="flow-separator">&rarr;</span>
-              <span class="flow-pill">Data Lab</span>
-              <span class="flow-separator">&rarr;</span>
-              <span class="flow-pill">Knowledge</span>
+            <div class="landing-preview-item">
+              <span>Agent</span>
+              <strong>Assisted analysis</strong>
             </div>
           </div>
-
-          <section class="home-auth-card" id="auth-panel" aria-label="Private workspace">
-            <div class="home-auth-card__header">
-              <p class="eyebrow eyebrow-compact">Private Workspace</p>
-              <h2 id="auth-panel-title">Sign in for the private workspace</h2>
-              <p class="muted" id="auth-panel-copy">Public reading stays open. Private modules unlock after sign-in.</p>
-            </div>
-
-            <div class="status-row home-session-status">
-              <span class="pill" id="session-indicator">Signed out</span>
-              <span class="muted" id="user-summary">Register or sign in to unlock the private modules.</span>
-            </div>
-
-            <div class="auth-grid home-auth-grid" id="auth-grid">
-              <form id="register-form" class="stack home-auth-form" data-auth-form>
-                <h3>Create account</h3>
-                <input name="full_name" type="text" placeholder="Full name" data-i18n-placeholder="Full name" autocomplete="name" required />
-                <input name="email" type="email" placeholder="Email" data-i18n-placeholder="Email" autocomplete="email" required />
-                <input name="password" type="password" placeholder="Password (12+ characters)" data-i18n-placeholder="Password (12+ characters)" autocomplete="new-password" minlength="12" required />
-                <button type="submit">Register</button>
-              </form>
-
-              <form id="login-form" class="stack home-auth-form" data-auth-form>
-                <h3>Sign in</h3>
-                <input name="email" type="email" placeholder="Email" data-i18n-placeholder="Email" autocomplete="username" required />
-                <input name="password" type="password" placeholder="Password" data-i18n-placeholder="Password" autocomplete="current-password" required />
-                <button type="submit">Log in</button>
-                <button id="password-reset-toggle" type="button" class="secondary">Forgot password</button>
-              </form>
-
-              <form id="password-reset-request-form" class="stack home-auth-form hidden" data-auth-form>
-                <h3>Password reset</h3>
-                <input name="email" type="email" placeholder="Email" data-i18n-placeholder="Email" autocomplete="email" required />
-                <button type="submit">Send reset link</button>
-              </form>
-
-              <form id="password-reset-confirm-form" class="stack home-auth-form hidden" data-auth-form>
-                <h3>Set new password</h3>
-                <input name="token" type="hidden" />
-                <input name="password" type="password" placeholder="Password (12+ characters)" data-i18n-placeholder="Password (12+ characters)" autocomplete="new-password" minlength="12" required />
-                <button type="submit">Reset password</button>
-              </form>
-
-              <div class="stack home-session-card hidden" id="workspace-box">
-                <div class="home-session-card__top">
-                  <div>
-                    <p class="eyebrow eyebrow-compact">Workspace Ready</p>
-                    <h3 id="home-workspace-name">No workspace selected</h3>
-                  </div>
-                  <span class="status-pill status-pill--ready">Private</span>
-                </div>
-                <p class="muted" id="home-workspace-status">
-                  Open the workspace cockpit to switch workspaces and continue private research.
-                </p>
-                <div class="actions compact-actions">
-                  <a href="/app/overview" class="button-link">Open new workbench</a>
-                  <a href="/app/data-lab-agent" class="button-link secondary-link">Open Data Lab Agent</a>
-                  <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
+        </aside>
       </section>
 
-      <section class="home-public-panel" id="public-report-panel">
-        <div class="section-head">
+      <section class="landing-section landing-briefing-section" id="public-report-panel">
+        <div class="landing-section__header">
           <div>
-            <p class="eyebrow eyebrow-compact">Current Briefing</p>
+            <p class="eyebrow">Public briefing</p>
             <h2 id="public-current-title">Loading latest edition</h2>
             <p class="muted" id="public-current-meta">Loading latest edition</p>
           </div>
           <a href="/public-monitor" class="button-link secondary-link">Open Daily Monitor</a>
         </div>
 
-        <div class="home-public-grid">
-          <article class="home-briefing-card">
-            <div class="home-public-meta" id="public-latest-meta">Loading latest edition</div>
-              <div id="public-latest-view" class="report-copy" data-i18n-skip>
+        <div class="landing-briefing-grid">
+          <article class="landing-briefing-card landing-briefing-card--primary">
+            <div class="landing-card-meta" id="public-latest-meta">Loading latest edition</div>
+            <div id="public-latest-view" class="report-copy" data-i18n-skip>
               <div class="skeleton-block skeleton-block-title"></div>
               <div class="skeleton-block"></div>
               <div class="skeleton-block"></div>
@@ -186,15 +94,13 @@
             </div>
           </article>
 
-          <article class="home-summary-card">
-            <div class="section-head section-head--compact">
-              <div>
-                <p class="eyebrow eyebrow-compact">Rolling Summary</p>
-                <h3 id="public-summary-title">Rolling Summary</h3>
-                <p class="muted" id="public-summary-meta">Loading latest edition</p>
-              </div>
+          <article class="landing-briefing-card">
+            <div class="landing-card-heading">
+              <p class="eyebrow">Rolling summary</p>
+              <h3 id="public-summary-title">Rolling Summary</h3>
+              <p class="muted" id="public-summary-meta">Loading latest edition</p>
             </div>
-              <div id="public-summary-view" class="report-copy" data-i18n-skip>
+            <div id="public-summary-view" class="report-copy" data-i18n-skip>
               <div class="skeleton-block"></div>
               <div class="skeleton-block"></div>
               <div class="skeleton-block skeleton-block-short"></div>
@@ -203,95 +109,130 @@
         </div>
       </section>
 
-      <section class="home-modules-panel" aria-label="Research routes">
-        <div class="section-head">
-          <div>
-            <p class="eyebrow eyebrow-compact">Research Routes</p>
-            <h2>Two entry paths, one shared model</h2>
-            <p class="muted">Use home for orientation. Do the work in focused pages.</p>
+      <section class="landing-section landing-auth-section" id="auth-panel" aria-label="Private workspace">
+        <div class="landing-auth-copy">
+          <p class="eyebrow">Private workspace</p>
+          <h2 id="auth-panel-title">Sign in for the private workspace</h2>
+          <p id="auth-panel-copy">
+            Public reading stays open. Sign in to keep runs, datasets, notes, and quality checks together.
+          </p>
+          <div class="landing-auth-benefits" aria-label="Private workspace capabilities">
+            <span>Research runs</span>
+            <span>Structured datasets</span>
+            <span>Knowledge notes</span>
+            <span>Quality gates</span>
+          </div>
+          <div class="status-row landing-session-status">
+            <span class="pill" id="session-indicator">Signed out</span>
+            <span class="muted" id="user-summary">Register or sign in to unlock the private workspace.</span>
           </div>
         </div>
 
-        <div class="home-route-layout">
-          <article class="home-route-panel">
-            <p class="eyebrow eyebrow-compact">Public line</p>
-            <h3>Read, compare, and share</h3>
-            <div class="home-route-list">
-              <div class="home-route-item">
-                <strong>Daily Monitor</strong>
-                <p>Current edition, source panel, review queue, and recent published runs.</p>
+        <div class="landing-auth-card">
+          <div class="auth-grid landing-auth-grid" id="auth-grid">
+            <form id="register-form" class="stack landing-auth-form" data-auth-form>
+              <h3>Create account</h3>
+              <input name="full_name" type="text" placeholder="Full name" data-i18n-placeholder="Full name" autocomplete="name" required />
+              <input name="email" type="email" placeholder="Email" data-i18n-placeholder="Email" autocomplete="email" required />
+              <input name="password" type="password" placeholder="Password (12+ characters)" data-i18n-placeholder="Password (12+ characters)" autocomplete="new-password" minlength="12" required />
+              <button type="submit">Register</button>
+            </form>
+
+            <form id="login-form" class="stack landing-auth-form" data-auth-form>
+              <h3>Sign in</h3>
+              <input name="email" type="email" placeholder="Email" data-i18n-placeholder="Email" autocomplete="username" required />
+              <input name="password" type="password" placeholder="Password" data-i18n-placeholder="Password" autocomplete="current-password" required />
+              <button type="submit">Log in</button>
+              <button id="password-reset-toggle" type="button" class="secondary">Forgot password</button>
+            </form>
+
+            <form id="password-reset-request-form" class="stack landing-auth-form hidden" data-auth-form>
+              <h3>Password reset</h3>
+              <input name="email" type="email" placeholder="Email" data-i18n-placeholder="Email" autocomplete="email" required />
+              <button type="submit">Send reset link</button>
+            </form>
+
+            <form id="password-reset-confirm-form" class="stack landing-auth-form hidden" data-auth-form>
+              <h3>Set new password</h3>
+              <input name="token" type="hidden" />
+              <input name="password" type="password" placeholder="Password (12+ characters)" data-i18n-placeholder="Password (12+ characters)" autocomplete="new-password" minlength="12" required />
+              <button type="submit">Reset password</button>
+            </form>
+
+            <div class="stack landing-session-card hidden" id="workspace-box">
+              <div class="landing-session-card__top">
+                <div>
+                  <p class="eyebrow">Workspace ready</p>
+                  <h3 id="home-workspace-name">No workspace selected</h3>
+                </div>
+                <span class="status-pill status-pill--ready">Private</span>
               </div>
-              <div class="home-route-item">
-                <strong>Weekly and Monthly Summaries</strong>
-                <p>Longer windows that stay separate from the daily page.</p>
+              <p class="muted" id="home-workspace-status">
+                Open the workspace to switch context and continue private research.
+              </p>
+              <div class="actions compact-actions">
+                <a href="/app/overview" class="button-link">Open new workbench</a>
+                <a href="/app/data-lab" class="button-link secondary-link">Open Data Lab</a>
+                <a href="/app/data-lab-agent" class="button-link secondary-link">Open Data Lab Agent</a>
+                <button id="session-signout-button" type="button" class="secondary hidden">Sign out</button>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="landing-section landing-capabilities-section" aria-label="Product capabilities">
+        <div class="landing-section__header">
+          <div>
+            <p class="eyebrow">Workspace tools</p>
+            <h2>Move from reading to private research.</h2>
+            <p class="muted">Focused surfaces for research runs, structured data, memory, and review.</p>
+          </div>
+        </div>
+
+        <div class="landing-capability-grid">
+          <article class="landing-capability-card private-module-card is-locked" data-private-card>
+            <span class="status-pill status-pill--locked">Locked</span>
+            <h3>Research runs</h3>
+            <p>Queue and review focused research work in the private workspace.</p>
+            <span class="module-availability">Available after sign-in</span>
+            <button type="button" class="secondary" data-private-link="/app/research">Sign in to open</button>
           </article>
 
-          <article class="home-route-panel">
-            <p class="eyebrow eyebrow-compact">Private line</p>
-            <h3>Build the research workspace</h3>
-            <div class="private-module-grid">
-              <article class="private-module-card is-locked" data-private-card>
-                <span class="status-pill status-pill--locked">Locked</span>
-                <h3>Workspace</h3>
-                <p>Current state, recent activity, and next action.</p>
-                <span class="module-availability">Available after sign-in</span>
-                <button type="button" class="secondary" data-private-link="/app/overview">Sign in to open</button>
-              </article>
+          <article class="landing-capability-card private-module-card is-locked" data-private-card>
+            <span class="status-pill status-pill--locked">Locked</span>
+            <h3>Data Lab</h3>
+            <p>Prepare datasets, run checks, inspect results, and continue with the agent runtime.</p>
+            <span class="module-availability">Available after sign-in</span>
+            <button type="button" class="secondary" data-private-link="/app/data-lab">Sign in to open</button>
+          </article>
 
-              <article class="private-module-card is-locked" data-private-card>
-                <span class="status-pill status-pill--locked">Locked</span>
-                <h3>Provider Center</h3>
-                <p>Connections for models and data sources.</p>
-                <span class="module-availability">Available after sign-in</span>
-                <button type="button" class="secondary" data-private-link="/app/providers">Sign in to open</button>
-              </article>
+          <article class="landing-capability-card private-module-card is-locked" data-private-card>
+            <span class="status-pill status-pill--locked">Locked</span>
+            <h3>Knowledge</h3>
+            <p>Keep notes, reusable context, and literature records close to the work.</p>
+            <span class="module-availability">Available after sign-in</span>
+            <button type="button" class="secondary" data-private-link="/app/knowledge">Sign in to open</button>
+          </article>
 
-              <article class="private-module-card is-locked" data-private-card>
-                <span class="status-pill status-pill--locked">Locked</span>
-                <h3>Paper Library</h3>
-                <p>Search, import, and route literature.</p>
-                <span class="module-availability">Available after sign-in</span>
-                <button type="button" class="secondary" data-private-link="/app/knowledge">Sign in to open</button>
-              </article>
-
-              <article class="private-module-card is-locked" data-private-card>
-                <span class="status-pill status-pill--locked">Locked</span>
-                <h3>Knowledge Base</h3>
-                <p>Notes, cases, and reusable summaries.</p>
-                <span class="module-availability">Available after sign-in</span>
-                <button type="button" class="secondary" data-private-link="/app/knowledge">Sign in to open</button>
-              </article>
-
-              <article class="private-module-card is-locked" data-private-card>
-                <span class="status-pill status-pill--locked">Locked</span>
-                <h3>Data Lab</h3>
-                <p>Preparation, estimation, optimization, and result detail.</p>
-                <span class="module-availability">Available after sign-in</span>
-                <button type="button" class="secondary" data-private-link="/app/data-lab-agent">Sign in to open</button>
-              </article>
-
-              <article class="private-module-card is-locked" data-private-card>
-                <span class="status-pill status-pill--locked">Locked</span>
-                <h3>Schedules</h3>
-                <p>Recurring briefing and research jobs.</p>
-                <span class="module-availability">Available after sign-in</span>
-                <button type="button" class="secondary" data-private-link="/schedules">Sign in to open</button>
-              </article>
-            </div>
+          <article class="landing-capability-card private-module-card is-locked" data-private-card>
+            <span class="status-pill status-pill--locked">Locked</span>
+            <h3>Quality gates</h3>
+            <p>Review readiness and delivery state before publishing artifacts.</p>
+            <span class="module-availability">Available after sign-in</span>
+            <button type="button" class="secondary" data-private-link="/app/quality">Sign in to open</button>
           </article>
         </div>
       </section>
 
-      <section class="home-public-panel">
-        <div class="section-head section-head--compact">
+      <section class="landing-section landing-editions-section">
+        <div class="landing-section__header">
           <div>
-            <p class="eyebrow eyebrow-compact">Recent Versions</p>
-            <h2>Recent editions</h2>
+            <p class="eyebrow">Recent editions</p>
+            <h2>Earlier public briefings</h2>
           </div>
         </div>
-        <div id="public-briefing-list" class="home-edition-list">
+        <div id="public-briefing-list" class="landing-edition-list">
           <article class="edition-card">
             <div class="skeleton-block skeleton-block-title"></div>
             <div class="skeleton-block skeleton-block-short"></div>

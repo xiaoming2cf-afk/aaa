@@ -20,8 +20,9 @@ Frontend shell files are not hot-reloaded by the default `serve` command. After 
 
 ### Workbench Entrypoints
 
+- `/`: public landing page with the current macro briefing, recent editions, sign-in, and workspace entry.
 - `/app/overview`: SPA command center and default `/app` destination.
-- `/app/data-lab`: SPA Data Lab hub for counts, recent history, legacy workbench links, and agent boundary messaging.
+- `/app/data-lab`: SPA Data Lab hub for workflow entry, counts, recent history, legacy workbench links, and agent boundary messaging.
 - `/app/data-lab-agent`: SPA agentic analysis runtime.
 - `/data-lab`: legacy full Data Lab workbench for dataset intake, preparation, model, results, and history.
 - `/data-lab/optimization`: legacy Optimization Lab workbench.
@@ -213,6 +214,7 @@ For deployed environments, align these pieces together:
 - Render defaults should keep `RESEARCH_RUNTIME_ENABLED=false`, `DATA_LAB_AGENT_ENABLED=false`, `DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED=false`, and `AGENT_MATH_MODE=shadow`, with delivery threshold and override margin configured explicitly in environment variables.
 - Data Lab Agent Python execution is trusted local execution, not a sandbox. Only enable `DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED=true` in an authorized deployment that accepts that risk boundary.
 - Main branch is the only release source. Merge only after the delivery gate and real workspace publish validation both pass.
+- Render serves the public landing and SPA from the merged main branch; UI redesigns appear on the public service only after the branch is merged to main and Render rebuilds.
 
 ## Release Gate
 

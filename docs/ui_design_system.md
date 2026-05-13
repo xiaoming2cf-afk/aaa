@@ -7,6 +7,7 @@
 - Do not copy OpenAI trademarks, logos, proprietary illustrations, brand copy, or protected visual assets.
 - Keep operational pages workflow-first instead of decorative or marketing-heavy.
 - The current SPA visual pass intentionally moves away from the previous green/teal admin-console palette toward a neutral AI workspace palette while using only project-owned UI styles and copy.
+- Public `/` and SPA `/app/*` now share the same neutral workspace language: off-white background, white cards, black primary actions, light navigation, and restrained status color.
 
 ## Tokens
 
@@ -18,6 +19,7 @@
 - Status: `--danger: #b42318`, `--warning: #9a6700`, and `--success: #1f7a55`.
 - Radius: `--radius-sm`, `--radius-md`, and `--radius-lg` keep controls compact and cards softly rounded.
 - Shadow: `--shadow-soft` is subtle and optional; borders should carry most separation.
+- Deprecated compatibility aliases such as `--teal` and `--surface-teal` may remain while old selectors are retired, but their values must stay neutral and new components must use `--accent` and `--accent-soft`.
 
 ## Layout
 
@@ -26,6 +28,7 @@
 - Use a right inspector where contextual evidence, safety, artifacts, or metadata are useful.
 - Prefer constrained content width for reading surfaces and denser grids for operational summaries.
 - Mobile layouts should stack navigation, primary content, and inspector content without overlap.
+- Public landing layout should feel like an AI workspace entry: concise top nav, plain hero copy, one preview card, one briefing section, one auth/workspace section, four capability cards, and recent editions.
 
 ## Components
 
@@ -38,6 +41,7 @@
 - Command Bar: keep page actions compact and low-emphasis; avoid treating refresh or secondary actions as primary CTAs.
 - Stepper: workflow stage display for Dataset, Preparation, Model, Results, History, Agent, and Optimization.
 - Surface primitives: use shared `surface`, `metric-card`, `action-card`, `inspector-panel`, and `command-bar` classes before creating page-specific card styles.
+- Data Lab Agent must keep user-facing conversation separate from developer/runtime evidence. Risk state belongs in a visible inspector summary, while trace content stays behind the Trace tab.
 
 ## Legacy Compatibility
 
