@@ -8,6 +8,7 @@
 - Keep operational pages workflow-first instead of decorative or marketing-heavy.
 - The current SPA visual pass intentionally moves away from the previous green/teal admin-console palette toward a neutral AI workspace palette while using only project-owned UI styles and copy.
 - Public `/` and SPA `/app/*` now share the same neutral workspace language: off-white background, white cards, black primary actions, light navigation, and restrained status color.
+- The public landing final cleanup removes the remaining financial-terminal styling: no serif headings, no teal primary, no heavy module grid in the first viewport, and no OpenAI brand assets or protected product copy.
 
 ## Tokens
 
@@ -29,6 +30,7 @@
 - Prefer constrained content width for reading surfaces and denser grids for operational summaries.
 - Mobile layouts should stack navigation, primary content, and inspector content without overlap.
 - Public landing layout should feel like an AI workspace entry: concise top nav, plain hero copy, one preview card, one briefing section, one auth/workspace section, four capability cards, and recent editions.
+- The first public viewport should stay limited to nav, hero title, short subtitle, three actions, and one simple preview card.
 
 ## Components
 
