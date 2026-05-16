@@ -15,6 +15,17 @@ from research_agent.entities import DataAsset, User, Workspace
 from research_agent.utils import slugify
 
 DATASET_KINDS = {"dataset_csv", "dataset_excel", "dataset_json"}
+MAX_DATASET_INPUT_BYTES = 25 * 1024 * 1024
+MAX_DATASET_ROWS = 250_000
+MAX_DATASET_COLUMNS = 500
+MAX_DATASET_CELLS = 5_000_000
+MAX_DATASET_MEMORY_BYTES = 256 * 1024 * 1024
+MAX_DATASET_MEMORY_AMPLIFICATION = 12
+MIN_DATASET_MEMORY_AMPLIFICATION_BYTES = 32 * 1024 * 1024
+
+
+class DatasetLimitError(ValueError):
+    pass
 
 
 def serialize_preview_value(value: Any) -> Any:
@@ -154,15 +165,63 @@ def column_profile(frame: pd.DataFrame, source_map: dict[str, str], column: str)
     return profile
 
 
+def _frame_memory_usage_bytes(frame: pd.DataFrame) -> int:
+    try:
+        return int(frame.memory_usage(index=True, deep=True).sum())
+    except Exception:
+        return int(frame.memory_usage(index=True).sum())
+
+
+def _enforce_dataset_limits(frame: pd.DataFrame, *, raw_size_bytes: int) -> pd.DataFrame:
+    row_count = int(frame.shape[0])
+    column_count = int(frame.shape[1])
+    cell_count = row_count * column_count
+    memory_bytes = _frame_memory_usage_bytes(frame)
+    if raw_size_bytes > MAX_DATASET_INPUT_BYTES:
+        raise DatasetLimitError(
+            f"Dataset file is {raw_size_bytes:,} bytes; the Data Lab limit is {MAX_DATASET_INPUT_BYTES:,} bytes."
+        )
+    if row_count > MAX_DATASET_ROWS:
+        raise DatasetLimitError(f"Dataset has {row_count:,} rows; the Data Lab limit is {MAX_DATASET_ROWS:,} rows.")
+    if column_count > MAX_DATASET_COLUMNS:
+        raise DatasetLimitError(
+            f"Dataset has {column_count:,} columns; the Data Lab limit is {MAX_DATASET_COLUMNS:,} columns."
+        )
+    if cell_count > MAX_DATASET_CELLS:
+        raise DatasetLimitError(
+            f"Dataset has {cell_count:,} cells; the Data Lab limit is {MAX_DATASET_CELLS:,} cells."
+        )
+    if memory_bytes > MAX_DATASET_MEMORY_BYTES:
+        raise DatasetLimitError(
+            f"Dataset expands to about {memory_bytes:,} bytes in memory; the Data Lab limit is {MAX_DATASET_MEMORY_BYTES:,} bytes."
+        )
+    if (
+        raw_size_bytes > 0
+        and memory_bytes > MIN_DATASET_MEMORY_AMPLIFICATION_BYTES
+        and memory_bytes > raw_size_bytes * MAX_DATASET_MEMORY_AMPLIFICATION
+    ):
+        raise DatasetLimitError(
+            "Dataset expands too much during parsing; reduce wide text columns or upload a smaller structured sample."
+        )
+    return frame
+
+
 def load_dataset_frame(settings: Settings, asset: DataAsset) -> pd.DataFrame:
     raw_bytes = load_asset_bytes(settings, asset.file_path)
+    raw_size_bytes = len(raw_bytes)
+    if raw_size_bytes > MAX_DATASET_INPUT_BYTES:
+        raise DatasetLimitError(
+            f"Dataset file is {raw_size_bytes:,} bytes; the Data Lab limit is {MAX_DATASET_INPUT_BYTES:,} bytes."
+        )
     if asset.kind == "dataset_csv":
-        return pd.read_csv(BytesIO(raw_bytes))
-    if asset.kind == "dataset_excel":
-        return pd.read_excel(BytesIO(raw_bytes))
-    if asset.kind == "dataset_json":
-        return pd.DataFrame(json.loads(raw_bytes.decode("utf-8")))
-    raise ValueError("This asset is not a structured dataset.")
+        frame = pd.read_csv(BytesIO(raw_bytes), nrows=MAX_DATASET_ROWS + 1)
+    elif asset.kind == "dataset_excel":
+        frame = pd.read_excel(BytesIO(raw_bytes), nrows=MAX_DATASET_ROWS + 1)
+    elif asset.kind == "dataset_json":
+        frame = pd.DataFrame(json.loads(raw_bytes.decode("utf-8")))
+    else:
+        raise ValueError("This asset is not a structured dataset.")
+    return _enforce_dataset_limits(frame, raw_size_bytes=raw_size_bytes)
 
 
 def analysis_asset_or_raise(db: Session, *, user: User, workspace: Workspace, asset_id: str) -> DataAsset:

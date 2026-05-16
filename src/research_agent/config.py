@@ -181,6 +181,12 @@ class Settings(BaseModel):
     agent_math_override_margin: float = Field(
         default_factory=lambda: float(os.getenv("AGENT_MATH_OVERRIDE_MARGIN", "0.05"))
     )
+    optimization_lab_max_request_tasks: int = Field(
+        default_factory=lambda: int(os.getenv("OPTIMIZATION_LAB_MAX_REQUEST_TASKS", "120"))
+    )
+    optimization_lab_max_request_evaluations: int = Field(
+        default_factory=lambda: int(os.getenv("OPTIMIZATION_LAB_MAX_REQUEST_EVALUATIONS", "500000"))
+    )
 
     def ensure_directories(self) -> None:
         self.storage_dir.mkdir(parents=True, exist_ok=True)
@@ -275,6 +281,10 @@ class Settings(BaseModel):
     def validate_runtime_configuration(self) -> None:
         if not self.is_development_env and not self.has_strong_app_secret:
             raise RuntimeError("APP_SECRET must be changed before running outside development/test.")
+        if not self.is_development_env and self.data_lab_agent_trusted_execution_enabled:
+            raise RuntimeError(
+                "DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED=true is only allowed in development/test environments."
+            )
         if self.smtp_security not in {"ssl", "starttls"}:
             raise RuntimeError("SMTP_SECURITY must be one of: ssl, starttls.")
         if self.password_reset_ttl_minutes <= 0:
@@ -287,6 +297,10 @@ class Settings(BaseModel):
             raise RuntimeError("AGENT_MATH_HUMAN_THRESHOLD must be between 0.0 and 1.0.")
         if not 0.0 <= self.agent_math_override_margin <= 1.0:
             raise RuntimeError("AGENT_MATH_OVERRIDE_MARGIN must be between 0.0 and 1.0.")
+        if not 1 <= self.optimization_lab_max_request_tasks <= 240:
+            raise RuntimeError("OPTIMIZATION_LAB_MAX_REQUEST_TASKS must be between 1 and 240.")
+        if not 1 <= self.optimization_lab_max_request_evaluations <= 5_000_000:
+            raise RuntimeError("OPTIMIZATION_LAB_MAX_REQUEST_EVALUATIONS must be between 1 and 5000000.")
 
 
 def get_settings() -> Settings:

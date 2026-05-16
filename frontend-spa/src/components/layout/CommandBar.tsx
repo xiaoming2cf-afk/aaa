@@ -5,6 +5,9 @@ import { Button } from "../ui";
 import { ScopePanel } from "./ScopePanel";
 import type { RouteMetadata, Team, Workspace } from "./types";
 
+const LANGUAGE_BUTTON_LABEL = "EN / \u4e2d\u6587";
+const LANGUAGE_OPTION_ZH = "\u4e2d\u6587 / EN";
+
 type CommandBarProps = {
   currentRoute: RouteMetadata;
   currentWorkspace?: Workspace;
@@ -34,12 +37,18 @@ export function CommandBar({
   const { language, t, toggleLanguage } = useI18n();
   const routeEyebrow = currentRoute.eyebrowKey ? t(currentRoute.eyebrowKey) : currentRoute.eyebrow;
   const routeTitle = currentRoute.titleKey ? t(currentRoute.titleKey) : currentRoute.title;
+  const languageButtonText = language === "zh" ? LANGUAGE_BUTTON_LABEL : LANGUAGE_OPTION_ZH;
 
   return (
     <header className="ops-command-bar">
       <div className="ops-command-title">
         <p className="eyebrow">{routeEyebrow}</p>
-        <h2><CurrentIcon aria-hidden="true" size={22} /> {routeTitle}</h2>
+        <h2>
+          <span className="ops-command-title-icon" aria-hidden="true">
+            <CurrentIcon size={22} />
+          </span>
+          <span>{routeTitle}</span>
+        </h2>
         <p className="ops-command-scope">
           {currentWorkspace?.name || t("app.workspacePending")} / {currentTeam?.name || t("app.noTeamSelected")}
         </p>
@@ -69,10 +78,10 @@ export function CommandBar({
           type="button"
           variant="ghost"
           className="ops-language-toggle"
-          aria-label="EN / 中文"
+          aria-label={LANGUAGE_BUTTON_LABEL}
           onClick={toggleLanguage}
         >
-          {language === "zh" ? "EN / 中文" : "中文 / EN"}
+          {languageButtonText}
         </Button>
         <span className="ops-avatar" aria-label="Signed in user">{(currentTeam?.name || currentWorkspace?.name || "VK").slice(0, 2).toUpperCase()}</span>
       </div>

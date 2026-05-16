@@ -187,6 +187,36 @@ def test_data_lab_trusted_execution_defaults_false_in_production():
     assert settings.data_lab_agent_trusted_execution_enabled is False
 
 
+def test_data_lab_trusted_execution_is_rejected_outside_dev_test():
+    settings = Settings(
+        app_env="production",
+        app_secret="prod-secret-with-sufficient-length-1234567890",
+        data_lab_agent_trusted_execution_enabled=True,
+    )
+
+    try:
+        settings.validate_runtime_configuration()
+    except RuntimeError as exc:
+        assert "DATA_LAB_AGENT_TRUSTED_EXECUTION_ENABLED" in str(exc)
+        return
+    raise AssertionError("Production must reject Data Lab Agent trusted execution.")
+
+
+def test_data_lab_dataset_reader_enforces_shape_limits(monkeypatch):
+    from research_agent.datalab import datasets
+
+    monkeypatch.setattr(datasets, "MAX_DATASET_COLUMNS", 2)
+    monkeypatch.setattr(datasets, "load_asset_bytes", lambda settings, file_path: b"a,b,c\n1,2,3\n")
+    asset = SimpleNamespace(kind="dataset_csv", file_path="ignored.csv")
+
+    try:
+        datasets.load_dataset_frame(Settings(app_env="test"), asset)
+    except ValueError as exc:
+        assert "columns" in str(exc).lower()
+        return
+    raise AssertionError("Data Lab dataset reader should reject datasets above the column cap.")
+
+
 def test_data_lab_trusted_execution_subprocess_env_is_minimal(monkeypatch):
     from research_agent.data_lab_agent import _safe_subprocess_env
 

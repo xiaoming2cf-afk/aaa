@@ -41,7 +41,7 @@ export function AppChrome({
         routes={routes}
         sessionUser={sessionUser}
       />
-      <div className="ops-workbench">
+      <div className="ops-workbench" data-chrome="workbench">
         <CommandBar
           currentRoute={currentRoute}
           currentWorkspace={currentWorkspace}
@@ -54,7 +54,7 @@ export function AppChrome({
           onTeamChange={onTeamChange}
           onRefreshAll={onRefreshAll}
         />
-        <main className="ops-main">
+        <main className="ops-main" id="main-content">
           <div className="ops-main-inner">
             {children}
           </div>

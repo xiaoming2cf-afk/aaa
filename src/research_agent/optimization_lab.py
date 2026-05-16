@@ -108,6 +108,8 @@ OPFUNU_ABSTRACT_NAMES = {"Benchmark", "CecBenchmark"}
 OPFUNU_DIMENSION_CANDIDATES = (30, 10, 50, 100, 5, 2)
 MAX_PARALLEL_TASKS = 240
 MAX_ESTIMATED_EVALUATIONS = 5_000_000
+DEFAULT_MAX_REQUEST_TASKS = 120
+DEFAULT_MAX_REQUEST_EVALUATIONS = 500_000
 MIN_STANDARD_ALGORITHMS = 3
 MIN_STANDARD_FUNCTIONS = 3
 MIN_STANDARD_RUNS = 3
@@ -207,6 +209,14 @@ def _coerce_bounded_int(field_name: str, value: Any, *, minimum: int, maximum: i
     if integer < minimum or integer > maximum:
         raise ValueError(f"{field_name} must be between {minimum} and {maximum}.")
     return integer
+
+
+def _settings_bounded_int(settings: Settings, field_name: str, *, default: int, minimum: int, maximum: int) -> int:
+    value = getattr(settings, field_name, default)
+    try:
+        return _coerce_bounded_int(field_name, value, minimum=minimum, maximum=maximum)
+    except ValueError:
+        return default
 
 
 def _unique_nonempty_strings(values: list[str] | None) -> list[str]:
@@ -1073,6 +1083,30 @@ def run_optimization_suite(
         raise ValueError(
             f"Requested suite implies about {estimated_evaluations:,} evaluations, above the safety cap of {MAX_ESTIMATED_EVALUATIONS:,}."
         )
+    request_task_cap = _settings_bounded_int(
+        settings,
+        "optimization_lab_max_request_tasks",
+        default=DEFAULT_MAX_REQUEST_TASKS,
+        minimum=1,
+        maximum=MAX_PARALLEL_TASKS,
+    )
+    request_evaluation_cap = _settings_bounded_int(
+        settings,
+        "optimization_lab_max_request_evaluations",
+        default=DEFAULT_MAX_REQUEST_EVALUATIONS,
+        minimum=1,
+        maximum=MAX_ESTIMATED_EVALUATIONS,
+    )
+    if total_tasks > request_task_cap:
+        raise ValueError(
+            f"Requested suite creates {total_tasks} web request tasks, above the configured Optimization Lab cap of {request_task_cap}."
+        )
+    if estimated_evaluations > request_evaluation_cap:
+        raise ValueError(
+            "Requested suite implies about "
+            f"{estimated_evaluations:,} evaluations, above the configured Optimization Lab web request cap of "
+            f"{request_evaluation_cap:,}."
+        )
 
     task_payloads: list[dict[str, Any]] = []
     seed_counter = seed_base_value
@@ -1328,6 +1362,8 @@ def run_optimization_suite(
         "worker_count": worker_count,
         "parallel_backend": parallel_backend,
         "estimated_evaluations": estimated_evaluations,
+        "request_task_cap": request_task_cap,
+        "request_evaluation_cap": request_evaluation_cap,
         "max_effective_epoch": max_effective_epoch,
         "max_effective_pop_size": max_effective_pop_size,
         "success_count": len(success_rows),

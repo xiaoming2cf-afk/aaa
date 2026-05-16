@@ -109,6 +109,30 @@ def test_trusted_execution_disabled_blocks_user_code_and_notebook_requires_csrf(
     assert download.status_code in {401, 404}
 
 
+def test_agent_session_rejects_dataset_that_exceeds_reader_limits(monkeypatch, app_env):
+    client = _client_with_agent(monkeypatch, trusted_execution=False)
+    auth = _register_workspace(client)
+    from research_agent.datalab import datasets
+
+    monkeypatch.setattr(datasets, "MAX_DATASET_COLUMNS", 2)
+    response = client.post(
+        f"/api/workspaces/{auth['workspace_id']}/assets/upload",
+        headers={"X-CSRF-Token": auth["csrf"]},
+        data={"description": "too wide agent dataset"},
+        files={"file": ("wide.csv", b"a,b,c\n1,2,3\n", "text/csv")},
+    )
+    assert response.status_code == 200, response.text
+    asset_id = response.json()["asset"]["id"]
+
+    created = client.post(
+        f"/api/workspaces/{auth['workspace_id']}/data-lab/agent/sessions",
+        headers={"X-CSRF-Token": auth["csrf"]},
+        json={"asset_ids": [asset_id], "title": "Too Wide", "language": "Chinese"},
+    )
+    assert created.status_code == 400, created.text
+    assert "columns" in created.json()["detail"].lower()
+
+
 def test_trusted_execution_enabled_still_makes_no_sandbox_claim_or_path_leak(monkeypatch, app_env):
     client = _client_with_agent(monkeypatch, trusted_execution=True)
     auth = _register_workspace(client)

@@ -5,6 +5,7 @@ import math
 from typing import Any
 
 from research_agent.optimization_lab import (
+    DEFAULT_MAX_REQUEST_TASKS,
     MAX_ESTIMATED_EVALUATIONS,
     MAX_PARALLEL_TASKS,
     MEALPY_DISABLED_OPTIMIZERS,
@@ -117,6 +118,23 @@ def test_optimization_suite_minimums_and_resource_caps_fail_before_launch(client
         "pop_size": eval_cap_pop_size,
     }
     _assert_rejected(_run_suite(client, workspace_id, csrf_token, too_many_evaluations), "evaluations")
+
+
+def test_optimization_suite_web_request_task_cap_fails_before_launch(client, auth_headers):
+    workspace_id = auth_headers["workspace_id"]
+    csrf_token = auth_headers["csrf"]
+    catalog = _catalog(client, csrf_token)
+    base = _standard_payload(catalog)
+    optimizer_count_for_request_cap = (DEFAULT_MAX_REQUEST_TASKS // (MIN_STANDARD_FUNCTIONS * MIN_STANDARD_RUNS)) + 1
+    payload = {
+        **base,
+        "optimizer_names": _available_names(catalog, "optimizers")[:optimizer_count_for_request_cap],
+        "function_names": base["function_names"],
+        "runs": MIN_STANDARD_RUNS,
+    }
+    assert len(payload["optimizer_names"]) == optimizer_count_for_request_cap
+
+    _assert_rejected(_run_suite(client, workspace_id, csrf_token, payload), "web request", "cap")
 
 
 def test_optimization_numeric_inputs_reject_nonfinite_and_out_of_bounds(client, auth_headers):

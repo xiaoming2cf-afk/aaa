@@ -24,7 +24,7 @@ export function AppSidebar({
         <div>
           <h1>{t("app.brand")}</h1>
           <p>{t("app.subtitle")}</p>
-          {sessionUser ? <p>{sessionUser}</p> : null}
+          {sessionUser ? <p className="ops-brand-user">{sessionUser}</p> : null}
         </div>
       </div>
       <RouteNav routes={routes} />
