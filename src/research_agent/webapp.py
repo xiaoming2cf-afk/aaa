@@ -1076,17 +1076,48 @@ def _current_user_from_request(
     return get_current_user_optional(db, token)
 
 
+def _private_home_redirect_if_unauthenticated(
+    request: Request,
+    authorization: str | None,
+    x_session_token: str | None,
+) -> RedirectResponse | None:
+    with session_scope() as db:
+        user = _current_user_from_request(db, request, authorization, x_session_token)
+    if not user:
+        return RedirectResponse(url="/", status_code=307)
+    return None
+
+
+def _redirect_preserving_query(request: Request, target_path: str) -> RedirectResponse:
+    query_string = request.url.query
+    if query_string:
+        separator = "&" if "?" in target_path else "?"
+        target_path = f"{target_path}{separator}{query_string}"
+    return RedirectResponse(url=target_path, status_code=307)
+
+
 def _private_page_or_home(
     request: Request,
     file_path: Path,
     authorization: str | None,
     x_session_token: str | None,
 ) -> Response:
-    with session_scope() as db:
-        user = _current_user_from_request(db, request, authorization, x_session_token)
-    if not user:
-        return RedirectResponse(url="/", status_code=307)
+    unauthenticated_response = _private_home_redirect_if_unauthenticated(request, authorization, x_session_token)
+    if unauthenticated_response is not None:
+        return unauthenticated_response
     return FileResponse(file_path)
+
+
+def _private_redirect_or_home(
+    request: Request,
+    target_path: str,
+    authorization: str | None,
+    x_session_token: str | None,
+) -> Response:
+    unauthenticated_response = _private_home_redirect_if_unauthenticated(request, authorization, x_session_token)
+    if unauthenticated_response is not None:
+        return unauthenticated_response
+    return _redirect_preserving_query(request, target_path)
 
 
 def _private_spa_or_home(
@@ -1096,10 +1127,9 @@ def _private_spa_or_home(
     authorization: str | None,
     x_session_token: str | None,
 ) -> Response:
-    with session_scope() as db:
-        user = _current_user_from_request(db, request, authorization, x_session_token)
-    if not user:
-        return RedirectResponse(url="/", status_code=307)
+    unauthenticated_response = _private_home_redirect_if_unauthenticated(request, authorization, x_session_token)
+    if unauthenticated_response is not None:
+        return unauthenticated_response
     normalized = str(subpath or "").strip().lstrip("/")
     candidate = (SPA_DIST_DIR / normalized).resolve() if normalized else SPA_DIST_DIR / "index.html"
     dist_root = SPA_DIST_DIR.resolve()
@@ -2060,7 +2090,7 @@ def create_app() -> FastAPI:
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> Response:
-        return _private_page_or_home(request, DATA_LAB_WEB_FILE, authorization, x_session_token)
+        return _private_redirect_or_home(request, "/app/data-lab/dataset", authorization, x_session_token)
 
     @app.get("/data-lab/preparation")
     def data_lab_preparation_page(
@@ -2068,7 +2098,7 @@ def create_app() -> FastAPI:
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> Response:
-        return _private_page_or_home(request, DATA_LAB_PREPARATION_WEB_FILE, authorization, x_session_token)
+        return _private_redirect_or_home(request, "/app/data-lab/preparation", authorization, x_session_token)
 
     @app.get("/data-lab/model")
     def data_lab_model_page(
@@ -2076,7 +2106,7 @@ def create_app() -> FastAPI:
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> Response:
-        return _private_page_or_home(request, DATA_LAB_MODEL_WEB_FILE, authorization, x_session_token)
+        return _private_redirect_or_home(request, "/app/data-lab/model", authorization, x_session_token)
 
     @app.get("/data-lab/results")
     def data_lab_results_page(
@@ -2084,7 +2114,7 @@ def create_app() -> FastAPI:
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> Response:
-        return _private_page_or_home(request, DATA_LAB_RESULTS_WEB_FILE, authorization, x_session_token)
+        return _private_redirect_or_home(request, "/app/data-lab/results", authorization, x_session_token)
 
     @app.get("/data-lab/history")
     def data_lab_history_page(
@@ -2092,7 +2122,7 @@ def create_app() -> FastAPI:
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> Response:
-        return _private_page_or_home(request, DATA_LAB_HISTORY_WEB_FILE, authorization, x_session_token)
+        return _private_redirect_or_home(request, "/app/data-lab/history", authorization, x_session_token)
 
     @app.get("/data-lab/optimization")
     def data_lab_optimization_page(
@@ -2100,15 +2130,29 @@ def create_app() -> FastAPI:
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> Response:
-        return _private_page_or_home(request, OPTIMIZATION_LAB_WEB_FILE, authorization, x_session_token)
+        return _private_redirect_or_home(request, "/app/data-lab/optimization", authorization, x_session_token)
 
     @app.get("/optimization-lab")
-    def optimization_lab_page() -> RedirectResponse:
-        return RedirectResponse(url="/data-lab/optimization", status_code=307)
+    def optimization_lab_page(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_redirect_or_home(request, "/app/data-lab/optimization", authorization, x_session_token)
 
     @app.get("/optimization-lab/results/{record_id}")
-    def optimization_lab_result_page(record_id: str) -> RedirectResponse:
-        return RedirectResponse(url=f"/data-lab/results/optimization/{record_id}", status_code=307)
+    def optimization_lab_result_page(
+        record_id: str,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
+    ) -> Response:
+        return _private_redirect_or_home(
+            request,
+            f"/app/data-lab/results?type=optimization&id={quote(record_id, safe='')}",
+            authorization,
+            x_session_token,
+        )
 
     @app.get("/data-lab/processing/{family}")
     def data_lab_processing_family_page(
@@ -2117,9 +2161,12 @@ def create_app() -> FastAPI:
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> Response:
+        unauthenticated_response = _private_home_redirect_if_unauthenticated(request, authorization, x_session_token)
+        if unauthenticated_response is not None:
+            return unauthenticated_response
         if not get_processing_family(family):
             raise HTTPException(status_code=404, detail="Data processing family not found.")
-        return _private_page_or_home(request, DATA_LAB_DETAIL_WEB_FILE, authorization, x_session_token)
+        return _redirect_preserving_query(request, f"/app/data-lab/preparation?family={quote(family, safe='')}")
 
     @app.get("/data-lab/models/{family}")
     def data_lab_model_family_page(
@@ -2128,9 +2175,12 @@ def create_app() -> FastAPI:
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> Response:
+        unauthenticated_response = _private_home_redirect_if_unauthenticated(request, authorization, x_session_token)
+        if unauthenticated_response is not None:
+            return unauthenticated_response
         if not get_model_family(family):
             raise HTTPException(status_code=404, detail="Model family not found.")
-        return _private_page_or_home(request, DATA_LAB_DETAIL_WEB_FILE, authorization, x_session_token)
+        return _redirect_preserving_query(request, f"/app/data-lab/model?family={quote(family, safe='')}")
 
     @app.get("/data-lab/models/{family}/{method}")
     def data_lab_model_method_page(
@@ -2140,9 +2190,15 @@ def create_app() -> FastAPI:
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> Response:
+        unauthenticated_response = _private_home_redirect_if_unauthenticated(request, authorization, x_session_token)
+        if unauthenticated_response is not None:
+            return unauthenticated_response
         if not get_model_method(family, method):
             raise HTTPException(status_code=404, detail="Model method not found.")
-        return _private_page_or_home(request, DATA_LAB_METHOD_WEB_FILE, authorization, x_session_token)
+        return _redirect_preserving_query(
+            request,
+            f"/app/data-lab/model?family={quote(family, safe='')}&method={quote(method, safe='')}",
+        )
 
     @app.get("/data-lab/learn/models/{family}/{method}")
     def data_lab_model_teaching_page(
@@ -2152,9 +2208,15 @@ def create_app() -> FastAPI:
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> Response:
+        unauthenticated_response = _private_home_redirect_if_unauthenticated(request, authorization, x_session_token)
+        if unauthenticated_response is not None:
+            return unauthenticated_response
         if not get_model_teaching_guide(family, method):
             raise HTTPException(status_code=404, detail="Model teaching guide not found.")
-        return _private_page_or_home(request, DATA_LAB_TEACHING_WEB_FILE, authorization, x_session_token)
+        return _redirect_preserving_query(
+            request,
+            f"/app/data-lab/model?family={quote(family, safe='')}&method={quote(method, safe='')}&learn=1",
+        )
 
     @app.get("/data-lab/results/processing/{asset_id}")
     def data_lab_processing_result_page(
@@ -2163,7 +2225,12 @@ def create_app() -> FastAPI:
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> Response:
-        return _private_page_or_home(request, DATA_LAB_RESULT_WEB_FILE, authorization, x_session_token)
+        return _private_redirect_or_home(
+            request,
+            f"/app/data-lab/results?type=processing&id={quote(asset_id, safe='')}",
+            authorization,
+            x_session_token,
+        )
 
     @app.get("/data-lab/results/models/{record_id}")
     def data_lab_model_result_page(
@@ -2172,7 +2239,12 @@ def create_app() -> FastAPI:
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> Response:
-        return _private_page_or_home(request, DATA_LAB_RESULT_WEB_FILE, authorization, x_session_token)
+        return _private_redirect_or_home(
+            request,
+            f"/app/data-lab/results?type=models&id={quote(record_id, safe='')}",
+            authorization,
+            x_session_token,
+        )
 
     @app.get("/data-lab/results/optimization/{record_id}")
     def data_lab_optimization_result_page(
@@ -2181,7 +2253,12 @@ def create_app() -> FastAPI:
         authorization: str | None = Header(default=None),
         x_session_token: str | None = Header(default=None, alias="X-Session-Token"),
     ) -> Response:
-        return _private_page_or_home(request, OPTIMIZATION_LAB_RESULT_WEB_FILE, authorization, x_session_token)
+        return _private_redirect_or_home(
+            request,
+            f"/app/data-lab/results?type=optimization&id={quote(record_id, safe='')}",
+            authorization,
+            x_session_token,
+        )
 
     @app.get("/macro-desk")
     def public_macro_desk_page(
@@ -2247,6 +2324,7 @@ def create_app() -> FastAPI:
             },
         }
 
+    @app.get("/api/provider-catalog")
     @app.get("/api/providers")
     def providers(
         request: Request,
