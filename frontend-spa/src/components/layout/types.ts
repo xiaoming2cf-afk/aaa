@@ -8,5 +8,8 @@ export type RouteMetadata = {
   navLabel: string;
   title: string;
   eyebrow: string;
+  navKey?: string;
+  titleKey?: string;
+  eyebrowKey?: string;
   icon: LucideIcon;
 };

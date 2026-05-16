@@ -1,3 +1,4 @@
+import { useI18n } from "../../i18n";
 import type { Team, Workspace } from "./types";
 
 type ScopePanelProps = {
@@ -17,10 +18,12 @@ export function ScopePanel({
   teamId,
   onTeamChange,
 }: ScopePanelProps): JSX.Element {
+  const { t } = useI18n();
+
   return (
     <div className="ops-scope-panel" aria-label="Workspace and team scope">
       <label className="ops-field">
-        <span>Workspace</span>
+        <span>{t("app.workspace")}</span>
         <select value={workspaceId} onChange={(event) => onWorkspaceChange(event.target.value)}>
           {workspaces.map((workspace) => (
             <option key={workspace.id} value={workspace.id}>{workspace.name}</option>
@@ -28,9 +31,9 @@ export function ScopePanel({
         </select>
       </label>
       <label className="ops-field">
-        <span>Team</span>
+        <span>{t("app.team")}</span>
         <select value={teamId} onChange={(event) => onTeamChange(event.target.value)}>
-          <option value="">No team</option>
+          <option value="">{t("app.noTeam")}</option>
           {teams.map((team) => (
             <option key={team.id} value={team.id}>{team.name}</option>
           ))}

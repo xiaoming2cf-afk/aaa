@@ -34,7 +34,7 @@ export function SessionHistoryPanel({
           const runId = item.run_id || item.id;
           return (
             <RecordRow
-              key={item.id}
+              key={runId}
               selected={selectedRunId === runId}
               title={item.title}
               status={<Badge tone={statusTone(item.status)}>{displayStatus(item.status)}</Badge>}

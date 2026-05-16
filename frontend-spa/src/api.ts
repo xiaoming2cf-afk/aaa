@@ -171,7 +171,8 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
     headers.set("Accept", "application/json");
   }
   const hasBody = init.body !== undefined && init.body !== null;
-  if (hasBody && !headers.has("Content-Type")) {
+  const shouldInferContentType = typeof FormData !== "undefined" && init.body instanceof FormData;
+  if (hasBody && !shouldInferContentType && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
   if (!["GET", "HEAD", "OPTIONS"].includes(method)) {

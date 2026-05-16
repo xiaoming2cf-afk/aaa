@@ -4850,6 +4850,242 @@ button.list-card:hover,
   background: var(--surface);
 }
 
+/* Unified post-login Data Lab SPA architecture */
+.ops-command-search {
+  display: grid;
+  gap: 4px;
+  min-width: 190px;
+}
+
+.ops-command-search span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ops-command-search input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0 10px;
+  font: inherit;
+}
+
+.ops-language-toggle {
+  min-width: 86px;
+}
+
+.data-lab-workspace-page {
+  display: grid;
+  gap: 16px;
+}
+
+.data-lab-workspace-hero {
+  padding-bottom: 16px;
+}
+
+.data-lab-workspace-hero .ui-stepper {
+  margin: 10px 0 14px;
+}
+
+.data-lab-tab-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.data-lab-tab-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0 12px;
+  color: var(--muted);
+  background: var(--surface);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.data-lab-tab-link svg {
+  width: 16px;
+  height: 16px;
+}
+
+.data-lab-tab-link:hover,
+.data-lab-tab-link:focus-visible,
+.data-lab-tab-link.is-active {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--accent-soft);
+}
+
+.data-lab-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 16px;
+  align-items: start;
+}
+
+.data-lab-workspace-main,
+.data-lab-section-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.data-lab-section-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.data-lab-section-grid > .ops-surface-span {
+  grid-column: 1 / -1;
+}
+
+.data-lab-workspace-inspector {
+  position: sticky;
+  top: calc(var(--command-bar-height) + 16px);
+  display: grid;
+  gap: 16px;
+}
+
+.data-lab-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.data-lab-card-grid .ui-card h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.data-lab-profile-strip {
+  margin-top: 12px;
+}
+
+.data-lab-json-preview {
+  max-height: 420px;
+  overflow: auto;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: #111111;
+  color: #f7f7f5;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.data-lab-warning-list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.data-lab-warning-list li {
+  border: 1px solid rgba(154, 103, 0, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  color: var(--text);
+  background: var(--surface-amber);
+  font-size: 0.84rem;
+}
+
+.data-lab-inspector-list,
+.data-lab-result-list,
+.data-lab-history-board {
+  display: grid;
+  gap: 10px;
+}
+
+.data-lab-inspector-item,
+.data-lab-result-row,
+.data-lab-history-item {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  color: var(--text);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.data-lab-inspector-item:hover,
+.data-lab-result-row:hover,
+.data-lab-history-item:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-muted);
+}
+
+.data-lab-inspector-item > span,
+.data-lab-result-row > span,
+.data-lab-history-item > span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.data-lab-history-board {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.data-lab-history-bucket {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.data-lab-history-bucket h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.data-lab-agent-embedded .data-lab-ide {
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) minmax(300px, 360px);
+}
+
+@media (max-width: 1120px) {
+  .ops-command-search {
+    display: none;
+  }
+
+  .data-lab-workspace-grid,
+  .data-lab-section-grid,
+  .data-lab-history-board {
+    grid-template-columns: 1fr;
+  }
+
+  .data-lab-workspace-inspector {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .data-lab-tab-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .data-lab-tab-link {
+    justify-content: center;
+  }
+
+  .ops-language-toggle {
+    min-width: 0;
+  }
+}
+
 @media (max-width: 1180px) {
   .workspace-section-grid,
   .data-lab-workflow-strip {
@@ -4871,6 +5107,131 @@ button.list-card:hover,
   .data-lab-workflow-strip,
   .data-lab-workflow-grid,
   .data-lab-status-inspector .data-lab-count-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 820px) {
+  .ops-layout {
+    grid-template-columns: 1fr;
+    overflow-x: clip;
+  }
+
+  .ops-workbench {
+    min-width: 0;
+  }
+
+  .ops-sidebar {
+    position: static;
+    display: grid;
+    height: auto;
+    padding: 10px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ops-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 0 0 8px;
+  }
+
+  .ops-brand p {
+    display: none;
+  }
+
+  .ops-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .ops-nav-link {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 4px;
+    min-height: 48px;
+    padding: 7px 4px;
+    text-align: center;
+    font-size: 0.76rem;
+    line-height: 1.15;
+  }
+
+  .ops-nav-link svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .ops-legacy {
+    display: none;
+  }
+
+  .ops-main {
+    max-width: none;
+    padding: 10px;
+  }
+
+  .ops-main-inner {
+    width: 100%;
+  }
+
+  .ops-command-bar {
+    position: static;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin: 0 0 12px;
+    padding: 10px;
+  }
+
+  .ops-command-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .ops-command-actions .ops-scope-panel {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .ops-command-actions .ops-button,
+  .ops-language-toggle {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .ops-command-actions .ops-avatar {
+    width: 40px;
+    min-width: 40px;
+    justify-self: end;
+  }
+
+  .data-lab-workspace-hero {
+    padding: 14px;
+  }
+
+  .data-lab-workspace-hero .ui-page-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .data-lab-tab-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .data-lab-tab-link {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+    padding: 0 8px;
+    text-align: center;
+    white-space: normal;
+    word-break: keep-all;
+  }
+
+  .data-lab-agent-embedded .data-lab-ide {
     grid-template-columns: 1fr;
   }
 }

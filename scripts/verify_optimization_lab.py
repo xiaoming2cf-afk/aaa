@@ -19,6 +19,7 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from verify_data_lab import (  # noqa: E402
+    assert_redirect_location,
     assert_png_response,
     auth_headers,
     configure_test_environment,
@@ -100,19 +101,12 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
         token = session_token_from_cookies(client)
         workspace_id = create_workspace(client, token, "Optimization Verification")
 
-        optimization_page = client.get("/data-lab/optimization", headers={**remote_headers, **auth_headers(token)})
-        optimization_page.raise_for_status()
-        optimization_html = optimization_page.text
-        required_optimization_ids = [
-            'id="optimization-health-status"',
-            'id="optimization-catalog-explorer"',
-            'id="optimization-validation-export-board"',
-            'id="optimization-results-list"',
-            'id="optimization-suite-form"',
-        ]
-        for element_id in required_optimization_ids:
-            if element_id not in optimization_html:
-                raise AssertionError(f"Optimization workbench is missing required shell anchor: {element_id}")
+        optimization_page = client.get(
+            "/data-lab/optimization",
+            headers={**remote_headers, **auth_headers(token)},
+            follow_redirects=False,
+        )
+        assert_redirect_location("/data-lab/optimization", optimization_page, "/app/data-lab/optimization")
 
         catalog_response = client.get("/api/optimization/catalog", headers={**remote_headers, **auth_headers(token)})
         catalog_response.raise_for_status()
@@ -279,23 +273,22 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
         result_page = client.get(
             f"/data-lab/results/optimization/{record_id}",
             headers={**remote_headers, **auth_headers(token)},
+            follow_redirects=False,
         )
-        result_page.raise_for_status()
-        required_result_ids = [
-            'id="optimization-result-title"',
-            'id="optimization-result-snapshot-card"',
-            'id="optimization-result-assets-card"',
-            'id="optimization-result-tables-card"',
-            'id="optimization-result-figures-card"',
-            'id="optimization-result-raw-card"',
-        ]
-        for element_id in required_result_ids:
-            if element_id not in result_page.text:
-                raise AssertionError(f"Optimization result page is missing required shell anchor: {element_id}")
+        assert_redirect_location(
+            f"/data-lab/results/optimization/{record_id}",
+            result_page,
+            f"/app/data-lab/results?type=optimization&id={record_id}",
+        )
 
         if output_dir:
-            _write_text(output_dir / "pages" / "optimization_lab.html", optimization_page.text)
-            _write_text(output_dir / "pages" / "optimization_result.html", result_page.text)
+            _write_json(
+                output_dir / "pages" / "legacy_optimization_redirects.json",
+                {
+                    "/data-lab/optimization": optimization_page.headers.get("location"),
+                    f"/data-lab/results/optimization/{record_id}": result_page.headers.get("location"),
+                },
+            )
             _write_json(output_dir / "catalog_summary.json", catalog)
             _write_json(output_dir / "small_suite_error.json", {"detail": small_suite_error})
             _write_json(output_dir / "api_run_response.json", run_payload)

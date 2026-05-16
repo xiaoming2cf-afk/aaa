@@ -5,6 +5,7 @@ import { MemoryRouter, Navigate, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { apiFetch } from "../api";
+import { I18nProvider } from "../i18n";
 import { App, AppShell } from "../main";
 import { DataLabAgentPage } from "../pages/DataLabAgentPage";
 import { DataLabHubPage } from "../pages/DataLabHubPage";
@@ -30,13 +31,144 @@ function renderWithQuery(ui: JSX.Element): void {
       },
     },
   });
-  render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+  render(
+    <I18nProvider>
+      <QueryClientProvider client={client}>{ui}</QueryClientProvider>
+    </I18nProvider>,
+  );
+}
+
+function renderApp(): void {
+  render(<App />);
+}
+
+function mockAuthenticatedAppApi(extra?: (path: string, init?: RequestInit) => unknown): void {
+  apiFetchMock.mockImplementation(async (path: string, init?: RequestInit) => {
+    if (path === "/api/auth/me") {
+      return {
+        user: {
+          full_name: "Ada Lovelace",
+          email: "ada@example.test",
+        },
+      };
+    }
+    if (path === "/api/workspaces") {
+      return {
+        items: [{ id: "ws-live", name: "Live Workspace", description: "Active scope" }],
+      };
+    }
+    if (path === "/api/teams") {
+      return {
+        items: [{ id: "team-live", name: "Live Team", role: "owner" }],
+      };
+    }
+    const extraResponse = extra?.(path, init);
+    return extraResponse === undefined ? {} : extraResponse;
+  });
+}
+
+function mockDataLabWorkspaceApi(path: string): unknown {
+  if (path === "/api/workspaces/ws-live/assets") {
+    return {
+      items: [
+        { id: "asset-1", title: "agent-sample.csv", kind: "dataset_csv" },
+      ],
+    };
+  }
+  if (path === "/api/workspaces/ws-live/assets/asset-1/profile") {
+    return {
+      profile: {
+        rows: 4,
+        columns: 3,
+        column_names: ["y", "x", "group"],
+        preview_rows: [{ y: 1, x: 2, group: "a" }],
+        schema_fingerprint: "abc123def4567890",
+      },
+    };
+  }
+  if (path === "/api/workspaces/ws-live/data-lab/history") {
+    return {
+      processing: [
+        { id: "processing-1", title: "Prepared sample", status: "completed", updated_at: "2026-01-03T00:00:00Z" },
+      ],
+      models: [
+        { id: "model-1", title: "Regression run", status: "completed", updated_at: "2026-01-04T00:00:00Z" },
+      ],
+      optimization: [
+        { id: "optimization-1", title: "Optimization suite", status: "completed", updated_at: "2026-01-02T00:00:00Z" },
+      ],
+      agent_sessions: [
+        { run_id: "agent-1", title: "Agent analysis", status: "completed", updated_at: "2026-01-01T00:00:00Z" },
+      ],
+    };
+  }
+  if (path === "/api/data-lab/catalog") {
+    return {
+      processing_families: [
+        { slug: "sample_preparation", title: "Sample preparation", summary: "Clean and normalize sample data." },
+      ],
+      model_families: [
+        {
+          slug: "econometrics_baseline",
+          title: "Econometrics baseline",
+          methods: [{ slug: "ols", name: "OLS" }],
+        },
+      ],
+    };
+  }
+  if (path === "/api/optimization/catalog") {
+    return {
+      summary: { optimizer_count: 3, function_count: 3 },
+      suite_requirements: { min_algorithms: 3, min_functions: 3, min_runs: 3 },
+      defaults: { optimizers: ["PSO", "GA", "DE"], functions: ["sphere", "rastrigin", "ackley"] },
+    };
+  }
+  if (path === "/api/workspaces/ws-live/optimization/results") {
+    return {
+      items: [
+        { id: "optimization-1", title: "Optimization suite", status: "completed" },
+      ],
+    };
+  }
+  if (path === "/api/workspaces/ws-live/data-lab/agent/llm-config") {
+    return {
+      workspace: {
+        configured: false,
+        enabled: false,
+        base_url: "",
+        api_key_configured: false,
+        coder_model: "",
+        reviewer_model: "",
+        report_model: "",
+        label: "",
+      },
+      environment: {
+        enabled: false,
+        ready: false,
+        base_url_configured: false,
+        api_key_configured: false,
+        coder_model: "",
+        reviewer_model: "",
+        report_model: "",
+      },
+      resolved: {
+        enabled: false,
+        ready: false,
+        source: "none",
+        coder_model: "",
+        reviewer_model: "",
+        report_model: "",
+      },
+    };
+  }
+  return undefined;
 }
 
 describe("SPA delivery gating", () => {
   beforeEach(() => {
     apiFetchMock.mockReset();
     localStorage.clear();
+    localStorage.setItem("spa-language", "en");
   });
 
   test("AppShell session errors include a login action", async () => {
@@ -98,6 +230,36 @@ describe("SPA delivery gating", () => {
     expect(await screen.findByText("Overview route ready")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Overview/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
+  });
+
+  test("AppShell language toggle switches chrome labels and persists preference", async () => {
+    mockAuthenticatedAppApi();
+
+    renderWithQuery(
+      <MemoryRouter initialEntries={["/overview"]}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/overview" element={<div>Overview route ready</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Overview route ready")).toBeInTheDocument();
+    expect(screen.getByLabelText("Search workbench")).toBeInTheDocument();
+    expect(document.documentElement.lang).toBe("en");
+
+    await userEvent.click(screen.getByRole("button", { name: "EN / 中文" }));
+
+    expect(screen.getByLabelText("搜索工作台")).toBeInTheDocument();
+    expect(localStorage.getItem("spa-language")).toBe("zh");
+    expect(document.documentElement.lang).toBe("zh-CN");
+
+    await userEvent.click(screen.getByRole("button", { name: "EN / 中文" }));
+
+    expect(screen.getByLabelText("Search workbench")).toBeInTheDocument();
+    expect(localStorage.getItem("spa-language")).toBe("en");
+    expect(document.documentElement.lang).toBe("en");
   });
 
   test("AppShell wildcard route falls back to overview", async () => {
@@ -178,7 +340,7 @@ describe("SPA delivery gating", () => {
     );
 
     expect(await screen.findByText("Research route ready")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Research Runs" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Research" })).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByLabelText("Workspace")).toHaveValue("ws-live");
@@ -271,18 +433,18 @@ describe("SPA delivery gating", () => {
     );
 
     const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
-    expect(hrefs).toContain("/data-lab");
+    expect(hrefs).toContain("/data-lab/dataset");
     expect(hrefs).toContain("/data-lab/preparation");
     expect(hrefs).toContain("/data-lab/model");
     expect(hrefs).toContain("/data-lab/results");
     expect(hrefs).toContain("/data-lab/history");
     expect(hrefs).toContain("/data-lab/optimization");
-    expect(hrefs).toContain("/app/data-lab-agent");
-    expect(screen.getByText(/Legacy Data Lab is the current full workbench/i)).toBeInTheDocument();
+    expect(hrefs).toContain("/data-lab/agent");
+    expect(screen.getByLabelText("Data Lab workspace")).toBeInTheDocument();
     expect(await screen.findByText("Regression run")).toBeInTheDocument();
     expect(screen.getByText("Prepared sample")).toBeInTheDocument();
     expect(screen.getByText("Optimization suite")).toBeInTheDocument();
-    expect(screen.queryByText("Agent analysis")).not.toBeInTheDocument();
+    expect(screen.getByText("Agent analysis")).toBeInTheDocument();
   });
 
   test("App renders /app/overview without white-screening", async () => {
@@ -309,7 +471,7 @@ describe("SPA delivery gating", () => {
     });
 
     window.history.pushState({}, "", "/app/overview");
-    render(<App />);
+    renderApp();
 
     expect(await screen.findByText(/Current workspace: Live Workspace/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Overview" })).toBeInTheDocument();
@@ -353,15 +515,77 @@ describe("SPA delivery gating", () => {
     });
 
     window.history.pushState({}, "", "/app/data-lab");
-    render(<App />);
+    renderApp();
 
     await screen.findByRole("heading", { level: 1, name: "Data Lab" });
     expect(await screen.findByText("Prepared sample")).toBeInTheDocument();
-    const historyCounts = screen.getByLabelText("Data Lab history counts");
-    expect(within(historyCounts).getAllByText(/^Processing$/i).length).toBeGreaterThan(0);
-    expect(within(historyCounts).getAllByText(/^Models$/i).length).toBeGreaterThan(0);
-    expect(within(historyCounts).getAllByText(/^Optimization$/i).length).toBeGreaterThan(0);
-    expect(screen.getByRole("link", { name: /Dataset Intake/i })).toHaveAttribute("href", "/data-lab");
+    const sections = screen.getByLabelText("Data Lab sections");
+    expect(within(sections).getByRole("link", { name: /Dataset/i })).toHaveAttribute("href", "/app/data-lab/dataset");
+    expect(within(sections).getByRole("link", { name: /Preparation/i })).toHaveAttribute("href", "/app/data-lab/preparation");
+    expect(within(sections).getByRole("link", { name: /Model/i })).toHaveAttribute("href", "/app/data-lab/model");
+  });
+
+  test.each([
+    ["/app/data-lab/dataset", "Upload dataset"],
+    ["/app/data-lab/preparation", "Preview preparation"],
+    ["/app/data-lab/model", "Run preflight"],
+    ["/app/data-lab/results", "Result detail"],
+    ["/app/data-lab/history", "Agent Sessions"],
+    ["/app/data-lab/optimization", "Optimization suite"],
+  ])("App renders nested Data Lab route %s without falling back", async (path, expectedText) => {
+    mockAuthenticatedAppApi((apiPath) => mockDataLabWorkspaceApi(apiPath));
+
+    window.history.pushState({}, "", path);
+    renderApp();
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Data Lab" })).toBeInTheDocument();
+    expect(window.location.pathname).toBe(path);
+    expect(screen.getByLabelText("Data Lab sections")).toBeInTheDocument();
+    expect((await screen.findAllByText(expectedText)).length).toBeGreaterThan(0);
+  });
+
+  test("App hydrates /app/data-lab-agent compatible deep links from query run id", async () => {
+    mockAuthenticatedAppApi((path) => {
+      const dataLabResponse = mockDataLabWorkspaceApi(path);
+      if (dataLabResponse !== undefined) {
+        if (path === "/api/workspaces/ws-live/data-lab/history") {
+          return {
+            agent_sessions: [
+              {
+                run_id: "run-compat",
+                title: "Compat deep link session",
+                status: "completed",
+                updated_at: "2026-01-05T00:00:00Z",
+              },
+            ],
+          };
+        }
+        return dataLabResponse;
+      }
+      if (path === "/api/workspaces/ws-live/data-lab/agent/sessions/run-compat") {
+        return {
+          session: {
+            run_id: "run-compat",
+            title: "Compat deep link session",
+            run_status: "completed",
+            detail_path: "/app/data-lab-agent?run=run-compat",
+            messages: [],
+          },
+        };
+      }
+      return undefined;
+    });
+
+    window.history.pushState({}, "", "/app/data-lab-agent?run=run-compat");
+    renderApp();
+
+    expect(await screen.findByRole("heading", { name: /Compat deep link session/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Open Session Link/i })).toHaveAttribute("href", "/app/data-lab-agent?run=run-compat");
+    expect(window.location.pathname).toBe("/app/data-lab-agent");
+    expect(window.location.search).toBe("?run=run-compat");
+    await waitFor(() => {
+      expect(apiFetchMock).toHaveBeenCalledWith("/api/workspaces/ws-live/data-lab/agent/sessions/run-compat");
+    });
   });
 
   test("ResearchPage disables publish when delivery review blocks the run", async () => {

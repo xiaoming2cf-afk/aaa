@@ -39,6 +39,15 @@ def _assert_redirect_home(response, route: str) -> dict[str, Any]:
     return {"status_code": response.status_code, "location": location}
 
 
+def _assert_redirect_location(response, route: str, expected_location: str) -> dict[str, Any]:
+    if response.status_code not in {302, 303, 307, 308}:
+        raise AssertionError(f"{route}: expected redirect to {expected_location}, got {response.status_code}")
+    location = response.headers.get("location", "")
+    if location != expected_location:
+        raise AssertionError(f"{route}: expected redirect target {expected_location!r}, got {location!r}")
+    return {"status_code": response.status_code, "location": location}
+
+
 def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
     temp_root = Path(tempfile.mkdtemp(prefix="erp-access-gate-verify-"))
     configure_test_environment(temp_root)
@@ -61,6 +70,11 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
         if "/public-monitor" not in home.text or 'id="public-latest-view"' not in home.text:
             raise AssertionError("Home page no longer exposes the current public briefing surface")
 
+        provider_center = client.get("/provider-center", headers=remote_headers)
+        provider_center.raise_for_status()
+        if "not part of the current product scope" not in provider_center.text.lower():
+            raise AssertionError("Provider Center disabled notice changed unexpectedly")
+
         public_api_routes = [
             "/api/public/briefings/latest",
             "/api/public/briefings",
@@ -75,32 +89,25 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
 
         private_pages = [
             "/workspace",
-            "/provider-center",
             "/knowledge-base",
             "/paper-library",
-            "/data-lab",
-            "/data-lab/optimization",
             "/public-monitor",
             "/summaries/weekly",
             "/summaries/monthly",
-            "/data-lab/models/econometrics_baseline/ols",
-            "/data-lab/learn/models/econometrics_baseline/ols",
-            "/data-lab/results/models/demo-model-result",
         ]
+        legacy_lab_routes = {
+            "/data-lab": "/app/data-lab/dataset",
+            "/data-lab/optimization": "/app/data-lab/optimization",
+            "/optimization-lab": "/app/data-lab/optimization",
+            "/optimization-lab/results/demo-optimization-result": "/app/data-lab/results?type=optimization&id=demo-optimization-result",
+            "/data-lab/models/econometrics_baseline/ols": "/app/data-lab/model?family=econometrics_baseline&method=ols",
+            "/data-lab/learn/models/econometrics_baseline/ols": "/app/data-lab/model?family=econometrics_baseline&method=ols&learn=1",
+            "/data-lab/results/models/demo-model-result": "/app/data-lab/results?type=models&id=demo-model-result",
+        }
         page_redirects: dict[str, Any] = {}
-        for route in private_pages:
+        for route in [*private_pages, *legacy_lab_routes.keys()]:
             response = client.get(route, headers=remote_headers, follow_redirects=False)
             page_redirects[route] = _assert_redirect_home(response, route)
-
-        legacy_opt_response = client.get("/optimization-lab", headers=remote_headers, follow_redirects=False)
-        if legacy_opt_response.status_code not in {302, 303, 307, 308}:
-            raise AssertionError(
-                f"/optimization-lab: expected redirect into the standalone optimization workbench, got {legacy_opt_response.status_code}"
-            )
-        if legacy_opt_response.headers.get("location") != "/data-lab/optimization":
-            raise AssertionError(
-                f"/optimization-lab: unexpected location {legacy_opt_response.headers.get('location')!r}"
-            )
 
         private_api_routes = [
             "/api/data-lab/catalog",
@@ -131,6 +138,10 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
             authenticated_pages[route] = response.status_code
             if response.status_code != 200:
                 raise AssertionError(f"{route}: expected authenticated access, got {response.status_code}")
+        authenticated_legacy_redirects: dict[str, Any] = {}
+        for route, expected_location in legacy_lab_routes.items():
+            response = client.get(route, headers={**remote_headers, **auth_headers(token)}, follow_redirects=False)
+            authenticated_legacy_redirects[route] = _assert_redirect_location(response, route, expected_location)
 
         authenticated_private_api_expectations = {
             "/api/data-lab/catalog": {200},
@@ -159,14 +170,12 @@ def run_verification(output_dir: Path | None = None) -> dict[str, Any]:
         report = {
             "status": "passed",
             "home_status": home.status_code,
+            "provider_center_status": provider_center.status_code,
             "public_api_status": public_api_status,
             "private_page_redirects": page_redirects,
-            "legacy_optimization_redirect": {
-                "status_code": legacy_opt_response.status_code,
-                "location": legacy_opt_response.headers.get("location", ""),
-            },
             "private_api_status": private_api_status,
             "authenticated_pages": authenticated_pages,
+            "authenticated_legacy_redirects": authenticated_legacy_redirects,
             "authenticated_private_api_status": authenticated_private_api_status,
         }
         if output_dir:

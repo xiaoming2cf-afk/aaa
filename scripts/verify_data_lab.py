@@ -263,6 +263,14 @@ def assert_page_markers(path: str, html: str, required: list[str], forbidden: li
             raise AssertionError(f"{path}: unexpected marker present {marker}")
 
 
+def assert_redirect_location(path: str, response, expected_location: str) -> None:
+    if response.status_code not in {302, 303, 307, 308}:
+        raise AssertionError(f"{path}: expected redirect to {expected_location}, got {response.status_code}")
+    location = response.headers.get("location", "")
+    if location != expected_location:
+        raise AssertionError(f"{path}: expected redirect to {expected_location}, got {location!r}")
+
+
 def authenticate_live_session(
     session: requests.Session,
     *,
@@ -359,33 +367,13 @@ def verify_live_data_lab_pages() -> None:
     authenticate_live_session(session, base_url=base_url, email=email, password=password, full_name=full_name)
 
     live_expectations = {
-        "/data-lab": {
-            "required": [
-                'data-page-template="data-lab-dataset"',
-                'id="analysis-asset-select"',
-                'data-lab-stage="dataset"',
-            ],
-            "forbidden": ['data-page-template="data-lab-model"'],
-        },
-        "/data-lab/model": {
-            "required": [
-                'data-page-template="data-lab-model"',
-                'id="model-form"',
-                'id="plot-form"',
-                'data-lab-stage="model"',
-            ],
-            "forbidden": [
-                'data-page-template="data-lab-dataset"',
-                'id="analysis-asset-select"',
-                'id="variable-guide-form"',
-            ],
-        },
+        "/data-lab": "/app/data-lab/dataset",
+        "/data-lab/model": "/app/data-lab/model",
     }
 
-    for path, expectation in live_expectations.items():
-        response = session.get(f"{base_url}{path}", timeout=20)
-        response.raise_for_status()
-        assert_page_markers(path, response.text, expectation["required"], expectation["forbidden"])
+    for path, expected_location in live_expectations.items():
+        response = session.get(f"{base_url}{path}", timeout=20, allow_redirects=False)
+        assert_redirect_location(path, response, expected_location)
 
     print(f"Live Data Lab sanity checks passed for {base_url}.")
 
@@ -721,75 +709,27 @@ def main() -> None:
         home = client.get("/")
         home.raise_for_status()
         page_expectations = {
-            "/data-lab": {
-                "required": [
-                    'data-page-template="data-lab-dataset"',
-                    'id="data-lab-current-step-pill"',
-                    'id="variable-guide-form"',
-                    'id="analysis-asset-select"',
-                    'data-lab-stage="dataset"',
-                ],
-                "forbidden": ['data-page-template="data-lab-model"'],
-            },
-            "/data-lab/preparation": {
-                "required": [
-                    'data-page-template="data-lab-preparation"',
-                    'id="prepare-form"',
-                    'id="processing-family"',
-                    'data-lab-stage="preparation"',
-                ],
-                "forbidden": ['data-page-template="data-lab-dataset"'],
-            },
-            "/data-lab/model": {
-                "required": [
-                    'data-page-template="data-lab-model"',
-                    'id="model-form"',
-                    'id="model-family"',
-                    'id="plot-form"',
-                    'data-lab-stage="model"',
-                ],
-                "forbidden": [
-                    'data-page-template="data-lab-dataset"',
-                    'id="analysis-asset-select"',
-                    'id="variable-guide-form"',
-                ],
-            },
-            "/data-lab/results": {
-                "required": [
-                    'data-page-template="data-lab-results"',
-                    'id="prepare-result-summary"',
-                    'id="analysis-result-summary"',
-                    'id="asset-list"',
-                    'data-lab-stage="results"',
-                ],
-                "forbidden": ['data-page-template="data-lab-dataset"'],
-            },
-            "/data-lab/history": {
-                "required": [
-                    'data-page-template="data-lab-history"',
-                    'id="lab-recent-processing-list"',
-                    'id="lab-recent-model-list"',
-                    'id="data-lab-history"',
-                    'data-lab-stage="history"',
-                ],
-                "forbidden": ['data-page-template="data-lab-dataset"'],
-            },
+            "/data-lab": "/app/data-lab/dataset",
+            "/data-lab/preparation": "/app/data-lab/preparation",
+            "/data-lab/model": "/app/data-lab/model",
+            "/data-lab/results": "/app/data-lab/results",
+            "/data-lab/history": "/app/data-lab/history",
         }
-        for path, expectation in page_expectations.items():
-            response = client.get(path, headers=auth_headers(token))
-            response.raise_for_status()
-            html = response.text
-            assert_page_markers(path, html, expectation["required"], expectation["forbidden"])
-            if 'id="lab-context-next-action"' not in html:
-                raise AssertionError(f"{path}: missing shared inspector anchor id=\"lab-context-next-action\"")
+        for path, expected_location in page_expectations.items():
+            response = client.get(path, headers=auth_headers(token), follow_redirects=False)
+            assert_redirect_location(path, response, expected_location)
 
         catalog_response = client.get("/api/data-lab/catalog")
         catalog_response.raise_for_status()
         catalog_payload = catalog_response.json()
         for family in catalog_payload.get("model_families", []):
             family_slug = family["slug"]
-            family_page = client.get(f"/data-lab/models/{family_slug}")
-            family_page.raise_for_status()
+            family_page = client.get(f"/data-lab/models/{family_slug}", headers=auth_headers(token), follow_redirects=False)
+            assert_redirect_location(
+                f"/data-lab/models/{family_slug}",
+                family_page,
+                f"/app/data-lab/model?family={family_slug}",
+            )
             for method in family.get("methods", []):
                 method_slug = method["slug"]
                 method_detail = client.get(f"/api/data-lab/models/{family_slug}/{method_slug}")
@@ -808,29 +748,38 @@ def main() -> None:
                     raise AssertionError(f"{family_slug}/{method_slug}: teaching route returned no paper template")
                 if not teaching_detail.json()["guide"].get("paper_table_preview"):
                     raise AssertionError(f"{family_slug}/{method_slug}: teaching route returned no paper table preview")
-                method_page = client.get(f"/data-lab/models/{family_slug}/{method_slug}")
-                method_page.raise_for_status()
-                if "lab-model-method-title" not in method_page.text:
-                    raise AssertionError(f"{family_slug}/{method_slug}: method page template failed to load")
-                if "Paper Results Template" not in method_page.text:
-                    raise AssertionError(f"{family_slug}/{method_slug}: method page is missing the paper template section")
-                if "Paper Table Preview" not in method_page.text:
-                    raise AssertionError(f"{family_slug}/{method_slug}: method page is missing the paper table preview section")
-                teaching_page = client.get(f"/data-lab/learn/models/{family_slug}/{method_slug}")
-                teaching_page.raise_for_status()
-                if "lab-teaching-sections" not in teaching_page.text:
-                    raise AssertionError(f"{family_slug}/{method_slug}: teaching page template failed to load")
-                if "Paper Reporting Template" not in teaching_page.text:
-                    raise AssertionError(f"{family_slug}/{method_slug}: teaching page is missing the paper template section")
-                if "Paper Table Preview" not in teaching_page.text:
-                    raise AssertionError(f"{family_slug}/{method_slug}: teaching page is missing the paper table preview section")
+                method_page = client.get(
+                    f"/data-lab/models/{family_slug}/{method_slug}",
+                    headers=auth_headers(token),
+                    follow_redirects=False,
+                )
+                assert_redirect_location(
+                    f"/data-lab/models/{family_slug}/{method_slug}",
+                    method_page,
+                    f"/app/data-lab/model?family={family_slug}&method={method_slug}",
+                )
+                teaching_page = client.get(
+                    f"/data-lab/learn/models/{family_slug}/{method_slug}",
+                    headers=auth_headers(token),
+                    follow_redirects=False,
+                )
+                assert_redirect_location(
+                    f"/data-lab/learn/models/{family_slug}/{method_slug}",
+                    teaching_page,
+                    f"/app/data-lab/model?family={family_slug}&method={method_slug}&learn=1",
+                )
 
-        result_page = client.get(f"/data-lab/results/models/{results['DID']['_record_id']}", headers=auth_headers(token))
-        result_page.raise_for_status()
-        if 'id="lab-result-interpretation-card"' not in result_page.text:
-            raise AssertionError("Result detail page is missing the interpretation section anchor")
-        if 'id="lab-result-export-board"' not in result_page.text:
-            raise AssertionError("Result detail page is missing the export board anchor")
+        result_record_id = results["DID"]["_record_id"]
+        result_page = client.get(
+            f"/data-lab/results/models/{result_record_id}",
+            headers=auth_headers(token),
+            follow_redirects=False,
+        )
+        assert_redirect_location(
+            f"/data-lab/results/models/{result_record_id}",
+            result_page,
+            f"/app/data-lab/results?type=models&id={result_record_id}",
+        )
 
         verify_live_data_lab_pages()
 

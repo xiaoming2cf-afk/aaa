@@ -1,5 +1,6 @@
 import { RefreshCw } from "lucide-react";
 
+import { useI18n } from "../../i18n";
 import { Button } from "../ui";
 import { ScopePanel } from "./ScopePanel";
 import type { RouteMetadata, Team, Workspace } from "./types";
@@ -30,17 +31,24 @@ export function CommandBar({
   onRefreshAll,
 }: CommandBarProps): JSX.Element {
   const CurrentIcon = currentRoute.icon;
+  const { language, t, toggleLanguage } = useI18n();
+  const routeEyebrow = currentRoute.eyebrowKey ? t(currentRoute.eyebrowKey) : currentRoute.eyebrow;
+  const routeTitle = currentRoute.titleKey ? t(currentRoute.titleKey) : currentRoute.title;
 
   return (
     <header className="ops-command-bar">
       <div className="ops-command-title">
-        <p className="eyebrow">{currentRoute.eyebrow}</p>
-        <h2><CurrentIcon aria-hidden="true" size={22} /> {currentRoute.title}</h2>
+        <p className="eyebrow">{routeEyebrow}</p>
+        <h2><CurrentIcon aria-hidden="true" size={22} /> {routeTitle}</h2>
         <p className="ops-command-scope">
-          {currentWorkspace?.name || "Workspace pending"} / {currentTeam?.name || "No team selected"}
+          {currentWorkspace?.name || t("app.workspacePending")} / {currentTeam?.name || t("app.noTeamSelected")}
         </p>
       </div>
       <div className="ops-command-actions">
+        <label className="ops-command-search">
+          <span>{t("app.search")}</span>
+          <input aria-label={t("app.search")} placeholder={t("app.search")} />
+        </label>
         <ScopePanel
           workspaces={workspaces}
           teams={teams}
@@ -55,7 +63,16 @@ export function CommandBar({
           icon={<RefreshCw size={16} aria-hidden="true" />}
           onClick={onRefreshAll}
         >
-          Refresh All
+          {t("app.refreshAll")}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          className="ops-language-toggle"
+          aria-label="EN / 中文"
+          onClick={toggleLanguage}
+        >
+          {language === "zh" ? "EN / 中文" : "中文 / EN"}
         </Button>
         <span className="ops-avatar" aria-label="Signed in user">{(currentTeam?.name || currentWorkspace?.name || "VK").slice(0, 2).toUpperCase()}</span>
       </div>
