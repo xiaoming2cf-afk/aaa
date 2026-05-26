@@ -35,6 +35,8 @@
     "Data Lab Teaching Page | Economic Research Platform": "数据实验室教学页 | 经济研究平台",
     "Optimization Result | Data Lab | Economic Research Platform": "优化结果 | 数据实验室 | 经济研究平台",
     "Public Daily Monitor | Economic Research Platform": "公共日报监测 | 经济研究平台",
+    "Research Agent | Economic Research Platform": "研究 Agent | 经济研究平台",
+    "Provider Center Unavailable": "供应商中心不可用",
     "United States | Public Daily Monitor": "美国 | 公共日报监测",
     "China | Public Daily Monitor": "中国 | 公共日报监测",
     "Developed Markets | Public Daily Monitor": "发达市场 | 公共日报监测",
@@ -527,6 +529,56 @@
     "Research materials": "研究材料",
     "Import literature or move to Data Lab for datasets.": "导入文献，或切换到数据实验室处理数据集。",
     "Reusable outputs": "可复用输出",
+    "Runtime provider management is unavailable in the current product scope.": "当前产品范围不提供运行时供应商管理。",
+    "Disabled Surface": "已禁用页面",
+    "Provider Center is unavailable": "供应商中心不可用",
+    "Runtime provider management is not part of the current product scope. Use Research, Knowledge, Team Library, and Quality instead.": "运行时供应商管理不属于当前产品范围。请改用研究、知识库、团队库和质量页面。",
+    "Research Agent": "研究 Agent",
+    "Run evidence-backed research.": "运行有证据支撑的研究。",
+    "Launch multimodal research runs, inspect evidence, compare candidate drafts, and retry blocked reports.": "启动多模态研究任务、检查证据、比较候选草稿，并重试被阻止的报告。",
+    "Launch multimodal runs, inspect reviewer decisions, and push approved reports into the knowledge base.": "启动多模态任务、检查审查决策，并将通过的报告推入知识库。",
+    "Research navigation": "研究导航",
+    "Research session": "研究会话",
+    "Select the active workspace, then launch a research run.": "选择当前工作区，然后启动研究任务。",
+    "Research loop": "研究循环",
+    "Planner, researcher, writer, reviewer, and knowledge-base save now live in one focused surface.": "规划、研究、写作、审查和知识库保存现在集中在一个页面中。",
+    "Multimodal": "多模态",
+    "Best-of-N drafts": "Best-of-N 草稿",
+    "Retry blocked runs": "重试被阻止任务",
+    "Research Queue": "研究队列",
+    "No run selected": "未选择任务",
+    "Launch a run or inspect a previous one from the right rail.": "启动任务，或从右侧栏检查历史任务。",
+    "Back to Workspace": "返回工作区",
+    "Eval Snapshot": "评估快照",
+    "Awaiting data": "等待数据",
+    "Approved and blocked runs will surface prompt-optimization candidates here.": "通过和被阻止的任务会在此显示提示词优化候选。",
+    "Launch": "启动",
+    "New research run": "新建研究任务",
+    "Research topic": "研究主题",
+    "Research question (optional)": "研究问题（可选）",
+    "Extra instructions for the planner, writer, or reviewer": "给规划器、写作者或审查者的额外说明",
+    "Mode": "模式",
+    "Standard": "标准",
+    "Deep Research": "深度研究",
+    "Draft Variants": "草稿变体",
+    "Auto": "自动",
+    "Knowledge Case": "知识案例",
+    "No case": "无案例",
+    "Attachments": "附件",
+    "Choose workspace assets to feed the run.": "选择要提供给任务的工作区资产。",
+    "Start research run": "启动研究任务",
+    "Runs": "任务",
+    "Recent research runs": "最近研究任务",
+    "Selected Run": "已选任务",
+    "Run detail": "任务详情",
+    "Retry": "重试",
+    "Rewrite blocked run": "重写被阻止任务",
+    "What should the writer or reviewer fix on retry?": "重试时写作者或审查者应修复什么？",
+    "Retry Draft Variants": "重试草稿变体",
+    "Keep current": "保持当前",
+    "Extra attachments": "额外附件",
+    "Add more assets when the reviewer says evidence is weak.": "当审查者认为证据薄弱时，添加更多资产。",
+    "Retry selected run": "重试所选任务",
     "Connection test succeeded.": "连接测试成功。",
     "Optimization suite completed.": "优化套件已完成。",
     "Failed to load the full knowledge note.": "加载完整知识笔记失败。",
@@ -647,6 +699,8 @@
     observer: null,
     syncing: false,
   };
+  const originalTextNodes = new WeakMap();
+  const originalAttributes = new WeakMap();
 
   function normalizeLocale(locale) {
     return locale === "zh-CN" ? "zh-CN" : "en";
@@ -724,12 +778,29 @@
     return Boolean(element && element.closest(SKIP_SELECTOR));
   }
 
+  function originalAttributeMap(element) {
+    const existing = originalAttributes.get(element);
+    if (existing) {
+      return existing;
+    }
+    const next = new Map();
+    originalAttributes.set(element, next);
+    return next;
+  }
+
   function translateAttribute(element, attrName, markerName = "") {
     if (!element || isSkipped(element)) {
       return;
     }
     const key = markerName ? element.getAttribute(markerName) : "";
-    const original = key || element.getAttribute(attrName) || "";
+    const originals = originalAttributeMap(element);
+    const current = element.getAttribute(attrName) || "";
+    const stored = originals.get(attrName);
+    const translatedStored = stored ? t(stored) : "";
+    if (!key && (!stored || (current !== stored && current !== translatedStored))) {
+      originals.set(attrName, current);
+    }
+    const original = key || originals.get(attrName) || current;
     if (!original) {
       return;
     }
@@ -743,7 +814,13 @@
     if (!node || isSkipped(node)) {
       return;
     }
-    const translated = translateInlineText(node.nodeValue || "");
+    const current = node.nodeValue || "";
+    const stored = originalTextNodes.get(node);
+    const translatedStored = stored ? translateInlineText(stored) : "";
+    if (!stored || (current !== stored && current !== translatedStored)) {
+      originalTextNodes.set(node, current);
+    }
+    const translated = translateInlineText(originalTextNodes.get(node) || current);
     if (translated !== node.nodeValue) {
       node.nodeValue = translated;
     }
@@ -772,7 +849,7 @@
 
   function applyLocale(root = document.documentElement) {
     syncDocumentLocale();
-    if (currentLocale() !== "zh-CN" || runtime.syncing) {
+    if (runtime.syncing) {
       updateLocaleSwitcherState();
       return;
     }
@@ -892,6 +969,24 @@
     ensureObserver();
   }
 
+  function autoMount() {
+    if (runtime.controller) {
+      return;
+    }
+    mount({
+      getLocale: resolveInitialLocale,
+      setLocale: (locale) => {
+        const normalized = normalizeLocale(locale);
+        try {
+          localStorage.setItem(LOCALE_KEY, normalized);
+        } catch {
+          // Ignore storage access issues.
+        }
+        window.location.reload();
+      },
+    });
+  }
+
   window.erpLocale = {
     normalizeLocale,
     resolveInitialLocale,
@@ -903,4 +998,10 @@
     ensureObserver,
     mount,
   };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", autoMount, { once: true });
+  } else {
+    queueMicrotask(autoMount);
+  }
 })();

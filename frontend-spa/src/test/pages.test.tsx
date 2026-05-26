@@ -5,7 +5,7 @@ import { MemoryRouter, Navigate, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { apiFetch } from "../api";
-import { I18nProvider } from "../i18n";
+import { I18nProvider, useI18n } from "../i18n";
 import { App, AppShell } from "../main";
 import { DataLabAgentPage } from "../pages/DataLabAgentPage";
 import { DataLabHubPage } from "../pages/DataLabHubPage";
@@ -35,6 +35,19 @@ function renderWithQuery(ui: JSX.Element): void {
     <I18nProvider>
       <QueryClientProvider client={client}>{ui}</QueryClientProvider>
     </I18nProvider>,
+  );
+}
+
+function InlineTranslationProbe(): JSX.Element {
+  const { toggleLanguage, tx } = useI18n();
+  return (
+    <div>
+      <button type="button" onClick={toggleLanguage}>
+        toggle language
+      </button>
+      <p>{tx("Research runtime is available.")}</p>
+      <input aria-label="question probe" placeholder={tx("Question")} />
+    </div>
   );
 }
 
@@ -260,6 +273,22 @@ describe("SPA delivery gating", () => {
     expect(screen.getByLabelText("Search workbench")).toBeInTheDocument();
     expect(localStorage.getItem("spa-language")).toBe("en");
     expect(document.documentElement.lang).toBe("en");
+  });
+
+  test("I18nProvider translates inline SPA strings", async () => {
+    render(
+      <I18nProvider>
+        <InlineTranslationProbe />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByText("Research runtime is available.")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Question")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "toggle language" }));
+
+    expect(await screen.findByText("\u7814\u7a76\u8fd0\u884c\u65f6\u53ef\u7528\u3002")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("\u95ee\u9898")).toBeInTheDocument();
   });
 
   test("AppShell wildcard route falls back to overview", async () => {
