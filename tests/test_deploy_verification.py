@@ -89,6 +89,19 @@ def test_engineering_gate_artifact_includes_spa_dist_manifest(monkeypatch, tmp_p
     assert any(check["key"] == "spa_dist_manifest_bound" and check["passed"] for check in payload["checks"])
 
 
+def test_spa_manifest_ignores_runtime_api_asset_paths(tmp_path: Path):
+    _write_valid_spa_dist(
+        tmp_path,
+        js_text='import("./chunk-def456.js");fetch(`/api/data-lab/assets/${assetId}/profile`);fetch("/api/data-lab/assets/upload",{method:"POST"});\n',
+    )
+
+    manifest, failures = collect_spa_dist_manifest(tmp_path / "frontend-spa" / "dist", commit_sha=COMMIT_SHA)
+
+    assert failures == []
+    assert manifest is not None
+    assert "assets/index-abc123.js" in manifest["entrypoints"]
+
+
 def test_deploy_artifact_verifier_rejects_unbound_engineering_gate(tmp_path: Path):
     artifact = tmp_path / f"engineering-gate.{COMMIT_SHA}.json"
     artifact.write_text(

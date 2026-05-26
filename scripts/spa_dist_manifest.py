@@ -20,7 +20,30 @@ TEXT_SUFFIXES = {
     ".xml",
 }
 MAX_TEXT_BYTES = 5_000_000
-ASSET_REF_RE = re.compile(r"(?:/app/|/)?assets/[^\"'<>\s)]+")
+ASSET_REF_RE = re.compile(r"(?:/app/|/)?assets/[^\"'`<>{}\s),]+")
+STATIC_ASSET_SUFFIXES = {
+    ".avif",
+    ".css",
+    ".eot",
+    ".gif",
+    ".ico",
+    ".jpeg",
+    ".jpg",
+    ".js",
+    ".json",
+    ".map",
+    ".otf",
+    ".png",
+    ".svg",
+    ".ttf",
+    ".txt",
+    ".wasm",
+    ".webmanifest",
+    ".webp",
+    ".woff",
+    ".woff2",
+    ".xml",
+}
 
 
 def _posix(path: Path) -> str:
@@ -49,6 +72,10 @@ def normalize_asset_reference(reference: str) -> str:
     if value.startswith("app/"):
         value = value[4:]
     if not value.startswith("assets/"):
+        return ""
+    if any(token in value for token in ("$", "{", "}", "`")):
+        return ""
+    if Path(value).suffix.lower() not in STATIC_ASSET_SUFFIXES:
         return ""
     return value
 
