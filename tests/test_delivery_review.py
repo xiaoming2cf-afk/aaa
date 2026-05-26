@@ -17,6 +17,8 @@ from research_agent.quality_center import (
     scan_runtime_narrative,
 )
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 def _passed_engineering_gate() -> dict[str, object]:
     return {
@@ -95,7 +97,7 @@ def test_agent_run_delivery_review_exposes_arbiter_delivery_posterior(tmp_path: 
     assert review["metadata"]["arbiter"]["v2"]["comparison"]["fallback_reason"] == "proposed_choice_matches_baseline"
 
 
-def test_knowledge_record_delivery_review_handles_manual_and_agent_derived(db_session):
+def test_knowledge_record_delivery_review_handles_manual_and_agent_derived(app, db_session):
     token = _unique_token()
     user = User(email=f"knowledge-review-{token}@example.com", full_name="Knowledge Review", password_hash="hashed")
     workspace = Workspace(owner_user_id="", name="Knowledge Review", slug=f"knowledge-review-{token}", description="Test")
@@ -144,7 +146,7 @@ def test_knowledge_record_delivery_review_handles_manual_and_agent_derived(db_se
     assert any("Backend pytest suite passes" in reason for reason in blocked_review["blocking_reasons"])
 
 
-def test_delivery_scorecard_requires_engineering_gate_even_with_500_business_score(db_session):
+def test_delivery_scorecard_requires_engineering_gate_even_with_500_business_score(app, db_session):
     token = _unique_token()
     user = User(email=f"scorecard-review-{token}@example.com", full_name="Scorecard Review", password_hash="hashed")
     workspace = Workspace(owner_user_id="", name="Scorecard Review", slug=f"scorecard-review-{token}", description="Test")
@@ -323,6 +325,6 @@ def test_production_engineering_gate_missing_artifact_fails_closed(tmp_path: Pat
 
 
 def test_webapp_quality_paths_do_not_auto_refresh_engineering_gate():
-    webapp_text = Path("D:/智能体/src/research_agent/webapp.py").read_text(encoding="utf-8")
+    webapp_text = (REPO_ROOT / "src" / "research_agent" / "webapp.py").read_text(encoding="utf-8")
 
     assert "auto_refresh_if_missing=True" not in webapp_text

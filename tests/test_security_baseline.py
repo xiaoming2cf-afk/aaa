@@ -16,6 +16,8 @@ from research_agent.platform_research import serialize_public_briefing
 from research_agent.platform_core import validate_email
 from research_agent.webapp import ModelRunRequest
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 def test_health_and_bootstrap_are_minimized(client):
     health = client.get("/api/health")
@@ -392,7 +394,7 @@ def test_email_validation_rejects_common_invalid_formats():
 
 
 def test_frontend_escapes_single_quotes_and_uses_replace_redirect():
-    app_js = Path("D:/智能体/src/research_agent/web/app.js").read_text(encoding="utf-8")
+    app_js = (REPO_ROOT / "src" / "research_agent" / "web" / "app.js").read_text(encoding="utf-8")
     assert ".replaceAll(\"'\", \"&#39;\")" in app_js
     assert 'window.location.replace("/workspace")' in app_js
     assert 'window.location.assign("/workspace")' not in app_js
@@ -401,7 +403,7 @@ def test_frontend_escapes_single_quotes_and_uses_replace_redirect():
 
 
 def test_workspace_form_uses_autofill_resistant_attributes():
-    workspace_html = Path("D:/智能体/src/research_agent/web/workspace.html").read_text(encoding="utf-8")
+    workspace_html = (REPO_ROOT / "src" / "research_agent" / "web" / "workspace.html").read_text(encoding="utf-8")
     assert 'id="workspace-form"' in workspace_html
     assert 'autocomplete="off"' in workspace_html
     assert 'data-lpignore="true"' in workspace_html
@@ -409,9 +411,9 @@ def test_workspace_form_uses_autofill_resistant_attributes():
 
 
 def test_deployment_samples_match_security_baseline():
-    env_example = Path("D:/智能体/.env.example").read_text(encoding="utf-8")
-    render_yaml = Path("D:/智能体/render.yaml").read_text(encoding="utf-8")
-    readme = Path("D:/智能体/README.md").read_text(encoding="utf-8")
+    env_example = (REPO_ROOT / ".env.example").read_text(encoding="utf-8")
+    render_yaml = (REPO_ROOT / "render.yaml").read_text(encoding="utf-8")
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
 
     assert "APP_SECRET=" in env_example
     assert "APP_SECRET=development-secret-change-me" not in env_example
